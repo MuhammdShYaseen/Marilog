@@ -1,7 +1,5 @@
 ﻿using Marilog.Domain.Common;
-using Marilog.Domain.Entities;
 using Marilog.Domain.Events;
-using System.Xml.Linq;
 
 namespace Marilog.Domain.Entities
 {
@@ -163,8 +161,8 @@ namespace Marilog.Domain.Entities
             _payments.Add(payment);
             Touch();
 
-            //if (IsFullyPaid())
-                //AddDomainEvent(new DocumentFullyPaidEvent(Id));
+            if (IsFullyPaid())
+                AddDomainEvent(new DocumentFullyPaidEvent(Id));
 
             return payment;
         }
