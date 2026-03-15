@@ -10,7 +10,7 @@
         public decimal UnitPrice { get; private set; }
         public decimal LineTotal { get; private set; }
 
-
+        private DocumentItem() { }
         internal static DocumentItem Create(int documentId, string productName,
             decimal quantity, decimal unitPrice, string? unit = null)
         {

@@ -10,7 +10,7 @@ namespace Marilog.Domain.Entities
         public int? CountryID { get; private set; }
         public Country? Country { get; private set; }
 
-
+        private Port() { }
         public static Port Create(string portCode, string portName, int? countryId = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(portCode);

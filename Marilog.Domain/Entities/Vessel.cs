@@ -17,7 +17,7 @@ namespace Marilog.Domain.Entities
         private readonly List<CrewContract> _crewContracts = new();
         public IReadOnlyCollection<CrewContract> CrewContracts => _crewContracts.AsReadOnly();
 
-
+        private Vessel() { }
         public static Vessel Create(int companyId, string vesselName,
             string? imoNumber = null, decimal? grossTonnage = null,
             int? flagCountryId = null, string? notes = null)

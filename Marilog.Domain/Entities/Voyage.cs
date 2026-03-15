@@ -34,6 +34,7 @@ namespace Marilog.Domain.Entities
         private readonly List<VoyageStop> _stops = new();
         public IReadOnlyCollection<VoyageStop> Stops => _stops.AsReadOnly();
 
+        private Voyage() { }
         public static Voyage Create(int vesselId, string voyageNumber, DateOnly voyageMonth,
             int? masterContractId = null, int? departurePortId = null, int? arrivalPortId = null,
             DateTime? departureDate = null, DateTime? arrivalDate = null,

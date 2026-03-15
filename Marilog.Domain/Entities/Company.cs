@@ -9,7 +9,8 @@ namespace Marilog.Domain.Entities
     {
         public int CompanyID { get; private set; }
         public string CompanyName { get; private set; } = null!;
-        public string? Country { get; private set; }
+        public int CountryId { get; private set; }
+        public Country? Country { get; private set; }
         public string? ContactName { get; private set; }
         public string? Email { get; private set; }
         public string? Phone { get; private set; }
@@ -18,8 +19,8 @@ namespace Marilog.Domain.Entities
         private readonly List<Vessel> _vessels = new();
         public IReadOnlyCollection<Vessel> Vessels => _vessels.AsReadOnly();
 
-
-        public static Company Create(string companyName, string? country = null,
+        private Company() { }
+        public static Company Create(string companyName, int countryId,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null)
         {
@@ -28,7 +29,7 @@ namespace Marilog.Domain.Entities
             return new Company
             {
                 CompanyName = companyName,
-                Country = country,
+                CountryId = countryId,
                 ContactName = contactName,
                 Email = email,
                 Phone = phone,
@@ -36,14 +37,14 @@ namespace Marilog.Domain.Entities
             };
         }
 
-        public void Update(string companyName, string? country = null,
+        public void Update(string companyName, int countryId,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(companyName);
 
             CompanyName = companyName;
-            Country = country;
+            CountryId = countryId;
             ContactName = contactName;
             Email = email;
             Phone = phone;

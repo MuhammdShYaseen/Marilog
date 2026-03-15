@@ -10,7 +10,7 @@ namespace Marilog.Domain.Entities
         public decimal ExchangeRate { get; private set; }  // rate vs base currency
         public bool IsBaseCurrency { get; private set; }
 
-
+        private Currency () { }
         public static Currency Create(string currencyCode, string currencyName,
             decimal exchangeRate, string? symbol = null, bool isBaseCurrency = false)
         {

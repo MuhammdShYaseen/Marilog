@@ -11,7 +11,7 @@ namespace Marilog.Domain.Entities
         public string CountryCode { get; private set; } = null!;
         public string CountryName { get; private set; } =null!;
 
-
+        private Country() { }
         public static Country Create(string countryCode, string countryName)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(countryCode);

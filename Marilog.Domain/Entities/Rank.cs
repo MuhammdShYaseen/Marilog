@@ -11,7 +11,7 @@ namespace Marilog.Domain.Entities
         public string RankName { get; private set; } = null!;
         public Department Department { get; private set; }
 
-
+        private Rank() { }
         public static Rank Create(string rankCode, string rankName, Department department)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(rankCode);

@@ -9,7 +9,7 @@
         public decimal PaidAmount { get; private set; }
         public DateOnly PaymentDate { get; private set; }
 
-
+        private Payment() { }
         internal static Payment Create(int documentId, int swiftTransferId,
             decimal paidAmount, DateOnly paymentDate)
         {

@@ -20,7 +20,7 @@ namespace Marilog.Domain.Entities
         public Port? SignOffPortNav { get; private set; }
         public string? Notes { get; private set; }
 
-
+        private CrewContract() { }
         public static CrewContract Create(int personId, int vesselId, int rankId,
             decimal monthlyWage, DateOnly signOnDate, int? signOnPort = null,
             string? notes = null)

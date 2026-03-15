@@ -21,6 +21,7 @@ namespace Marilog.Domain.Entities
             private readonly List<Payment> _payments = new();
             public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
 
+            private SwiftTransfer() { }
             public static SwiftTransfer Create(string swiftReference, DateOnly transactionDate,
                 int currencyId, decimal amount, int? senderCompanyId = null,
                 int? receiverCompanyId = null, string? senderBank = null,

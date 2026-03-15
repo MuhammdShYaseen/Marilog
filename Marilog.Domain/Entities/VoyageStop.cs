@@ -16,7 +16,7 @@ namespace Marilog.Domain.Entities
         public string? PurposeOfCall { get; private set; }
         public string? Notes { get; private set; }
 
-
+        private VoyageStop() { }
         internal static VoyageStop Create(int voyageId, int portId, int stopOrder,
             DateTime? arrivalDate = null, DateTime? departureDate = null,
             string? purposeOfCall = null, string? notes = null)

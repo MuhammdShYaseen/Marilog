@@ -18,7 +18,7 @@ namespace Marilog.Domain.Entities
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 
-
+        private Person() { }
         public static Person Create(string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
