@@ -35,8 +35,8 @@ namespace Marilog.Domain.Entities
         public Voyage? Voyage { get; private set; }
 
         // ── CashAtOffice ──────────────────────────────────────────────────────────
-        public string? OfficeCity { get; private set; }   // e.g. "دبي"
-        public string? OfficeCountry { get; private set; }   // e.g. "UAE"
+        public int? OfficeId { get; private set; }
+        public Office? Office { get; private set; }
         public string? RecipientName { get; private set; }   // اسم المستلم
         public string? RecipientIdNumber { get; private set; }   // رقم الهوية / الجواز
 
@@ -67,18 +67,9 @@ namespace Marilog.Domain.Entities
             };
         }
 
-        internal static CrewPayrollDisbursement CreateCashAtOffice(
-            int payrollId,
-            decimal amount,
-            DateOnly paidOn,
-            string officeCity,
-            string officeCountry,
-            string recipientName,
-            string recipientIdNumber,
-            string? notes = null)
+        internal static CrewPayrollDisbursement CreateCashAtOffice(int payrollId, int officeId, decimal amount, DateOnly paidOn,
+                                                                   string recipientName, string recipientIdNumber, string? notes = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(officeCity);
-            ArgumentException.ThrowIfNullOrWhiteSpace(officeCountry);
             ArgumentException.ThrowIfNullOrWhiteSpace(recipientName);
             ArgumentException.ThrowIfNullOrWhiteSpace(recipientIdNumber);
 
@@ -88,8 +79,7 @@ namespace Marilog.Domain.Entities
                 Method = PaymentMethod.CashAtOffice,
                 Amount = amount,
                 PaidOn = paidOn,
-                OfficeCity = officeCity,
-                OfficeCountry = officeCountry,
+                OfficeId = officeId,
                 RecipientName = recipientName,
                 RecipientIdNumber = recipientIdNumber,
                 Notes = notes

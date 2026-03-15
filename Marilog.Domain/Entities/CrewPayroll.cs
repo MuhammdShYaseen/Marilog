@@ -151,28 +151,25 @@ namespace Marilog.Domain.Entities
         }
 
         /// <summary>
-        /// Cash collected at a company office by any person.
-        /// City, country, recipient name and ID number are required for audit trail.
+        /// Cash collected at a registered company office by any person.
+        /// OfficeId, recipient name and ID number are required for audit trail.
         /// </summary>
         public CrewPayrollDisbursement PayAtOffice(
+            int officeId,
             decimal amount,
             DateOnly paidOn,
-            string officeCity,
-            string officeCountry,
             string recipientName,
             string recipientIdNumber,
             string? notes = null)
         {
             EnsureApproved();
             ValidateAmount(amount);
-            ArgumentException.ThrowIfNullOrWhiteSpace(officeCity);
-            ArgumentException.ThrowIfNullOrWhiteSpace(officeCountry);
+            if (officeId <= 0) throw new ArgumentException("OfficeId is required.");
             ArgumentException.ThrowIfNullOrWhiteSpace(recipientName);
             ArgumentException.ThrowIfNullOrWhiteSpace(recipientIdNumber);
 
             var d = CrewPayrollDisbursement.CreateCashAtOffice(
-                Id, amount, paidOn,
-                officeCity, officeCountry,
+                Id, officeId, amount, paidOn,
                 recipientName, recipientIdNumber, notes);
 
             return Disburse(d);

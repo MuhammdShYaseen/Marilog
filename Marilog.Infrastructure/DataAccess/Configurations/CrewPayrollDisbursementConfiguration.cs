@@ -8,7 +8,7 @@ using System.Text;
 namespace Marilog.Infrastructure.DataAccess.Configurations
 {
     public class CrewPayrollDisbursementConfiguration
-     : IEntityTypeConfiguration<CrewPayrollDisbursement>
+       : IEntityTypeConfiguration<CrewPayrollDisbursement>
     {
         public void Configure(EntityTypeBuilder<CrewPayrollDisbursement> builder)
         {
@@ -36,9 +36,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasMaxLength(20)
                    .HasDefaultValue(DisbursementStatus.Pending);
 
-            // ── CashAtOffice fields (text — no FK) ────────────────────────────────
-            builder.Property(x => x.OfficeCity).HasMaxLength(100);
-            builder.Property(x => x.OfficeCountry).HasMaxLength(100);
+            // ── CashAtOffice fields ───────────────────────────────────────────────
             builder.Property(x => x.RecipientName).HasMaxLength(200);
             builder.Property(x => x.RecipientIdNumber).HasMaxLength(50);
 
@@ -49,6 +47,13 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.Voyage)
                    .WithMany()
                    .HasForeignKey(x => x.VoyageId)
+                   .IsRequired(false)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            // ── CashAtOffice → Office ─────────────────────────────────────────────
+            builder.HasOne(x => x.Office)
+                   .WithMany()
+                   .HasForeignKey(x => x.OfficeId)
                    .IsRequired(false)
                    .OnDelete(DeleteBehavior.Restrict);
 
@@ -65,6 +70,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasIndex(x => x.Status);
             builder.HasIndex(x => x.VoyageId)
                    .HasFilter("[VoyageId] IS NOT NULL");
+            builder.HasIndex(x => x.OfficeId)
+                   .HasFilter("[OfficeId] IS NOT NULL");
             builder.HasIndex(x => x.SwiftTransferId)
                    .HasFilter("[SwiftTransferId] IS NOT NULL");
         }
