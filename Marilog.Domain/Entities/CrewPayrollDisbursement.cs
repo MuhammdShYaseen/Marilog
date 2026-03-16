@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Marilog.Domain.Common;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -18,12 +19,11 @@ namespace Marilog.Domain.Entities
     /// All amounts in USD.
     ///
     /// CashOnBoard  → VoyageId required
-    /// CashAtOffice → OfficeCity + OfficeCountry + RecipientName + RecipientIdNumber required
+    /// 
     /// BankTransfer → SwiftTransferId required
     /// </summary>
-    public class CrewPayrollDisbursement
+    public class CrewPayrollDisbursement : Entity
     {
-        public int Id { get; private set; }
         public int PayrollId { get; private set; }
         public PaymentMethod Method { get; private set; }
         public decimal Amount { get; private set; }   // USD

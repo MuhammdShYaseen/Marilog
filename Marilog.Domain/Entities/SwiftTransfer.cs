@@ -60,9 +60,9 @@ namespace Marilog.Domain.Entities
                 Touch();
             }
 
-            // ── Computed ────────────────────────────────────────────────────────────
-            public decimal AllocatedAmount() => _payments.Sum(p => p.PaidAmount);
-            public decimal UnallocatedAmount() => Amount - AllocatedAmount();
-            public bool IsFullyAllocated() => UnallocatedAmount() <= 0;
-        }
+        // ── Computed ────────────────────────────────────────────────────────────
+        public decimal AllocatedAmount => _payments.Sum(p => p.PaidAmount);
+        public decimal UnallocatedAmount => Amount - AllocatedAmount;
+        public bool IsFullyAllocated => UnallocatedAmount <= 0;
+    }
 }

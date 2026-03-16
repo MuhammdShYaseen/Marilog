@@ -154,14 +154,14 @@ namespace Marilog.Domain.Entities
         {
             if (paidAmount <= 0)
                 throw new ArgumentException("PaidAmount must be positive.");
-            if (RemainingBalance() < paidAmount)
+            if (RemainingBalance < paidAmount)
                 throw new InvalidOperationException("PaidAmount exceeds remaining balance.");
 
             var payment = Payment.Create(Id, swiftTransferId, paidAmount, paymentDate);
             _payments.Add(payment);
             Touch();
 
-            if (IsFullyPaid())
+            if (IsFullyPaid)
                 AddDomainEvent(new DocumentFullyPaidEvent(Id));
 
             return payment;
@@ -198,9 +198,9 @@ namespace Marilog.Domain.Entities
         }
 
         // ── Computed ─────────────────────────────────────────────────────────────
-        public decimal TotalPaid() => _payments.Sum(p => p.PaidAmount);
-        public decimal RemainingBalance() => TotalAmount - TotalPaid();
-        public bool IsFullyPaid() => RemainingBalance() <= 0;
+        public decimal TotalPaid => _payments.Sum(p => p.PaidAmount);
+        public decimal RemainingBalance => TotalAmount - TotalPaid;
+        public bool IsFullyPaid => RemainingBalance <= 0;
 
         private void RecalculateTotal() => TotalAmount = _items.Sum(i => i.LineTotal);
     }
