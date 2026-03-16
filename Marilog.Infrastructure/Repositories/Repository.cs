@@ -1,13 +1,11 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
-using Marilog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Infrastructure.Repositories
 {
-    public class Repository<TEntity> : IRepository<TEntity>
-        where TEntity : Entity
+    public class Repository<TEntity> : IRepository<TEntity> where TEntity : Entity
     {
         private readonly MarilogContext _context;
         private readonly DbSet<TEntity> _set;

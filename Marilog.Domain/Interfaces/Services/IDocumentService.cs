@@ -1,4 +1,5 @@
 using Marilog.Domain.Entities;
+using Marilog.Domain.Events;
 
 namespace Marilog.Domain.Interfaces.Services
 {

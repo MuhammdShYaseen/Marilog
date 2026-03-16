@@ -14,6 +14,9 @@ namespace Marilog.Domain.Entities
         public DateOnly? DateOfBirth { get; private set; }
         public string? Phone { get; private set; }
         public string? Email { get; private set; }
+        public string? BankName { get; private set; }
+        public string? IBAN { get; private set; }
+        public string? BankSwiftCode { get; private set; }
 
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
@@ -56,8 +59,22 @@ namespace Marilog.Domain.Entities
             Email = email;
             Touch();
         }
-
+        public void UpdateBankAccount(string? bankName, string? iban, string? swiftCode)
+        {
+            BankName = bankName;
+            IBAN = iban;
+            BankSwiftCode = swiftCode;
+            Touch();
+        }
         public bool IsPassportExpired() =>
             PassportExpiry.HasValue && PassportExpiry.Value < DateOnly.FromDateTime(DateTime.UtcNow);
+
+        public void ClearBankAccount()
+        {
+            BankName = null;
+            IBAN = null;
+            BankSwiftCode = null;
+            Touch();
+        }
     }
 }

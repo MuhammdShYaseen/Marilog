@@ -9,7 +9,7 @@ namespace Marilog.Domain.Entities
     {
         public int CompanyID { get; private set; }
         public string CompanyName { get; private set; } = null!;
-        public int CountryId { get; private set; }
+        public int? CountryId { get; private set; }
         public Country? Country { get; private set; }
         public string? ContactName { get; private set; }
         public string? Email { get; private set; }
@@ -20,7 +20,7 @@ namespace Marilog.Domain.Entities
         public IReadOnlyCollection<Vessel> Vessels => _vessels.AsReadOnly();
 
         private Company() { }
-        public static Company Create(string companyName, int countryId,
+        public static Company Create(string companyName, int? countryId,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null)
         {
@@ -37,7 +37,7 @@ namespace Marilog.Domain.Entities
             };
         }
 
-        public void Update(string companyName, int countryId,
+        public void Update(string companyName, int? countryId,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null)
         {

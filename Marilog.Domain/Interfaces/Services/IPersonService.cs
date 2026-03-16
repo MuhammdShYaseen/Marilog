@@ -27,5 +27,10 @@ namespace Marilog.Domain.Interfaces.Services
         Task         ActivateAsync(int id, CancellationToken ct = default);
         Task         DeactivateAsync(int id, CancellationToken ct = default);
         Task         DeleteAsync(int id, CancellationToken ct = default);
+
+        // ── Bank Account ──────────────────────────────────────────────────────────
+        Task UpdateBankAccountAsync(int id, string? bankName, string? iban,
+                                    string? bankSwiftCode, CancellationToken ct = default);
+        Task ClearBankAccountAsync(int id, CancellationToken ct = default);
     }
 }

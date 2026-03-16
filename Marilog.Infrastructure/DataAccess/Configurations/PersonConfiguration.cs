@@ -21,6 +21,10 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Email).HasMaxLength(150);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            // ── Bank Account ──────────────────────────────────────────────────────
+            builder.Property(x => x.BankName).HasMaxLength(200);
+            builder.Property(x => x.IBAN).HasMaxLength(34);
+            builder.Property(x => x.BankSwiftCode).HasMaxLength(11);
 
             builder.HasOne(x => x.NationalityCountry)
                    .WithMany()
