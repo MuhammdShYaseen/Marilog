@@ -14,8 +14,12 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.PaidAmount).IsRequired().HasColumnType("decimal(18,2)");
             builder.Property(x => x.PaymentDate).IsRequired().HasColumnType("date");
 
+            // ── Matching query filter to avoid global filter warning ─────────
+            builder.HasQueryFilter(x => !x.SwiftTransfer!.IsDeleted);
+
             builder.HasIndex(x => x.DocumentId);
             builder.HasIndex(x => x.SwiftTransferId);
         }
     }
 }
+

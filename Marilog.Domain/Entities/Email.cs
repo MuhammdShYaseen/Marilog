@@ -1,6 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace Marilog.Domain.Entities
@@ -39,8 +40,11 @@ namespace Marilog.Domain.Entities
         public IReadOnlyCollection<EmailAttachment> Attachments => _attachments.AsReadOnly();
 
         // ── Computed shortcuts ────────────────────────────────────────────────────
+        [NotMapped]
         public EmailParticipant? Sender => _participants.FirstOrDefault(p => p.Role == ParticipantRole.From);
+        [NotMapped]
         public IEnumerable<EmailParticipant> Recipients => _participants.Where(p => p.Role == ParticipantRole.To);
+        [NotMapped]
         public IEnumerable<EmailParticipant> CcList => _participants.Where(p => p.Role == ParticipantRole.Cc);
 
         private Email() { }

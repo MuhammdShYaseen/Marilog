@@ -20,7 +20,11 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.Port)
                    .WithMany()
                    .HasForeignKey(x => x.PortID)
-                   .OnDelete(DeleteBehavior.Restrict);
+                   .IsRequired(false)
+                   .OnDelete(DeleteBehavior.SetNull);
+
+            // ── Matching query filter to avoid global filter warning ─────────
+            builder.HasQueryFilter(x => !x.Port!.IsDeleted);
 
             builder.HasIndex(x => x.PortID);
         }

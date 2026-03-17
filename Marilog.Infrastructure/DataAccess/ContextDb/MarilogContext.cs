@@ -9,10 +9,10 @@ namespace Marilog.Infrastructure.DataAccess.ContextDb
         public MarilogContext(DbContextOptions<MarilogContext> options) : base(options)
         {
         }
-        
+
 
         private static void SetSoftDeleteFilter<T>(ModelBuilder builder)
-        where T : Entity
+         where T : Entity
         {
             builder.Entity<T>()
                    .HasQueryFilter(e => !e.IsDeleted);
@@ -46,5 +46,6 @@ namespace Marilog.Infrastructure.DataAccess.ContextDb
                 }
             }
         }
+
     }
 }

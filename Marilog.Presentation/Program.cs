@@ -1,4 +1,5 @@
-
+using Marilog.Application;
+using Marilog.Infrastructure;
 namespace Marilog.Presentation
 {
     public class Program
@@ -7,7 +8,9 @@ namespace Marilog.Presentation
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            builder.Services
+                .AddInfrastructure(builder.Configuration)
+                .AddApplication();
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

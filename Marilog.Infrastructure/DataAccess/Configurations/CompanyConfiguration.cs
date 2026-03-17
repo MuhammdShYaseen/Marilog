@@ -12,7 +12,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasKey(x => x.CompanyID);
             builder.Property(x => x.CompanyID).UseIdentityColumn();
             builder.Property(x => x.CompanyName).IsRequired().HasMaxLength(200);
-            builder.Property(x => x.Country).HasMaxLength(100);
             builder.Property(x => x.ContactName).HasMaxLength(150);
             builder.Property(x => x.Email).HasMaxLength(150);
             builder.Property(x => x.Phone).HasMaxLength(50);
@@ -24,6 +23,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .WithOne(x => x.Company)
                    .HasForeignKey(x => x.CompanyID)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Country);
         }
     }
 }

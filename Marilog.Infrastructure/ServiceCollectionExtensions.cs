@@ -15,12 +15,12 @@ namespace Marilog.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             // ── DbContext ─────────────────────────────────────────────────────────
-            services.AddDbContext<MarilogContext>(options =>
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    sql => sql
-                        .MigrationsAssembly(typeof(MarilogContext).Assembly.FullName)
-                        .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null)));
+            services.AddDbContext<MarilogContext>(options =>       // ← اسم الـ Context الفعلي
+    options.UseSqlServer(
+        configuration.GetConnectionString("DefaultConnection"),
+        sql => sql
+            .MigrationsAssembly("Marilog.Infrastructure")  // ← اسم المشروع الفعلي
+            .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
 
             // ── Generic Repository — covers all Aggregate Roots ───────────────────
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));

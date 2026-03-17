@@ -22,7 +22,6 @@ namespace Marilog.Application.Services
         public async Task<Email?> GetFullAsync(int id, CancellationToken ct = default)
             => await _repo.Query()
                           .Include(x => x.Participants).ThenInclude(x => x.Company)
-                          .Include(x => x.Participants).ThenInclude(x => x.Vessel)
                           .Include(x => x.Attachments)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 

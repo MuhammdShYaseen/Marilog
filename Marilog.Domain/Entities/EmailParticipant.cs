@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Marilog.Domain.Entities
 {
@@ -10,14 +11,20 @@ namespace Marilog.Domain.Entities
     public class EmailParticipant
     {
         public int Id { get; private set; }
+        
         public int EmailId { get; private set; }
+        //public Email Email { get; private set; } = null!;
         public ParticipantRole Role { get; private set; }
         public ParticipantType ParticipantType { get; private set; }
         public int ParticipantId { get; private set; }  // CompanyId or VesselId
 
         // ── Navigation (resolved at query time) ───────────────────────────────────
-        public Company? Company { get; private set; }
-        public Vessel? Vessel { get; private set; }
+        public Company Company { get; private set; } = null!;
+
+
+        public int CompanyId {  get; private set; }
+
+       
 
         // ── Fallback / override display ───────────────────────────────────────────
         public string? DisplayName { get; private set; }  // override Company/Vessel name if needed
