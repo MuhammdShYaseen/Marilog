@@ -29,7 +29,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.NationalityCountry)
                    .WithMany()
                    .HasForeignKey(x => x.Nationality)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(x => x.Contracts)
                    .WithOne(x => x.Person)

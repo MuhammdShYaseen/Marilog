@@ -3,12 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
 namespace Marilog.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class FirstCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -212,7 +210,7 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.Nationality,
                         principalTable: "Countries",
                         principalColumn: "CountryID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -239,7 +237,7 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.CountryID,
                         principalTable: "Countries",
                         principalColumn: "CountryID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -324,13 +322,13 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.ReceiverCompanyId,
                         principalTable: "Companies",
                         principalColumn: "CompanyID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_swift_transfers_Companies_SenderCompanyId",
                         column: x => x.SenderCompanyId,
                         principalTable: "Companies",
                         principalColumn: "CompanyID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_swift_transfers_Currencies_CurrencyId",
                         column: x => x.CurrencyId,
@@ -372,7 +370,7 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.FlagCountryID,
                         principalTable: "Countries",
                         principalColumn: "CountryID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -411,13 +409,13 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.SignOffPort,
                         principalTable: "Ports",
                         principalColumn: "PortID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Ports_SignOnPort",
                         column: x => x.SignOnPort,
                         principalTable: "Ports",
                         principalColumn: "PortID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Ranks_RankID",
                         column: x => x.RankID,
@@ -464,13 +462,13 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.BuyerId,
                         principalTable: "Companies",
                         principalColumn: "CompanyID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Companies_SupplierId",
                         column: x => x.SupplierId,
                         principalTable: "Companies",
                         principalColumn: "CompanyID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Currencies_CurrencyId",
                         column: x => x.CurrencyId,
@@ -488,19 +486,19 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.ParentDocumentId,
                         principalTable: "Documents",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Ports_PortId",
                         column: x => x.PortId,
                         principalTable: "Ports",
                         principalColumn: "PortID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Vessels_VesselId",
                         column: x => x.VesselId,
                         principalTable: "Vessels",
                         principalColumn: "VesselID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -572,19 +570,19 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.MasterContractID,
                         principalTable: "CrewContracts",
                         principalColumn: "ContractID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Voyages_Ports_ArrivalPortID",
                         column: x => x.ArrivalPortID,
                         principalTable: "Ports",
                         principalColumn: "PortID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Voyages_Ports_DeparturePortID",
                         column: x => x.DeparturePortID,
                         principalTable: "Ports",
                         principalColumn: "PortID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Voyages_Vessels_VesselID",
                         column: x => x.VesselID,
@@ -720,23 +718,13 @@ namespace Marilog.Infrastructure.Migrations
                         column: x => x.PortID,
                         principalTable: "Ports",
                         principalColumn: "PortID",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_VoyageStops_Voyages_VoyageID",
                         column: x => x.VoyageID,
                         principalTable: "Voyages",
                         principalColumn: "VoyageID",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.InsertData(
-                table: "DocumentTypes",
-                columns: new[] { "Id", "Code", "CreatedAt", "Guid", "IsActive", "IsDeleted", "Name", "SortOrder", "UpdatedAt" },
-                values: new object[,]
-                {
-                    { 1, "QUOTATION", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("11111111-0000-0000-0000-000000000001"), true, false, "Sales Quotation", 1, null },
-                    { 2, "DELIVERY_NOTE", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("11111111-0000-0000-0000-000000000002"), true, false, "Delivery Note", 2, null },
-                    { 3, "TAX_INVOICE", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("11111111-0000-0000-0000-000000000003"), true, false, "Tax Invoice", 3, null }
                 });
 
             migrationBuilder.CreateIndex(

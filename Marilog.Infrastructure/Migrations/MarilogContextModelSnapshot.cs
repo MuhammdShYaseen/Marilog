@@ -634,41 +634,6 @@ namespace Marilog.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("DocumentTypes", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Code = "QUOTATION",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Guid = new Guid("11111111-0000-0000-0000-000000000001"),
-                            IsActive = true,
-                            IsDeleted = false,
-                            Name = "Sales Quotation",
-                            SortOrder = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Code = "DELIVERY_NOTE",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Guid = new Guid("11111111-0000-0000-0000-000000000002"),
-                            IsActive = true,
-                            IsDeleted = false,
-                            Name = "Delivery Note",
-                            SortOrder = 2
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Code = "TAX_INVOICE",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Guid = new Guid("11111111-0000-0000-0000-000000000003"),
-                            IsActive = true,
-                            IsDeleted = false,
-                            Name = "Tax Invoice",
-                            SortOrder = 3
-                        });
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.Email", b =>
@@ -1459,12 +1424,12 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Port", "SignOffPortNav")
                         .WithMany()
                         .HasForeignKey("SignOffPort")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Port", "SignOnPortNav")
                         .WithMany()
                         .HasForeignKey("SignOnPort")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Vessel", "Vessel")
                         .WithMany("CrewContracts")
@@ -1529,7 +1494,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Company", "Buyer")
                         .WithMany()
                         .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Currency", "Currency")
                         .WithMany()
@@ -1546,22 +1511,22 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Document", null)
                         .WithMany()
                         .HasForeignKey("ParentDocumentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Port", "Port")
                         .WithMany()
                         .HasForeignKey("PortId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Company", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Vessel", "Vessel")
                         .WithMany()
                         .HasForeignKey("VesselId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Buyer");
 
@@ -1635,7 +1600,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Country", "NationalityCountry")
                         .WithMany()
                         .HasForeignKey("Nationality")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("NationalityCountry");
                 });
@@ -1645,7 +1610,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Country", "Country")
                         .WithMany()
                         .HasForeignKey("CountryID")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Country");
                 });
@@ -1661,12 +1626,12 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Company", "ReceiverCompany")
                         .WithMany()
                         .HasForeignKey("ReceiverCompanyId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Company", "SenderCompany")
                         .WithMany()
                         .HasForeignKey("SenderCompanyId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Currency");
 
@@ -1686,7 +1651,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Country", "FlagCountry")
                         .WithMany()
                         .HasForeignKey("FlagCountryID")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Company");
 
@@ -1698,17 +1663,17 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Port", "ArrivalPort")
                         .WithMany()
                         .HasForeignKey("ArrivalPortID")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Port", "DeparturePort")
                         .WithMany()
                         .HasForeignKey("DeparturePortID")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.CrewContract", "MasterContract")
                         .WithMany()
                         .HasForeignKey("MasterContractID")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Vessel", "Vessel")
                         .WithMany()
@@ -1730,7 +1695,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasOne("Marilog.Domain.Entities.Port", "Port")
                         .WithMany()
                         .HasForeignKey("PortID")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.Voyage", null)
                         .WithMany("Stops")

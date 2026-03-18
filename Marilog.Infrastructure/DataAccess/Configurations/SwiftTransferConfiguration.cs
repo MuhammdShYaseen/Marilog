@@ -33,12 +33,12 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.SenderCompany)
                    .WithMany()
                    .HasForeignKey(x => x.SenderCompanyId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.ReceiverCompany)
                    .WithMany()
                    .HasForeignKey(x => x.ReceiverCompanyId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(x => x.Payments)
                    .WithOne(x => x.SwiftTransfer)

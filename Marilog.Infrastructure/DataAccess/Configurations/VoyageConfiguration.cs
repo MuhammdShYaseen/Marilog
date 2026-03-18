@@ -34,17 +34,17 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.MasterContract)
                    .WithMany()
                    .HasForeignKey(x => x.MasterContractID)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.DeparturePort)
                    .WithMany()
                    .HasForeignKey(x => x.DeparturePortID)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.ArrivalPort)
                    .WithMany()
                    .HasForeignKey(x => x.ArrivalPortID)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(x => x.Stops)
                    .WithOne()

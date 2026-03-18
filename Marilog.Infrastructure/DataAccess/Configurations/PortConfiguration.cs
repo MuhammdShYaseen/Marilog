@@ -20,7 +20,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.Country)
                    .WithMany()
                    .HasForeignKey(x => x.CountryID)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(x => x.CountryID);
         }

@@ -38,29 +38,29 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.Supplier)
                    .WithMany()
                    .HasForeignKey(x => x.SupplierId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.Buyer)
                    .WithMany()
                    .HasForeignKey(x => x.BuyerId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             // ── Vessel / Port ─────────────────────────────────────────────────────
             builder.HasOne(x => x.Vessel)
                    .WithMany()
                    .HasForeignKey(x => x.VesselId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.Port)
                    .WithMany()
                    .HasForeignKey(x => x.PortId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             // ── Self-reference (parent only — no navigation collection) ───────────
             builder.HasOne<Document>()
                    .WithMany()
                    .HasForeignKey(x => x.ParentDocumentId)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             // ── Owned children ────────────────────────────────────────────────────
             builder.HasMany(x => x.Items)

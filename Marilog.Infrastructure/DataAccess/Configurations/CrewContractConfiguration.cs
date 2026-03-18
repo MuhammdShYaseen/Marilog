@@ -26,12 +26,12 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.SignOnPortNav)
                    .WithMany()
                    .HasForeignKey(x => x.SignOnPort)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.SignOffPortNav)
                    .WithMany()
                    .HasForeignKey(x => x.SignOffPort)
-                   .OnDelete(DeleteBehavior.SetNull);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(x => x.PersonID);
             builder.HasIndex(x => x.VesselID);
