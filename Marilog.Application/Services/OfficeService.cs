@@ -17,19 +17,19 @@ namespace Marilog.Application.Services
             => await _repo.GetByIdAsync(id, ct);
 
         public async Task<IReadOnlyList<Office>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .OrderBy(x => x.OfficeName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Office>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .OrderBy(x => x.OfficeName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Office>> GetByCountryAsync(int countryId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.CountryId == countryId && x.IsActive)
                           .OrderBy(x => x.City)
                           .ThenBy(x => x.OfficeName)

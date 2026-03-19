@@ -17,22 +17,22 @@ namespace Marilog.Application.Services
             => await _repo.GetByIdAsync(id, ct);
 
         public async Task<Country?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .FirstOrDefaultAsync(x => x.CountryCode == code.ToUpperInvariant(), ct);
 
         public async Task<IReadOnlyList<Country>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .OrderBy(x => x.CountryName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Country>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .OrderBy(x => x.CountryName)
                           .ToListAsync(ct);
 
         public async Task<bool> ExistsByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .AnyAsync(x => x.CountryCode == code.ToUpperInvariant(), ct);
 
         // ── Commands ─────────────────────────────────────────────────────────────

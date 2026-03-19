@@ -22,6 +22,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<DocumentType>> GetAllAsync(CancellationToken ct = default)
             => await _repo.Query()
+                          .AsNoTracking()
                           .OrderBy(x => x.SortOrder)
                           .ThenBy(x => x.Name)
                           .ToListAsync(ct);

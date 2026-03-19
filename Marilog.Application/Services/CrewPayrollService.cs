@@ -30,14 +30,14 @@ namespace Marilog.Application.Services
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<CrewPayroll?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Contract).ThenInclude(x => x.Person)
                           .Include(x => x.Contract).ThenInclude(x => x.Rank)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<CrewPayroll?> GetWithDisbursementsAsync(int id,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Disbursements).ThenInclude(x => x.Voyage)
                           .Include(x => x.Disbursements).ThenInclude(x => x.Office)
                           .Include(x => x.Disbursements).ThenInclude(x => x.SwiftTransfer)
@@ -49,7 +49,7 @@ namespace Marilog.Application.Services
             DateOnly month, CancellationToken ct = default)
         {
             var firstDay = new DateOnly(month.Year, month.Month, 1);
-            return await _repo.Query()
+            return await _repo.Query().AsNoTracking()
                               .Include(x => x.Disbursements)
                               .FirstOrDefaultAsync(x => x.ContractId   == contractId &&
                                                         x.PayrollMonth == firstDay, ct);
@@ -57,7 +57,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<CrewPayroll>> GetByContractAsync(int contractId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.ContractId == contractId)
                           .Include(x => x.Disbursements)
                           .OrderByDescending(x => x.PayrollMonth)
@@ -67,7 +67,7 @@ namespace Marilog.Application.Services
             CancellationToken ct = default)
         {
             var firstDay = new DateOnly(month.Year, month.Month, 1);
-            return await _repo.Query()
+            return await _repo.Query().AsNoTracking()
                               .Where(x => x.PayrollMonth == firstDay)
                               .Include(x => x.Contract).ThenInclude(x => x.Person)
                               .Include(x => x.Contract).ThenInclude(x => x.Vessel)
@@ -78,7 +78,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<CrewPayroll>> GetByStatusAsync(PayrollStatus status,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.Status == status)
                           .Include(x => x.Contract).ThenInclude(x => x.Person)
                           .Include(x => x.Contract).ThenInclude(x => x.Rank)

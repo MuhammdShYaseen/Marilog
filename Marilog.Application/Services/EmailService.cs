@@ -15,19 +15,19 @@ namespace Marilog.Application.Services
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<Email?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Participants)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<Email?> GetFullAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Participants).ThenInclude(x => x.Company)
                           .Include(x => x.Attachments)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<IReadOnlyList<Email>> GetByEntityAsync(string entityType,
             int entityId, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.EntityType == entityType &&
                                       x.EntityId   == entityId)
                           .Include(x => x.Participants)
@@ -36,7 +36,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Email>> GetByStatusAsync(EmailStatus status,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.Status == status)
                           .Include(x => x.Participants)
                           .OrderByDescending(x => x.CreatedAt)
@@ -45,7 +45,7 @@ namespace Marilog.Application.Services
         public async Task<IReadOnlyList<Email>> GetByParticipantAsync(
             ParticipantType participantType, int participantId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.Participants.Any(
                               p => p.ParticipantType == participantType &&
                                    p.ParticipantId   == participantId))

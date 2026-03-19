@@ -25,17 +25,17 @@ namespace Marilog.Application.Services
 
         public async Task<Vessel?> GetByImoAsync(string imoNumber,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .FirstOrDefaultAsync(x => x.IMONumber == imoNumber, ct);
 
         public async Task<IReadOnlyList<Vessel>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Company)
                           .OrderBy(x => x.VesselName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Vessel>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .Include(x => x.Company)
                           .OrderBy(x => x.VesselName)
@@ -43,7 +43,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Vessel>> GetByCompanyAsync(int companyId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.CompanyID == companyId && x.IsActive)
                           .OrderBy(x => x.VesselName)
                           .ToListAsync(ct);

@@ -14,7 +14,7 @@ namespace Marilog.Application.Services
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<SwiftTransfer?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Currency)
                           .Include(x => x.SenderCompany)
                           .Include(x => x.ReceiverCompany)
@@ -22,7 +22,7 @@ namespace Marilog.Application.Services
 
         public async Task<SwiftTransfer?> GetByReferenceAsync(string reference,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Currency)
                           .Include(x => x.SenderCompany)
                           .Include(x => x.ReceiverCompany)
@@ -30,14 +30,14 @@ namespace Marilog.Application.Services
 
         public async Task<SwiftTransfer?> GetWithPaymentsAsync(int id,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Payments)
                           .Include(x => x.Currency)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<IReadOnlyList<SwiftTransfer>> GetBySenderAsync(int companyId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.SenderCompanyId == companyId && x.IsActive)
                           .Include(x => x.Currency)
                           .Include(x => x.ReceiverCompany)
@@ -46,7 +46,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<SwiftTransfer>> GetByReceiverAsync(int companyId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.ReceiverCompanyId == companyId && x.IsActive)
                           .Include(x => x.Currency)
                           .Include(x => x.SenderCompany)
@@ -55,7 +55,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<SwiftTransfer>> GetUnallocatedAsync(
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive &&
                                       x.Amount > x.Payments
                                           .Where(p => p.SwiftTransferId == x.Id)
@@ -72,7 +72,7 @@ namespace Marilog.Application.Services
             if (from > to)
                 throw new ArgumentException("From date cannot be after To date.");
 
-            return await _repo.Query()
+            return await _repo.Query().AsNoTracking()
                               .Where(x => x.TransactionDate >= from &&
                                           x.TransactionDate <= to   &&
                                           x.IsActive)

@@ -12,10 +12,6 @@ namespace Marilog.Domain.Entities
         public string Name { get; private set; } = null!;   // e.g. "Sales Quotation"
         public int SortOrder { get; private set; }
 
-        // ── Well-known IDs (used as constants across the codebase) ───────────────
-        public const int QuotationId = 1;
-        public const int DeliveryNoteId = 2;
-        public const int TaxInvoiceId = 3;
 
         private DocumentType() { }
 

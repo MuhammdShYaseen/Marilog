@@ -18,28 +18,28 @@ namespace Marilog.Application.Services
 
         public async Task<Person?> GetByPassportAsync(string passportNo,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .FirstOrDefaultAsync(x => x.PassportNo == passportNo, ct);
 
         public async Task<Person?> GetBySeamanBookAsync(string seamanBookNo,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .FirstOrDefaultAsync(x => x.SeamanBookNo == seamanBookNo, ct);
 
         public async Task<IReadOnlyList<Person>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .OrderBy(x => x.FullName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Person>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .OrderBy(x => x.FullName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Person>> SearchAsync(string term,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive && (
                               x.FullName.Contains(term)     ||
                               x.PassportNo!.Contains(term)  ||
@@ -51,7 +51,7 @@ namespace Marilog.Application.Services
             CancellationToken ct = default)
         {
             var threshold = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(withinDays));
-            return await _repo.Query()
+            return await _repo.Query().AsNoTracking()
                               .Where(x => x.IsActive                      &&
                                           x.PassportExpiry.HasValue        &&
                                           x.PassportExpiry.Value <= threshold)

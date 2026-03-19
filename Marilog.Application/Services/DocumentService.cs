@@ -22,7 +22,7 @@ namespace Marilog.Application.Services
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<Document?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
                           .Include(x => x.Supplier)
@@ -32,21 +32,21 @@ namespace Marilog.Application.Services
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<Document?> GetWithItemsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Items)
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<Document?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Payments)
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<Document?> GetFullAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Items)
                           .Include(x => x.Payments)
                           .Include(x => x.DocType)
@@ -59,14 +59,14 @@ namespace Marilog.Application.Services
 
         public async Task<Document?> GetByNumberAsync(string docNumber,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
                           .FirstOrDefaultAsync(x => x.DocNumber == docNumber, ct);
 
         public async Task<IReadOnlyList<Document>> GetBySupplierAsync(int supplierId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.SupplierId == supplierId && x.IsActive)
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
@@ -75,7 +75,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Document>> GetByBuyerAsync(int buyerId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.BuyerId == buyerId && x.IsActive)
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
@@ -84,7 +84,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Document>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselId == vesselId && x.IsActive)
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
@@ -93,7 +93,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Document>> GetByTypeAsync(int docTypeId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.DocTypeId == docTypeId && x.IsActive)
                           .Include(x => x.Currency)
                           .OrderByDescending(x => x.DocDate)
@@ -101,7 +101,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Document>> GetUnpaidAsync(
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive &&
                                       x.TotalAmount > x.Payments
                                           .Where(p => p.DocumentId == x.Id)
@@ -114,7 +114,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Document>> GetChildrenAsync(int parentDocumentId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.ParentDocumentId == parentDocumentId)
                           .Include(x => x.DocType)
                           .Include(x => x.Currency)
@@ -155,7 +155,7 @@ namespace Marilog.Application.Services
             CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            var parentExists = await _repo.Query()
+            var parentExists = await _repo.Query().AsNoTracking()
                 .AnyAsync(x => x.Id == parentDocumentId, ct);
             if (!parentExists)
                 throw new KeyNotFoundException($"Parent document {parentDocumentId} not found.");
@@ -227,8 +227,7 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
         }
 
-        public async Task RemoveItemAsync(int documentId, int itemId,
-            CancellationToken ct = default)
+        public async Task RemoveItemAsync(int documentId, int itemId, CancellationToken ct = default)
         {
             var document = await GetWithItemsOrThrowAsync(documentId, ct);
             document.RemoveItem(itemId);

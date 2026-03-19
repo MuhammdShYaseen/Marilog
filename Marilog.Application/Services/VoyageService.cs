@@ -24,7 +24,7 @@ namespace Marilog.Application.Services
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<Voyage?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Vessel)
                           .Include(x => x.DeparturePort)
                           .Include(x => x.ArrivalPort)
@@ -32,14 +32,14 @@ namespace Marilog.Application.Services
                           .FirstOrDefaultAsync(x => x.VoyageID == id, ct);
 
         public async Task<Voyage?> GetWithStopsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Stops).ThenInclude(x => x.Port)
                           .Include(x => x.Vessel)
                           .FirstOrDefaultAsync(x => x.VoyageID == id, ct);
 
         public async Task<IReadOnlyList<Voyage>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselID == vesselId)
                           .Include(x => x.DeparturePort)
                           .Include(x => x.ArrivalPort)
@@ -50,7 +50,7 @@ namespace Marilog.Application.Services
             CancellationToken ct = default)
         {
             var firstDay = new DateOnly(month.Year, month.Month, 1);
-            return await _repo.Query()
+            return await _repo.Query().AsNoTracking()
                               .Where(x => x.VoyageMonth == firstDay)
                               .Include(x => x.Vessel)
                               .Include(x => x.DeparturePort)
@@ -61,7 +61,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Voyage>> GetByStatusAsync(VoyageStatus status,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.Status == status)
                           .Include(x => x.Vessel)
                           .OrderByDescending(x => x.DepartureDate)
@@ -69,7 +69,7 @@ namespace Marilog.Application.Services
 
         public async Task<Voyage?> GetCurrentVoyageAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselID == vesselId &&
                                       x.Status   == VoyageStatus.UNDERWAY)
                           .Include(x => x.DeparturePort)

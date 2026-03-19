@@ -17,7 +17,7 @@ namespace Marilog.Application.Services
             => await _repo.GetByIdAsync(id, ct);
 
         public async Task<Currency?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .FirstOrDefaultAsync(x => x.CurrencyCode == code.ToUpperInvariant(), ct);
 
         public async Task<Currency?> GetBaseCurrencyAsync(CancellationToken ct = default)
@@ -25,12 +25,12 @@ namespace Marilog.Application.Services
                           .FirstOrDefaultAsync(x => x.IsBaseCurrency, ct);
 
         public async Task<IReadOnlyList<Currency>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .OrderBy(x => x.CurrencyCode)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Currency>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .OrderBy(x => x.CurrencyCode)
                           .ToListAsync(ct);

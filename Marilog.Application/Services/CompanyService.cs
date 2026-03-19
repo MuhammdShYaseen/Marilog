@@ -18,23 +18,24 @@ namespace Marilog.Application.Services
 
         public async Task<Company?> GetWithVesselsAsync(int id, CancellationToken ct = default)
             => await _repo.Query()
+                          .AsNoTracking()
                           .Include(x => x.Vessels)
                           .FirstOrDefaultAsync(x => x.CompanyID == id, ct);
 
         public async Task<IReadOnlyList<Company>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .OrderBy(x => x.CompanyName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Company>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .OrderBy(x => x.CompanyName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Company>> SearchByNameAsync(string name,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive &&
                                       x.CompanyName.Contains(name))
                           .OrderBy(x => x.CompanyName)

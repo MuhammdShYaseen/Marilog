@@ -27,7 +27,7 @@ namespace Marilog.Application.Services
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<CrewContract?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Include(x => x.Person)
                           .Include(x => x.Vessel)
                           .Include(x => x.Rank)
@@ -37,7 +37,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<CrewContract>> GetByPersonAsync(int personId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.PersonID == personId)
                           .Include(x => x.Vessel)
                           .Include(x => x.Rank)
@@ -46,7 +46,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<CrewContract>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselID == vesselId)
                           .Include(x => x.Person)
                           .Include(x => x.Rank)
@@ -55,7 +55,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<CrewContract>> GetActiveByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselID == vesselId && x.IsActive)
                           .Include(x => x.Person)
                           .Include(x => x.Rank)
@@ -65,7 +65,7 @@ namespace Marilog.Application.Services
 
         public async Task<CrewContract?> GetActiveMasterAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselID  == vesselId  &&
                                       x.IsActive                &&
                                       x.Rank.RankCode == "MASTER")
@@ -75,7 +75,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<CrewContract>> GetActiveOnDateAsync(DateOnly date,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.SignOnDate  <= date &&
                                       (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
                           .Include(x => x.Person)

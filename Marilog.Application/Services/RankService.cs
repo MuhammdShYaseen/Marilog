@@ -17,17 +17,17 @@ namespace Marilog.Application.Services
             => await _repo.GetByIdAsync(id, ct);
 
         public async Task<Rank?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .FirstOrDefaultAsync(x => x.RankCode == code.ToUpperInvariant(), ct);
 
         public async Task<IReadOnlyList<Rank>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .OrderBy(x => x.Department)
                           .ThenBy(x => x.RankName)
                           .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Rank>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive)
                           .OrderBy(x => x.Department)
                           .ThenBy(x => x.RankName)
@@ -35,7 +35,7 @@ namespace Marilog.Application.Services
 
         public async Task<IReadOnlyList<Rank>> GetByDepartmentAsync(Department department,
             CancellationToken ct = default)
-            => await _repo.Query()
+            => await _repo.Query().AsNoTracking()
                           .Where(x => x.Department == department && x.IsActive)
                           .OrderBy(x => x.RankName)
                           .ToListAsync(ct);
