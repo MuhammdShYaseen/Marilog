@@ -1,5 +1,7 @@
 using Marilog.Application;
 using Marilog.Infrastructure;
+using Marilog.Presentation.Extensions;
+using Serilog;
 namespace Marilog.Presentation
 {
     public class Program
@@ -7,13 +9,13 @@ namespace Marilog.Presentation
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
+            builder.Host.ConfigureSerilog(); 
             builder.Services
                 .AddInfrastructure(builder.Configuration)
-                .AddApplication();
+                .AddApplication()
+                .AddApiServices();
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi(options =>
             {
                 // Specify the OpenAPI version to use
@@ -21,13 +23,16 @@ namespace Marilog.Presentation
             });
 
             var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
+            app.UseSerilogRequestLogging(opts =>
+            {
+                opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.000}ms";
+            });
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI();
             }
-
+            app.UseErrorHandler();
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

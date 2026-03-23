@@ -1,6 +1,6 @@
 ﻿using Marilog.Presentation.Mapping;
 
-namespace Marilog.Presentation
+namespace Marilog.Presentation.Extensions
 {
     public static class ApiServiceCollectionExtensions
     {
