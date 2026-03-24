@@ -9,10 +9,11 @@ namespace Marilog.Application.DTOs
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string? RegistrationNumber { get; set; }  // حقل فارغ كما في المثال
-        public string ContactName { get; set; } = null!;
-        public string Email { get; set; } = null!;
-        public string Phone { get; set; } = null!;
-        public string Address { get; set; } = null!;
+        public string? ContactName { get; set; } = null!;
+        public string? Email { get; set; } = null!;
+        public string? Phone { get; set; } = null!;
+        public string? Address { get; set; } = null!;
         public bool IsActive { get; set; }
+        public ICollection<VesselResponse> Vessels { get; set; } = new List<VesselResponse>();
     }
 }

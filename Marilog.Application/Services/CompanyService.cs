@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Application.DTOs;
 
 namespace Marilog.Application.Services
 {
@@ -13,45 +14,140 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Company?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<CompanyResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            var companyDto = await _repo.Query()
+               .AsNoTracking()
+               .Select(x => new CompanyResponse
+               {
+                   Id = x.CompanyID,
+                   Address = x.Address,
+                   IsActive = x.IsActive,
+                   Email = x.Email,
+                   Phone = x.Phone,
+                   ContactName = x.ContactName,
+                   RegistrationNumber = x.RegistrationNumber,
+                   Name = x.CompanyName
+               }).FirstOrDefaultAsync(c => c.Id == id, ct);
+            return companyDto;
+        }
 
-        public async Task<Company?> GetWithVesselsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query()
-                          .AsNoTracking()
-                          .Include(x => x.Vessels)
-                          .FirstOrDefaultAsync(x => x.CompanyID == id, ct);
+        public async Task<CompanyResponse?> GetWithVesselsAsync(int id, CancellationToken ct = default)
+        {
+            var companyDto = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CompanyID == id)
+                .Select(x => new CompanyResponse
+                {
+                    Id = x.CompanyID,
+                    Address = x.Address,
+                    IsActive = x.IsActive,
+                    Email = x.Email,
+                    Phone = x.Phone,
+                    ContactName = x.ContactName,
+                    RegistrationNumber = x.RegistrationNumber,
+                    Name = x.CompanyName,
+                    Vessels = x.Vessels
+                .Select(v => new VesselResponse
+                {
+                    Id = v.VesselID,
+                    Name = v.VesselName,
+                    IMONumber = v.IMONumber,
+                    FlagCountryId = v.FlagCountryID,
+                    FlagCountryName = v.FlagCountry!.CountryName,
+                    IsActive = v.IsActive,
+                    GrossTonnage = v.GrossTonnage
+                })
+                .ToList()
+                })
+                .FirstOrDefaultAsync(ct);
 
-        public async Task<IReadOnlyList<Company>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.CompanyName)
-                          .ToListAsync(ct);
+            return companyDto;
+        }
 
-        public async Task<IReadOnlyList<Company>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.CompanyName)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<CompanyResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            var companies = await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.CompanyName)   // ترتيب في SQL
+                .Select(x => new CompanyResponse
+                {
+                    Id = x.CompanyID,
+                    Name = x.CompanyName,
+                    Address = x.Address,
+                    IsActive = x.IsActive,
+                    Email = x.Email,
+                    Phone = x.Phone,
+                    ContactName = x.ContactName,
+                    RegistrationNumber = x.RegistrationNumber
+                })
+                .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<Company>> SearchByNameAsync(string name,
-            CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive &&
-                                      x.CompanyName.Contains(name))
-                          .OrderBy(x => x.CompanyName)
-                          .ToListAsync(ct);
+            return companies;
+        }
+
+        public async Task<IReadOnlyList<CompanyResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            var companies = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)                // تصفية في SQL
+                .OrderBy(x => x.CompanyName)           // ترتيب في SQL
+                .Select(x => new CompanyResponse       // projection مباشر إلى DTO
+                {
+                    Id = x.CompanyID,
+                    Name = x.CompanyName,
+                    Address = x.Address,
+                    IsActive = x.IsActive,
+                    Email = x.Email,
+                    Phone = x.Phone,
+                    ContactName = x.ContactName,
+                    RegistrationNumber = x.RegistrationNumber
+                })
+                .ToListAsync(ct);
+
+            return companies;
+        }
+
+        public async Task<IReadOnlyList<CompanyResponse>> SearchByNameAsync(string name, CancellationToken ct = default)
+        {
+            var companies = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.CompanyName.Contains(name)) // تصفية في SQL
+                .OrderBy(x => x.CompanyName)                            // ترتيب في SQL
+                .Select(x => new CompanyResponse                         // projection مباشر
+                {
+                    Id = x.CompanyID,
+                    Name = x.CompanyName,
+                    Address = x.Address,
+                    IsActive = x.IsActive,
+                    Email = x.Email,
+                    Phone = x.Phone,
+                    ContactName = x.ContactName,
+                    RegistrationNumber = x.RegistrationNumber
+                })
+                .ToListAsync(ct);
+
+            return companies;
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Company> CreateAsync(string companyName, int? countryId = null,
-            string? contactName = null, string? email = null,
-            string? phone = null, string? address = null,
-            CancellationToken ct = default)
+        public async Task<CompanyResponse> CreateAsync(string? registrationNumber, string companyName, int? countryId = null, string? contactName = null, string? email = null, string? phone = null, string? address = null,  CancellationToken ct = default)
         {
-            var company = Company.Create(companyName, countryId, contactName, email, phone, address);
+            var company = Company.Create(registrationNumber, companyName, countryId, contactName, email, phone, address);
             await _repo.AddAsync(company, ct);
             await _repo.SaveChangesAsync(ct);
-            return company;
+            return new CompanyResponse
+            {
+                Id = company.CompanyID,
+                Name = company.CompanyName,
+                Address = company.Address,
+                IsActive = company.IsActive,
+                Email = company.Email,
+                Phone = company.Phone,
+                ContactName = company.ContactName,
+                RegistrationNumber = company.RegistrationNumber
+            };
         }
 
         public async Task UpdateAsync(int id, string companyName, int? countryId = null,

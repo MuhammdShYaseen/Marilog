@@ -15,14 +15,15 @@ namespace Marilog.Domain.Entities
         public string? Email { get; private set; }
         public string? Phone { get; private set; }
         public string? Address { get; private set; }
+        public string? RegistrationNumber { get; private set; }
 
         private readonly List<Vessel> _vessels = new();
         public IReadOnlyCollection<Vessel> Vessels => _vessels.AsReadOnly();
 
         private Company() { }
-        public static Company Create(string companyName, int? countryId,
+        public static Company Create(string? registrationNumber, string companyName, int? countryId,
             string? contactName = null, string? email = null,
-            string? phone = null, string? address = null)
+            string? phone = null,  string? address = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(companyName);
 

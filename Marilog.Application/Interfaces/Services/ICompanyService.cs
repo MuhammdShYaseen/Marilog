@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs;
 using Marilog.Domain.Entities;
 
 namespace Marilog.Application.Interfaces.Services
@@ -5,14 +6,14 @@ namespace Marilog.Application.Interfaces.Services
     public interface ICompanyService
     {
         // ── Queries ───────────────────────────────────────────────────────────────
-        Task<Company?>              GetByIdAsync(int id, CancellationToken ct = default);
-        Task<Company?>              GetWithVesselsAsync(int id, CancellationToken ct = default);
-        Task<IReadOnlyList<Company>> GetAllAsync(CancellationToken ct = default);
-        Task<IReadOnlyList<Company>> GetActiveAsync(CancellationToken ct = default);
-        Task<IReadOnlyList<Company>> SearchByNameAsync(string name, CancellationToken ct = default);
+        Task<CompanyResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
+        Task<CompanyResponse?>              GetWithVesselsAsync(int id, CancellationToken ct = default);
+        Task<IReadOnlyList<CompanyResponse>> GetAllAsync(CancellationToken ct = default);
+        Task<IReadOnlyList<CompanyResponse>> GetActiveAsync(CancellationToken ct = default);
+        Task<IReadOnlyList<CompanyResponse>> SearchByNameAsync(string name, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<Company> CreateAsync(string companyName, int? countryId = null,
+        Task<CompanyResponse> CreateAsync(string? registrationNumber, string companyName, int? countryId = null,
                                   string? contactName = null, string? email = null,
                                   string? phone = null, string? address = null,
                                   CancellationToken ct = default);
