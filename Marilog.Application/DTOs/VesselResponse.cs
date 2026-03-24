@@ -12,7 +12,7 @@ namespace Marilog.Application.DTOs
         public decimal GrossTonnage { get; set; }
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
-        public int FlagCountryId { get; set; }
+        public int? FlagCountryId { get; set; }
         public string? FlagCountryName { get; set; }
         public bool IsActive { get; set; }
     }

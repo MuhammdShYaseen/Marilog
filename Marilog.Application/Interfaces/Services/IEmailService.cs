@@ -1,7 +1,7 @@
 using Marilog.Domain.Entities;
 using Marilog.Domain.Events;
 
-namespace Marilog.Domain.Interfaces.Services
+namespace Marilog.Application.Interfaces.Services
 {
     public interface IEmailService
     {

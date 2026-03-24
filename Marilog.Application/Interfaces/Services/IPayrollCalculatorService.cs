@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Domain.Interfaces.Services
+namespace Marilog.Application.Interfaces.Services
 {
     /// <summary>
     /// Domain service — encapsulates payroll calculation logic that

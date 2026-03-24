@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Domain.Interfaces.Services
+namespace Marilog.Application.Interfaces.Services
 {
     /// <summary>
     /// Domain service — generates unique document numbers per type.

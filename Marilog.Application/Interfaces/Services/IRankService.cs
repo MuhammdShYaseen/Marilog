@@ -1,6 +1,5 @@
 using Marilog.Domain.Entities;
-
-namespace Marilog.Domain.Interfaces.Services
+namespace Marilog.Application.Interfaces.Services
 {
     public interface IRankService
     {

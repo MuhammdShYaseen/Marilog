@@ -1,5 +1,5 @@
 using Marilog.Domain.Entities;
-using Marilog.Domain.Interfaces.Services;
+using Marilog.Application.Interfaces.Services;
 
 namespace Marilog.Application.Services
 {
