@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Application.DTOs;
 
 namespace Marilog.Application.Services
 {
@@ -26,66 +27,180 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<CrewContract?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Person)
-                          .Include(x => x.Vessel)
-                          .Include(x => x.Rank)
-                          .Include(x => x.SignOnPortNav)
-                          .Include(x => x.SignOffPortNav)
-                          .FirstOrDefaultAsync(x => x.ContractID == id, ct);
+        public async Task<CrewContractResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.ContractID == id)
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.ContractID,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate ,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<CrewContract>> GetByPersonAsync(int personId,
+        public async Task<IReadOnlyList<CrewContractResponse>> GetByPersonAsync(int personId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.PersonID == personId)
-                          .Include(x => x.Vessel)
-                          .Include(x => x.Rank)
-                          .OrderByDescending(x => x.SignOnDate)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.PersonID == personId)
+                .OrderByDescending(x => x.SignOnDate)
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.ContractID,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<CrewContract>> GetByVesselAsync(int vesselId,
+        public async Task<IReadOnlyList<CrewContractResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.VesselID == vesselId)
-                          .Include(x => x.Person)
-                          .Include(x => x.Rank)
-                          .OrderByDescending(x => x.SignOnDate)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.VesselID == vesselId)
+                .OrderByDescending(x => x.SignOnDate)
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.ContractID,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<CrewContract>> GetActiveByVesselAsync(int vesselId,
+        public async Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.VesselID == vesselId && x.IsActive)
-                          .Include(x => x.Person)
-                          .Include(x => x.Rank)
-                          .OrderBy(x => x.Rank.Department)
-                          .ThenBy(x => x.Person.FullName)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.VesselID == vesselId && x.IsActive)
+                .OrderBy(x => x.Rank.Department)
+                .ThenBy(x => x.Person.FullName)
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.ContractID,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
 
-        public async Task<CrewContract?> GetActiveMasterAsync(int vesselId,
+        public async Task<CrewContractResponse?> GetActiveMasterAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.VesselID  == vesselId  &&
-                                      x.IsActive                &&
-                                      x.Rank.RankCode == "MASTER")
-                          .Include(x => x.Person)
-                          .Include(x => x.Rank)
-                          .FirstOrDefaultAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.VesselID == vesselId && x.IsActive && x.Rank.RankCode == "MASTER")
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.ContractID,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<CrewContract>> GetActiveOnDateAsync(DateOnly date,
+        public async Task<IReadOnlyList<CrewContractResponse>> GetActiveOnDateAsync(DateOnly date,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.SignOnDate  <= date &&
-                                      (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
-                          .Include(x => x.Person)
-                          .Include(x => x.Vessel)
-                          .Include(x => x.Rank)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.SignOnDate <= date && (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.ContractID,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CrewContract> CreateAsync(int personId, int vesselId, int rankId,
+        public async Task<CrewContractResponse> CreateAsync(int personId, int vesselId, int rankId,
             decimal monthlyWage, DateOnly signOnDate, int? signOnPort = null,
             string? notes = null, CancellationToken ct = default)
         {
@@ -98,7 +213,25 @@ namespace Marilog.Application.Services
                                                monthlyWage, signOnDate, signOnPort, notes);
             await _repo.AddAsync(contract, ct);
             await _repo.SaveChangesAsync(ct);
-            return contract;
+            return new CrewContractResponse
+            {
+                ContractId = contract.ContractID,
+                PersonId = contract.PersonID,
+                PersonFullName = contract.Person.FullName,
+                VesselId = contract.VesselID,
+                VesselName = contract.Vessel.VesselName,
+                RankId = contract.RankID,
+                RankName = contract.Rank.RankName,
+                RankDepartment = contract.Rank.Department,
+                MonthlyWage = contract.MonthlyWage,
+                SignOnDate = contract.SignOnDate,
+                SignOffDate = contract.SignOffDate,
+                SignOnPort = contract.SignOnPort,
+                SignOnPortName = contract.SignOnPortNav!.PortName,
+                SignOffPort = contract.SignOffPort,
+                SignOffPortName = contract.SignOffPortNav!.PortName,
+                IsActive = contract.IsActive
+            };
         }
 
         public async Task UpdateAsync(int id, decimal monthlyWage,

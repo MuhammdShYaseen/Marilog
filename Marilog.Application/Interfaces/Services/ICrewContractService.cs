@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs;
 using Marilog.Domain.Entities;
 
 namespace Marilog.Application.Interfaces.Services
@@ -5,15 +6,15 @@ namespace Marilog.Application.Interfaces.Services
     public interface ICrewContractService
     {
         // ── Queries ───────────────────────────────────────────────────────────────
-        Task<CrewContract?>              GetByIdAsync(int id, CancellationToken ct = default);
-        Task<IReadOnlyList<CrewContract>> GetByPersonAsync(int personId, CancellationToken ct = default);
-        Task<IReadOnlyList<CrewContract>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
-        Task<IReadOnlyList<CrewContract>> GetActiveByVesselAsync(int vesselId, CancellationToken ct = default);
-        Task<CrewContract?>              GetActiveMasterAsync(int vesselId, CancellationToken ct = default);
-        Task<IReadOnlyList<CrewContract>> GetActiveOnDateAsync(DateOnly date, CancellationToken ct = default);
+        Task<CrewContractResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
+        Task<IReadOnlyList<CrewContractResponse>> GetByPersonAsync(int personId, CancellationToken ct = default);
+        Task<IReadOnlyList<CrewContractResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
+        Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId, CancellationToken ct = default);
+        Task<CrewContractResponse?>              GetActiveMasterAsync(int vesselId, CancellationToken ct = default);
+        Task<IReadOnlyList<CrewContractResponse>> GetActiveOnDateAsync(DateOnly date, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<CrewContract> CreateAsync(int personId, int vesselId, int rankId,
+        Task<CrewContractResponse> CreateAsync(int personId, int vesselId, int rankId,
                                        decimal monthlyWage, DateOnly signOnDate,
                                        int? signOnPort = null, string? notes = null,
                                        CancellationToken ct = default);
