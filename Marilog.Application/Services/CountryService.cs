@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Application.DTOs;
 
 namespace Marilog.Application.Services
 {
@@ -13,23 +14,68 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Country?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<CountryResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+            .AsNoTracking()
+            .Where(x => x.CountryID == id)
+            .Select(x => new CountryResponse
+            {
+                Id = x.CountryID,
+                Code = x.CountryCode,
+                Name = x.CountryName,
+                IsActive = x.IsActive
+            })
+            .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Country?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.CountryCode == code.ToUpperInvariant(), ct);
+        public async Task<CountryResponse?> GetByCodeAsync(string code, CancellationToken ct = default)
+        {
+            var upperCode = code.ToUpperInvariant();
 
-        public async Task<IReadOnlyList<Country>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.CountryName)
-                          .ToListAsync(ct);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CountryCode == upperCode)
+                .Select(x => new CountryResponse
+                {
+                    Id = x.CountryID,
+                    Code = x.CountryCode,
+                    Name = x.CountryName,
+                    IsActive = x.IsActive
+                })
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Country>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.CountryName)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<CountryResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.CountryName)
+                .Select(x => new CountryResponse
+                {
+                    Id = x.CountryID,
+                    Code = x.CountryCode,
+                    Name = x.CountryName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<CountryResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.CountryName)
+                .Select(x => new CountryResponse
+                {
+                    Id = x.CountryID,
+                    Code = x.CountryCode,
+                    Name = x.CountryName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
 
         public async Task<bool> ExistsByCodeAsync(string code, CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
@@ -37,7 +83,7 @@ namespace Marilog.Application.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Country> CreateAsync(string countryCode, string countryName,
+        public async Task<CountryResponse> CreateAsync(string countryCode, string countryName,
             CancellationToken ct = default)
         {
             if (await ExistsByCodeAsync(countryCode, ct))
@@ -46,7 +92,13 @@ namespace Marilog.Application.Services
             var country = Country.Create(countryCode, countryName);
             await _repo.AddAsync(country, ct);
             await _repo.SaveChangesAsync(ct);
-            return country;
+            return new CountryResponse
+            {
+                Id = country.CountryID,
+                Code = country.CountryCode,
+                Name = country.CountryName,
+                IsActive = country.IsActive
+            };
         }
 
         public async Task UpdateAsync(int id, string countryCode, string countryName,

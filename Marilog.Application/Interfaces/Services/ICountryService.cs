@@ -1,18 +1,18 @@
-using Marilog.Domain.Entities;
+using Marilog.Application.DTOs;
 
 namespace Marilog.Application.Interfaces.Services
 {
     public interface ICountryService
     {
         // ── Queries ───────────────────────────────────────────────────────────────
-        Task<Country?>              GetByIdAsync(int id, CancellationToken ct = default);
-        Task<Country?>              GetByCodeAsync(string code, CancellationToken ct = default);
-        Task<IReadOnlyList<Country>> GetAllAsync(CancellationToken ct = default);
-        Task<IReadOnlyList<Country>> GetActiveAsync(CancellationToken ct = default);
+        Task<CountryResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
+        Task<CountryResponse?>              GetByCodeAsync(string code, CancellationToken ct = default);
+        Task<IReadOnlyList<CountryResponse>> GetAllAsync(CancellationToken ct = default);
+        Task<IReadOnlyList<CountryResponse>> GetActiveAsync(CancellationToken ct = default);
         Task<bool>                  ExistsByCodeAsync(string code, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<Country> CreateAsync(string countryCode, string countryName, CancellationToken ct = default);
+        Task<CountryResponse> CreateAsync(string countryCode, string countryName, CancellationToken ct = default);
         Task          UpdateAsync(int id, string countryCode, string countryName, CancellationToken ct = default);
         Task          ActivateAsync(int id, CancellationToken ct = default);
         Task          DeactivateAsync(int id, CancellationToken ct = default);
