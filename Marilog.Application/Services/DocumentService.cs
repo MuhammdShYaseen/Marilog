@@ -1,8 +1,10 @@
-using Microsoft.EntityFrameworkCore;
-using Marilog.Domain.Entities;
-using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Application.DTOs;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Domain.Entities;
 using Marilog.Domain.Events;
+using Marilog.Domain.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -21,109 +23,100 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Document?> GetByIdAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<DocumentResponse?> GetWithItemsAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponseWithItems)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponseWithPayments)
+                .FirstOrDefaultAsync(ct);
+        }
+        public async Task<DocumentResponse?> GetFullAsync(int id, CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
-                          .Include(x => x.Supplier)
-                          .Include(x => x.Buyer)
-                          .Include(x => x.Vessel)
-                          .Include(x => x.Port)
+                          .Where (x => x.Id == id)
+                          .Select(ToResponseFully)
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
 
-        public async Task<Document?> GetWithItemsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Items)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
-
-        public async Task<Document?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Payments)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
-
-        public async Task<Document?> GetFullAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Items)
-                          .Include(x => x.Payments)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
-                          .Include(x => x.Supplier)
-                          .Include(x => x.Buyer)
-                          .Include(x => x.Vessel)
-                          .Include(x => x.Port)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
-
-        public async Task<Document?> GetByNumberAsync(string docNumber,
+        public async Task<DocumentResponse?> GetByNumberAsync(string docNumber,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
+                          .Where(x => x.DocNumber == docNumber)
+                          .Select(ToResponse)
                           .FirstOrDefaultAsync(x => x.DocNumber == docNumber, ct);
 
-        public async Task<IReadOnlyList<Document>> GetBySupplierAsync(int supplierId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.SupplierId == supplierId && x.IsActive)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
+                          .Select (ToResponse)
                           .OrderByDescending(x => x.DocDate)
                           .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<Document>> GetByBuyerAsync(int buyerId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
+            => await _repo.Query()
+                          .AsNoTracking()
                           .Where(x => x.BuyerId == buyerId && x.IsActive)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
                           .OrderByDescending(x => x.DocDate)
+                          .Select(ToResponse)
                           .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<Document>> GetByVesselAsync(int vesselId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselId == vesselId && x.IsActive)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
                           .OrderByDescending(x => x.DocDate)
+                          .Select(ToResponse)
                           .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<Document>> GetByTypeAsync(int docTypeId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.DocTypeId == docTypeId && x.IsActive)
-                          .Include(x => x.Currency)
                           .OrderByDescending(x => x.DocDate)
+                          .Select(ToResponse)
                           .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<Document>> GetUnpaidAsync(
+        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive &&
                                       x.TotalAmount > x.Payments
                                           .Where(p => p.DocumentId == x.Id)
                                           .Sum(p => p.PaidAmount))
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
-                          .Include(x => x.Supplier)
                           .OrderBy(x => x.DocDate)
+                          .Select(ToResponse)
                           .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<Document>> GetChildrenAsync(int parentDocumentId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.ParentDocumentId == parentDocumentId)
-                          .Include(x => x.DocType)
-                          .Include(x => x.Currency)
                           .OrderBy(x => x.DocDate)
+                          .Select(ToResponse)
                           .ToListAsync(ct);
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Document> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
+        public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null,
             string? reference = null, string? filePath = null,
@@ -136,7 +129,18 @@ namespace Marilog.Application.Services
                                            portId, parentDocumentId, reference, filePath);
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
-            return document;
+            return new DocumentResponse
+            {
+                DocNumber = docNumber,
+                TotalAmount = totalAmount,
+                SupplierId = supplierId,
+                BuyerId = buyerId,
+                VesselId = vesselId,
+                PortId = portId,
+                ParentDocumentId = parentDocumentId,
+                Reference = reference,
+                FilePath = filePath
+            };
         }
 
         public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
@@ -291,5 +295,212 @@ namespace Marilog.Application.Services
                 throw new InvalidOperationException(
                     $"Document number '{docNumber}' already exists.");
         }
+
+        private static readonly Expression<Func<Document, DocumentResponse>> ToResponse =
+        x => new DocumentResponse
+        {
+            Id = x.Id,
+            DocNumber = x.DocNumber,
+            DocTypeId = x.DocTypeId,
+            DocTypeName = x.DocType.Name,
+            DocDate = x.DocDate,
+
+            SupplierId = x.SupplierId,
+            SupplierName = x.Supplier!.CompanyName,
+            BuyerId = x.BuyerId,
+            BuyerName = x.Buyer!.CompanyName,
+            VesselId = x.VesselId,
+            VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+            PortId = x.PortId,
+            PortName = x.Port != null ? x.Port.PortName : null,
+
+            CurrencyId = x.CurrencyId,
+            CurrencyCode = x.Currency.CurrencyCode,
+
+            TotalAmount = x.TotalAmount,
+            TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+            RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+            Reference = x.Reference,
+            FilePath = x.FilePath,
+            ParentDocumentId = x.ParentDocumentId,
+            IsActive = x.IsActive
+        };
+
+        private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithItems =
+        x => new DocumentResponse
+        {
+            Id = x.Id,
+            DocNumber = x.DocNumber,
+            DocTypeId = x.DocTypeId,
+            DocTypeName = x.DocType.Name,
+            DocDate = x.DocDate,
+
+            SupplierId = x.SupplierId,
+            SupplierName = x.Supplier!.CompanyName,
+            BuyerId = x.BuyerId,
+            BuyerName = x.Buyer!.CompanyName,
+            VesselId = x.VesselId,
+            VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+            PortId = x.PortId,
+            PortName = x.Port != null ? x.Port.PortName : null,
+
+            CurrencyId = x.CurrencyId,
+            CurrencyCode = x.Currency.CurrencyCode,
+
+            TotalAmount = x.TotalAmount,
+            TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+            RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+            Reference = x.Reference,
+            FilePath = x.FilePath,
+            ParentDocumentId = x.ParentDocumentId,
+            IsActive = x.IsActive,
+
+            Items = x.Items.Select(i => new DocumentItemResponse
+            {
+                Id = i.Id,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                LineTotal = i.LineTotal,
+                Unit = i.Unit,
+            }).ToList()
+        };
+
+        private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithPayments =
+        x => new DocumentResponse
+        {
+            Id = x.Id,
+            DocNumber = x.DocNumber,
+            DocTypeId = x.DocTypeId,
+            DocTypeName = x.DocType.Name,
+            DocDate = x.DocDate,
+
+            SupplierId = x.SupplierId,
+            SupplierName = x.Supplier!.CompanyName,
+            BuyerId = x.BuyerId,
+            BuyerName = x.Buyer!.CompanyName,
+            VesselId = x.VesselId,
+            VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+            PortId = x.PortId,
+            PortName = x.Port != null ? x.Port.PortName : null,
+
+            CurrencyId = x.CurrencyId,
+            CurrencyCode = x.Currency.CurrencyCode,
+
+            TotalAmount = x.TotalAmount,
+            TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+            RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+            Reference = x.Reference,
+            FilePath = x.FilePath,
+            ParentDocumentId = x.ParentDocumentId,
+            IsActive = x.IsActive,
+            Payments = x.Payments.Select(p => new PaymentResponse
+            {
+                Id = p.Id,
+                SwiftTransferId = p.SwiftTransferId,
+                DocumentId = p.DocumentId,
+                PaidAmount = p.PaidAmount,
+                PaymentDate = p.PaymentDate,
+                SwiftTransfer = new SwiftTransferResponse
+                {
+                    AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                    SenderBank = p.SwiftTransfer.SenderBank,
+                    SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
+                    SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
+                    SwiftReference = p.SwiftTransfer.SwiftReference,
+                    Amount = p.SwiftTransfer.Amount,
+                    CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
+                    Id = p.SwiftTransferId,
+                    CurrencyId = p.SwiftTransfer.CurrencyId,
+                    IsActive = p.SwiftTransfer.IsActive,
+                    IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
+                    PaymentReference = p.SwiftTransfer.PaymentReference,
+                    ReceiverBank = p.SwiftTransfer.ReceiverBank,
+                    ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
+                    ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
+                    TransactionDate = p.SwiftTransfer.TransactionDate,
+                    UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
+                }
+
+            }).ToList()
+            
+        };
+
+        private static readonly Expression<Func<Document, DocumentResponse>> ToResponseFully =
+        x => new DocumentResponse
+        {
+           Id = x.Id,
+           DocNumber = x.DocNumber,
+           DocTypeId = x.DocTypeId,
+           DocTypeName = x.DocType.Name,
+           DocDate = x.DocDate,
+
+           SupplierId = x.SupplierId,
+           SupplierName = x.Supplier!.CompanyName,
+           BuyerId = x.BuyerId,
+           BuyerName = x.Buyer!.CompanyName,
+           VesselId = x.VesselId,
+           VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+           PortId = x.PortId,
+           PortName = x.Port != null ? x.Port.PortName : null,
+
+           CurrencyId = x.CurrencyId,
+           CurrencyCode = x.Currency.CurrencyCode,
+
+           TotalAmount = x.TotalAmount,
+           TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+           RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+           IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+           Reference = x.Reference,
+           FilePath = x.FilePath,
+           ParentDocumentId = x.ParentDocumentId,
+           IsActive = x.IsActive,
+           Payments = x.Payments.Select(p => new PaymentResponse
+           {
+               Id = p.Id,
+               SwiftTransferId = p.SwiftTransferId,
+               DocumentId = p.DocumentId,
+               PaidAmount = p.PaidAmount,
+               PaymentDate = p.PaymentDate,
+               SwiftTransfer = new SwiftTransferResponse
+               {
+                   AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                   SenderBank = p.SwiftTransfer.SenderBank,
+                   SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
+                   SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
+                   SwiftReference = p.SwiftTransfer.SwiftReference,
+                   Amount = p.SwiftTransfer.Amount,
+                   CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
+                   Id = p.SwiftTransferId,
+                   CurrencyId = p.SwiftTransfer.CurrencyId,
+                   IsActive = p.SwiftTransfer.IsActive,
+                   IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
+                   PaymentReference = p.SwiftTransfer.PaymentReference,
+                   ReceiverBank = p.SwiftTransfer.ReceiverBank,
+                   ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
+                   ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
+                   TransactionDate = p.SwiftTransfer.TransactionDate,
+                   UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
+               },
+
+           }).ToList(),
+            Items = x.Items.Select(i => new DocumentItemResponse
+            {
+                Id = i.Id,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                LineTotal = i.LineTotal,
+                Unit = i.Unit,
+            }).ToList()
+
+        };
     }
 }

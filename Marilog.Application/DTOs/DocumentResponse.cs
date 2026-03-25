@@ -12,9 +12,9 @@ namespace Marilog.Application.DTOs
         public string DocTypeName { get; set; } = string.Empty;
         public DateOnly DocDate { get; set; }
 
-        public int SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public string? SupplierName { get; set; }
-        public int BuyerId { get; set; }
+        public int? BuyerId { get; set; }
         public string? BuyerName { get; set; }
         public int? VesselId { get; set; }
         public string? VesselName { get; set; }
@@ -33,6 +33,7 @@ namespace Marilog.Application.DTOs
         public int? ParentDocumentId { get; set; }
         public bool IsActive { get; set; }
 
-        public IReadOnlyList<DocumentItemResponse> Items { get; set; } = new List<DocumentItemResponse>();
+        public List<DocumentItemResponse> Items { get; set; } = new List<DocumentItemResponse>();
+        public List<PaymentResponse> Payments { get; set; } = new List<PaymentResponse>();
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Marilog.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -21,8 +22,8 @@ namespace Marilog.Application.DTOs
         public decimal TotalDisbursed { get; set; }
         public decimal RemainingBalance { get; set; }
         public bool IsFullyPaid { get; set; }
-        public string Status { get; set; } = null!;
+        public PayrollStatus Status { get; set; }
         public string? Notes { get; set; }
-        public IReadOnlyList<DisbursementResponse> Disbursements { get; set; } = new List<DisbursementResponse>();
+        public List<DisbursementResponse> Disbursements { get; set; } = new List<DisbursementResponse>();
     }
 }

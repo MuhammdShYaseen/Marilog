@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services
 {
@@ -29,77 +30,193 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<CrewPayroll?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Contract).ThenInclude(x => x.Person)
-                          .Include(x => x.Contract).ThenInclude(x => x.Rank)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+        public async Task<CrewPayrollResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(x => new CrewPayrollResponse
+                {
+                    Id = x.Id,
+                    ContractId = x.ContractId,
+                    PersonId = x.Contract.PersonID,
+                    PersonFullName = x.Contract.Person.FullName,
+                    VesselId = x.Contract.VesselID,
+                    VesselName = x.Contract.Vessel.VesselName,
+                    PayrollMonth = x.PayrollMonth.Month,
+                    WorkingDays = x.WorkingDays,
+                    BasicWage = x.BasicWage,
+                    Allowances = x.Allowances,
+                    Deductions = x.Deductions,
+                    GrossAmount = x.GrossAmount,
+                    TotalDisbursed = x.TotalDisbursed,
+                    RemainingBalance = x.RemainingBalance,
+                    IsFullyPaid = x.IsFullyPaid,
+                    Status = x.Status,
+                    Notes = x.Notes
+                })
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<CrewPayroll?> GetWithDisbursementsAsync(int id,
+        public async Task<CrewPayrollResponse?> GetWithDisbursementsAsync(int id,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Disbursements).ThenInclude(x => x.Voyage)
-                          .Include(x => x.Disbursements).ThenInclude(x => x.Office)
-                          .Include(x => x.Disbursements).ThenInclude(x => x.SwiftTransfer)
-                          .Include(x => x.Contract).ThenInclude(x => x.Person)
-                          .Include(x => x.Contract).ThenInclude(x => x.Rank)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
-
-        public async Task<CrewPayroll?> GetByContractAndMonthAsync(int contractId,
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(x => new CrewPayrollResponse
+                    {
+                        Id = x.Id,
+                        ContractId = x.ContractId,
+                        PersonId = x.Contract.PersonID,
+                        PersonFullName = x.Contract.Person.FullName,
+                        VesselId = x.Contract.VesselID,
+                        VesselName = x.Contract.Vessel.VesselName,
+                        PayrollMonth = x.PayrollMonth.Month,
+                        WorkingDays = x.WorkingDays,
+                        BasicWage = x.BasicWage,
+                        Allowances = x.Allowances,
+                        Deductions = x.Deductions,
+                        GrossAmount = x.GrossAmount,
+                        TotalDisbursed = x.TotalDisbursed,
+                        RemainingBalance = x.RemainingBalance,
+                        IsFullyPaid = x.IsFullyPaid,
+                        Status = x.Status,
+                        Notes = x.Notes,
+                        Disbursements = x.Disbursements
+                .Select(d => new DisbursementResponse
+                {
+                        Id = d.Id,
+                        Amount = d.Amount,
+                        Status = d.Status,
+                        VoyageId = d.Voyage!.VoyageID,
+                        OfficeName = d.Office!.OfficeName,
+                        SwiftReference = d.SwiftTransfer!.SwiftReference,
+                        CancelReason = d.CancelReason,
+                        SwiftTransferId = d.SwiftTransferId,
+                        Method = d.Method,
+                        Notes = d.Notes,
+                        OfficeId = d.OfficeId,
+                        PaidOn = d.PaidOn,
+                        RecipientIdNumber = d.RecipientIdNumber,
+                        RecipientName = d.RecipientName,
+                        VoyageNumber = d.Voyage.VoyageNumber
+                })
+                .ToList()
+        })
+        .FirstOrDefaultAsync(ct);
+}
+        public async Task<CrewPayrollResponse?> GetByContractAndMonthAsync(int contractId,
             DateOnly month, CancellationToken ct = default)
         {
             var firstDay = new DateOnly(month.Year, month.Month, 1);
-            return await _repo.Query().AsNoTracking()
-                              .Include(x => x.Disbursements)
-                              .FirstOrDefaultAsync(x => x.ContractId   == contractId &&
-                                                        x.PayrollMonth == firstDay, ct);
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.ContractId == contractId && x.PayrollMonth == firstDay)
+                .Select(x => new CrewPayrollResponse
+                {
+                    Id = x.Id,
+                    ContractId = x.ContractId,
+                    PersonId = x.Contract.PersonID,
+                    PersonFullName = x.Contract.Person.FullName,
+                    VesselId = x.Contract.VesselID,
+                    VesselName = x.Contract.Vessel.VesselName,
+                    PayrollMonth = x.PayrollMonth.Month,
+                    TotalDisbursed = x.TotalDisbursed,
+                    RemainingBalance = x.RemainingBalance,
+                    Status = x.Status,
+
+                    Disbursements = x.Disbursements
+                        .Select(d => new DisbursementResponse
+                        {
+                            Id = d.Id,
+                            Amount = d.Amount
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<IReadOnlyList<CrewPayroll>> GetByContractAsync(int contractId,
+        public async Task<IReadOnlyList<CrewPayrollResponse>> GetByContractAsync(int contractId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.ContractId == contractId)
-                          .Include(x => x.Disbursements)
-                          .OrderByDescending(x => x.PayrollMonth)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.ContractId == contractId)
+                .OrderByDescending(x => x.PayrollMonth)
+                .Select(x => new CrewPayrollResponse
+                {
+                    Id = x.Id,
+                    PayrollMonth = x.PayrollMonth.Month,
+                    TotalDisbursed = x.TotalDisbursed,
+                    RemainingBalance = x.RemainingBalance,
+                    Status = x.Status
+                })
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<CrewPayroll>> GetByMonthAsync(DateOnly month,
+        public async Task<IReadOnlyList<CrewPayrollResponse>> GetByMonthAsync(DateOnly month,
             CancellationToken ct = default)
         {
             var firstDay = new DateOnly(month.Year, month.Month, 1);
-            return await _repo.Query().AsNoTracking()
-                              .Where(x => x.PayrollMonth == firstDay)
-                              .Include(x => x.Contract).ThenInclude(x => x.Person)
-                              .Include(x => x.Contract).ThenInclude(x => x.Vessel)
-                              .Include(x => x.Contract).ThenInclude(x => x.Rank)
-                              .OrderBy(x => x.Contract.Person.FullName)
-                              .ToListAsync(ct);
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.PayrollMonth == firstDay)
+                .OrderBy(x => x.Contract.Person.FullName)
+                .Select(x => new CrewPayrollResponse
+                {
+                    Id = x.Id,
+                    PersonFullName = x.Contract.Person.FullName,
+                    VesselName = x.Contract.Vessel.VesselName,
+                    PayrollMonth = x.PayrollMonth.Month,
+                    Status = x.Status
+                })
+                .ToListAsync(ct);
         }
 
-        public async Task<IReadOnlyList<CrewPayroll>> GetByStatusAsync(PayrollStatus status,
+        public async Task<IReadOnlyList<CrewPayrollResponse>> GetByStatusAsync(PayrollStatus status,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.Status == status)
-                          .Include(x => x.Contract).ThenInclude(x => x.Person)
-                          .Include(x => x.Contract).ThenInclude(x => x.Rank)
-                          .OrderByDescending(x => x.PayrollMonth)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Status == status)
+                .OrderByDescending(x => x.PayrollMonth)
+                .Select(x => new CrewPayrollResponse
+                {
+                    Id = x.Id,
+                    PersonFullName = x.Contract.Person.FullName,
+                    PayrollMonth = x.PayrollMonth.Month,
+                    Status = x.Status
+                })
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<CrewPayroll>> GetOutstandingAsync(
+        public async Task<IReadOnlyList<CrewPayrollResponse>> GetOutstandingAsync(
             CancellationToken ct = default)
-            => await _repo.Query()
-                          .Where(x => x.Status == PayrollStatus.Approved ||
-                                      x.Status == PayrollStatus.PartiallyPaid)
-                          .Include(x => x.Disbursements)
-                          .Include(x => x.Contract).ThenInclude(x => x.Person)
-                          .Include(x => x.Contract).ThenInclude(x => x.Vessel)
-                          .OrderBy(x => x.PayrollMonth)
-                          .ThenBy(x => x.Contract.Person.FullName)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Status == PayrollStatus.Approved ||
+                            x.Status == PayrollStatus.PartiallyPaid)
+                .OrderBy(x => x.PayrollMonth)
+                .ThenBy(x => x.Contract.Person.FullName)
+                .Select(x => new CrewPayrollResponse
+                {
+                    Id = x.Id,
+                    PersonFullName = x.Contract.Person.FullName,
+                    VesselName = x.Contract.Vessel.VesselName,
+                    PayrollMonth = x.PayrollMonth.Month,
+                    RemainingBalance = x.RemainingBalance,
+                    Status = x.Status
+                })
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CrewPayroll> CreateAsync(int contractId, DateOnly payrollMonth,
+        public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth,
             int workingDays, decimal basicWage, decimal allowances = 0m,
             decimal deductions = 0m, string? notes = null,
             CancellationToken ct = default)
@@ -111,7 +228,21 @@ namespace Marilog.Application.Services
                                              basicWage, allowances, deductions, notes);
             await _repo.AddAsync(payroll, ct);
             await _repo.SaveChangesAsync(ct);
-            return payroll;
+            return new CrewPayrollResponse
+            {
+                WorkingDays = payroll.WorkingDays,
+                Allowances = payroll.Allowances,
+                GrossAmount = payroll.GrossAmount,
+                BasicWage = payroll.BasicWage,
+                ContractId = payroll.ContractId,
+                Deductions = payroll.Deductions,
+                Status = payroll.Status,
+                IsFullyPaid = payroll.IsFullyPaid,
+                RemainingBalance = payroll.RemainingBalance,
+                TotalDisbursed = payroll.TotalDisbursed,
+                Notes = payroll.Notes,
+                PayrollMonth = payroll.PayrollMonth.Month,
+            };
         }
 
         public async Task UpdateAsync(int id, int workingDays, decimal basicWage,

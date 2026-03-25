@@ -14,6 +14,6 @@ namespace Marilog.Application.DTOs
         public string? Phone { get; set; } = null!;
         public string? Address { get; set; } = null!;
         public bool IsActive { get; set; }
-        public ICollection<VesselResponse> Vessels { get; set; } = new List<VesselResponse>();
+        public List<VesselResponse> Vessels { get; set; } = new List<VesselResponse>();
     }
 }

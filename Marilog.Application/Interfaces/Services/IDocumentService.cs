@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Events;
 
@@ -6,20 +7,20 @@ namespace Marilog.Application.Interfaces.Services
     public interface IDocumentService
     {
         // ── Queries ───────────────────────────────────────────────────────────────
-        Task<Document?>              GetByIdAsync(int id, CancellationToken ct = default);
-        Task<Document?>              GetWithItemsAsync(int id, CancellationToken ct = default);
-        Task<Document?>              GetWithPaymentsAsync(int id, CancellationToken ct = default);
-        Task<Document?>              GetFullAsync(int id, CancellationToken ct = default);
-        Task<Document?>              GetByNumberAsync(string docNumber, CancellationToken ct = default);
-        Task<IReadOnlyList<Document>> GetBySupplierAsync(int supplierId, CancellationToken ct = default);
-        Task<IReadOnlyList<Document>> GetByBuyerAsync(int buyerId, CancellationToken ct = default);
-        Task<IReadOnlyList<Document>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
-        Task<IReadOnlyList<Document>> GetByTypeAsync(int docTypeId, CancellationToken ct = default);
-        Task<IReadOnlyList<Document>> GetUnpaidAsync(CancellationToken ct = default);
-        Task<IReadOnlyList<Document>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetWithItemsAsync(int id, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetWithPaymentsAsync(int id, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetFullAsync(int id, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetByNumberAsync(string docNumber, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<Document> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
+        Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
                                    int? vesselId = null, int? portId = null,

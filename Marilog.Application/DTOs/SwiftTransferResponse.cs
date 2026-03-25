@@ -18,13 +18,13 @@ namespace Marilog.Application.DTOs
         public decimal UnallocatedAmount { get; set; }
         public bool IsFullyAllocated { get; set; }
 
-        public int SenderCompanyId { get; set; }
+        public int? SenderCompanyId { get; set; }
         public string? SenderCompanyName { get; set; }
-        public int ReceiverCompanyId { get; set; }
+        public int? ReceiverCompanyId { get; set; }
         public string? ReceiverCompanyName { get; set; }
 
-        public string SenderBank { get; set; } = null!;
-        public string ReceiverBank { get; set; } = null!;
+        public string? SenderBank { get; set; } = null!;
+        public string? ReceiverBank { get; set; } = null!;
         public string? PaymentReference { get; set; }
         public bool IsActive { get; set; }
     }

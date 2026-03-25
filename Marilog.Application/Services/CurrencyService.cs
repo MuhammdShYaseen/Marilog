@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,31 +15,55 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Currency?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<CurrencyResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Currency?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.CurrencyCode == code.ToUpperInvariant(), ct);
+        public async Task<CurrencyResponse?> GetByCodeAsync(string code, CancellationToken ct = default)
+        {
+            var upper = code.ToUpperInvariant();
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CurrencyCode == upper)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
         public async Task<Currency?> GetBaseCurrencyAsync(CancellationToken ct = default)
-            => await _repo.Query()
-                          .FirstOrDefaultAsync(x => x.IsBaseCurrency, ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsBaseCurrency)
+                .FirstOrDefaultAsync(ct);
+        }
+        public async Task<IReadOnlyList<CurrencyResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.CurrencyCode)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Currency>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.CurrencyCode)
-                          .ToListAsync(ct);
-
-        public async Task<IReadOnlyList<Currency>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.CurrencyCode)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<CurrencyResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.CurrencyCode)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Currency> CreateAsync(string code, string name, decimal exchangeRate,
+        public async Task<CurrencyResponse> CreateAsync(string code, string name, decimal exchangeRate,
             string? symbol = null, CancellationToken ct = default)
         {
             var exists = await _repo.Query()
@@ -48,7 +74,16 @@ namespace Marilog.Application.Services
             var currency = Currency.Create(code, name, exchangeRate, symbol);
             await _repo.AddAsync(currency, ct);
             await _repo.SaveChangesAsync(ct);
-            return currency;
+            return new CurrencyResponse
+            {
+                Id = currency.Id,
+                Code = currency.CurrencyCode,
+                Name = currency.CurrencyName,
+                Symbol = currency.Symbol,
+                ExchangeRate = currency.ExchangeRate,
+                IsBaseCurrency = currency.IsBaseCurrency,
+                IsActive = currency.IsActive
+            };
         }
 
         public async Task UpdateAsync(int id, string name, decimal exchangeRate,
@@ -116,5 +151,17 @@ namespace Marilog.Application.Services
         private async Task<Currency> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Currency {id} not found.");
+
+        private static readonly Expression<Func<Currency, CurrencyResponse>> ToResponse =
+            x => new CurrencyResponse
+            {
+                Id = x.Id,
+                Code = x.CurrencyCode,
+                Name = x.CurrencyName,
+                Symbol = x.Symbol,
+                ExchangeRate = x.ExchangeRate,
+                IsBaseCurrency = x.IsBaseCurrency,
+                IsActive = x.IsActive
+            };
     }
 }
