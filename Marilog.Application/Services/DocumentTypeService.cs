@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,30 +15,49 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<DocumentType?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<DocumentTypeResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<DocumentType?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query()
-                          .FirstOrDefaultAsync(x => x.Code == code.ToUpperInvariant(), ct);
+        public async Task<DocumentTypeResponse?> GetByCodeAsync(string code, CancellationToken ct = default)
+        {
+            var upper = code.ToUpperInvariant();
 
-        public async Task<IReadOnlyList<DocumentType>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query()
-                          .AsNoTracking()
-                          .OrderBy(x => x.SortOrder)
-                          .ThenBy(x => x.Name)
-                          .ToListAsync(ct);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Code == upper)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
+        public async Task<IReadOnlyList<DocumentTypeResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Name)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<DocumentType>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.SortOrder)
-                          .ThenBy(x => x.Name)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<DocumentTypeResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Name)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<DocumentType> CreateAsync(string code, string name,
+        public async Task<DocumentTypeResponse> CreateAsync(string code, string name,
             int sortOrder = 0, CancellationToken ct = default)
         {
             var exists = await _repo.Query()
@@ -47,7 +68,12 @@ namespace Marilog.Application.Services
             var docType = DocumentType.Create(code, name, sortOrder);
             await _repo.AddAsync(docType, ct);
             await _repo.SaveChangesAsync(ct);
-            return docType;
+            return new DocumentTypeResponse
+            {
+                Code = code,
+                Name = name,
+                SortOrder = sortOrder,
+            };
         }
 
         public async Task UpdateAsync(int id, string name, int sortOrder,
@@ -87,5 +113,13 @@ namespace Marilog.Application.Services
         private async Task<DocumentType> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"DocumentType {id} not found.");
+
+        private static readonly Expression<Func<DocumentType, DocumentTypeResponse>> ToResponse =
+        x => new DocumentTypeResponse
+        {
+            Code = x.Code,
+            Name = x.Name,
+            SortOrder = x.SortOrder
+        };
     }
 }
