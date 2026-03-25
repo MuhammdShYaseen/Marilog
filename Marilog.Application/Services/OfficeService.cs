@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,38 +15,65 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Office?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<OfficeResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Office>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.OfficeName)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<OfficeResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.OfficeName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Office>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.OfficeName)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<OfficeResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.OfficeName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Office>> GetByCountryAsync(int countryId,
+        public async Task<IReadOnlyList<OfficeResponse>> GetByCountryAsync(int countryId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.CountryId == countryId && x.IsActive)
-                          .OrderBy(x => x.City)
-                          .ThenBy(x => x.OfficeName)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CountryId == countryId && x.IsActive)
+                .OrderBy(x => x.City)
+                .ThenBy(x => x.OfficeName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Office> CreateAsync(string officeName, string city, int countryId,
+        public async Task<OfficeResponse> CreateAsync(string officeName, string city, int countryId,
             string? address = null, string? phone = null, string? contactName = null,
             CancellationToken ct = default)
         {
             var office = Office.Create(officeName, city, countryId, address, phone, contactName);
             await _repo.AddAsync(office, ct);
             await _repo.SaveChangesAsync(ct);
-            return office;
+            return new OfficeResponse
+            {
+                Address = address,
+                IsActive = true,
+                CountryId = countryId,
+                City = city,
+                ContactName = contactName,
+                Phone = phone,
+                Name = officeName
+            };
         }
 
         public async Task UpdateAsync(int id, string officeName, string city, int countryId,
@@ -85,5 +114,19 @@ namespace Marilog.Application.Services
         private async Task<Office> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Office {id} not found.");
+
+        private static readonly Expression<Func<Office, OfficeResponse>> ToResponse =
+            x => new OfficeResponse
+            {
+                Id = x.Id,
+                Name = x.OfficeName,
+                City = x.City,
+                CountryId = x.CountryId,
+                CountryName = x.Country != null ? x.Country.CountryName : null,
+                Address = x.Address,
+                Phone = x.Phone,
+                ContactName = x.ContactName,
+                IsActive = x.IsActive
+            };
     }
 }
