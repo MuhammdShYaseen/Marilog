@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Marilog.Infrastructure.Migrations
 {
     [DbContext(typeof(MarilogContext))]
-    [Migration("20260318192042_FirstCreate")]
-    partial class FirstCreate
+    [Migration("20260325122624_First")]
+    partial class First
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,11 +27,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Company", b =>
                 {
-                    b.Property<int>("CompanyID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Address")
                         .HasMaxLength(300)
@@ -61,9 +61,6 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -76,10 +73,13 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("RegistrationNumber")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("CompanyID");
+                    b.HasKey("Id");
 
                     b.HasIndex("CountryId");
 
@@ -91,11 +91,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Country", b =>
                 {
-                    b.Property<int>("CountryID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
@@ -115,9 +115,6 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -129,7 +126,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("CountryID");
+                    b.HasKey("Id");
 
                     b.HasIndex("CountryCode")
                         .IsUnique();
@@ -142,11 +139,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.CrewContract", b =>
                 {
-                    b.Property<int>("ContractID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContractID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -155,9 +152,6 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -198,7 +192,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<int>("VesselID")
                         .HasColumnType("int");
 
-                    b.HasKey("ContractID");
+                    b.HasKey("Id");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -906,11 +900,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Person", b =>
                 {
-                    b.Property<int>("PersonID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PersonID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("BankName")
                         .HasMaxLength(200)
@@ -944,9 +938,6 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(34)
                         .HasColumnType("nvarchar(34)");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -976,7 +967,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("PersonID");
+                    b.HasKey("Id");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -988,11 +979,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Port", b =>
                 {
-                    b.Property<int>("PortID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PortID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("CountryID")
                         .HasColumnType("int");
@@ -1004,9 +995,6 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -1029,7 +1017,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("PortID");
+                    b.HasKey("Id");
 
                     b.HasIndex("CountryID");
 
@@ -1044,11 +1032,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Rank", b =>
                 {
-                    b.Property<int>("RankID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RankID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -1060,9 +1048,6 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -1085,7 +1070,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("RankID");
+                    b.HasKey("Id");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -1182,11 +1167,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Vessel", b =>
                 {
-                    b.Property<int>("VesselID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VesselID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CompanyID")
                         .HasColumnType("int");
@@ -1209,9 +1194,6 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -1232,7 +1214,7 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.HasKey("VesselID");
+                    b.HasKey("Id");
 
                     b.HasIndex("CompanyID");
 
@@ -1250,11 +1232,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.Voyage", b =>
                 {
-                    b.Property<int>("VoyageID")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoyageID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("ArrivalDate")
                         .HasColumnType("datetime2");
@@ -1292,9 +1274,6 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -1337,7 +1316,7 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.HasKey("VoyageID");
+                    b.HasKey("Id");
 
                     b.HasIndex("ArrivalPortID");
 

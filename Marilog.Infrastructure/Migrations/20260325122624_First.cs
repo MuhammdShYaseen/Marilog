@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Marilog.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class FirstCreate : Migration
+    public partial class First : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,11 +15,10 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Countries",
                 columns: table => new
                 {
-                    CountryID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CountryCode = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
                     CountryName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -28,7 +27,7 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Countries", x => x.CountryID);
+                    table.PrimaryKey("PK_Countries", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -102,12 +101,11 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Ranks",
                 columns: table => new
                 {
-                    RankID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RankCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     RankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Department = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -116,7 +114,7 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Ranks", x => x.RankID);
+                    table.PrimaryKey("PK_Ranks", x => x.Id);
                     table.CheckConstraint("CK_Ranks_Department", "Department IN ('DECK', 'ENGINE', 'CATERING')");
                 });
 
@@ -124,7 +122,7 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Companies",
                 columns: table => new
                 {
-                    CompanyID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CompanyName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     CountryId = table.Column<int>(type: "int", nullable: true),
@@ -132,7 +130,7 @@ namespace Marilog.Infrastructure.Migrations
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
                     Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
+                    RegistrationNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -141,12 +139,12 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Companies", x => x.CompanyID);
+                    table.PrimaryKey("PK_Companies", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Companies_Countries_CountryId",
                         column: x => x.CountryId,
                         principalTable: "Countries",
-                        principalColumn: "CountryID");
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -174,7 +172,7 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_Offices_Countries_CountryId",
                         column: x => x.CountryId,
                         principalTable: "Countries",
-                        principalColumn: "CountryID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -182,7 +180,7 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Persons",
                 columns: table => new
                 {
-                    PersonID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Nationality = table.Column<int>(type: "int", nullable: true),
@@ -195,7 +193,6 @@ namespace Marilog.Infrastructure.Migrations
                     BankName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     IBAN = table.Column<string>(type: "nvarchar(34)", maxLength: 34, nullable: true),
                     BankSwiftCode = table.Column<string>(type: "nvarchar(11)", maxLength: 11, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -204,12 +201,12 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Persons", x => x.PersonID);
+                    table.PrimaryKey("PK_Persons", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Persons_Countries_Nationality",
                         column: x => x.Nationality,
                         principalTable: "Countries",
-                        principalColumn: "CountryID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -217,12 +214,11 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Ports",
                 columns: table => new
                 {
-                    PortID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PortCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     PortName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     CountryID = table.Column<int>(type: "int", nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -231,12 +227,12 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Ports", x => x.PortID);
+                    table.PrimaryKey("PK_Ports", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Ports_Countries_CountryID",
                         column: x => x.CountryID,
                         principalTable: "Countries",
-                        principalColumn: "CountryID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -321,13 +317,13 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_swift_transfers_Companies_ReceiverCompanyId",
                         column: x => x.ReceiverCompanyId,
                         principalTable: "Companies",
-                        principalColumn: "CompanyID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_swift_transfers_Companies_SenderCompanyId",
                         column: x => x.SenderCompanyId,
                         principalTable: "Companies",
-                        principalColumn: "CompanyID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_swift_transfers_Currencies_CurrencyId",
@@ -341,7 +337,7 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Vessels",
                 columns: table => new
                 {
-                    VesselID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CompanyID = table.Column<int>(type: "int", nullable: false),
                     VesselName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
@@ -349,7 +345,6 @@ namespace Marilog.Infrastructure.Migrations
                     GrossTonnage = table.Column<decimal>(type: "decimal(12,2)", nullable: true),
                     FlagCountryID = table.Column<int>(type: "int", nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -358,18 +353,18 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Vessels", x => x.VesselID);
+                    table.PrimaryKey("PK_Vessels", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Vessels_Companies_CompanyID",
                         column: x => x.CompanyID,
                         principalTable: "Companies",
-                        principalColumn: "CompanyID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Vessels_Countries_FlagCountryID",
                         column: x => x.FlagCountryID,
                         principalTable: "Countries",
-                        principalColumn: "CountryID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -377,7 +372,7 @@ namespace Marilog.Infrastructure.Migrations
                 name: "CrewContracts",
                 columns: table => new
                 {
-                    ContractID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PersonID = table.Column<int>(type: "int", nullable: false),
                     VesselID = table.Column<int>(type: "int", nullable: false),
@@ -388,7 +383,6 @@ namespace Marilog.Infrastructure.Migrations
                     SignOnPort = table.Column<int>(type: "int", nullable: true),
                     SignOffPort = table.Column<int>(type: "int", nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -397,36 +391,36 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CrewContracts", x => x.ContractID);
+                    table.PrimaryKey("PK_CrewContracts", x => x.Id);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Persons_PersonID",
                         column: x => x.PersonID,
                         principalTable: "Persons",
-                        principalColumn: "PersonID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Ports_SignOffPort",
                         column: x => x.SignOffPort,
                         principalTable: "Ports",
-                        principalColumn: "PortID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Ports_SignOnPort",
                         column: x => x.SignOnPort,
                         principalTable: "Ports",
-                        principalColumn: "PortID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Ranks_RankID",
                         column: x => x.RankID,
                         principalTable: "Ranks",
-                        principalColumn: "RankID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewContracts_Vessels_VesselID",
                         column: x => x.VesselID,
                         principalTable: "Vessels",
-                        principalColumn: "VesselID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -461,13 +455,13 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_Documents_Companies_BuyerId",
                         column: x => x.BuyerId,
                         principalTable: "Companies",
-                        principalColumn: "CompanyID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Companies_SupplierId",
                         column: x => x.SupplierId,
                         principalTable: "Companies",
-                        principalColumn: "CompanyID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Currencies_CurrencyId",
@@ -491,13 +485,13 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_Documents_Ports_PortId",
                         column: x => x.PortId,
                         principalTable: "Ports",
-                        principalColumn: "PortID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Documents_Vessels_VesselId",
                         column: x => x.VesselId,
                         principalTable: "Vessels",
-                        principalColumn: "VesselID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -529,7 +523,7 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_CrewPayrolls_CrewContracts_ContractId",
                         column: x => x.ContractId,
                         principalTable: "CrewContracts",
-                        principalColumn: "ContractID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -537,7 +531,7 @@ namespace Marilog.Infrastructure.Migrations
                 name: "Voyages",
                 columns: table => new
                 {
-                    VoyageID = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     VesselID = table.Column<int>(type: "int", nullable: false),
                     VoyageNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
@@ -554,7 +548,6 @@ namespace Marilog.Infrastructure.Migrations
                     CashOnBoard = table.Column<decimal>(type: "decimal(12,2)", nullable: false, defaultValue: 0m),
                     CigarettesOnBoard = table.Column<decimal>(type: "decimal(12,2)", nullable: false, defaultValue: 0m),
                     Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -563,31 +556,31 @@ namespace Marilog.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Voyages", x => x.VoyageID);
+                    table.PrimaryKey("PK_Voyages", x => x.Id);
                     table.CheckConstraint("CK_Voyages_Status", "Status IN ('PLANNED','UNDERWAY','COMPLETED','CANCELLED')");
                     table.ForeignKey(
                         name: "FK_Voyages_CrewContracts_MasterContractID",
                         column: x => x.MasterContractID,
                         principalTable: "CrewContracts",
-                        principalColumn: "ContractID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Voyages_Ports_ArrivalPortID",
                         column: x => x.ArrivalPortID,
                         principalTable: "Ports",
-                        principalColumn: "PortID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Voyages_Ports_DeparturePortID",
                         column: x => x.DeparturePortID,
                         principalTable: "Ports",
-                        principalColumn: "PortID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Voyages_Vessels_VesselID",
                         column: x => x.VesselID,
                         principalTable: "Vessels",
-                        principalColumn: "VesselID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -686,7 +679,7 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_CrewPayrollDisbursements_Voyages_VoyageId",
                         column: x => x.VoyageId,
                         principalTable: "Voyages",
-                        principalColumn: "VoyageID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CrewPayrollDisbursements_swift_transfers_SwiftTransferId",
@@ -717,13 +710,13 @@ namespace Marilog.Infrastructure.Migrations
                         name: "FK_VoyageStops_Ports_PortID",
                         column: x => x.PortID,
                         principalTable: "Ports",
-                        principalColumn: "PortID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_VoyageStops_Voyages_VoyageID",
                         column: x => x.VoyageID,
                         principalTable: "Voyages",
-                        principalColumn: "VoyageID",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
