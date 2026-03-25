@@ -9,8 +9,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<CrewContract> builder)
         {
             builder.ToTable("CrewContracts");
-            builder.HasKey(x => x.ContractID);
-            builder.Property(x => x.ContractID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.MonthlyWage).IsRequired().HasColumnType("decimal(10,2)");
             builder.Property(x => x.SignOnDate).IsRequired().HasColumnType("date");
             builder.Property(x => x.SignOffDate).HasColumnType("date");

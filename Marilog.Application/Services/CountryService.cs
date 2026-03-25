@@ -18,10 +18,10 @@ namespace Marilog.Application.Services
         {
             return await _repo.Query()
             .AsNoTracking()
-            .Where(x => x.CountryID == id)
+            .Where(x => x.Id == id)
             .Select(x => new CountryResponse
             {
-                Id = x.CountryID,
+                Id = x.Id,
                 Code = x.CountryCode,
                 Name = x.CountryName,
                 IsActive = x.IsActive
@@ -38,7 +38,7 @@ namespace Marilog.Application.Services
                 .Where(x => x.CountryCode == upperCode)
                 .Select(x => new CountryResponse
                 {
-                    Id = x.CountryID,
+                    Id = x.Id,
                     Code = x.CountryCode,
                     Name = x.CountryName,
                     IsActive = x.IsActive
@@ -53,7 +53,7 @@ namespace Marilog.Application.Services
                 .OrderBy(x => x.CountryName)
                 .Select(x => new CountryResponse
                 {
-                    Id = x.CountryID,
+                    Id = x.Id,
                     Code = x.CountryCode,
                     Name = x.CountryName,
                     IsActive = x.IsActive
@@ -69,7 +69,7 @@ namespace Marilog.Application.Services
                 .OrderBy(x => x.CountryName)
                 .Select(x => new CountryResponse
                 {
-                    Id = x.CountryID,
+                    Id = x.Id,
                     Code = x.CountryCode,
                     Name = x.CountryName,
                     IsActive = x.IsActive
@@ -94,7 +94,7 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
             return new CountryResponse
             {
-                Id = country.CountryID,
+                Id = country.Id,
                 Code = country.CountryCode,
                 Name = country.CountryName,
                 IsActive = country.IsActive
@@ -108,7 +108,7 @@ namespace Marilog.Application.Services
 
             var codeConflict = await _repo.Query()
                 .AnyAsync(x => x.CountryCode == countryCode.ToUpperInvariant()
-                            && x.CountryID   != id, ct);
+                            && x.Id   != id, ct);
             if (codeConflict)
                 throw new InvalidOperationException($"Country code '{countryCode}' is already in use.");
 

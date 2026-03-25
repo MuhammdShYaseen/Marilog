@@ -9,8 +9,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Country> builder)
         {
             builder.ToTable("Countries");
-            builder.HasKey(x => x.CountryID);
-            builder.Property(x => x.CountryID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.CountryCode).IsRequired().HasMaxLength(3);
             builder.Property(x => x.CountryName).IsRequired().HasMaxLength(100);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);

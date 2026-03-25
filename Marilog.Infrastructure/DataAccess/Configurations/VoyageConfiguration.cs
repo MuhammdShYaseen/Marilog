@@ -9,8 +9,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Voyage> builder)
         {
             builder.ToTable("Voyages");
-            builder.HasKey(x => x.VoyageID);
-            builder.Property(x => x.VoyageID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.VoyageNumber).IsRequired().HasMaxLength(30);
             builder.Property(x => x.VoyageMonth).IsRequired().HasColumnType("date");
             builder.Property(x => x.CargoType).HasMaxLength(150);

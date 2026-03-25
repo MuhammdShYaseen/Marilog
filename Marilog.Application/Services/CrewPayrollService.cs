@@ -89,7 +89,7 @@ namespace Marilog.Application.Services
                         Id = d.Id,
                         Amount = d.Amount,
                         Status = d.Status,
-                        VoyageId = d.Voyage!.VoyageID,
+                        VoyageId = d.Voyage!.Id,
                         OfficeName = d.Office!.OfficeName,
                         SwiftReference = d.SwiftTransfer!.SwiftReference,
                         CancelReason = d.CancelReason,
@@ -363,7 +363,7 @@ namespace Marilog.Application.Services
         private async Task EnsureContractActiveAsync(int contractId, CancellationToken ct)
         {
             var exists = await _contractRepo.Query()
-                .AnyAsync(x => x.ContractID == contractId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == contractId && x.IsActive, ct);
             if (!exists)
                 throw new KeyNotFoundException(
                     $"CrewContract {contractId} not found or inactive.");
@@ -385,7 +385,7 @@ namespace Marilog.Application.Services
         private async Task EnsureVoyageExistsAsync(int voyageId, CancellationToken ct)
         {
             var exists = await _voyageRepo.Query()
-                .AnyAsync(x => x.VoyageID == voyageId, ct);
+                .AnyAsync(x => x.Id == voyageId, ct);
             if (!exists)
                 throw new KeyNotFoundException($"Voyage {voyageId} not found.");
         }

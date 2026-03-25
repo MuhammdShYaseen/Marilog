@@ -29,13 +29,13 @@ namespace Marilog.Application.Services
                           .Include(x => x.DeparturePort)
                           .Include(x => x.ArrivalPort)
                           .Include(x => x.MasterContract).ThenInclude(x => x!.Person)
-                          .FirstOrDefaultAsync(x => x.VoyageID == id, ct);
+                          .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<Voyage?> GetWithStopsAsync(int id, CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Include(x => x.Stops).ThenInclude(x => x.Port)
                           .Include(x => x.Vessel)
-                          .FirstOrDefaultAsync(x => x.VoyageID == id, ct);
+                          .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         public async Task<IReadOnlyList<Voyage>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
@@ -211,13 +211,13 @@ namespace Marilog.Application.Services
         private async Task<Voyage> GetWithStopsOrThrowAsync(int id, CancellationToken ct)
             => await _repo.Query()
                           .Include(x => x.Stops)
-                          .FirstOrDefaultAsync(x => x.VoyageID == id, ct)
+                          .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Voyage {id} not found.");
 
         private async Task EnsureVesselActiveAsync(int vesselId, CancellationToken ct)
         {
             var exists = await _vesselRepo.Query()
-                .AnyAsync(x => x.VesselID == vesselId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == vesselId && x.IsActive, ct);
             if (!exists)
                 throw new KeyNotFoundException($"Vessel {vesselId} not found or inactive.");
         }
@@ -225,7 +225,7 @@ namespace Marilog.Application.Services
         private async Task EnsureContractActiveAsync(int contractId, CancellationToken ct)
         {
             var exists = await _contractRepo.Query()
-                .AnyAsync(x => x.ContractID == contractId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == contractId && x.IsActive, ct);
             if (!exists)
                 throw new KeyNotFoundException(
                     $"CrewContract {contractId} not found or inactive.");
@@ -236,7 +236,7 @@ namespace Marilog.Application.Services
         {
             var conflict = await _repo.Query()
                 .AnyAsync(x => x.VoyageNumber == voyageNumber &&
-                               (excludeId == null || x.VoyageID != excludeId), ct);
+                               (excludeId == null || x.Id != excludeId), ct);
             if (conflict)
                 throw new InvalidOperationException(
                     $"Voyage number '{voyageNumber}' already exists.");

@@ -9,8 +9,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Rank> builder)
         {
             builder.ToTable("Ranks");
-            builder.HasKey(x => x.RankID);
-            builder.Property(x => x.RankID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.RankCode).IsRequired().HasMaxLength(20);
             builder.Property(x => x.RankName).IsRequired().HasMaxLength(100);
             builder.Property(x => x.Department)

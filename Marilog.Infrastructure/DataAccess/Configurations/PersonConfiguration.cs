@@ -10,8 +10,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Person> builder)
         {
             builder.ToTable("Persons");
-            builder.HasKey(x => x.PersonID);
-            builder.Property(x => x.PersonID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.FullName).IsRequired().HasMaxLength(200);
             builder.Property(x => x.PassportNo).HasMaxLength(50);
             builder.Property(x => x.PassportExpiry).HasColumnType("date");

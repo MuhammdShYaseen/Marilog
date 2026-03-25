@@ -56,7 +56,7 @@ namespace Marilog.Application.Services
             CancellationToken ct = default)
         {
             var companyExists = await _companyRepo.Query()
-                .AnyAsync(x => x.CompanyID == companyId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == companyId && x.IsActive, ct);
             if (!companyExists)
                 throw new KeyNotFoundException($"Company {companyId} not found or inactive.");
 
@@ -116,7 +116,7 @@ namespace Marilog.Application.Services
         private async Task<Vessel> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.Query()
                           .Include(x => x.CrewContracts)
-                          .FirstOrDefaultAsync(x => x.VesselID == id, ct)
+                          .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Vessel {id} not found.");
 
         private async Task EnsureUniqueImoAsync(string? imoNumber,
@@ -126,7 +126,7 @@ namespace Marilog.Application.Services
 
             var conflict = await _repo.Query()
                 .AnyAsync(x => x.IMONumber == imoNumber &&
-                               (excludeId == null || x.VesselID != excludeId), ct);
+                               (excludeId == null || x.Id != excludeId), ct);
             if (conflict)
                 throw new InvalidOperationException(
                     $"IMO number '{imoNumber}' is already registered.");

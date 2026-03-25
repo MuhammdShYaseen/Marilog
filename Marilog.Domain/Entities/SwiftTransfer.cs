@@ -4,7 +4,7 @@ namespace Marilog.Domain.Entities
 {
         public class SwiftTransfer : Entity
         {
-        public string SwiftReference { get; private set; } = null!;
+            public string SwiftReference { get; private set; } = null!;
             public DateOnly TransactionDate { get; private set; }
             public int CurrencyId { get; private set; }
             public Currency Currency { get; private set; } = null!;

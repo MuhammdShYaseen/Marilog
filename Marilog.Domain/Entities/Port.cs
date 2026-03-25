@@ -4,7 +4,6 @@ namespace Marilog.Domain.Entities
 {
     public class Port : Entity
     {
-        public int PortID { get; private set; }
         public string PortCode { get; private set; } = null!;
         public string PortName { get; private set; } = null!;
         public int? CountryID { get; private set; }

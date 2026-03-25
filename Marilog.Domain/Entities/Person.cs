@@ -4,7 +4,6 @@ namespace Marilog.Domain.Entities
 {
     public class Person : Entity
     {
-        public int PersonID { get; private set; }
         public string FullName { get; private set; } = null!;
         public int? Nationality { get; private set; }
         public Country? NationalityCountry { get; private set; }
@@ -22,7 +21,7 @@ namespace Marilog.Domain.Entities
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 
         private Person() { }
-        public static Person Create(string fullName, int? nationality = null,
+        public static Person Create(string bankName, string iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
             string? phone = null, string? email = null)
@@ -38,7 +37,10 @@ namespace Marilog.Domain.Entities
                 SeamanBookNo = seamanBookNo,
                 DateOfBirth = dateOfBirth,
                 Phone = phone,
-                Email = email
+                Email = email,
+                IBAN = iBAN,
+                BankName = bankName,
+                BankSwiftCode = bankSwiftCode
             };
         }
 

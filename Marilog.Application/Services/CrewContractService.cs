@@ -31,10 +31,10 @@ namespace Marilog.Application.Services
         {
             return await _repo.Query()
                 .AsNoTracking()
-                .Where(x => x.ContractID == id)
+                .Where(x => x.Id == id)
                 .Select(x => new CrewContractResponse
                 {
-                    ContractId = x.ContractID,
+                    ContractId = x.Id,
                     PersonId = x.PersonID,
                     PersonFullName = x.Person.FullName,
                     VesselId = x.VesselID,
@@ -63,7 +63,7 @@ namespace Marilog.Application.Services
                 .OrderByDescending(x => x.SignOnDate)
                 .Select(x => new CrewContractResponse
                 {
-                    ContractId = x.ContractID,
+                    ContractId = x.Id,
                     PersonId = x.PersonID,
                     PersonFullName = x.Person.FullName,
                     VesselId = x.VesselID,
@@ -92,7 +92,7 @@ namespace Marilog.Application.Services
                 .OrderByDescending(x => x.SignOnDate)
                 .Select(x => new CrewContractResponse
                 {
-                    ContractId = x.ContractID,
+                    ContractId = x.Id,
                     PersonId = x.PersonID,
                     PersonFullName = x.Person.FullName,
                     VesselId = x.VesselID,
@@ -122,7 +122,7 @@ namespace Marilog.Application.Services
                 .ThenBy(x => x.Person.FullName)
                 .Select(x => new CrewContractResponse
                 {
-                    ContractId = x.ContractID,
+                    ContractId = x.Id,
                     PersonId = x.PersonID,
                     PersonFullName = x.Person.FullName,
                     VesselId = x.VesselID,
@@ -150,7 +150,7 @@ namespace Marilog.Application.Services
                 .Where(x => x.VesselID == vesselId && x.IsActive && x.Rank.RankCode == "MASTER")
                 .Select(x => new CrewContractResponse
                 {
-                    ContractId = x.ContractID,
+                    ContractId = x.Id,
                     PersonId = x.PersonID,
                     PersonFullName = x.Person.FullName,
                     VesselId = x.VesselID,
@@ -178,7 +178,7 @@ namespace Marilog.Application.Services
                 .Where(x => x.SignOnDate <= date && (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
                 .Select(x => new CrewContractResponse
                 {
-                    ContractId = x.ContractID,
+                    ContractId = x.Id,
                     PersonId = x.PersonID,
                     PersonFullName = x.Person.FullName,
                     VesselId = x.VesselID,
@@ -215,7 +215,7 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
             return new CrewContractResponse
             {
-                ContractId = contract.ContractID,
+                ContractId = contract.Id,
                 PersonId = contract.PersonID,
                 PersonFullName = contract.Person.FullName,
                 VesselId = contract.VesselID,
@@ -271,7 +271,7 @@ namespace Marilog.Application.Services
         private async Task EnsurePersonExistsAsync(int personId, CancellationToken ct)
         {
             var exists = await _personRepo.Query()
-                .AnyAsync(x => x.PersonID == personId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == personId && x.IsActive, ct);
             if (!exists)
                 throw new KeyNotFoundException($"Person {personId} not found or inactive.");
         }
@@ -279,7 +279,7 @@ namespace Marilog.Application.Services
         private async Task EnsureVesselActiveAsync(int vesselId, CancellationToken ct)
         {
             var exists = await _vesselRepo.Query()
-                .AnyAsync(x => x.VesselID == vesselId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == vesselId && x.IsActive, ct);
             if (!exists)
                 throw new KeyNotFoundException($"Vessel {vesselId} not found or inactive.");
         }
@@ -287,7 +287,7 @@ namespace Marilog.Application.Services
         private async Task EnsureRankExistsAsync(int rankId, CancellationToken ct)
         {
             var exists = await _rankRepo.Query()
-                .AnyAsync(x => x.RankID == rankId && x.IsActive, ct);
+                .AnyAsync(x => x.Id == rankId && x.IsActive, ct);
             if (!exists)
                 throw new KeyNotFoundException($"Rank {rankId} not found or inactive.");
         }

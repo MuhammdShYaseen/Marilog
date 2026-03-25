@@ -63,7 +63,7 @@ namespace Marilog.Application.Services
 
             var codeConflict = await _repo.Query()
                 .AnyAsync(x => x.RankCode == rankCode.ToUpperInvariant()
-                            && x.RankID   != id, ct);
+                            && x.Id != id, ct);
             if (codeConflict)
                 throw new InvalidOperationException($"Rank code '{rankCode}' is already in use.");
 

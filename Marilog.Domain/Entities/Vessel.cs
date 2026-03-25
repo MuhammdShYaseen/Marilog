@@ -4,7 +4,6 @@ namespace Marilog.Domain.Entities
 {
     public class Vessel : Entity
     {
-        public int VesselID { get; private set; }
         public int CompanyID { get; private set; }
         public Company Company { get; private set; } = null!;
         public string VesselName { get; private set; } = null!;

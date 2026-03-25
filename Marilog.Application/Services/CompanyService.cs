@@ -20,7 +20,7 @@ namespace Marilog.Application.Services
                .AsNoTracking()
                .Select(x => new CompanyResponse
                {
-                   Id = x.CompanyID,
+                   Id = x.Id,
                    Address = x.Address,
                    IsActive = x.IsActive,
                    Email = x.Email,
@@ -36,10 +36,10 @@ namespace Marilog.Application.Services
         {
             var companyDto = await _repo.Query()
                 .AsNoTracking()
-                .Where(x => x.CompanyID == id)
+                .Where(x => x.Id == id)
                 .Select(x => new CompanyResponse
                 {
-                    Id = x.CompanyID,
+                    Id = x.Id,
                     Address = x.Address,
                     IsActive = x.IsActive,
                     Email = x.Email,
@@ -50,7 +50,7 @@ namespace Marilog.Application.Services
                     Vessels = x.Vessels
                 .Select(v => new VesselResponse
                 {
-                    Id = v.VesselID,
+                    Id = v.Id,
                     Name = v.VesselName,
                     IMONumber = v.IMONumber,
                     FlagCountryId = v.FlagCountryID,
@@ -72,7 +72,7 @@ namespace Marilog.Application.Services
                 .OrderBy(x => x.CompanyName)   // ترتيب في SQL
                 .Select(x => new CompanyResponse
                 {
-                    Id = x.CompanyID,
+                    Id = x.Id,
                     Name = x.CompanyName,
                     Address = x.Address,
                     IsActive = x.IsActive,
@@ -94,7 +94,7 @@ namespace Marilog.Application.Services
                 .OrderBy(x => x.CompanyName)           // ترتيب في SQL
                 .Select(x => new CompanyResponse       // projection مباشر إلى DTO
                 {
-                    Id = x.CompanyID,
+                    Id = x.Id,
                     Name = x.CompanyName,
                     Address = x.Address,
                     IsActive = x.IsActive,
@@ -116,7 +116,7 @@ namespace Marilog.Application.Services
                 .OrderBy(x => x.CompanyName)                            // ترتيب في SQL
                 .Select(x => new CompanyResponse                         // projection مباشر
                 {
-                    Id = x.CompanyID,
+                    Id = x.Id,
                     Name = x.CompanyName,
                     Address = x.Address,
                     IsActive = x.IsActive,
@@ -139,7 +139,7 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
             return new CompanyResponse
             {
-                Id = company.CompanyID,
+                Id = company.Id,
                 Name = company.CompanyName,
                 Address = company.Address,
                 IsActive = company.IsActive,
@@ -182,7 +182,7 @@ namespace Marilog.Application.Services
             var company = await GetOrThrowAsync(id, ct);
 
             var hasVessels = await _repo.Query()
-                .Where(x => x.CompanyID == id)
+                .Where(x => x.Id == id)
                 .SelectMany(x => x.Vessels)
                 .AnyAsync(ct);
             if (hasVessels)

@@ -10,7 +10,6 @@ namespace Marilog.Domain.Entities
     // ── Aggregate Root ──────────────────────────────────────────────────────────
     public class Voyage : Entity
     {
-        public int VoyageID { get; private set; }
         public int VesselID { get; private set; }
         public Vessel Vessel { get; private set; } = null!;
         public string VoyageNumber { get; private set; } = null!;
@@ -132,7 +131,7 @@ namespace Marilog.Domain.Entities
             if (_stops.Any(s => s.StopOrder == stopOrder))
                 throw new InvalidOperationException($"StopOrder {stopOrder} already exists.");
 
-            var stop = VoyageStop.Create(VoyageID, portId, stopOrder,
+            var stop = VoyageStop.Create(Id, portId, stopOrder,
                 arrivalDate, departureDate, purposeOfCall, notes);
             _stops.Add(stop);
             Touch();

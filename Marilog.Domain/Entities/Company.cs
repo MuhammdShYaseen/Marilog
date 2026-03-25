@@ -7,7 +7,6 @@ namespace Marilog.Domain.Entities
 {
     public class Company : Entity
     {
-        public int CompanyID { get; private set; }
         public string CompanyName { get; private set; } = null!;
         public int? CountryId { get; private set; }
         public Country? Country { get; private set; }

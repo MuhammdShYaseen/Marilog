@@ -9,8 +9,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Vessel> builder)
         {
             builder.ToTable("Vessels");
-            builder.HasKey(x => x.VesselID);
-            builder.Property(x => x.VesselID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.VesselName).IsRequired().HasMaxLength(150);
             builder.Property(x => x.IMONumber).HasMaxLength(20);
             builder.Property(x => x.GrossTonnage).HasColumnType("decimal(12,2)");

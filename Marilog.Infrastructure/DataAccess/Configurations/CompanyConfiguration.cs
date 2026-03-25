@@ -9,8 +9,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Company> builder)
         {
             builder.ToTable("Companies");
-            builder.HasKey(x => x.CompanyID);
-            builder.Property(x => x.CompanyID).UseIdentityColumn();
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.CompanyName).IsRequired().HasMaxLength(200);
             builder.Property(x => x.ContactName).HasMaxLength(150);
             builder.Property(x => x.Email).HasMaxLength(150);

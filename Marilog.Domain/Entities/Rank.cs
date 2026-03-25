@@ -6,7 +6,6 @@ namespace Marilog.Domain.Entities
 
     public class Rank : Entity
     {
-        public int RankID { get; private set; }
         public string RankCode { get; private set; } = null!;
         public string RankName { get; private set; } = null!;
         public Department Department { get; private set; }

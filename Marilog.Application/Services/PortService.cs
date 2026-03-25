@@ -63,7 +63,7 @@ namespace Marilog.Application.Services
 
             var codeConflict = await _repo.Query()
                 .AnyAsync(x => x.PortCode == portCode.ToUpperInvariant()
-                            && x.PortID   != id, ct);
+                            && x.Id != id, ct);
             if (codeConflict)
                 throw new InvalidOperationException($"Port code '{portCode}' is already in use.");
 

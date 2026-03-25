@@ -13,18 +13,18 @@ namespace Marilog.Application.Mapping
         {
             // Company
             CreateMap<Company, CompanyResponse>()
-                .ForMember(d => d.Id, o => o.MapFrom(s => s.CompanyID))
+                .ForMember(d => d.Id, o => o.MapFrom(s => s.Id))
                 .ForMember(d => d.Name, o => o.MapFrom(s => s.CompanyName));
 
             // Person
             CreateMap<Person, PersonResponse>()
-                .ForMember(d => d.Id, o => o.MapFrom(s => s.PersonID))
+                .ForMember(d => d.Id, o => o.MapFrom(s => s.Id))
                 .ForMember(d => d.NationalityCountryName, o => o.MapFrom(s => s.NationalityCountry!.CountryName))
                 .ForMember(d => d.IsPassportExpired, o => o.MapFrom(s => s.PassportExpiry.HasValue && s.PassportExpiry.Value < DateOnly.FromDateTime(DateTime.UtcNow)));
 
             // Vessel
             CreateMap<Vessel, VesselResponse>()
-                .ForMember(d => d.Id, o => o.MapFrom(s => s.VesselID))
+                .ForMember(d => d.Id, o => o.MapFrom(s => s.Id))
                 .ForMember(d => d.CompanyName, o => o.MapFrom(s => s.Company!.CompanyName))
                 .ForMember(d => d.FlagCountryName, o => o.MapFrom(s => s.FlagCountry!.CountryName));
         }

@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,55 +15,92 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Person?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<PersonResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
 
-        public async Task<Person?> GetByPassportAsync(string passportNo,
-            CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.PassportNo == passportNo, ct);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Person?> GetBySeamanBookAsync(string seamanBookNo,
-            CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.SeamanBookNo == seamanBookNo, ct);
-
-        public async Task<IReadOnlyList<Person>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.FullName)
-                          .ToListAsync(ct);
-
-        public async Task<IReadOnlyList<Person>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.FullName)
-                          .ToListAsync(ct);
-
-        public async Task<IReadOnlyList<Person>> SearchAsync(string term,
-            CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive && (
-                              x.FullName.Contains(term)     ||
-                              x.PassportNo!.Contains(term)  ||
-                              x.SeamanBookNo!.Contains(term)))
-                          .OrderBy(x => x.FullName)
-                          .ToListAsync(ct);
-
-        public async Task<IReadOnlyList<Person>> GetWithExpiringPassportsAsync(int withinDays,
+        public async Task<PersonResponse?> GetByPassportAsync(string passportNo,
             CancellationToken ct = default)
         {
-            var threshold = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(withinDays));
-            return await _repo.Query().AsNoTracking()
-                              .Where(x => x.IsActive                      &&
-                                          x.PassportExpiry.HasValue        &&
-                                          x.PassportExpiry.Value <= threshold)
-                              .OrderBy(x => x.PassportExpiry)
-                              .ToListAsync(ct);
+            var now = DateTime.UtcNow;
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.PassportNo == passportNo)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<PersonResponse?> GetBySeamanBookAsync(string seamanBookNo,
+            CancellationToken ct = default)
+            => await _repo.Query().AsNoTracking()
+                          .Where(x => x.SeamanBookNo == seamanBookNo)
+                          .Select(ToResponse)
+                          .FirstOrDefaultAsync(x => x.SeamanBookNo == seamanBookNo, ct);
+
+        public async Task<IReadOnlyList<PersonResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.FullName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
+        public async Task<IReadOnlyList<PersonResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.FullName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<PersonResponse>> SearchAsync(string term,
+            CancellationToken ct = default)
+        {
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive &&
+                           (x.FullName.Contains(term) ||
+                            x.PassportNo!.Contains(term) ||
+                            x.SeamanBookNo!.Contains(term)))
+                .OrderBy(x => x.FullName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<PersonResponse>> GetWithExpiringPassportsAsync(int withinDays,
+            CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
+            var threshold = DateOnly.FromDateTime(now.AddDays(withinDays));
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive &&
+                            x.PassportExpiry.HasValue &&
+                            x.PassportExpiry.Value <= threshold)
+                .OrderBy(x => x.PassportExpiry)
+                .Select(ToResponse)
+                .ToListAsync(ct);
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Person> CreateAsync(string fullName, int? nationality = null,
+        public async Task<PersonResponse> CreateAsync(string bankName, string iBAN, bool isPassportExpired, string? bankSwiftCode,string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
             string? phone = null, string? email = null,
@@ -69,11 +108,26 @@ namespace Marilog.Application.Services
         {
             await EnsureUniqueDocumentsAsync(passportNo, seamanBookNo, excludeId: null, ct);
 
-            var person = Person.Create(fullName, nationality, passportNo, passportExpiry,
+            var person = Person.Create(bankName, iBAN, isPassportExpired, bankSwiftCode, fullName, nationality, passportNo, passportExpiry,
                                        seamanBookNo, dateOfBirth, phone, email);
             await _repo.AddAsync(person, ct);
             await _repo.SaveChangesAsync(ct);
-            return person;
+            return new PersonResponse
+            {
+                FullName = fullName,
+                Nationality = person.NationalityCountry!.CountryName,
+                NationalityCountryName = person.NationalityCountry.CountryName,
+                PassportExpiry = passportExpiry,
+                PassportNo = passportNo,
+                DateOfBirth = dateOfBirth,
+                Phone = phone,
+                Email = email,
+                SeamanBookNo = seamanBookNo,
+                BankSwiftCode = bankSwiftCode,
+                BankName = bankName,
+                IBAN = iBAN,
+                IsPassportExpired = isPassportExpired
+            };
         }
 
         public async Task UpdateAsync(int id, string fullName, int? nationality = null,
@@ -127,7 +181,7 @@ namespace Marilog.Application.Services
             {
                 var conflict = await _repo.Query()
                     .AnyAsync(x => x.PassportNo == passportNo &&
-                                   (excludeId == null || x.PersonID != excludeId), ct);
+                                   (excludeId == null || x.Id != excludeId), ct);
                 if (conflict)
                     throw new InvalidOperationException(
                         $"Passport number '{passportNo}' is already registered.");
@@ -137,7 +191,7 @@ namespace Marilog.Application.Services
             {
                 var conflict = await _repo.Query()
                     .AnyAsync(x => x.SeamanBookNo == seamanBookNo &&
-                                   (excludeId == null || x.PersonID != excludeId), ct);
+                                   (excludeId == null || x.Id != excludeId), ct);
                 if (conflict)
                     throw new InvalidOperationException(
                         $"Seaman book number '{seamanBookNo}' is already registered.");
@@ -145,6 +199,32 @@ namespace Marilog.Application.Services
 
 
         }
+
+        private static readonly Expression<Func<Person, PersonResponse>> ToResponse =
+            x => new PersonResponse
+            {
+                Id = x.Id,
+                FullName = x.FullName,
+                Nationality = x.NationalityCountry!.CountryName,
+                NationalityCountryName = x.NationalityCountry != null
+                    ? x.NationalityCountry.CountryName
+                    : null,
+                PassportNo = x.PassportNo!,
+                PassportExpiry = x.PassportExpiry,
+
+                // ⚠️ هذا سيتم ترجمته إلى SQL
+                IsPassportExpired = x.PassportExpiry.HasValue &&
+                            x.PassportExpiry < DateOnly.FromDateTime(DateTime.UtcNow),
+
+                SeamanBookNo = x.SeamanBookNo!,
+                DateOfBirth = x.DateOfBirth,
+                Phone = x.Phone,
+                Email = x.Email,
+                BankName = x.BankName,
+                IBAN = x.IBAN,
+                BankSwiftCode = x.BankSwiftCode,
+                IsActive = x.IsActive
+            };
 
         // ── Bank Account ─────────────────────────────────────────────────────────
 
