@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,30 +15,55 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Port?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<PortResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Port?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.PortCode == code.ToUpperInvariant(), ct);
+        public async Task<PortResponse?> GetByCodeAsync(string code, CancellationToken ct = default)
+        {
+            var upper = code.ToUpperInvariant();
 
-        public async Task<IReadOnlyList<Port>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.PortName)
-                          .ToListAsync(ct);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.PortCode == upper)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
+        public async Task<IReadOnlyList<PortResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.PortName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Port>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.PortName)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<PortResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive == true)
+                .OrderBy(x => x.PortName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Port>> GetByCountryAsync(int countryId,
+        public async Task<IReadOnlyList<PortResponse>> GetByCountryAsync(int countryId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.CountryID == countryId && x.IsActive)
-                          .OrderBy(x => x.PortName)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CountryID == countryId && x.IsActive)
+                .OrderBy(x => x.PortName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         public async Task<bool> ExistsByCodeAsync(string code, CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
@@ -44,7 +71,7 @@ namespace Marilog.Application.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Port> CreateAsync(string portCode, string portName,
+        public async Task<PortResponse> CreateAsync(string portCode, string portName,
             int? countryId = null, CancellationToken ct = default)
         {
             if (await ExistsByCodeAsync(portCode, ct))
@@ -53,7 +80,14 @@ namespace Marilog.Application.Services
             var port = Port.Create(portCode, portName, countryId);
             await _repo.AddAsync(port, ct);
             await _repo.SaveChangesAsync(ct);
-            return port;
+            return new PortResponse
+            {
+                Code = portCode,
+                CountryId = countryId,
+                IsActive = true,
+                CountryName = port.Country!.CountryName ?? "",
+                Name = portName
+            };
         }
 
         public async Task UpdateAsync(int id, string portCode, string portName,
@@ -100,5 +134,16 @@ namespace Marilog.Application.Services
         private async Task<Port> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Port {id} not found.");
+
+        public static readonly Expression<Func<Port, PortResponse>> ToResponse =
+            x => new PortResponse
+        {
+           Id = x.Id,
+           Code = x.PortCode,
+           Name = x.PortName,
+           CountryId = x.CountryID,
+           CountryName = x.Country != null ? x.Country.CountryName : null,
+           IsActive = x.IsActive
+        };
     }
 }
