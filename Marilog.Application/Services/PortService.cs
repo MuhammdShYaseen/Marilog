@@ -135,7 +135,7 @@ namespace Marilog.Application.Services
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Port {id} not found.");
 
-        public static readonly Expression<Func<Port, PortResponse>> ToResponse =
+        private static readonly Expression<Func<Port, PortResponse>> ToResponse =
             x => new PortResponse
         {
            Id = x.Id,

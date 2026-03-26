@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,79 +15,88 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<SwiftTransfer?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Currency)
-                          .Include(x => x.SenderCompany)
-                          .Include(x => x.ReceiverCompany)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+        public async Task<SwiftTransferResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<SwiftTransfer?> GetByReferenceAsync(string reference,
+        public async Task<SwiftTransferResponse?> GetByReferenceAsync(string reference,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Currency)
-                          .Include(x => x.SenderCompany)
-                          .Include(x => x.ReceiverCompany)
-                          .FirstOrDefaultAsync(x => x.SwiftReference == reference, ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.SwiftReference == reference)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<SwiftTransfer?> GetWithPaymentsAsync(int id,
+        public async Task<SwiftTransferResponse?> GetWithPaymentsAsync(int id,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Payments)
-                          .Include(x => x.Currency)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<SwiftTransfer>> GetBySenderAsync(int companyId,
+        public async Task<IReadOnlyList<SwiftTransferResponse>> GetBySenderAsync(int companyId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.SenderCompanyId == companyId && x.IsActive)
-                          .Include(x => x.Currency)
-                          .Include(x => x.ReceiverCompany)
-                          .OrderByDescending(x => x.TransactionDate)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.SenderCompanyId == companyId && x.IsActive)
+                .OrderByDescending(x => x.TransactionDate)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<SwiftTransfer>> GetByReceiverAsync(int companyId,
+        public async Task<IReadOnlyList<SwiftTransferResponse>> GetByReceiverAsync(int companyId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.ReceiverCompanyId == companyId && x.IsActive)
-                          .Include(x => x.Currency)
-                          .Include(x => x.SenderCompany)
-                          .OrderByDescending(x => x.TransactionDate)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.ReceiverCompanyId == companyId && x.IsActive)
+                .OrderByDescending(x => x.TransactionDate)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<SwiftTransfer>> GetUnallocatedAsync(
+        public async Task<IReadOnlyList<SwiftTransferResponse>> GetUnallocatedAsync(
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive &&
-                                      x.Amount > x.Payments
-                                          .Where(p => p.SwiftTransferId == x.Id)
-                                          .Sum(p => p.PaidAmount))
-                          .Include(x => x.Currency)
-                          .Include(x => x.SenderCompany)
-                          .Include(x => x.ReceiverCompany)
-                          .OrderBy(x => x.TransactionDate)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive &&
+                            x.Amount > x.Payments.Sum(p => p.PaidAmount))
+                .OrderBy(x => x.TransactionDate)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<SwiftTransfer>> GetByDateRangeAsync(DateOnly from,
+        public async Task<IReadOnlyList<SwiftTransferResponse>> GetByDateRangeAsync(DateOnly from,
             DateOnly to, CancellationToken ct = default)
         {
             if (from > to)
                 throw new ArgumentException("From date cannot be after To date.");
 
-            return await _repo.Query().AsNoTracking()
-                              .Where(x => x.TransactionDate >= from &&
-                                          x.TransactionDate <= to   &&
-                                          x.IsActive)
-                              .Include(x => x.Currency)
-                              .Include(x => x.SenderCompany)
-                              .Include(x => x.ReceiverCompany)
-                              .OrderByDescending(x => x.TransactionDate)
-                              .ToListAsync(ct);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.TransactionDate >= from &&
+                            x.TransactionDate <= to &&
+                            x.IsActive)
+                .OrderByDescending(x => x.TransactionDate)
+                .Select(ToResponse)
+                .ToListAsync(ct);
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<SwiftTransfer> CreateAsync(string swiftReference,
+        public async Task<SwiftTransferResponse> CreateAsync(string swiftReference,
             DateOnly transactionDate, int currencyId, decimal amount,
             int? senderCompanyId = null, int? receiverCompanyId = null,
             string? senderBank = null, string? receiverBank = null,
@@ -100,7 +111,17 @@ namespace Marilog.Application.Services
                                                 paymentReference, rawMessage);
             await _repo.AddAsync(transfer, ct);
             await _repo.SaveChangesAsync(ct);
-            return transfer;
+            return new SwiftTransferResponse
+            {
+                SwiftReference = swiftReference,
+                SenderBank = senderBank,
+                TransactionDate = transactionDate,
+                SenderCompanyId = senderCompanyId,
+                Amount = amount,
+                ReceiverCompanyId = receiverCompanyId,
+                ReceiverBank = receiverBank,
+                PaymentReference = paymentReference
+            };
         }
 
         public async Task UpdateAsync(int id, int currencyId, decimal amount,
@@ -162,5 +183,37 @@ namespace Marilog.Application.Services
                 throw new InvalidOperationException(
                     $"Swift reference '{reference}' already exists.");
         }
+
+        private static readonly Expression<Func<SwiftTransfer, SwiftTransferResponse>> ToResponse =
+            x => new SwiftTransferResponse
+        {
+            Id = x.Id,
+            SwiftReference = x.SwiftReference,
+            TransactionDate = x.TransactionDate,
+
+            CurrencyId = x.CurrencyId,
+            CurrencyCode = x.Currency.CurrencyCode,
+
+            Amount = x.Amount,
+
+            AllocatedAmount = x.Payments.Sum(p => p.PaidAmount),
+            UnallocatedAmount = x.Amount - x.Payments.Sum(p => p.PaidAmount),
+            IsFullyAllocated = x.Amount == x.Payments.Sum(p => p.PaidAmount),
+
+            SenderCompanyId = x.SenderCompanyId,
+            SenderCompanyName = x.SenderCompany != null
+                ? x.SenderCompany.CompanyName
+                : null,
+
+            ReceiverCompanyId = x.ReceiverCompanyId,
+            ReceiverCompanyName = x.ReceiverCompany != null
+                ? x.ReceiverCompany.CompanyName
+                : null,
+
+            SenderBank = x.SenderBank,
+            ReceiverBank = x.ReceiverBank,
+            PaymentReference = x.PaymentReference,
+            IsActive = x.IsActive
+        };
     }
 }

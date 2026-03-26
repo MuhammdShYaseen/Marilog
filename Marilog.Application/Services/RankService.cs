@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -13,36 +15,59 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Rank?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<RankResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Rank?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.RankCode == code.ToUpperInvariant(), ct);
+        public async Task<RankResponse?> GetByCodeAsync(string code, CancellationToken ct = default)
+        {
+            var upper = code.ToUpperInvariant();
 
-        public async Task<IReadOnlyList<Rank>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .OrderBy(x => x.Department)
-                          .ThenBy(x => x.RankName)
-                          .ToListAsync(ct);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.RankCode == upper)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
+        public async Task<IReadOnlyList<RankResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.Department)
+                .ThenBy(x => x.RankName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
+        public async Task<IReadOnlyList<RankResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Department)
+                .ThenBy(x => x.RankName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Rank>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .OrderBy(x => x.Department)
-                          .ThenBy(x => x.RankName)
-                          .ToListAsync(ct);
-
-        public async Task<IReadOnlyList<Rank>> GetByDepartmentAsync(Department department,
+        public async Task<IReadOnlyList<RankResponse>> GetByDepartmentAsync(Department department,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.Department == department && x.IsActive)
-                          .OrderBy(x => x.RankName)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Department == department && x.IsActive)
+                .OrderBy(x => x.RankName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Rank> CreateAsync(string rankCode, string rankName,
+        public async Task<RankResponse> CreateAsync(string rankCode, string rankName,
             Department department, CancellationToken ct = default)
         {
             var exists = await _repo.Query()
@@ -53,7 +78,13 @@ namespace Marilog.Application.Services
             var rank = Rank.Create(rankCode, rankName, department);
             await _repo.AddAsync(rank, ct);
             await _repo.SaveChangesAsync(ct);
-            return rank;
+            return new RankResponse
+            {
+                Code = rankCode,
+                Department = (int)department,
+                IsActive = true,
+                Name = rankName,
+            };
         }
 
         public async Task UpdateAsync(int id, string rankCode, string rankName,
@@ -100,5 +131,15 @@ namespace Marilog.Application.Services
         private async Task<Rank> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Rank {id} not found.");
+
+        private static readonly Expression<Func<Rank, RankResponse>> ToResponse =
+        x => new RankResponse
+        {
+            Id = x.Id,
+            Code = x.RankCode,
+            Name = x.RankName,
+            Department = (int)x.Department,
+            IsActive = x.IsActive
+        };
     }
 }
