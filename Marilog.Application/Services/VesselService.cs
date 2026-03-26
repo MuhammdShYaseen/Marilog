@@ -1,7 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
@@ -20,37 +22,57 @@ namespace Marilog.Application.Services
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Vessel?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.GetByIdAsync(id, ct);
+        public async Task<VesselResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Vessel?> GetByImoAsync(string imoNumber,
+        public async Task<VesselResponse?> GetByImoAsync(string imoNumber,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .FirstOrDefaultAsync(x => x.IMONumber == imoNumber, ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IMONumber == imoNumber)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
+        public async Task<IReadOnlyList<VesselResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.VesselName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Vessel>> GetAllAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Company)
-                          .OrderBy(x => x.VesselName)
-                          .ToListAsync(ct);
+        public async Task<IReadOnlyList<VesselResponse>> GetActiveAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.VesselName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Vessel>> GetActiveAsync(CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive)
-                          .Include(x => x.Company)
-                          .OrderBy(x => x.VesselName)
-                          .ToListAsync(ct);
-
-        public async Task<IReadOnlyList<Vessel>> GetByCompanyAsync(int companyId,
+        public async Task<IReadOnlyList<VesselResponse>> GetByCompanyAsync(int companyId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.CompanyID == companyId && x.IsActive)
-                          .OrderBy(x => x.VesselName)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CompanyID == companyId && x.IsActive)
+                .OrderBy(x => x.VesselName)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Vessel> CreateAsync(int companyId, string vesselName,
+        public async Task<VesselResponse> CreateAsync(int companyId, string vesselName,
             string? imoNumber = null, decimal? grossTonnage = null,
             int? flagCountryId = null, string? notes = null,
             CancellationToken ct = default)
@@ -66,7 +88,14 @@ namespace Marilog.Application.Services
                                        flagCountryId, notes);
             await _repo.AddAsync(vessel, ct);
             await _repo.SaveChangesAsync(ct);
-            return vessel;
+            return new VesselResponse
+            {
+                CompanyId = companyId,
+                Name = vesselName,
+                FlagCountryId = flagCountryId,
+                IMONumber = imoNumber,
+                GrossTonnage = grossTonnage,
+            };
         }
 
         public async Task UpdateAsync(int id, string vesselName,
@@ -131,5 +160,27 @@ namespace Marilog.Application.Services
                 throw new InvalidOperationException(
                     $"IMO number '{imoNumber}' is already registered.");
         }
+
+        private static readonly Expression<Func<Vessel, VesselResponse>> ToResponse =
+        x => new VesselResponse
+        {
+            Id = x.Id,
+            Name = x.VesselName,
+            IMONumber = x.IMONumber,
+            GrossTonnage = x.GrossTonnage,
+            Notes = x.Notes,
+
+            CompanyId = x.CompanyID,
+            CompanyName = x.Company != null
+                ? x.Company.CompanyName
+                : null,
+
+            FlagCountryId = x.FlagCountryID,
+            FlagCountryName = x.FlagCountry != null
+                ? x.FlagCountry.CountryName
+                : null,
+
+            IsActive = x.IsActive
+        };
     }
 }

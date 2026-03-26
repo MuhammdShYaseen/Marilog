@@ -14,6 +14,7 @@ namespace Marilog.Application.DTOs
         public string? CompanyName { get; set; }
         public int? FlagCountryId { get; set; }
         public string? FlagCountryName { get; set; }
+        public string? Notes { get; set; }
         public bool IsActive { get; set; }
     }
 }
