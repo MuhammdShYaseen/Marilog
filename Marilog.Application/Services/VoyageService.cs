@@ -1,85 +1,92 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services
 {
     public class VoyageService : IVoyageService
     {
-        private readonly IRepository<Voyage>       _repo;
-        private readonly IRepository<Vessel>       _vesselRepo;
+        private readonly IRepository<Voyage> _repo;
+        private readonly IRepository<Vessel> _vesselRepo;
         private readonly IRepository<CrewContract> _contractRepo;
 
         public VoyageService(
-            IRepository<Voyage>       repo,
-            IRepository<Vessel>       vesselRepo,
+            IRepository<Voyage> repo,
+            IRepository<Vessel> vesselRepo,
             IRepository<CrewContract> contractRepo)
         {
-            _repo         = repo;
-            _vesselRepo   = vesselRepo;
+            _repo = repo;
+            _vesselRepo = vesselRepo;
             _contractRepo = contractRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Voyage?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Vessel)
-                          .Include(x => x.DeparturePort)
-                          .Include(x => x.ArrivalPort)
-                          .Include(x => x.MasterContract).ThenInclude(x => x!.Person)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+        public async Task<VoyageResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponse)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<Voyage?> GetWithStopsAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Stops).ThenInclude(x => x.Port)
-                          .Include(x => x.Vessel)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+        public async Task<VoyageResponse?> GetWithStopsAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponseWithStops)
+                .FirstOrDefaultAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Voyage>> GetByVesselAsync(int vesselId,
+        public async Task<IReadOnlyList<VoyageResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.VesselID == vesselId)
-                          .Include(x => x.DeparturePort)
-                          .Include(x => x.ArrivalPort)
-                          .OrderByDescending(x => x.VoyageMonth)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.VesselID == vesselId)
+                .OrderByDescending(x => x.VoyageMonth)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
-        public async Task<IReadOnlyList<Voyage>> GetByMonthAsync(DateOnly month,
+        public async Task<IReadOnlyList<VoyageResponse>> GetByMonthAsync(DateOnly month,
             CancellationToken ct = default)
         {
             var firstDay = new DateOnly(month.Year, month.Month, 1);
-            return await _repo.Query().AsNoTracking()
-                              .Where(x => x.VoyageMonth == firstDay)
-                              .Include(x => x.Vessel)
-                              .Include(x => x.DeparturePort)
-                              .Include(x => x.ArrivalPort)
-                              .OrderBy(x => x.VoyageNumber)
-                              .ToListAsync(ct);
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.VoyageMonth == firstDay)
+                .OrderBy(x => x.VoyageNumber)
+                .Select(ToResponse)
+                .ToListAsync(ct);
         }
 
-        public async Task<IReadOnlyList<Voyage>> GetByStatusAsync(VoyageStatus status,
+        public async Task<IReadOnlyList<VoyageResponse>> GetByStatusAsync(VoyageStatus status,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.Status == status)
-                          .Include(x => x.Vessel)
                           .OrderByDescending(x => x.DepartureDate)
+                          .Select (ToResponse)
                           .ToListAsync(ct);
 
-        public async Task<Voyage?> GetCurrentVoyageAsync(int vesselId,
+        public async Task<VoyageResponse?> GetCurrentVoyageAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
+            => await _repo.Query()
+                          .AsNoTracking()
                           .Where(x => x.VesselID == vesselId &&
-                                      x.Status   == VoyageStatus.UNDERWAY)
-                          .Include(x => x.DeparturePort)
-                          .Include(x => x.ArrivalPort)
-                          .Include(x => x.Stops).ThenInclude(x => x.Port)
+                                      x.Status == VoyageStatus.UNDERWAY)
+                          .Select(ToResponseWithStops)
                           .FirstOrDefaultAsync(ct);
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Voyage> CreateAsync(int vesselId, string voyageNumber,
+        public async Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber,
             DateOnly voyageMonth, int? masterContractId = null,
             int? departurePortId = null, int? arrivalPortId = null,
             DateTime? departureDate = null, DateTime? arrivalDate = null,
@@ -98,7 +105,19 @@ namespace Marilog.Application.Services
                                        cargoQuantityMt, notes: notes);
             await _repo.AddAsync(voyage, ct);
             await _repo.SaveChangesAsync(ct);
-            return voyage;
+            return new VoyageResponse
+            {
+                VesselId = vesselId,
+                VoyageNumber = voyageNumber,
+                VoyageMonth = voyageMonth.Month,
+                DepartureDate = departureDate,
+                DeparturePortId = departurePortId,
+                MasterContractId = masterContractId,
+                ArrivalDate = arrivalDate,
+                ArrivalPortId = arrivalPortId,
+                CargoQuantityMT = cargoQuantityMt,
+                Notes = notes
+            };
         }
 
         public async Task UpdateAsync(int id, int? departurePortId, int? arrivalPortId,
@@ -175,7 +194,7 @@ namespace Marilog.Application.Services
             CancellationToken ct = default)
         {
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
-            var stop   = voyage.AddStop(portId, stopOrder, arrivalDate, departureDate,
+            var stop = voyage.AddStop(portId, stopOrder, arrivalDate, departureDate,
                                         purposeOfCall, notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
@@ -241,5 +260,105 @@ namespace Marilog.Application.Services
                 throw new InvalidOperationException(
                     $"Voyage number '{voyageNumber}' already exists.");
         }
+
+        private static readonly Expression<Func<Voyage, VoyageResponse>> ToResponse =
+        x => new VoyageResponse
+        {
+            VoyageId = x.Id,
+            VoyageNumber = x.VoyageNumber,
+
+            VesselId = x.VesselID,
+            VesselName = x.Vessel.VesselName,
+
+            VoyageMonth = x.VoyageMonth.Month, // أو حسب تصميمك
+
+            Status = x.Status,
+
+            MasterContractId = x.MasterContractID,
+            MasterFullName = x.MasterContract != null && x.MasterContract.Person != null
+                ? x.MasterContract.Person.FullName
+                : null,
+
+            DeparturePortId = x.DeparturePortID,
+            DeparturePortName = x.DeparturePort != null
+                ? x.DeparturePort.PortName
+                : null,
+
+            ArrivalPortId = x.ArrivalPortID,
+            ArrivalPortName = x.ArrivalPort != null
+                ? x.ArrivalPort.PortName
+                : null,
+
+            DepartureDate = x.DepartureDate,
+            ArrivalDate = x.ArrivalDate,
+
+            CargoType = x.CargoType,
+            CargoQuantityMT = x.CargoQuantityMT,
+
+            CashOnBoard = x.CashOnBoard,
+            CigarettesOnBoard = x.CigarettesOnBoard,
+            PreviousMasterBalance = x.PreviousMasterBalance,
+
+            Notes = x.Notes,
+
+            // ⚠️ مهم
+            Stops = new List<VoyageStopResponse>() // يتم تعبئتها في Projection آخر
+        };
+
+
+        private static readonly Expression<Func<Voyage, VoyageResponse>> ToResponseWithStops =
+        x => new VoyageResponse
+        {
+            VoyageId = x.Id,
+            VoyageNumber = x.VoyageNumber,
+
+            VesselId = x.VesselID,
+            VesselName = x.Vessel.VesselName,
+
+            VoyageMonth = x.VoyageMonth.Month, // أو حسب تصميمك
+
+            Status = x.Status,
+
+            MasterContractId = x.MasterContractID,
+            MasterFullName = x.MasterContract != null && x.MasterContract.Person != null
+                ? x.MasterContract.Person.FullName
+                : null,
+
+            DeparturePortId = x.DeparturePortID,
+            DeparturePortName = x.DeparturePort != null
+                ? x.DeparturePort.PortName
+                : null,
+
+            ArrivalPortId = x.ArrivalPortID,
+            ArrivalPortName = x.ArrivalPort != null
+                ? x.ArrivalPort.PortName
+                : null,
+
+            DepartureDate = x.DepartureDate,
+            ArrivalDate = x.ArrivalDate,
+
+            CargoType = x.CargoType,
+            CargoQuantityMT = x.CargoQuantityMT,
+
+            CashOnBoard = x.CashOnBoard,
+            CigarettesOnBoard = x.CigarettesOnBoard,
+            PreviousMasterBalance = x.PreviousMasterBalance,
+
+            Notes = x.Notes,
+
+            // ⚠️ مهم
+            Stops = x.Stops
+            .OrderBy(s => s.StopOrder)
+            .Select(s => new VoyageStopResponse 
+            {
+                ArrivalDate = s.ArrivalDate,
+                StopOrder = s.StopOrder,
+                DepartureDate = s.DepartureDate,
+                Notes = s.Notes,
+                PortId = s.PortID,
+                PortName = s.Port.PortName,
+                PurposeOfCall = s.PurposeOfCall
+            }).ToList(),
+        };
     }
 }

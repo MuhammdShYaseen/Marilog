@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs;
 using Marilog.Domain.Entities;
 
 namespace Marilog.Application.Interfaces.Services
@@ -5,15 +6,15 @@ namespace Marilog.Application.Interfaces.Services
     public interface IVoyageService
     {
         // ── Queries ───────────────────────────────────────────────────────────────
-        Task<Voyage?>              GetByIdAsync(int id, CancellationToken ct = default);
-        Task<Voyage?>              GetWithStopsAsync(int id, CancellationToken ct = default);
-        Task<IReadOnlyList<Voyage>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
-        Task<IReadOnlyList<Voyage>> GetByMonthAsync(DateOnly month, CancellationToken ct = default);
-        Task<IReadOnlyList<Voyage>> GetByStatusAsync(VoyageStatus status, CancellationToken ct = default);
-        Task<Voyage?>              GetCurrentVoyageAsync(int vesselId, CancellationToken ct = default);
+        Task<VoyageResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
+        Task<VoyageResponse?>              GetWithStopsAsync(int id, CancellationToken ct = default);
+        Task<IReadOnlyList<VoyageResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
+        Task<IReadOnlyList<VoyageResponse>> GetByMonthAsync(DateOnly month, CancellationToken ct = default);
+        Task<IReadOnlyList<VoyageResponse>> GetByStatusAsync(VoyageStatus status, CancellationToken ct = default);
+        Task<VoyageResponse?>              GetCurrentVoyageAsync(int vesselId, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<Voyage> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
+        Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
                                  int? masterContractId = null, int? departurePortId = null,
                                  int? arrivalPortId = null, DateTime? departureDate = null,
                                  DateTime? arrivalDate = null, string? cargoType = null,

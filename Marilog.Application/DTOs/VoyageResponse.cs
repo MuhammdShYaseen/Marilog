@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Marilog.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -11,17 +12,17 @@ namespace Marilog.Application.DTOs
         public int VesselId { get; set; }
         public string VesselName { get; set; } = null!;
         public int VoyageMonth { get; set; }
-        public string Status { get; set; } = null!;
+        public VoyageStatus Status { get; set; }
         public int? MasterContractId { get; set; }
         public string? MasterFullName { get; set; }
-        public int DeparturePortId { get; set; }
+        public int? DeparturePortId { get; set; }
         public string? DeparturePortName { get; set; }
-        public int ArrivalPortId { get; set; }
+        public int? ArrivalPortId { get; set; }
         public string? ArrivalPortName { get; set; }
-        public DateOnly DepartureDate { get; set; }
-        public DateOnly ArrivalDate { get; set; }
+        public DateTime? DepartureDate { get; set; }
+        public DateTime? ArrivalDate { get; set; }
         public string? CargoType { get; set; }
-        public decimal CargoQuantityMT { get; set; }
+        public decimal? CargoQuantityMT { get; set; }
         public decimal CashOnBoard { get; set; }
         public decimal CigarettesOnBoard { get; set; }
         public decimal PreviousMasterBalance { get; set; }
