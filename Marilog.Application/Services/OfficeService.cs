@@ -66,6 +66,7 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
             return new OfficeResponse
             {
+                Id = office.Id,
                 Address = address,
                 IsActive = true,
                 CountryId = countryId,
