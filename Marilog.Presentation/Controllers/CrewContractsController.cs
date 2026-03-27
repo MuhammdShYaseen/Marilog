@@ -1,5 +1,6 @@
 ﻿using Marilog.Application.DTOs;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Presentation.DTOs.CrewDTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
