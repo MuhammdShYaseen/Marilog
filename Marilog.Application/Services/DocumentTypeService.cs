@@ -70,6 +70,7 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
             return new DocumentTypeResponse
             {
+                Id = docType.Id,
                 Code = code,
                 Name = name,
                 SortOrder = sortOrder,
@@ -119,7 +120,8 @@ namespace Marilog.Application.Services
         {
             Code = x.Code,
             Name = x.Name,
-            SortOrder = x.SortOrder
+            SortOrder = x.SortOrder,
+            Id = x.Id,
         };
     }
 }
