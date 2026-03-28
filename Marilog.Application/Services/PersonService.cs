@@ -114,19 +114,19 @@ namespace Marilog.Application.Services
             await _repo.SaveChangesAsync(ct);
             return new PersonResponse
             {
-                FullName = fullName,
-                Nationality = person.NationalityCountry!.CountryName,
-                NationalityCountryName = person.NationalityCountry.CountryName,
-                PassportExpiry = passportExpiry,
-                PassportNo = passportNo,
-                DateOfBirth = dateOfBirth,
-                Phone = phone,
-                Email = email,
-                SeamanBookNo = seamanBookNo,
-                BankSwiftCode = bankSwiftCode,
-                BankName = bankName,
-                IBAN = iBAN,
-                IsPassportExpired = isPassportExpired
+                FullName = person.FullName,
+                PassportExpiry = person.PassportExpiry,
+                PassportNo = person.PassportNo,
+                DateOfBirth = person.DateOfBirth,
+                Phone = person.Phone,
+                Email = person.Email,
+                SeamanBookNo = person.SeamanBookNo,
+                BankSwiftCode = person.BankSwiftCode,
+                BankName = person.BankName,
+                IBAN = person.IBAN,
+                IsPassportExpired = person.IsPassportExpired(),
+                Id = person.Id,
+                IsActive = true
             };
         }
 

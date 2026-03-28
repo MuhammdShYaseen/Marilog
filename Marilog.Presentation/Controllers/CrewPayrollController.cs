@@ -80,8 +80,6 @@ namespace Marilog.Presentation.Controllers
             var payroll = await _service.CreateAsync(
                 request.ContractId,
                 request.PayrollMonth,
-                request.WorkingDays,
-                request.BasicWage,
                 request.Allowances,
                 request.Deductions,
                 request.Notes,

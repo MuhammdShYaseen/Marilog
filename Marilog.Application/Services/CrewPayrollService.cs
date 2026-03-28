@@ -3,6 +3,7 @@ using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.Contracts;
 
 namespace Marilog.Application.Services
 {
@@ -13,19 +14,21 @@ namespace Marilog.Application.Services
         private readonly IRepository<Voyage>        _voyageRepo;
         private readonly IRepository<SwiftTransfer> _swiftRepo;
         private readonly IRepository<Office>        _officeRepo;
-
+        private readonly IPayrollCalculatorService _CalculatorService;
         public CrewPayrollService(
             IRepository<CrewPayroll>   repo,
             IRepository<CrewContract>  contractRepo,
             IRepository<Voyage>        voyageRepo,
             IRepository<SwiftTransfer> swiftRepo,
-            IRepository<Office>        officeRepo)
+            IRepository<Office>        officeRepo,
+            IPayrollCalculatorService payrollCalculator)
         {
             _repo         = repo;
             _contractRepo = contractRepo;
             _voyageRepo   = voyageRepo;
             _swiftRepo    = swiftRepo;
             _officeRepo   = officeRepo;
+            _CalculatorService = payrollCalculator;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -43,7 +46,7 @@ namespace Marilog.Application.Services
                     PersonFullName = x.Contract.Person.FullName,
                     VesselId = x.Contract.VesselID,
                     VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth.Month,
+                    PayrollMonth = x.PayrollMonth,
                     WorkingDays = x.WorkingDays,
                     BasicWage = x.BasicWage,
                     Allowances = x.Allowances,
@@ -72,7 +75,7 @@ namespace Marilog.Application.Services
                         PersonFullName = x.Contract.Person.FullName,
                         VesselId = x.Contract.VesselID,
                         VesselName = x.Contract.Vessel.VesselName,
-                        PayrollMonth = x.PayrollMonth.Month,
+                        PayrollMonth = x.PayrollMonth,
                         WorkingDays = x.WorkingDays,
                         BasicWage = x.BasicWage,
                         Allowances = x.Allowances,
@@ -122,7 +125,7 @@ namespace Marilog.Application.Services
                     PersonFullName = x.Contract.Person.FullName,
                     VesselId = x.Contract.VesselID,
                     VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth.Month,
+                    PayrollMonth = x.PayrollMonth,
                     TotalDisbursed = x.TotalDisbursed,
                     RemainingBalance = x.RemainingBalance,
                     Status = x.Status,
@@ -148,7 +151,7 @@ namespace Marilog.Application.Services
                 .Select(x => new CrewPayrollResponse
                 {
                     Id = x.Id,
-                    PayrollMonth = x.PayrollMonth.Month,
+                    PayrollMonth = x.PayrollMonth,
                     TotalDisbursed = x.TotalDisbursed,
                     RemainingBalance = x.RemainingBalance,
                     Status = x.Status
@@ -170,7 +173,7 @@ namespace Marilog.Application.Services
                     Id = x.Id,
                     PersonFullName = x.Contract.Person.FullName,
                     VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth.Month,
+                    PayrollMonth = x.PayrollMonth,
                     Status = x.Status
                 })
                 .ToListAsync(ct);
@@ -187,7 +190,7 @@ namespace Marilog.Application.Services
                 {
                     Id = x.Id,
                     PersonFullName = x.Contract.Person.FullName,
-                    PayrollMonth = x.PayrollMonth.Month,
+                    PayrollMonth = x.PayrollMonth,
                     Status = x.Status
                 })
                 .ToListAsync(ct);
@@ -207,7 +210,7 @@ namespace Marilog.Application.Services
                     Id = x.Id,
                     PersonFullName = x.Contract.Person.FullName,
                     VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth.Month,
+                    PayrollMonth = x.PayrollMonth,
                     RemainingBalance = x.RemainingBalance,
                     Status = x.Status
                 })
@@ -216,18 +219,32 @@ namespace Marilog.Application.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth,
-            int workingDays, decimal basicWage, decimal allowances = 0m,
+        public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth, decimal allowances = 0m,
             decimal deductions = 0m, string? notes = null,
             CancellationToken ct = default)
         {
             await EnsureContractActiveAsync(contractId, ct);
             await EnsureNoDuplicatePayrollAsync(contractId, payrollMonth, excludeId: null, ct);
+            var contract = await _contractRepo.GetByIdAsync(contractId, ct)
+                ?? throw new KeyNotFoundException("contract not found");
+
+            // 1. احسب عدد الأيام
+            var workingDays = _CalculatorService.GetWorkingDays(contract, payrollMonth);
+
+            // 2. احسب عدد أيام الشهر
+            var totalDays = DateTime.DaysInMonth(payrollMonth.Year, payrollMonth.Month);
+
+            // 3. احسب الراتب الأساسي
+            var basicWage = _CalculatorService.CalculateBasicWage(
+                contract.MonthlyWage,
+                workingDays,
+                totalDays);
 
             var payroll = CrewPayroll.Create(contractId, payrollMonth, workingDays,
                                              basicWage, allowances, deductions, notes);
             await _repo.AddAsync(payroll, ct);
             await _repo.SaveChangesAsync(ct);
+            
             return new CrewPayrollResponse
             {
                 WorkingDays = payroll.WorkingDays,
@@ -241,7 +258,8 @@ namespace Marilog.Application.Services
                 RemainingBalance = payroll.RemainingBalance,
                 TotalDisbursed = payroll.TotalDisbursed,
                 Notes = payroll.Notes,
-                PayrollMonth = payroll.PayrollMonth.Month,
+                PayrollMonth = payroll.PayrollMonth,
+                Id = payroll.Id,
             };
         }
 

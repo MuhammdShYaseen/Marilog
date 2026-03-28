@@ -13,7 +13,7 @@ namespace Marilog.Application.DTOs
         public string PersonFullName { get; set; } = null!;
         public int VesselId { get; set; }
         public string VesselName { get; set; } = null!;
-        public int PayrollMonth { get; set; }
+        public DateOnly PayrollMonth { get; set; }
         public int WorkingDays { get; set; }
         public decimal BasicWage { get; set; }
         public decimal Allowances { get; set; }

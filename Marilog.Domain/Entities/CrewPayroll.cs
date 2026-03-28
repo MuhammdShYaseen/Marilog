@@ -35,7 +35,7 @@ namespace Marilog.Domain.Entities
         public string? Notes { get; private set; }
 
         private readonly List<CrewPayrollDisbursement> _disbursements = new();
-        public IReadOnlyCollection<CrewPayrollDisbursement> Disbursements
+        public ICollection<CrewPayrollDisbursement> Disbursements
             => _disbursements.AsReadOnly();
 
         // ── Computed ──────────────────────────────────────────────────────────────

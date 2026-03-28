@@ -15,7 +15,6 @@ namespace Marilog.Application.Interfaces.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth,
-                                      int workingDays, decimal basicWage,
                                       decimal allowances = 0m, decimal deductions = 0m,
                                       string? notes = null, CancellationToken ct = default);
         Task              UpdateAsync(int id, int workingDays, decimal basicWage,
