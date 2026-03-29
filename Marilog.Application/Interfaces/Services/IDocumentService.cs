@@ -1,4 +1,4 @@
-using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Events;
 
@@ -16,6 +16,12 @@ namespace Marilog.Application.Interfaces.Services
         Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetFilteredDocsAsync(
+                                                int docTypeId,
+                                                int? year = null,       // مثال: 2025, 2003
+                                                int? month = null,      // مثال: 2 لشهر شباط، 3 لآذار
+                                                int? lastDays = null,   // مثال: 7 لأخر أسبوع
+                                                CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
 

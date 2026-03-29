@@ -1,4 +1,4 @@
-﻿using Marilog.Application.DTOs;
+﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.DTOs.PersonDTOs;
 using Microsoft.AspNetCore.Mvc;

@@ -1,0 +1,16 @@
+﻿using Marilog.Application.DTOs.Responses;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Marilog.Application.DTOs.Reports.DocumentReports
+{
+    public class DocumentReport
+    {
+        public IReadOnlyList<DocumentResponse> Documents { get; set; } = Array.Empty<DocumentResponse>();
+        public decimal TotalValue { get; set; }
+        public int Count { get; set; }
+        public IReadOnlyList<MonthlyTotal> MonthlyTotals { get; set; } = Array.Empty<MonthlyTotal>();
+        public IReadOnlyList<YearlyTotal> YearlyTotals { get; set; } = Array.Empty<YearlyTotal>();
+    }
+}

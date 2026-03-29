@@ -1,4 +1,5 @@
 using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Events;
@@ -94,6 +95,42 @@ namespace Marilog.Application.Services
                           .OrderByDescending(x => x.DocDate)
                           .Select(ToResponse)
                           .ToListAsync(ct);
+
+        public async Task<IReadOnlyList<DocumentResponse>> GetFilteredDocsAsync(
+                                                            int docTypeId,
+                                                            int? year = null,       
+                                                            int? month = null,      
+                                                            int? lastDays = null,   
+                                                            CancellationToken ct = default)
+        {
+            var query = _repo.Query().AsNoTracking()
+                             .Where(x => x.DocTypeId == docTypeId && x.IsActive);
+
+            // 1. الفلترة حسب "آخر X أيام" (مثل آخر 7 أيام)
+            if (lastDays.HasValue)
+            {
+                var thresholdDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-lastDays.Value));
+
+                query = query.Where(x => x.DocDate >= thresholdDate);
+            }
+
+            // 2. الفلترة حسب سنة محددة
+            if (year.HasValue)
+            {
+                query = query.Where(x => x.DocDate.Year == year.Value);
+            }
+
+            // 3. الفلترة حسب شهر محدد (يجب أن يكون مع السنة أو سيجلب الشهر من كل السنوات)
+            if (month.HasValue)
+            {
+                query = query.Where(x => x.DocDate.Month == month.Value);
+            }
+
+            return await query
+                .OrderByDescending(x => x.DocDate)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             CancellationToken ct = default)

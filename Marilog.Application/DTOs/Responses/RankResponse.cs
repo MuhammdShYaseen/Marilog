@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Application.DTOs
+namespace Marilog.Application.DTOs.Responses
 {
-    public class PortResponse
+    public class RankResponse
     {
         public int Id { get; set; }
         public string Code { get; set; } = null!;
         public string Name { get; set; } = null!;
-        public int? CountryId { get; set; }
-        public string? CountryName { get; set; }
+        public int Department { get; set; }   // enum instead of string
         public bool IsActive { get; set; }
     }
 }

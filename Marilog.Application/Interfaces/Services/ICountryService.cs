@@ -1,4 +1,4 @@
-using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Responses;
 
 namespace Marilog.Application.Interfaces.Services
 {

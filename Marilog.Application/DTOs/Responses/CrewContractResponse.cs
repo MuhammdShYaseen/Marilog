@@ -1,8 +1,6 @@
-﻿
+﻿using Marilog.Domain.Entities;
 
-using Marilog.Domain.Entities;
-
-namespace Marilog.Application.DTOs
+namespace Marilog.Application.DTOs.Responses
 {
     public class CrewContractResponse
     {

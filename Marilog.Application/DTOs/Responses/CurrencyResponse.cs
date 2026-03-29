@@ -1,5 +1,4 @@
-﻿
-namespace Marilog.Application.DTOs
+﻿namespace Marilog.Application.DTOs.Responses
 {
     public class CurrencyResponse
     {

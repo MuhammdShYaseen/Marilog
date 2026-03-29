@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Application.DTOs
+namespace Marilog.Application.DTOs.Responses
 {
     public class DocumentResponse
     {

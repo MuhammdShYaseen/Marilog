@@ -1,6 +1,6 @@
 ﻿namespace Marilog.Presentation.Controllers
 {
-    using Marilog.Application.DTOs;
+    using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
     using Marilog.Presentation.DTOs.CurrencyDTOs;
     using Microsoft.AspNetCore.Mvc;
