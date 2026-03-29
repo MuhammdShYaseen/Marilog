@@ -10,9 +10,9 @@ namespace Marilog.Application.DTOs.Responses
         public int Id { get; set; }
         public int ContractId { get; set; }
         public int PersonId { get; set; }
-        public string PersonFullName { get; set; } = null!;
+        public string? PersonFullName { get; set; } = null!;
         public int VesselId { get; set; }
-        public string VesselName { get; set; } = null!;
+        public string? VesselName { get; set; } = null!;
         public DateOnly PayrollMonth { get; set; }
         public int WorkingDays { get; set; }
         public decimal BasicWage { get; set; }
@@ -24,6 +24,6 @@ namespace Marilog.Application.DTOs.Responses
         public bool IsFullyPaid { get; set; }
         public PayrollStatus Status { get; set; }
         public string? Notes { get; set; }
-        public List<DisbursementResponse> Disbursements { get; set; } = new List<DisbursementResponse>();
+        public List<DisbursementResponse>? Disbursements { get; set; } = new List<DisbursementResponse>();
     }
 }

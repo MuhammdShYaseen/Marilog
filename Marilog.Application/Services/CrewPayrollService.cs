@@ -220,12 +220,13 @@ namespace Marilog.Application.Services
         }
 
         //----Reports--------------------------------------------------------------
-        public async Task<CrewPayrollReport> GetCrewPayrollReportAsync(CrewPayrollFilterOptions options,
-        CancellationToken ct = default)
+        public async Task<CrewPayrollReport> GetCrewPayrollReportAsync(
+    CrewPayrollFilterOptions options,
+    CancellationToken ct = default)
         {
             var query = _repo.Query().AsNoTracking();
 
-            // --- فلترة ---
+            // ─── فلترة ───────────────────────────────────────────────────────────
             if (options.ContractId.HasValue)
                 query = query.Where(x => x.ContractId == options.ContractId.Value);
 
@@ -241,25 +242,38 @@ namespace Marilog.Application.Services
                 query = query.Where(x => x.PayrollMonth == firstDay);
             }
 
-            if (options.Status.HasValue)
+            if (options.OnlyOutstanding)
+                query = query.Where(x => x.RemainingBalance > 0);
+            else if (options.Status.HasValue)
                 query = query.Where(x => x.Status == options.Status.Value);
 
-            if (options.OnlyOutstanding)
-                query = query.Where(x => x.Status == PayrollStatus.Approved || x.Status == PayrollStatus.PartiallyPaid);
-
-            // ترتيب افتراضي
+            // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderBy(x => x.PayrollMonth)
-                         .ThenBy(x => x.Contract.Person.FullName);
+                         .ThenBy(x => x.Contract.PersonID);
 
-            // --- جلب البيانات ---
+            // ─── الإحصاءات من DB — رحلة واحدة بدون AnyAsync ─────────────────────
+            var dbSummary = await query
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    TotalGross = g.Sum(x => x.GrossAmount),
+                    TotalDisbursed = g.Sum(x => x.TotalDisbursed),
+                    TotalRemaining = g.Sum(x => x.RemainingBalance),
+                    AverageGross = g.Average(x => x.GrossAmount),
+                    MaxGross = g.Max(x => x.GrossAmount),
+                    MinGross = g.Min(x => x.GrossAmount),
+                })
+                .FirstOrDefaultAsync(ct);   // ✅ null تلقائياً إذا لا بيانات
+
+            // ─── جلب البيانات ────────────────────────────────────────────────────
             var payrolls = await query.Select(x => new CrewPayrollResponse
             {
                 Id = x.Id,
                 ContractId = x.ContractId,
                 PersonId = x.Contract.PersonID,
-                PersonFullName = x.Contract.Person.FullName,
+                PersonFullName = x.Contract.Person != null ? x.Contract.Person.FullName : null,
                 VesselId = x.Contract.VesselID,
-                VesselName = x.Contract.Vessel.VesselName,
+                VesselName = x.Contract.Vessel != null ? x.Contract.Vessel.VesselName : null,
                 PayrollMonth = x.PayrollMonth,
                 WorkingDays = x.WorkingDays,
                 BasicWage = x.BasicWage,
@@ -271,6 +285,7 @@ namespace Marilog.Application.Services
                 IsFullyPaid = x.IsFullyPaid,
                 Status = x.Status,
                 Notes = x.Notes,
+
                 Disbursements = options.IncludeDisbursements
                     ? x.Disbursements.Select(d => new DisbursementResponse
                     {
@@ -278,44 +293,37 @@ namespace Marilog.Application.Services
                         Amount = d.Amount,
                         Status = d.Status,
                         PaidOn = d.PaidOn,
-                        OfficeName = d.Office!.OfficeName,
-                        SwiftReference = d.SwiftTransfer!.SwiftReference,
-                        VoyageNumber = d.Voyage!.VoyageNumber,
+                        OfficeName = d.Office != null ? d.Office.OfficeName : null,
+                        SwiftReference = d.SwiftTransfer != null ? d.SwiftTransfer.SwiftReference : null,
+                        VoyageNumber = d.Voyage != null ? d.Voyage.VoyageNumber : null,
                         Notes = d.Notes
                     }).ToList()
-                    : new List<DisbursementResponse>()
+                    : null
+
             }).ToListAsync(ct);
 
-            // --- التحليل ---
-            var totalGross = payrolls.Sum(p => p.GrossAmount);
-            var totalDisbursed = payrolls.Sum(p => p.TotalDisbursed);
-            var totalRemaining = payrolls.Sum(p => p.RemainingBalance);
-
-            var averageGross = payrolls.Any() ? payrolls.Average(p => p.GrossAmount) : 0m;
-            var maxGross = payrolls.Any() ? payrolls.Max(p => p.GrossAmount) : 0m;
-            var minGross = payrolls.Any() ? payrolls.Min(p => p.GrossAmount) : 0m;
-
-            // --- التجميع الشهري ---
+            // ─── التجميع الشهري ───────────────────────────────────────────────────
             var monthlySummary = payrolls
                 .GroupBy(p => new { p.PayrollMonth.Year, p.PayrollMonth.Month })
                 .Select(g => new MonthlyPayrollSummary
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
-                    TotalGross = g.Sum(p => p.GrossAmount),
+                    TotalGross = g.Sum(p => p.GrossAmount),     // ✅ بدون ?? 0m
                     TotalDisbursed = g.Sum(p => p.TotalDisbursed),
-                    TotalRemaining = g.Sum(p => p.RemainingBalance)
+                    TotalRemaining = g.Sum(p => p.RemainingBalance),
                 })
-                .OrderBy(m => m.Year).ThenBy(m => m.Month)
+                .OrderBy(m => m.Year)
+                .ThenBy(m => m.Month)
                 .ToList();
 
-            // --- التجميع حسب السفينة ---
+            // ─── التجميع حسب السفينة ─────────────────────────────────────────────
             var vesselSummary = payrolls
-                .GroupBy(p => new { p.VesselId, p.VesselName })
+                .GroupBy(p => p.VesselId)
                 .Select(g => new VesselPayrollSummary
                 {
-                    VesselId = g.Key.VesselId,
-                    VesselName = g.Key.VesselName,
+                    VesselId = g.Key,
+                    VesselName = g.First().VesselName,          // ✅ First() كافٍ بعد GroupBy بالـ Id
                     TotalGross = g.Sum(p => p.GrossAmount),
                     TotalDisbursed = g.Sum(p => p.TotalDisbursed),
                     TotalRemaining = g.Sum(p => p.RemainingBalance),
@@ -324,13 +332,13 @@ namespace Marilog.Application.Services
                 .OrderBy(v => v.VesselName)
                 .ToList();
 
-            // --- التجميع حسب الشخص ---
+            // ─── التجميع حسب الشخص ───────────────────────────────────────────────
             var personSummary = payrolls
-                .GroupBy(p => new { p.PersonId, p.PersonFullName })
+                .GroupBy(p => p.PersonId)
                 .Select(g => new PersonPayrollSummary
                 {
-                    PersonId = g.Key.PersonId,
-                    PersonFullName = g.Key.PersonFullName,
+                    PersonId = g.Key,
+                    PersonFullName = g.First().PersonFullName,      // ✅ نفس المنطق
                     TotalGross = g.Sum(p => p.GrossAmount),
                     TotalDisbursed = g.Sum(p => p.TotalDisbursed),
                     TotalRemaining = g.Sum(p => p.RemainingBalance),
@@ -339,18 +347,19 @@ namespace Marilog.Application.Services
                 .OrderBy(p => p.PersonFullName)
                 .ToList();
 
+            // ─── النتيجة النهائية ─────────────────────────────────────────────────
             return new CrewPayrollReport
             {
                 Payrolls = payrolls,
-                TotalGross = totalGross,
-                TotalDisbursed = totalDisbursed,
-                TotalRemaining = totalRemaining,
-                AverageGross = averageGross,
-                MaxGross = maxGross,
-                MinGross = minGross,
+                TotalGross = dbSummary?.TotalGross ?? 0m,
+                TotalDisbursed = dbSummary?.TotalDisbursed ?? 0m,
+                TotalRemaining = dbSummary?.TotalRemaining ?? 0m,
+                AverageGross = dbSummary?.AverageGross ?? 0m,
+                MaxGross = dbSummary?.MaxGross ?? 0m,
+                MinGross = dbSummary?.MinGross ?? 0m,
                 MonthlySummary = monthlySummary,
                 VesselSummary = vesselSummary,
-                PersonSummary = personSummary
+                PersonSummary = personSummary,
             };
         }
 

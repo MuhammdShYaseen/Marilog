@@ -26,7 +26,6 @@ namespace Marilog.Application.Interfaces.Services
         Task               DeleteAsync(int id, CancellationToken ct = default);
 
         //----Reports-----------------------------------------------------------------
-        Task<IReadOnlyList<CrewContractResponse>> GetCrewContractsReportAsync(CrewContractFilterOptions options,
-        CancellationToken ct = default);
+        Task<CrewContractReport> GetCrewContractsReportAsync(CrewContractFilterOptions options, CancellationToken ct = default);
     }
 }

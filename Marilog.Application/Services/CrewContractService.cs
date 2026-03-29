@@ -265,32 +265,26 @@ namespace Marilog.Application.Services
 
         //----Reports----------------------------------------------------------------
 
-        public async Task<IReadOnlyList<CrewContractResponse>> GetCrewContractsReportAsync(CrewContractFilterOptions options,
-        CancellationToken ct = default)
+        public async Task<CrewContractReport> GetCrewContractsReportAsync(CrewContractFilterOptions options, CancellationToken ct = default)
         {
             var query = _repo.Query().AsNoTracking();
 
-            // فلترة حسب السفينة
+            // ─── فلترة ───────────────────────────────────────────────────────────
             if (options.VesselId.HasValue)
                 query = query.Where(x => x.VesselID == options.VesselId.Value);
 
-            // فلترة حسب الشخص
             if (options.PersonId.HasValue)
                 query = query.Where(x => x.PersonID == options.PersonId.Value);
 
-            // فلترة حسب حالة النشاط
             if (options.IsActive.HasValue)
                 query = query.Where(x => x.IsActive == options.IsActive.Value);
 
-            // فلترة حسب رتبة محددة
-            if (!string.IsNullOrEmpty(options.RankCode))
+            // ✅ OnlyMasters يأخذ الأولوية على RankCode
+            if (options.OnlyMasters)
+                query = query.Where(x => x.Rank.RankCode == "MASTER");
+            else if (!string.IsNullOrWhiteSpace(options.RankCode))
                 query = query.Where(x => x.Rank.RankCode == options.RankCode);
 
-            // فلترة حسب Masters فقط
-            if (options.OnlyMasters.HasValue && options.OnlyMasters.Value)
-                query = query.Where(x => x.Rank.RankCode == "MASTER");
-
-            // فلترة حسب تاريخ محدد (العقود الفعالة في هذا التاريخ)
             if (options.OnDate.HasValue)
             {
                 var date = options.OnDate.Value;
@@ -298,12 +292,23 @@ namespace Marilog.Application.Services
                                          (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date));
             }
 
-            // ترتيب افتراضي حسب الرتبة والشخص
+            // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderBy(x => x.Rank.Department)
                          .ThenBy(x => x.Person.FullName);
 
-            // جلب البيانات وتحويلها إلى DTO
-            var result = await query.Select(x => new CrewContractResponse
+            // ─── الإحصاءات من DB — رحلة واحدة ───────────────────────────────────
+            var dbSummary = await query
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    TotalCount = g.Count(),
+                    ActiveCount = g.Count(x => x.IsActive),
+                    InactiveCount = g.Count(x => !x.IsActive),
+                })
+                .FirstOrDefaultAsync(ct);
+
+            // ─── جلب البيانات ────────────────────────────────────────────────────
+            var contracts = await query.Select(x => new CrewContractResponse
             {
                 ContractId = x.Id,
                 PersonId = x.PersonID,
@@ -317,13 +322,65 @@ namespace Marilog.Application.Services
                 SignOnDate = x.SignOnDate,
                 SignOffDate = x.SignOffDate,
                 SignOnPort = x.SignOnPort,
-                SignOnPortName = x.SignOnPortNav!.PortName,
+                SignOnPortName = x.SignOnPortNav != null ? x.SignOnPortNav.PortName : null,   // ✅ آمن
                 SignOffPort = x.SignOffPort,
-                SignOffPortName = x.SignOffPortNav!.PortName,
+                SignOffPortName = x.SignOffPortNav != null ? x.SignOffPortNav.PortName : null, // ✅ آمن
                 IsActive = x.IsActive
             }).ToListAsync(ct);
 
-            return result;
+            // ─── التجميع حسب السفينة ───────────────────────────────
+            var vesselSummary = contracts
+                .GroupBy(c => c.VesselId)
+                .Select(g => new VesselContractSummary
+                {
+                    VesselId = g.Key,
+                    VesselName = g.Select(x => x.VesselName).FirstOrDefault() ?? "",
+                    TotalContracts = g.Count(),
+                    ActiveContracts = g.Count(c => c.IsActive),
+                    AverageWage = g.Any() ? g.Average(c => c.MonthlyWage) : 0m
+                })
+                .OrderBy(v => v.VesselName)
+                .ToList();
+
+            // ─── التجميع حسب الرتبة ───────────────────────────────
+            var rankSummary = contracts
+                .GroupBy(c => c.RankId)
+                .Select(g => new RankContractSummary
+                {
+                    RankId = g.Key,
+                    RankName = g.Select(x => x.RankName).FirstOrDefault() ?? "",
+                    Department = g.Select(x => x.RankDepartment).FirstOrDefault(),
+                    TotalContracts = g.Count(),
+                    ActiveContracts = g.Count(c => c.IsActive),
+                    AverageWage = g.Average(c => c.MonthlyWage)   // ✅
+                })
+                .OrderBy(r => r.Department)
+                .ThenBy(r => r.RankName)
+                .ToList();
+
+            // ─── التجميع حسب القسم ───────────────────────────────────────────────
+            var departmentSummary = contracts
+                .GroupBy(c => c.RankDepartment)
+                .Select(g => new DepartmentContractSummary
+                {
+                    Department = g.Key,
+                    TotalContracts = g.Count(),
+                    ActiveContracts = g.Count(c => c.IsActive),
+                })
+                .OrderBy(d => d.Department)
+                .ToList();
+
+            // ─── النتيجة النهائية ─────────────────────────────────────────────────
+            return new CrewContractReport
+            {
+                Contracts = contracts,
+                TotalCount = dbSummary?.TotalCount ?? 0,
+                ActiveCount = dbSummary?.ActiveCount ?? 0,
+                InactiveCount = dbSummary?.InactiveCount ?? 0,
+                VesselSummary = vesselSummary,
+                RankSummary = rankSummary,
+                DepartmentSummary = departmentSummary,
+            };
         }
 
         // ── Private ───────────────────────────────────────────────────────────────

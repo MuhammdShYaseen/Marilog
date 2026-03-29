@@ -4,13 +4,13 @@ using System.Text;
 
 namespace Marilog.Application.DTOs.Reports.CrewContractReports
 {
-    public class CrewContractFilterOptions
+    public sealed class CrewContractFilterOptions
     {
-        public int? VesselId { get; set; }
-        public int? PersonId { get; set; }
-        public bool? IsActive { get; set; }
-        public string? RankCode { get; set; }          // مثال: "MASTER"
-        public DateOnly? OnDate { get; set; }         // لفلترة العقود الفعالة في تاريخ معين
-        public bool? OnlyMasters { get; set; }        // يمكن استخدامه بدلاً من RankCode
+        public int? VesselId { get; init; }
+        public int? PersonId { get; init; }
+        public bool? IsActive { get; init; }
+        public string? RankCode { get; init; }
+        public bool OnlyMasters { get; init; }  // ✅ bool بدون ? — false افتراضياً
+        public DateOnly? OnDate { get; init; }
     }
 }
