@@ -1,6 +1,6 @@
 ﻿namespace Marilog.Application.DTOs.Reports.DocumentReports
 {
-    internal class MonthlyDocumentSummary
+    public class MonthlyDocumentSummary
     {
         public int Year { get; set; }
         public int Month { get; set; }

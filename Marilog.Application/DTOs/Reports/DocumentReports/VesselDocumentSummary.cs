@@ -1,6 +1,6 @@
 ﻿namespace Marilog.Application.DTOs.Reports.DocumentReports
 {
-    internal class VesselDocumentSummary
+    public class VesselDocumentSummary
     {
         public int VesselId { get; set; }
         public string? VesselName { get; set; }

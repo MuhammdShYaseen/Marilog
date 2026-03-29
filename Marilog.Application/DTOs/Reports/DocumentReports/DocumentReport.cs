@@ -12,10 +12,10 @@ namespace Marilog.Application.DTOs.Reports.DocumentReports
         public int Count { get; set; }
         public IReadOnlyList<MonthlyTotal> MonthlyTotals { get; set; } = Array.Empty<MonthlyTotal>();
         public IReadOnlyList<YearlyTotal> YearlyTotals { get; set; } = Array.Empty<YearlyTotal>();
-        public decimal TotalPaid { get; internal set; }
-        public decimal TotalRemaining { get; internal set; }
-        public object MonthlySummary { get; internal set; }
-        public object SupplierSummary { get; internal set; }
-        public object VesselSummary { get; internal set; }
+        public decimal TotalPaid { get; set; }
+        public decimal TotalRemaining { get; set; }
+        public IReadOnlyList<MonthlyDocumentSummary> MonthlySummary { get; init; } = [];
+        public IReadOnlyList<SupplierDocumentSummary> SupplierSummary { get; init; } = [];
+        public IReadOnlyList<VesselDocumentSummary> VesselSummary { get; init; } = [];
     }
 }

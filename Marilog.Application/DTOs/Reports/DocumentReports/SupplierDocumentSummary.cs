@@ -1,6 +1,6 @@
 ﻿namespace Marilog.Application.DTOs.Reports.DocumentReports
 {
-    internal class SupplierDocumentSummary
+    public class SupplierDocumentSummary
     {
         public int SupplierId { get; set; }
         public string? SupplierName { get; set; }
