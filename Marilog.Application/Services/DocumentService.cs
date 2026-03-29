@@ -1,4 +1,5 @@
 using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Reports.DocumentReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -96,41 +97,6 @@ namespace Marilog.Application.Services
                           .Select(ToResponse)
                           .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetFilteredDocsAsync(
-                                                            int docTypeId,
-                                                            int? year = null,       
-                                                            int? month = null,      
-                                                            int? lastDays = null,   
-                                                            CancellationToken ct = default)
-        {
-            var query = _repo.Query().AsNoTracking()
-                             .Where(x => x.DocTypeId == docTypeId && x.IsActive);
-
-            // 1. الفلترة حسب "آخر X أيام" (مثل آخر 7 أيام)
-            if (lastDays.HasValue)
-            {
-                var thresholdDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-lastDays.Value));
-
-                query = query.Where(x => x.DocDate >= thresholdDate);
-            }
-
-            // 2. الفلترة حسب سنة محددة
-            if (year.HasValue)
-            {
-                query = query.Where(x => x.DocDate.Year == year.Value);
-            }
-
-            // 3. الفلترة حسب شهر محدد (يجب أن يكون مع السنة أو سيجلب الشهر من كل السنوات)
-            if (month.HasValue)
-            {
-                query = query.Where(x => x.DocDate.Month == month.Value);
-            }
-
-            return await query
-                .OrderByDescending(x => x.DocDate)
-                .Select(ToResponse)
-                .ToListAsync(ct);
-        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             CancellationToken ct = default)
@@ -308,6 +274,95 @@ namespace Marilog.Application.Services
             document.LogEmail(subject, body, participants, direction);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
+        }
+
+
+        //----Reports----------------------------------------------------------------
+        public async Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
+        {
+            var query = _repo.Query().AsNoTracking()
+                             .Where(x => x.IsActive); // قاعدة كل الفلاتر
+
+            // 1. فلترة حسب المورد
+            if (options.SupplierId.HasValue)
+                query = query.Where(x => x.SupplierId == options.SupplierId.Value);
+
+            // 2. فلترة حسب المشتري
+            if (options.BuyerId.HasValue)
+                query = query.Where(x => x.BuyerId == options.BuyerId.Value);
+
+            // 3. فلترة حسب السفينة
+            if (options.VesselId.HasValue)
+                query = query.Where(x => x.VesselId == options.VesselId.Value);
+
+            // 4. فلترة حسب نوع المستند
+            if (options.DocTypeId.HasValue)
+                query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
+
+            // 5. المستندات الغير مدفوعة فقط
+            if (options.UnpaidOnly.HasValue && options.UnpaidOnly.Value)
+            {
+                query = query.Where(x => x.TotalAmount > x.Payments
+                                                .Where(p => p.DocumentId == x.Id)
+                                                .Sum(p => p.PaidAmount));
+            }
+
+            // 6. فلترة حسب آخر X أيام
+            if (options.LastDays.HasValue)
+            {
+                var thresholdDate = DateTime.UtcNow.AddDays(-options.LastDays.Value);
+                query = query.Where(x => x.DocDate.ToDateTime(TimeOnly.MinValue) >= thresholdDate);
+            }
+
+            // 7. فلترة حسب السنة
+            if (options.Year.HasValue)
+                query = query.Where(x => x.DocDate.Year == options.Year.Value);
+
+            // 8. فلترة حسب الشهر
+            if (options.Month.HasValue)
+                query = query.Where(x => x.DocDate.Month == options.Month.Value);
+
+            // 9. ترتيب افتراضي حسب التاريخ تنازلي
+            query = query.OrderByDescending(x => x.DocDate);
+
+            // 10. جلب البيانات وتحويلها إلى DTO
+            var docs = await query.Select(ToResponse).ToListAsync(ct);
+
+            // 11. العمليات التحليلية
+            var totalValue = docs.Sum(d => d.TotalAmount);
+            var count = docs.Count;
+
+            var monthlyTotals = docs
+                .GroupBy(d => new { d.DocDate.Year, d.DocDate.Month })
+                .Select(g => new MonthlyTotal
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    TotalValue = g.Sum(x => x.TotalAmount),
+                    Count = g.Count()
+                })
+                .OrderBy(mt => mt.Year).ThenBy(mt => mt.Month)
+                .ToList();
+
+            var yearlyTotals = docs
+                .GroupBy(d => d.DocDate.Year)
+                .Select(g => new YearlyTotal
+                {
+                    Year = g.Key,
+                    TotalValue = g.Sum(x => x.TotalAmount),
+                    Count = g.Count()
+                })
+                .OrderBy(yt => yt.Year)
+                .ToList();
+
+            return new DocumentReport
+            {
+                Documents = docs,
+                TotalValue = totalValue,
+                Count = count,
+                MonthlyTotals = monthlyTotals,
+                YearlyTotals = yearlyTotals
+            };
         }
 
         // ── Private ───────────────────────────────────────────────────────────────
