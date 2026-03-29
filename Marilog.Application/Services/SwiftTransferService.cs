@@ -167,7 +167,7 @@ namespace Marilog.Application.Services
                         DocumentId = p.DocumentId,
                         PaymentDate = p.PaymentDate,
                     }).ToList()
-                    : new()   // ✅ null أوضح من قائمة فارغة لتمييز "لم يُطلب" عن "لا يوجد"
+                    : null   // ✅ null أوضح من قائمة فارغة لتمييز "لم يُطلب" عن "لا يوجد"
 
             }).ToListAsync(ct);
 

@@ -28,7 +28,7 @@ namespace Marilog.Application.DTOs.Responses
         public string? ReceiverBank { get; set; } = null!;
         public string? PaymentReference { get; set; }
 
-        public List<PaymentResponse> Payments { get; set; } = new();
+        public List<PaymentResponse>? Payments { get; set; } = new();
         public bool IsActive { get; set; }
     }
 }

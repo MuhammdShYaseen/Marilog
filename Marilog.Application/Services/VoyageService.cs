@@ -137,13 +137,14 @@ namespace Marilog.Application.Services
             // ─── الرحلات الحالية (UNDERWAY) لكل سفينة ────────────────────────────
             // نستخرجها من النتيجة المجلوبة إن كانت الفلترة لا تمنعها،
             // وإلا نجلبها بـ query مستقل لضمان الاكتمال
-            var currentVoyages = options.VesselId.HasValue || options.OnlyCurrent
-                ? voyages.Where(v => v.Status == VoyageStatus.UNDERWAY).ToList()
-                : await _repo.Query()
-                             .AsNoTracking()
-                             .Where(x => x.Status == VoyageStatus.UNDERWAY)
-                             .Select(ToResponseWithStops)       // الرحلة الحالية تحتاج المحطات دائماً
-                             .ToListAsync(ct);
+            var currentVoyages = options.OnlyCurrent
+                  || options.Status == VoyageStatus.UNDERWAY
+                    ? voyages.Where(v => v.Status == VoyageStatus.UNDERWAY).ToList()
+                    : await _repo.Query()
+                 .AsNoTracking()
+                 .Where(x => x.Status == VoyageStatus.UNDERWAY)
+                 .Select(ToResponseWithStops)
+                 .ToListAsync(ct);
 
             // ─── التجميع حسب الحالة ──────────────────────────────────────────────
             var statusSummary = voyages
