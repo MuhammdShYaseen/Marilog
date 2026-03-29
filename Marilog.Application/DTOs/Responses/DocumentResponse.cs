@@ -9,7 +9,7 @@ namespace Marilog.Application.DTOs.Responses
         public int Id { get; set; }
         public string DocNumber { get; set; } = null!;
         public int DocTypeId { get; set; }
-        public string DocTypeName { get; set; } = string.Empty;
+        public string? DocTypeName { get; set; } = string.Empty;
         public DateOnly DocDate { get; set; }
 
         public int? SupplierId { get; set; }
@@ -35,5 +35,7 @@ namespace Marilog.Application.DTOs.Responses
 
         public List<DocumentItemResponse> Items { get; set; } = new List<DocumentItemResponse>();
         public List<PaymentResponse> Payments { get; set; } = new List<PaymentResponse>();
+        public decimal? PaidAmount { get; internal set; }
+        public decimal Remaining { get; internal set; }
     }
 }

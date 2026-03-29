@@ -221,8 +221,8 @@ namespace Marilog.Application.Services
 
         //----Reports--------------------------------------------------------------
         public async Task<CrewPayrollReport> GetCrewPayrollReportAsync(
-    CrewPayrollFilterOptions options,
-    CancellationToken ct = default)
+        CrewPayrollFilterOptions options,
+        CancellationToken ct = default)
         {
             var query = _repo.Query().AsNoTracking();
 

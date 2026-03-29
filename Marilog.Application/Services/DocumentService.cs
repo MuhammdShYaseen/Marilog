@@ -278,90 +278,157 @@ namespace Marilog.Application.Services
 
 
         //----Reports----------------------------------------------------------------
-        public async Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
+        public async Task<DocumentReport> GetFilteredDocsReportAsync(
+        DocumentFilterOptions options,
+        CancellationToken ct = default)
         {
             var query = _repo.Query().AsNoTracking()
-                             .Where(x => x.IsActive); // قاعدة كل الفلاتر
+                             .Where(x => x.IsActive);
 
-            // 1. فلترة حسب المورد
+            // ─── فلترة ───────────────────────────────────────────────────────────
             if (options.SupplierId.HasValue)
                 query = query.Where(x => x.SupplierId == options.SupplierId.Value);
 
-            // 2. فلترة حسب المشتري
             if (options.BuyerId.HasValue)
                 query = query.Where(x => x.BuyerId == options.BuyerId.Value);
 
-            // 3. فلترة حسب السفينة
             if (options.VesselId.HasValue)
                 query = query.Where(x => x.VesselId == options.VesselId.Value);
 
-            // 4. فلترة حسب نوع المستند
             if (options.DocTypeId.HasValue)
                 query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
 
-            // 5. المستندات الغير مدفوعة فقط
-            if (options.UnpaidOnly.HasValue && options.UnpaidOnly.Value)
-            {
-                query = query.Where(x => x.TotalAmount > x.Payments
-                                                .Where(p => p.DocumentId == x.Id)
-                                                .Sum(p => p.PaidAmount));
-            }
+            if (options.UnpaidOnly)
+                query = query.Where(x =>
+                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount);
 
-            // 6. فلترة حسب آخر X أيام
             if (options.LastDays.HasValue)
             {
-                var thresholdDate = DateTime.UtcNow.AddDays(-options.LastDays.Value);
-                query = query.Where(x => x.DocDate.ToDateTime(TimeOnly.MinValue) >= thresholdDate);
+                var threshold = DateTime.UtcNow.AddDays(-options.LastDays.Value);
+                query = query.Where(x =>
+                    x.DocDate.ToDateTime(TimeOnly.MinValue) >= threshold);
+            }
+            else
+            {
+                if (options.Year.HasValue)
+                    query = query.Where(x => x.DocDate.Year == options.Year.Value);
+
+                if (options.Month.HasValue)
+                    query = query.Where(x => x.DocDate.Month == options.Month.Value);
             }
 
-            // 7. فلترة حسب السنة
-            if (options.Year.HasValue)
-                query = query.Where(x => x.DocDate.Year == options.Year.Value);
-
-            // 8. فلترة حسب الشهر
-            if (options.Month.HasValue)
-                query = query.Where(x => x.DocDate.Month == options.Month.Value);
-
-            // 9. ترتيب افتراضي حسب التاريخ تنازلي
+            // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderByDescending(x => x.DocDate);
 
-            // 10. جلب البيانات وتحويلها إلى DTO
-            var docs = await query.Select(ToResponse).ToListAsync(ct);
+            // ─── الإحصاءات من DB — رحلة واحدة ───────────────────────────────────
+            var dbSummary = await query
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    TotalValue = g.Sum(x => x.TotalAmount),
+                    TotalPaid = g.Sum(x => x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m),
+                    TotalRemaining = g.Sum(x => x.TotalAmount
+                                              - (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)),
+                    Count = g.Count(),
+                })
+                .FirstOrDefaultAsync(ct);
 
-            // 11. العمليات التحليلية
-            var totalValue = docs.Sum(d => d.TotalAmount);
-            var count = docs.Count;
+            // ─── جلب البيانات — intermediate projection لتجنب تكرار الـ subquery ─
+            var docs = await query
+                .Select(x => new
+                {
+                    Paid = x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m,  // ✅ مرة واحدة
+                    Id = x.Id,
+                    SupplierId = x.SupplierId,
+                    BuyerId = x.BuyerId,
+                    VesselId = x.VesselId,
+                    DocTypeId = x.DocTypeId,
+                    DocDate = x.DocDate,
+                    TotalAmount = x.TotalAmount,
+                    SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
+                    BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
+                    VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                    DocTypeName = x.DocType != null ? x.DocType.Name : null,
+                })
+                .ToListAsync(ct);
 
-            var monthlyTotals = docs
+            // ─── تحويل إلى DTO بعد الجلب (In-Memory — بدون subquery مكررة) ───────
+            var documents = docs.Select(x => new DocumentResponse
+            {
+                Id = x.Id,
+                SupplierId = x.SupplierId,
+                BuyerId = x.BuyerId,
+                VesselId = x.VesselId,
+                DocTypeId = x.DocTypeId,
+                DocDate = x.DocDate,
+                TotalAmount = x.TotalAmount,
+                PaidAmount = x.Paid,                    // ✅ من الـ intermediate
+                Remaining = x.TotalAmount - x.Paid,    // ✅ من الـ intermediate
+                SupplierName = x.SupplierName,
+                BuyerName = x.BuyerName,
+                VesselName = x.VesselName,
+                DocTypeName = x.DocTypeName,
+            }).ToList();
+
+            // ─── التجميع الشهري ───────────────────────────────────────────────────
+            var monthlySummary = documents
                 .GroupBy(d => new { d.DocDate.Year, d.DocDate.Month })
-                .Select(g => new MonthlyTotal
+                .Select(g => new MonthlyDocumentSummary
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
-                    TotalValue = g.Sum(x => x.TotalAmount),
+                    TotalValue = g.Sum(d => d.TotalAmount),
+                    TotalPaid = g.Sum(d => d.PaidAmount),
+                    TotalRemain = g.Sum(d => d.Remaining),
                     Count = g.Count()
                 })
-                .OrderBy(mt => mt.Year).ThenBy(mt => mt.Month)
+                .OrderBy(m => m.Year)
+                .ThenBy(m => m.Month)
                 .ToList();
 
-            var yearlyTotals = docs
-                .GroupBy(d => d.DocDate.Year)
-                .Select(g => new YearlyTotal
+            // ─── التجميع حسب المورد ──────────────────────────────────────────────
+            var supplierSummary = documents
+                .Where(d => d.SupplierId.HasValue)
+                .GroupBy(d => d.SupplierId!.Value)
+                .Select(g => new SupplierDocumentSummary
                 {
-                    Year = g.Key,
-                    TotalValue = g.Sum(x => x.TotalAmount),
+                    SupplierId = g.Key,
+                    SupplierName = g.First().SupplierName ?? string.Empty,
+                    TotalValue = g.Sum(d => d.TotalAmount),
+                    TotalPaid = g.Sum(d => d.PaidAmount) ,
+                    TotalRemain = g.Sum(d => d.Remaining),
                     Count = g.Count()
                 })
-                .OrderBy(yt => yt.Year)
+                .OrderBy(s => s.SupplierName)
                 .ToList();
 
+            // ─── التجميع حسب السفينة ─────────────────────────────────────────────
+            var vesselSummary = documents
+                .Where(d => d.VesselId.HasValue)
+                .GroupBy(d => d.VesselId!.Value)
+                .Select(g => new VesselDocumentSummary
+                {
+                    VesselId = g.Key,
+                    VesselName = g.First().VesselName ?? string.Empty,
+                    TotalValue = g.Sum(d => d.TotalAmount),
+                    TotalPaid = g.Sum(d => d.PaidAmount),
+                    TotalRemain = g.Sum(d => d.Remaining),
+                    Count = g.Count()
+                })
+                .OrderBy(v => v.VesselName)
+                .ToList();
+
+            // ─── النتيجة النهائية ─────────────────────────────────────────────────
             return new DocumentReport
             {
-                Documents = docs,
-                TotalValue = totalValue,
-                Count = count,
-                MonthlyTotals = monthlyTotals,
-                YearlyTotals = yearlyTotals
+                Documents = documents,
+                TotalValue = dbSummary?.TotalValue ?? 0m,
+                TotalPaid = dbSummary?.TotalPaid ?? 0m,
+                TotalRemaining = dbSummary?.TotalRemaining ?? 0m,
+                Count = dbSummary?.Count ?? 0,
+                MonthlySummary = monthlySummary,
+                SupplierSummary = supplierSummary,
+                VesselSummary = vesselSummary,
             };
         }
 
