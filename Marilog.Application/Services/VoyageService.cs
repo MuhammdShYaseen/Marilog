@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -84,6 +85,118 @@ namespace Marilog.Application.Services
                           .Select(ToResponseWithStops)
                           .FirstOrDefaultAsync(ct);
 
+        // ─── Reports ───────────────────────────────────────────────────────────
+        public async Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions options, CancellationToken ct = default)
+        {
+            var query = _repo.Query().AsNoTracking();
+
+            if (options.Id.HasValue)
+                query = query.Where(x => x.Id == options.Id.Value);
+
+            if (options.VesselId.HasValue)
+                query = query.Where(x => x.VesselID == options.VesselId.Value);
+
+            if (options.Month.HasValue)
+            {
+                var firstDay = new DateOnly(options.Month.Value.Year, options.Month.Value.Month, 1);
+                query = query.Where(x => x.VoyageMonth == firstDay);
+            }
+
+            if (options.Status.HasValue)
+                query = query.Where(x => x.Status == options.Status.Value);
+
+            if (options.FromDate.HasValue)
+                query = query.Where(x => x.DepartureDate >= options.FromDate.Value);
+
+            if (options.ToDate.HasValue)
+                query = query.Where(x => x.DepartureDate <= options.ToDate.Value);
+
+            if (options.OnlyCurrent)
+                query = query.Where(x => x.Status == VoyageStatus.UNDERWAY);
+
+            query = query.OrderByDescending(x => x.DepartureDate)
+                         .ThenBy(x => x.VoyageNumber);
+
+            var dbSummary = await query
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    TotalCount = g.Count(),
+                    Underway = g.Count(x => x.Status == VoyageStatus.UNDERWAY),
+                    Completed = g.Count(x => x.Status == VoyageStatus.COMPLETED),
+                    Planned = g.Count(x => x.Status == VoyageStatus.PLANNED),
+                })
+                .FirstOrDefaultAsync(ct);
+
+            var selector = options.IncludeStops ? ToResponseWithStops : ToResponse;
+
+            var voyages = await query
+                .Select(selector)
+                .ToListAsync(ct);
+
+            // ─── الرحلات الحالية (UNDERWAY) لكل سفينة ────────────────────────────
+            // نستخرجها من النتيجة المجلوبة إن كانت الفلترة لا تمنعها،
+            // وإلا نجلبها بـ query مستقل لضمان الاكتمال
+            var currentVoyages = options.VesselId.HasValue || options.OnlyCurrent
+                ? voyages.Where(v => v.Status == VoyageStatus.UNDERWAY).ToList()
+                : await _repo.Query()
+                             .AsNoTracking()
+                             .Where(x => x.Status == VoyageStatus.UNDERWAY)
+                             .Select(ToResponseWithStops)       // الرحلة الحالية تحتاج المحطات دائماً
+                             .ToListAsync(ct);
+
+            // ─── التجميع حسب الحالة ──────────────────────────────────────────────
+            var statusSummary = voyages
+                .GroupBy(v => v.Status)
+                .Select(g => new StatusSummary
+                {
+                    Status = g.Key,
+                    Count = g.Count(),
+                })
+                .OrderBy(s => s.Status)
+                .ToList();
+
+            // ─── التجميع حسب السفينة ─────────────────────────────────────────────
+            var vesselSummary = voyages
+                .GroupBy(v => v.VesselId)
+                .Select(g => new VesselVoyageSummary
+                {
+                    VesselId = g.Key,
+                    VesselName = g.First().VesselName ?? string.Empty,
+                    TotalVoyages = g.Count(),
+                    Underway = g.Count(v => v.Status == VoyageStatus.UNDERWAY),
+                    Completed = g.Count(v => v.Status == VoyageStatus.COMPLETED),
+                    Planned = g.Count(v => v.Status == VoyageStatus.PLANNED),
+                })
+                .OrderBy(v => v.VesselName)
+                .ToList();
+
+            // ─── التجميع الشهري ───────────────────────────────────────────────────
+            var monthlySummary = voyages
+                .GroupBy(v => new { v.VoyageMonth.Year, v.VoyageMonth.Month })
+                .Select(g => new MonthlyVoyageSummary
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    TotalVoyages = g.Count(),
+                    Completed = g.Count(v => v.Status == VoyageStatus.COMPLETED),
+                    Underway = g.Count(v => v.Status == VoyageStatus.UNDERWAY),
+                })
+                .OrderBy(m => m.Year)
+                .ThenBy(m => m.Month)
+                .ToList();
+
+            // ─── النتيجة النهائية ─────────────────────────────────────────────────
+            return new VoyageReport
+            {
+                Voyages = voyages,
+                TotalCount = dbSummary?.TotalCount ?? voyages.Count,
+                StatusSummary = statusSummary,
+                VesselSummary = vesselSummary,
+                MonthlySummary = monthlySummary,
+                CurrentVoyages = currentVoyages,
+            };
+        }
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber,
@@ -109,14 +222,15 @@ namespace Marilog.Application.Services
             {
                 VesselId = vesselId,
                 VoyageNumber = voyageNumber,
-                VoyageMonth = voyageMonth.Month,
+                VoyageMonth = voyageMonth,
                 DepartureDate = departureDate,
                 DeparturePortId = departurePortId,
                 MasterContractId = masterContractId,
                 ArrivalDate = arrivalDate,
                 ArrivalPortId = arrivalPortId,
                 CargoQuantityMT = cargoQuantityMt,
-                Notes = notes
+                Notes = notes,
+                VoyageId = voyage.Id
             };
         }
 
@@ -270,7 +384,7 @@ namespace Marilog.Application.Services
             VesselId = x.VesselID,
             VesselName = x.Vessel.VesselName,
 
-            VoyageMonth = x.VoyageMonth.Month, // أو حسب تصميمك
+            VoyageMonth = x.VoyageMonth, // أو حسب تصميمك
 
             Status = x.Status,
 
@@ -315,7 +429,7 @@ namespace Marilog.Application.Services
             VesselId = x.VesselID,
             VesselName = x.Vessel.VesselName,
 
-            VoyageMonth = x.VoyageMonth.Month, // أو حسب تصميمك
+            VoyageMonth = x.VoyageMonth, // أو حسب تصميمك
 
             Status = x.Status,
 

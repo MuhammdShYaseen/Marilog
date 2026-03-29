@@ -3,6 +3,7 @@ using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Application.DTOs.Responses;
+using Marilog.Application.DTOs.Reports.CrewContractReports;
 
 namespace Marilog.Application.Services
 {
@@ -260,6 +261,69 @@ namespace Marilog.Application.Services
                     "Cannot delete an active contract. Sign off the crew member first.");
             _repo.HardDelete(contract);
             await _repo.SaveChangesAsync(ct);
+        }
+
+        //----Reports----------------------------------------------------------------
+
+        public async Task<IReadOnlyList<CrewContractResponse>> GetCrewContractsReportAsync(CrewContractFilterOptions options,
+        CancellationToken ct = default)
+        {
+            var query = _repo.Query().AsNoTracking();
+
+            // فلترة حسب السفينة
+            if (options.VesselId.HasValue)
+                query = query.Where(x => x.VesselID == options.VesselId.Value);
+
+            // فلترة حسب الشخص
+            if (options.PersonId.HasValue)
+                query = query.Where(x => x.PersonID == options.PersonId.Value);
+
+            // فلترة حسب حالة النشاط
+            if (options.IsActive.HasValue)
+                query = query.Where(x => x.IsActive == options.IsActive.Value);
+
+            // فلترة حسب رتبة محددة
+            if (!string.IsNullOrEmpty(options.RankCode))
+                query = query.Where(x => x.Rank.RankCode == options.RankCode);
+
+            // فلترة حسب Masters فقط
+            if (options.OnlyMasters.HasValue && options.OnlyMasters.Value)
+                query = query.Where(x => x.Rank.RankCode == "MASTER");
+
+            // فلترة حسب تاريخ محدد (العقود الفعالة في هذا التاريخ)
+            if (options.OnDate.HasValue)
+            {
+                var date = options.OnDate.Value;
+                query = query.Where(x => x.SignOnDate <= date &&
+                                         (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date));
+            }
+
+            // ترتيب افتراضي حسب الرتبة والشخص
+            query = query.OrderBy(x => x.Rank.Department)
+                         .ThenBy(x => x.Person.FullName);
+
+            // جلب البيانات وتحويلها إلى DTO
+            var result = await query.Select(x => new CrewContractResponse
+            {
+                ContractId = x.Id,
+                PersonId = x.PersonID,
+                PersonFullName = x.Person.FullName,
+                VesselId = x.VesselID,
+                VesselName = x.Vessel.VesselName,
+                RankId = x.RankID,
+                RankName = x.Rank.RankName,
+                RankDepartment = x.Rank.Department,
+                MonthlyWage = x.MonthlyWage,
+                SignOnDate = x.SignOnDate,
+                SignOffDate = x.SignOffDate,
+                SignOnPort = x.SignOnPort,
+                SignOnPortName = x.SignOnPortNav!.PortName,
+                SignOffPort = x.SignOffPort,
+                SignOffPortName = x.SignOffPortNav!.PortName,
+                IsActive = x.IsActive
+            }).ToListAsync(ct);
+
+            return result;
         }
 
         // ── Private ───────────────────────────────────────────────────────────────

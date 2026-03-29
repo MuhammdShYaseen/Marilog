@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Marilog.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -26,6 +27,8 @@ namespace Marilog.Application.DTOs.Responses
         public string? SenderBank { get; set; } = null!;
         public string? ReceiverBank { get; set; } = null!;
         public string? PaymentReference { get; set; }
+
+        public List<PaymentResponse> Payments { get; set; } = new();
         public bool IsActive { get; set; }
     }
 }

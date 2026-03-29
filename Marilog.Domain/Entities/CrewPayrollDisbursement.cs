@@ -67,7 +67,7 @@ namespace Marilog.Domain.Entities
             };
         }
 
-        internal static CrewPayrollDisbursement CreateCashAtOffice(int payrollId, int officeId, decimal amount, DateOnly paidOn,
+        public static CrewPayrollDisbursement CreateCashAtOffice(int payrollId, int officeId, decimal amount, DateOnly paidOn,
                                                                    string recipientName, string recipientIdNumber, string? notes = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(recipientName);

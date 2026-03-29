@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Reports.CrewPayrollReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 namespace Marilog.Application.Interfaces.Services
@@ -44,5 +45,9 @@ namespace Marilog.Application.Interfaces.Services
         Task                          CancelDisbursementAsync(int payrollId, int disbursementId,
                                                               string reason,
                                                               CancellationToken ct = default);
+
+        //----Reports--------------------------------------------------------------------------------
+        Task<CrewPayrollReport> GetCrewPayrollReportAsync(CrewPayrollFilterOptions options,
+        CancellationToken ct = default);
     }
 }

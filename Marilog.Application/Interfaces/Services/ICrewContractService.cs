@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Reports.CrewContractReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -23,5 +24,9 @@ namespace Marilog.Application.Interfaces.Services
         Task               SignOffAsync(int id, DateOnly signOffDate, int? signOffPort = null,
                                         CancellationToken ct = default);
         Task               DeleteAsync(int id, CancellationToken ct = default);
+
+        //----Reports-----------------------------------------------------------------
+        Task<IReadOnlyList<CrewContractResponse>> GetCrewContractsReportAsync(CrewContractFilterOptions options,
+        CancellationToken ct = default);
     }
 }

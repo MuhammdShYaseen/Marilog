@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Reports.SwiftTransferReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -93,7 +94,142 @@ namespace Marilog.Application.Services
                 .Select(ToResponse)
                 .ToListAsync(ct);
         }
+        //----Reports--------------------------------------------------------------
+        public async Task<SwiftTransferReport> GetSwiftTransfersReportAsync(
+            SwiftTransferFilterOptions options,
+            CancellationToken ct = default)
+        {
+            var query = _repo.Query().AsNoTracking();
 
+            // ─── فلترة ───────────────────────────────────────────────────────────
+            if (options.Id.HasValue)
+                query = query.Where(x => x.Id == options.Id.Value);
+
+            if (!string.IsNullOrWhiteSpace(options.Reference))
+                query = query.Where(x => x.SwiftReference == options.Reference);
+
+            if (options.SenderCompanyId.HasValue)
+                query = query.Where(x => x.SenderCompanyId == options.SenderCompanyId.Value
+                                       && x.IsActive);
+
+            if (options.ReceiverCompanyId.HasValue)
+                query = query.Where(x => x.ReceiverCompanyId == options.ReceiverCompanyId.Value
+                                       && x.IsActive);          // ✅ أضفنا IsActive هنا أيضاً
+
+            if (options.FromDate.HasValue)
+                query = query.Where(x => x.TransactionDate >= options.FromDate.Value);
+
+            if (options.ToDate.HasValue)
+                query = query.Where(x => x.TransactionDate <= options.ToDate.Value);
+
+            if (options.OnlyUnallocated)
+                query = query.Where(x => x.IsActive && x.UnallocatedAmount > 0); // ✅ استخدام الحقل المحسوب مباشرة
+
+            // ─── ترتيب ───────────────────────────────────────────────────────────
+            query = query.OrderByDescending(x => x.TransactionDate);
+
+            // ─── الإحصاءات العامة من DB مباشرة (قبل جلب التفاصيل) ───────────────
+            // ✅ تجنّب تحميل كل البيانات في الذاكرة لمجرد حساب المجاميع
+            var summary = await query.GroupBy(_ => 1).Select(g => new
+            {
+                TotalAmount = g.Sum(x => x.Amount),
+                TotalAllocated = g.Sum(x => x.AllocatedAmount),
+                TotalUnallocated = g.Sum(x => x.UnallocatedAmount),
+            }).FirstOrDefaultAsync(ct);
+
+            // ─── جلب قائمة التحويلات ─────────────────────────────────────────────
+            var transfers = await query.Select(x => new SwiftTransferResponse
+            {
+                Id = x.Id,
+                SwiftReference = x.SwiftReference,
+                SenderCompanyId = x.SenderCompanyId,
+                ReceiverCompanyId = x.ReceiverCompanyId,
+                TransactionDate = x.TransactionDate,
+                Amount = x.Amount,
+                IsActive = x.IsActive,
+                AllocatedAmount = x.AllocatedAmount,
+                UnallocatedAmount = x.UnallocatedAmount,
+                IsFullyAllocated = x.IsFullyAllocated,
+                SenderBank = x.SenderBank,
+                ReceiverBank = x.ReceiverBank,
+                PaymentReference = x.PaymentReference,
+                CurrencyCode = x.Currency.CurrencyCode,
+                CurrencyId = x.CurrencyId,
+                SenderCompanyName = x.SenderCompany!.CompanyName,
+                ReceiverCompanyName = x.ReceiverCompany!.CompanyName,
+
+                Payments = options.IncludePayments
+                    ? x.Payments.Select(p => new PaymentResponse
+                    {
+                        Id = p.Id,
+                        PaidAmount = p.PaidAmount,
+                        SwiftTransferId = p.SwiftTransferId,
+                        DocumentId = p.DocumentId,
+                        PaymentDate = p.PaymentDate,
+                    }).ToList()
+                    : new()   // ✅ null أوضح من قائمة فارغة لتمييز "لم يُطلب" عن "لا يوجد"
+
+            }).ToListAsync(ct);
+
+            // ─── التجميع الشهري (In-Memory — البيانات محدودة بعد الفلترة) ──────────
+            var monthlySummary = transfers
+                .GroupBy(t => new { t.TransactionDate.Year, t.TransactionDate.Month })
+                .Select(g => new MonthlyTransferSummary
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    TotalAmount = g.Sum(t => t.Amount),
+                    TotalPaid = g.Sum(t => t.AllocatedAmount),      // ✅ من الحقل مباشرة
+                    TotalUnallocated = g.Sum(t => t.UnallocatedAmount),    // ✅ من الحقل مباشرة
+                })
+                .OrderBy(m => m.Year)
+                .ThenBy(m => m.Month)
+                .ToList();
+
+            // ─── التجميع حسب المُرسِل ────────────────────────────────────────────
+            var senderSummary = transfers
+                .Where(t => t.SenderCompanyId.HasValue)                    // ✅ تحقق آمن من null
+                .GroupBy(t => t.SenderCompanyId!.Value)
+                .Select(g => new CompanyTransferSummary
+                {
+                    CompanyId = g.Key,
+                    CompanyName = g.First().SenderCompanyName ?? string.Empty,
+                    TotalAmount = g.Sum(t => t.Amount),
+                    TotalPaid = g.Sum(t => t.AllocatedAmount),
+                    TotalUnallocated = g.Sum(t => t.UnallocatedAmount),
+                    TransfersCount = g.Count()
+                })
+                .OrderBy(c => c.CompanyName)
+                .ToList();
+
+            // ─── التجميع حسب المُستقبِل ──────────────────────────────────────────
+            var receiverSummary = transfers
+                .Where(t => t.ReceiverCompanyId.HasValue)                  // ✅ تحقق آمن من null
+                .GroupBy(t => t.ReceiverCompanyId!.Value)
+                .Select(g => new CompanyTransferSummary
+                {
+                    CompanyId = g.Key,
+                    CompanyName = g.First().ReceiverCompanyName ?? string.Empty,
+                    TotalAmount = g.Sum(t => t.Amount),
+                    TotalPaid = g.Sum(t => t.AllocatedAmount),
+                    TotalUnallocated = g.Sum(t => t.UnallocatedAmount),
+                    TransfersCount = g.Count()
+                })
+                .OrderBy(c => c.CompanyName)
+                .ToList();
+
+            // ─── تجميع النتيجة النهائية ───────────────────────────────────────────
+            return new SwiftTransferReport
+            {
+                Transfers = transfers,
+                TotalAmount = summary?.TotalAmount ?? 0m,
+                TotalPaid = summary?.TotalAllocated ?? 0m,
+                TotalUnallocated = summary?.TotalUnallocated ?? 0m,
+                MonthlySummary = monthlySummary,
+                SenderSummary = senderSummary,
+                ReceiverSummary = receiverSummary,
+            };
+        }
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<SwiftTransferResponse> CreateAsync(string swiftReference,

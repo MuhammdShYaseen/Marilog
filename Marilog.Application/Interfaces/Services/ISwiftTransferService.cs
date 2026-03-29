@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Reports.SwiftTransferReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 namespace Marilog.Application.Interfaces.Services
@@ -12,7 +13,8 @@ namespace Marilog.Application.Interfaces.Services
         Task<IReadOnlyList<SwiftTransferResponse>> GetByReceiverAsync(int companyId, CancellationToken ct = default);
         Task<IReadOnlyList<SwiftTransferResponse>> GetUnallocatedAsync(CancellationToken ct = default);
         Task<IReadOnlyList<SwiftTransferResponse>> GetByDateRangeAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
-
+        //--Reports-----------------------------------------------------------------
+        Task<SwiftTransferReport> GetSwiftTransfersReportAsync(SwiftTransferFilterOptions options, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<SwiftTransferResponse> CreateAsync(string swiftReference, DateOnly transactionDate,
                                         int currencyId, decimal amount,

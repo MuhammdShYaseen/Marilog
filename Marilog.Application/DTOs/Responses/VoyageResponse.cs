@@ -11,7 +11,7 @@ namespace Marilog.Application.DTOs.Responses
         public string VoyageNumber { get; set; } = null!;
         public int VesselId { get; set; }
         public string VesselName { get; set; } = null!;
-        public int VoyageMonth { get; set; }
+        public DateOnly VoyageMonth { get; set; }
         public VoyageStatus Status { get; set; }
         public int? MasterContractId { get; set; }
         public string? MasterFullName { get; set; }

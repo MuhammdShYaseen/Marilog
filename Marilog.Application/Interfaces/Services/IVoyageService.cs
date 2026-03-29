@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -12,7 +13,8 @@ namespace Marilog.Application.Interfaces.Services
         Task<IReadOnlyList<VoyageResponse>> GetByMonthAsync(DateOnly month, CancellationToken ct = default);
         Task<IReadOnlyList<VoyageResponse>> GetByStatusAsync(VoyageStatus status, CancellationToken ct = default);
         Task<VoyageResponse?>              GetCurrentVoyageAsync(int vesselId, CancellationToken ct = default);
-
+        //---Reports----------------------------------------------------------------
+        Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions options, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
                                  int? masterContractId = null, int? departurePortId = null,
