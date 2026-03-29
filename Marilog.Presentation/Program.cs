@@ -23,6 +23,7 @@ namespace Marilog.Presentation
             });
 
             var app = builder.Build();
+            app.UseErrorHandler();
             app.UseSerilogRequestLogging(opts =>
             {
                 opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.000}ms";
@@ -32,7 +33,7 @@ namespace Marilog.Presentation
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-            app.UseErrorHandler();
+            
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
