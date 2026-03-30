@@ -1,6 +1,8 @@
-﻿using Marilog.Domain.Interfaces.Repositories;
+﻿using Marilog.Application.Interfaces.LogInterfaces;
+using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Repositories;
+using Marilog.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +26,7 @@ namespace Marilog.Infrastructure
 
             // ── Generic Repository — covers all Aggregate Roots ───────────────────
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
+            services.AddScoped<ILogReaderService, LogReaderService>();
             return services;
         }
     }

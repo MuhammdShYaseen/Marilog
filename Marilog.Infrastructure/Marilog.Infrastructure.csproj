@@ -22,6 +22,7 @@
 		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.5" />
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />
 	  <ProjectReference Include="..\Marilog.Domain\Marilog.Domain.csproj" />
 	</ItemGroup>
 
