@@ -18,4 +18,12 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="UnitTest\Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />
+  </ItemGroup>
+
 </Project>
