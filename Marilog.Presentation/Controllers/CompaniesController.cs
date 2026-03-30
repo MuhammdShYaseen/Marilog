@@ -2,6 +2,8 @@
 {
     using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
+    using Marilog.Domain.Entities;
+    using Marilog.Presentation.Common;
     using Marilog.Presentation.DTOs.CompanyDTOs;
     using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +29,7 @@
             if (company == null)
                 throw new KeyNotFoundException("Company not found");
 
-            return Ok(company);
+            return Ok(ApiResponse<CompanyResponse>.Ok(company));
         }
 
         [HttpGet("{id:int}/with-vessels")]
@@ -37,28 +39,28 @@
             if (company == null)
                 throw new KeyNotFoundException("Company not found");
 
-            return Ok(company);
+            return Ok(ApiResponse<CompanyResponse>.Ok(company));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<CompanyResponse>>> GetAll(CancellationToken ct)
         {
             var companies = await _service.GetAllAsync(ct);
-            return Ok(companies);
+            return Ok(ApiResponse<IReadOnlyList<CompanyResponse>>.Ok(companies));
         }
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<CompanyResponse>>> GetActive(CancellationToken ct)
         {
             var companies = await _service.GetActiveAsync(ct);
-            return Ok(companies);
+            return Ok(ApiResponse<IReadOnlyList<CompanyResponse>>.Ok(companies));
         }
 
         [HttpGet("search")]
         public async Task<ActionResult<IReadOnlyList<CompanyResponse>>> Search([FromQuery] string name, CancellationToken ct)
         {
             var companies = await _service.SearchByNameAsync(name, ct);
-            return Ok(companies);
+            return Ok(ApiResponse<IReadOnlyList<CompanyResponse>>.Ok(companies));
         }
 
         // ─────────────────────────────────────────────
@@ -78,7 +80,7 @@
                 request.Address,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = company.Id }, company);
+            return CreatedAtAction(nameof(GetById), new { id = company.Id }, ApiResponse<CompanyResponse>.Ok(company));
         }
 
         [HttpPut("{id:int}")]

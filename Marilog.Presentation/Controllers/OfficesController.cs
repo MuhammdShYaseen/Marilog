@@ -1,7 +1,10 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Domain.Entities;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.OfficeDTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mail;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -24,25 +27,28 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<OfficeResponse>> GetById(int id, CancellationToken ct)
         {
             var office = await _service.GetByIdAsync(id, ct);
-            return office is null ? NotFound() : Ok(office);
+            return office is null ? NotFound() : Ok(ApiResponse<OfficeResponse>.Ok(office));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<OfficeResponse>>> GetAll(CancellationToken ct)
         {
-            return Ok(await _service.GetAllAsync(ct));
+            var offices = await _service.GetAllAsync(ct);
+            return offices is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<OfficeResponse>>.Ok(offices));
         }
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<OfficeResponse>>> GetActive(CancellationToken ct)
         {
-            return Ok(await _service.GetActiveAsync(ct));
+           var offices = await _service.GetActiveAsync(ct);
+            return offices is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<OfficeResponse>>.Ok(offices));
         }
 
         [HttpGet("by-country/{countryId:int}")]
         public async Task<ActionResult<IReadOnlyList<OfficeResponse>>> GetByCountry(int countryId, CancellationToken ct)
         {
-            return Ok(await _service.GetByCountryAsync(countryId, ct));
+            var offices = await _service.GetByCountryAsync(countryId, ct);
+            return offices is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<OfficeResponse>>.Ok(offices));
         }
 
         // ─────────────────────────────────────────────
@@ -63,7 +69,7 @@ namespace Marilog.Presentation.Controllers
                 request.ContactName,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = office.Id }, office);
+            return CreatedAtAction(nameof(GetById), new { id = office.Id }, ApiResponse<OfficeResponse>.Ok(office));
         }
 
         [HttpPut("{id:int}")]

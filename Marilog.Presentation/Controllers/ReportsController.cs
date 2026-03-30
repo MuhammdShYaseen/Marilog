@@ -4,7 +4,6 @@ using Marilog.Application.DTOs.Reports.DocumentReports;
 using Marilog.Application.DTOs.Reports.SwiftTransferReports;
 using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities;
 using Marilog.Presentation.Common;
 using Microsoft.AspNetCore.Mvc;
 

@@ -3,4 +3,5 @@
   <Project Path="Marilog.Domain/Marilog.Domain.csproj" />
   <Project Path="Marilog.Infrastructure/Marilog.Infrastructure.csproj" Id="7719a59c-9531-4022-b645-44f3cd120aa0" />
   <Project Path="Marilog.Presentation/Marilog.Presentation.csproj" Id="5af85a2f-8fd0-45e4-a004-2628afe02e7a" />
+  <Project Path="Marilog.Test/Marilog.Test.csproj" Id="138159ff-144d-42ec-935f-76cc505c4a6a" />
 </Solution>

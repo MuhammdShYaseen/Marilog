@@ -37,7 +37,7 @@ namespace Marilog.Application.Interfaces.Services
         Task         DeleteAsync(int id, CancellationToken ct = default);
 
         // ── Stops ─────────────────────────────────────────────────────────────────
-        Task<VoyageStop> AddStopAsync(int voyageId, int portId, int stopOrder,
+        Task<VoyageStopResponse> AddStopAsync(int voyageId, int portId, int stopOrder,
                                       DateTime? arrivalDate = null, DateTime? departureDate = null,
                                       string? purposeOfCall = null, string? notes = null,
                                       CancellationToken ct = default);

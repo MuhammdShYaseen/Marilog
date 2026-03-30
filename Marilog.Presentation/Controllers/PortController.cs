@@ -1,5 +1,6 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.PortDTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +22,7 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetByIdAsync(id, ct);
             if (result == null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<PortResponse>.Ok(result));
         }
 
         [HttpGet("code/{code}")]
@@ -29,26 +30,26 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetByCodeAsync(code, ct);
             if (result == null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<PortResponse>.Ok(result));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<PortResponse>>> GetAll(CancellationToken ct)
-            => Ok(await _service.GetAllAsync(ct));
+            => Ok(ApiResponse<IReadOnlyList<PortResponse>>.Ok(await _service.GetAllAsync(ct)));
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<PortResponse>>> GetActive(CancellationToken ct)
-            => Ok(await _service.GetActiveAsync(ct));
+            => Ok(ApiResponse<IReadOnlyList<PortResponse>>.Ok(await _service.GetActiveAsync(ct)));
 
         [HttpGet("country/{countryId}")]
         public async Task<ActionResult<IReadOnlyList<PortResponse>>> GetByCountry(int countryId, CancellationToken ct)
-            => Ok(await _service.GetByCountryAsync(countryId, ct));
+            => Ok(ApiResponse<IReadOnlyList<PortResponse>>.Ok(await _service.GetByCountryAsync(countryId, ct)));
 
         [HttpPost]
         public async Task<ActionResult<PortResponse>> Create([FromBody] CreatePortRequest request, CancellationToken ct)
         {
             var result = await _service.CreateAsync(request.PortCode, request.PortName, request.CountryId, ct);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<PortResponse>.Ok(result));
         }
 
         [HttpPut("{id}")]

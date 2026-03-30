@@ -303,7 +303,7 @@ namespace Marilog.Application.Services
 
         // ── Stops ─────────────────────────────────────────────────────────────────
 
-        public async Task<VoyageStop> AddStopAsync(int voyageId, int portId, int stopOrder,
+        public async Task<VoyageStopResponse> AddStopAsync(int voyageId, int portId, int stopOrder,
             DateTime? arrivalDate = null, DateTime? departureDate = null,
             string? purposeOfCall = null, string? notes = null,
             CancellationToken ct = default)
@@ -313,7 +313,16 @@ namespace Marilog.Application.Services
                                         purposeOfCall, notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
-            return stop;
+
+            return new VoyageStopResponse
+            {
+                ArrivalDate = stop.ArrivalDate,
+                StopOrder = stop.StopOrder,
+                DepartureDate = stop.DepartureDate,
+                Notes = stop.Notes,
+                PortId = stop.PortID,
+                PurposeOfCall = stop.PurposeOfCall
+            };
         }
 
         public async Task UpdateStopAsync(int voyageId, int stopOrder,

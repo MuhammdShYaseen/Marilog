@@ -1,7 +1,9 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.DocumentTypeDTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -31,21 +33,21 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<DocumentTypeResponse>> GetByCode(string code, CancellationToken ct)
         {
             var docType = await _service.GetByCodeAsync(code, ct);
-            return docType is null ? NotFound() : Ok(docType);
+            return docType is null ? NotFound() : Ok(ApiResponse<DocumentTypeResponse>.Ok(docType));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<DocumentTypeResponse>>> GetAll(CancellationToken ct)
         {
             var list = await _service.GetAllAsync(ct);
-            return Ok(list);
+            return Ok(ApiResponse<IReadOnlyList<DocumentTypeResponse>>.Ok(list));
         }
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<DocumentTypeResponse>>> GetActive(CancellationToken ct)
         {
             var list = await _service.GetActiveAsync(ct);
-            return Ok(list);
+            return Ok(ApiResponse<IReadOnlyList<DocumentTypeResponse>>.Ok(list));
         }
 
         // ─────────────────────────────────────────────
@@ -59,7 +61,7 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.CreateAsync(request.Code, request.Name, request.SortOrder, ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<DocumentTypeResponse>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

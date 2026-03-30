@@ -1,7 +1,9 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.VoyageDTOs;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -30,7 +32,7 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<VoyageResponse>> GetWithStops(int id, CancellationToken ct)
         {
             var result = await _service.GetWithStopsAsync(id, ct);
-            return result is null ? NotFound() : Ok(result);
+            return result is null ? NotFound() : Ok(ApiResponse<VoyageResponse>.Ok(result));
         }
 
         [HttpGet("by-vessel/{vesselId:int}")]
@@ -42,20 +44,20 @@ namespace Marilog.Presentation.Controllers
         [HttpGet("by-month")]
         public async Task<ActionResult<IReadOnlyList<VoyageResponse>>> GetByMonth([FromQuery] DateOnly month, CancellationToken ct)
         {
-            return Ok(await _service.GetByMonthAsync(month, ct));
+            return Ok(ApiResponse<IReadOnlyList<VoyageResponse>>.Ok(await _service.GetByMonthAsync(month, ct)));
         }
 
         [HttpGet("by-status")]
         public async Task<ActionResult<IReadOnlyList<VoyageResponse>>> GetByStatus([FromQuery] VoyageStatus status, CancellationToken ct)
         {
-            return Ok(await _service.GetByStatusAsync(status, ct));
+            return Ok(ApiResponse<IReadOnlyList<VoyageResponse>>.Ok(await _service.GetByStatusAsync(status, ct)));
         }
 
         [HttpGet("current/{vesselId:int}")]
         public async Task<ActionResult<VoyageResponse>> GetCurrent(int vesselId, CancellationToken ct)
         {
             var result = await _service.GetCurrentVoyageAsync(vesselId, ct);
-            return result is null ? NotFound() : Ok(result);
+            return result is null ? NotFound() : Ok(ApiResponse<VoyageResponse>.Ok(result));
         }
 
         // ── Commands ────────────────────────────────────────────
@@ -78,7 +80,7 @@ namespace Marilog.Presentation.Controllers
                 ct
             );
 
-            return CreatedAtAction(nameof(GetById), new { id = result.VoyageId }, result);
+            return CreatedAtAction(nameof(GetById), new { id = result.VoyageId }, ApiResponse<VoyageResponse>.Ok(result));
         }
 
         [HttpPut("{id:int}")]
@@ -164,7 +166,7 @@ namespace Marilog.Presentation.Controllers
                 ct
             );
 
-            return Ok(stop);
+            return Ok(ApiResponse<VoyageStopResponse>.Ok(stop));
         }
 
         [HttpPut("{voyageId:int}/stops/{stopOrder:int}")]

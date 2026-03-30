@@ -2,6 +2,8 @@
 {
     using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
+    using Marilog.Domain.Entities;
+    using Marilog.Presentation.Common;
     using Marilog.Presentation.DTOs.CurrencyDTOs;
     using Microsoft.AspNetCore.Mvc;
 
@@ -24,14 +26,14 @@
         public async Task<ActionResult<CurrencyResponse>> GetById(int id, CancellationToken ct)
         {
             var currency = await _service.GetByIdAsync(id, ct);
-            return currency is null ? NotFound() : Ok(currency);
+            return currency is null ? NotFound() : Ok(ApiResponse<CurrencyResponse>.Ok(currency));
         }
 
         [HttpGet("by-code/{code}")]
         public async Task<ActionResult<CurrencyResponse>> GetByCode(string code, CancellationToken ct)
         {
             var currency = await _service.GetByCodeAsync(code, ct);
-            return currency is null ? NotFound() : Ok(currency);
+            return currency is null ? NotFound() : Ok(ApiResponse<CurrencyResponse>.Ok(currency));
         }
 
         [HttpGet("base")]
@@ -40,7 +42,8 @@
             var currency = await _service.GetBaseCurrencyAsync(ct);
             return currency is null
                 ? throw new KeyNotFoundException("currency not found")
-                : Ok(new CurrencyResponse
+                
+                : Ok(ApiResponse<CurrencyResponse>.Ok(new CurrencyResponse
                 {
                     Id = currency.Id,
                     Code = currency.CurrencyCode,
@@ -49,21 +52,21 @@
                     ExchangeRate = currency.ExchangeRate,
                     IsBaseCurrency = currency.IsBaseCurrency,
                     IsActive = currency.IsActive
-                });
+                }));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<CurrencyResponse>>> GetAll(CancellationToken ct)
         {
             var currencies = await _service.GetAllAsync(ct);
-            return Ok(currencies);
+            return Ok(ApiResponse<IReadOnlyList<CurrencyResponse>>.Ok(currencies));
         }
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<CurrencyResponse>>> GetActive(CancellationToken ct)
         {
             var currencies = await _service.GetActiveAsync(ct);
-            return Ok(currencies);
+            return Ok(ApiResponse<IReadOnlyList<CurrencyResponse>>.Ok(currencies));
         }
 
         // ─────────────────────────────────────────────
@@ -82,7 +85,7 @@
                 request.Symbol,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = currency.Id }, currency);
+            return CreatedAtAction(nameof(GetById), new { id = currency.Id }, ApiResponse<CurrencyResponse>.Ok(currency));
         }
 
         [HttpPut("{id:int}")]

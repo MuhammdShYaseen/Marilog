@@ -1,5 +1,6 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.PersonDTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +22,7 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetByIdAsync(id, ct);
             if (result is null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<PersonResponse>.Ok(result));
         }
 
         [HttpGet("passport/{passportNo}")]
@@ -29,7 +30,7 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetByPassportAsync(passportNo, ct);
             if (result is null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<PersonResponse>.Ok(result));
         }
 
         [HttpGet("seamanbook/{seamanBookNo}")]
@@ -37,24 +38,24 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetBySeamanBookAsync(seamanBookNo, ct);
             if (result is null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<PersonResponse>.Ok(result));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<PersonResponse>>> GetAll(CancellationToken ct)
-            => Ok(await _service.GetAllAsync(ct));
+            => Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(await _service.GetAllAsync(ct)));
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<PersonResponse>>> GetActive(CancellationToken ct)
-            => Ok(await _service.GetActiveAsync(ct));
+            => Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(await _service.GetActiveAsync(ct)));
 
         [HttpGet("search")]
         public async Task<ActionResult<IReadOnlyList<PersonResponse>>> Search([FromQuery] string term, CancellationToken ct)
-            => Ok(await _service.SearchAsync(term, ct));
+            => Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(await _service.SearchAsync(term, ct)));
 
         [HttpGet("expiring-passports")]
         public async Task<ActionResult<IReadOnlyList<PersonResponse>>> GetWithExpiringPassports([FromQuery] int withinDays, CancellationToken ct)
-            => Ok(await _service.GetWithExpiringPassportsAsync(withinDays, ct));
+            => Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(await _service.GetWithExpiringPassportsAsync(withinDays, ct)));
 
         [HttpPost]
         public async Task<ActionResult<PersonResponse>> Create([FromBody] CreatePersonRequest request, CancellationToken ct)
@@ -74,7 +75,7 @@ namespace Marilog.Presentation.Controllers
                 request.Email,
                 ct
             );
-            return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+            return CreatedAtAction(nameof(GetById), new { id = response.Id }, ApiResponse<PersonResponse>.Ok(response));
         }
 
         [HttpPut("{id}")]

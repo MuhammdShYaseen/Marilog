@@ -1,7 +1,9 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.CrewDTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.Contracts;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -31,28 +33,28 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<IReadOnlyList<CrewContractResponse>>> GetByPerson(int personId, CancellationToken ct)
         {
             var contracts = await _service.GetByPersonAsync(personId, ct);
-            return Ok(contracts);
+            return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(contracts));
         }
 
         [HttpGet("by-vessel/{vesselId:int}")]
         public async Task<ActionResult<IReadOnlyList<CrewContractResponse>>> GetByVessel(int vesselId, CancellationToken ct)
         {
             var contracts = await _service.GetByVesselAsync(vesselId, ct);
-            return Ok(contracts);
+            return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(contracts));
         }
 
         [HttpGet("active/by-vessel/{vesselId:int}")]
         public async Task<ActionResult<IReadOnlyList<CrewContractResponse>>> GetActiveByVessel(int vesselId, CancellationToken ct)
         {
             var contracts = await _service.GetActiveByVesselAsync(vesselId, ct);
-            return Ok(contracts);
+            return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(contracts));
         }
 
         [HttpGet("active-master/{vesselId:int}")]
         public async Task<ActionResult<CrewContractResponse>> GetActiveMaster(int vesselId, CancellationToken ct)
         {
             var contract = await _service.GetActiveMasterAsync(vesselId, ct);
-            return contract is null ? NotFound() : Ok(contract);
+            return contract is null ? NotFound() : Ok(ApiResponse<CrewContractResponse>.Ok(contract));
         }
 
         [HttpGet("active-on-date")]
@@ -83,7 +85,7 @@ namespace Marilog.Presentation.Controllers
                 request.Notes,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = contract.ContractId }, contract);
+            return CreatedAtAction(nameof(GetById), new { id = contract.ContractId }, ApiResponse<CrewContractResponse>.Ok(contract));
         }
 
         [HttpPut("{id:int}")]

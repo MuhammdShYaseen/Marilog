@@ -1,5 +1,6 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.SwiftTransferDTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,42 +23,42 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<SwiftTransferResponse>> GetById(int id, CancellationToken ct)
         {
             var result = await _service.GetByIdAsync(id, ct);
-            return result is null ? NotFound() : Ok(result);
+            return result is null ? NotFound() : Ok(ApiResponse<SwiftTransferResponse>.Ok(result));
         }
 
         [HttpGet("by-reference/{reference}")]
         public async Task<ActionResult<SwiftTransferResponse>> GetByReference(string reference, CancellationToken ct)
         {
             var result = await _service.GetByReferenceAsync(reference, ct);
-            return result is null ? NotFound() : Ok(result);
+            return result is null ? NotFound() : Ok(ApiResponse<SwiftTransferResponse>.Ok(result));
         }
 
         [HttpGet("by-sender/{companyId:int}")]
         public async Task<ActionResult<IReadOnlyList<SwiftTransferResponse>>> GetBySender(int companyId, CancellationToken ct)
         {
             var result = await _service.GetBySenderAsync(companyId, ct);
-            return Ok(result);
+            return Ok(ApiResponse< IReadOnlyList<SwiftTransferResponse>>.Ok(result));
         }
 
         [HttpGet("by-receiver/{companyId:int}")]
         public async Task<ActionResult<IReadOnlyList<SwiftTransferResponse>>> GetByReceiver(int companyId, CancellationToken ct)
         {
             var result = await _service.GetByReceiverAsync(companyId, ct);
-            return Ok(result);
+            return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));
         }
 
         [HttpGet("unallocated")]
         public async Task<ActionResult<IReadOnlyList<SwiftTransferResponse>>> GetUnallocated(CancellationToken ct)
         {
             var result = await _service.GetUnallocatedAsync(ct);
-            return Ok(result);
+            return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));
         }
 
         [HttpGet("by-date-range")]
         public async Task<ActionResult<IReadOnlyList<SwiftTransferResponse>>> GetByDateRange([FromQuery] DateOnly from, [FromQuery] DateOnly to, CancellationToken ct)
         {
             var result = await _service.GetByDateRangeAsync(from, to, ct);
-            return Ok(result);
+            return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));
         }
 
         // ── Commands ────────────────────────────────────────────
@@ -79,7 +80,7 @@ namespace Marilog.Presentation.Controllers
                 ct
             );
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<SwiftTransferResponse>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

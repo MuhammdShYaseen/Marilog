@@ -1,6 +1,7 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.RankDTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,7 +23,7 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetByIdAsync(id, ct);
             if (result == null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<RankResponse>.Ok(result));
         }
 
         [HttpGet("code/{code}")]
@@ -30,26 +31,26 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.GetByCodeAsync(code, ct);
             if (result == null) return NotFound();
-            return Ok(result);
+            return Ok(ApiResponse<RankResponse>.Ok(result));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<RankResponse>>> GetAll(CancellationToken ct)
-            => Ok(await _service.GetAllAsync(ct));
+            => Ok(ApiResponse<IReadOnlyList<RankResponse>>.Ok(await _service.GetAllAsync(ct)));
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<RankResponse>>> GetActive(CancellationToken ct)
-            => Ok(await _service.GetActiveAsync(ct));
+            => Ok(ApiResponse<IReadOnlyList<RankResponse>>.Ok(await _service.GetActiveAsync(ct)));
 
         [HttpGet("department/{department}")]
         public async Task<ActionResult<IReadOnlyList<RankResponse>>> GetByDepartment(Department department, CancellationToken ct)
-            => Ok(await _service.GetByDepartmentAsync(department, ct));
+            => Ok(ApiResponse<IReadOnlyList<RankResponse>>.Ok(await _service.GetByDepartmentAsync(department, ct)));
 
         [HttpPost]
         public async Task<ActionResult<RankResponse>> Create([FromBody] CreateRankRequest request, CancellationToken ct)
         {
             var result = await _service.CreateAsync(request.RankCode, request.RankName, request.Department, ct);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, Ok(ApiResponse<RankResponse>.Ok(result)));
         }
 
         [HttpPut("{id}")]

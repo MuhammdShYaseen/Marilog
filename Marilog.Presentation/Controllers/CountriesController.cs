@@ -1,7 +1,10 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Domain.Entities;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.CountryDTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.Metrics;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -24,28 +27,28 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<CountryResponse>> GetById(int id, CancellationToken ct)
         {
             var country = await _service.GetByIdAsync(id, ct);
-            return country is null ? NotFound() : Ok(country);
+            return country is null ? NotFound() : Ok(ApiResponse<CountryResponse>.Ok(country));
         }
 
         [HttpGet("by-code/{code}")]
         public async Task<ActionResult<CountryResponse>> GetByCode(string code, CancellationToken ct)
         {
             var country = await _service.GetByCodeAsync(code, ct);
-            return country is null ? NotFound() : Ok(country);
+            return country is null ? NotFound() : Ok(ApiResponse<CountryResponse>.Ok(country));
         }
 
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<CountryResponse>>> GetAll(CancellationToken ct)
         {
             var countries = await _service.GetAllAsync(ct);
-            return Ok(countries);
+            return Ok(ApiResponse<IReadOnlyList<CountryResponse>>.Ok(countries));
         }
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<CountryResponse>>> GetActive(CancellationToken ct)
         {
             var countries = await _service.GetActiveAsync(ct);
-            return Ok(countries);
+            return Ok(ApiResponse<IReadOnlyList<CountryResponse>>.Ok(countries));
         }
 
         // ─────────────────────────────────────────────
@@ -58,7 +61,7 @@ namespace Marilog.Presentation.Controllers
             CancellationToken ct)
         {
             var country = await _service.CreateAsync(request.CountryCode, request.CountryName, ct);
-            return CreatedAtAction(nameof(GetById), new { id = country.Id }, country);
+            return CreatedAtAction(nameof(GetById), new { id = country.Id }, ApiResponse<CountryResponse>.Ok(country));
         }
 
         [HttpPut("{id:int}")]

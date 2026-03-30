@@ -3,6 +3,7 @@
     using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
     using Marilog.Domain.Entities;
+    using Marilog.Presentation.Common;
     using Marilog.Presentation.DTOs.DocumentDTOs;
     using Microsoft.AspNetCore.Mvc;
 
@@ -25,71 +26,77 @@
         public async Task<ActionResult<DocumentResponse>> GetById(int id, CancellationToken ct)
         {
             var doc = await _service.GetByIdAsync(id, ct);
-            return doc is null ? NotFound() : Ok(doc);
+            return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("{id:int}/with-items")]
         public async Task<ActionResult<DocumentResponse>> GetWithItems(int id, CancellationToken ct)
         {
             var doc = await _service.GetWithItemsAsync(id, ct);
-            return doc is null ? NotFound() : Ok(doc);
+            return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("{id:int}/with-payments")]
         public async Task<ActionResult<DocumentResponse>> GetWithPayments(int id, CancellationToken ct)
         {
             var doc = await _service.GetWithPaymentsAsync(id, ct);
-            return doc is null ? NotFound() : Ok(doc);
+            return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("{id:int}/full")]
         public async Task<ActionResult<DocumentResponse>> GetFull(int id, CancellationToken ct)
         {
             var doc = await _service.GetFullAsync(id, ct);
-            return doc is null ? NotFound() : Ok(doc);
+            return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("by-number/{docNumber}")]
         public async Task<ActionResult<DocumentResponse>> GetByNumber(string docNumber, CancellationToken ct)
         {
             var doc = await _service.GetByNumberAsync(docNumber, ct);
-            return doc is null ? NotFound() : Ok(doc);
+            return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("by-supplier/{supplierId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetBySupplier(int supplierId, CancellationToken ct)
         {
-            return Ok(await _service.GetBySupplierAsync(supplierId, ct));
+            var docs = await _service.GetBySupplierAsync(supplierId, ct);
+            return docs is null ? NotFound() : Ok(ApiResponse < IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-buyer/{buyerId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByBuyer(int buyerId, CancellationToken ct)
         {
-            return Ok(await _service.GetByBuyerAsync(buyerId, ct));
+            var docs = await _service.GetByBuyerAsync(buyerId, ct);
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-vessel/{vesselId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByVessel(int vesselId, CancellationToken ct)
         {
-            return Ok(await _service.GetByVesselAsync(vesselId, ct));
+            var docs = await _service.GetByVesselAsync(vesselId, ct);
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-type/{docTypeId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByType(int docTypeId, CancellationToken ct)
         {
-            return Ok(await _service.GetByTypeAsync(docTypeId, ct));
+            var docs = await _service.GetByTypeAsync(docTypeId, ct);
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("unpaid")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetUnpaid(CancellationToken ct)
         {
-            return Ok(await _service.GetUnpaidAsync(ct));
+            var docs = await _service.GetUnpaidAsync(ct);
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("{id:int}/children")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetChildren(int id, CancellationToken ct)
         {
-            return Ok(await _service.GetChildrenAsync(id, ct));
+            var docs = await _service.GetChildrenAsync(id, ct);
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         // ─────────────────────────────────────────────
@@ -116,7 +123,7 @@
                 request.FilePath,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = doc.Id }, doc);
+            return CreatedAtAction(nameof(GetById), new { id = doc.Id }, ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpPut("{id:int}")]

@@ -1,8 +1,10 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
+using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.CrewPayrollDTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.Contracts;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -25,49 +27,49 @@ namespace Marilog.Presentation.Controllers
         public async Task<ActionResult<CrewPayrollResponse>> GetById(int id, CancellationToken ct)
         {
             var payroll = await _service.GetByIdAsync(id, ct);
-            return payroll is null ? NotFound() : Ok(payroll);
+            return payroll is null ? NotFound() : Ok(ApiResponse<CrewPayrollResponse>.Ok(payroll));
         }
 
         [HttpGet("{id:int}/with-disbursements")]
         public async Task<ActionResult<CrewPayrollResponse>> GetWithDisbursements(int id, CancellationToken ct)
         {
             var payroll = await _service.GetWithDisbursementsAsync(id, ct);
-            return payroll is null ? NotFound() : Ok(payroll);
+            return payroll is null ? NotFound() : Ok(ApiResponse<CrewPayrollResponse>.Ok(payroll));
         }
 
         [HttpGet("by-contract/{contractId:int}")]
         public async Task<ActionResult<IReadOnlyList<CrewPayrollResponse>>> GetByContract(int contractId, CancellationToken ct)
         {
             var payrolls = await _service.GetByContractAsync(contractId, ct);
-            return Ok(payrolls);
+            return Ok(ApiResponse <IReadOnlyList<CrewPayrollResponse>>.Ok(payrolls));
         }
 
         [HttpGet("by-contract/{contractId:int}/month")]
         public async Task<ActionResult<CrewPayrollResponse>> GetByContractAndMonth(int contractId, [FromQuery] DateOnly month, CancellationToken ct)
         {
             var payroll = await _service.GetByContractAndMonthAsync(contractId, month, ct);
-            return payroll is null ? NotFound() : Ok(payroll);
+            return payroll is null ? NotFound() : Ok(ApiResponse<CrewPayrollResponse>.Ok(payroll));
         }
 
         [HttpGet("by-month")]
         public async Task<ActionResult<IReadOnlyList<CrewPayrollResponse>>> GetByMonth([FromQuery] DateOnly month, CancellationToken ct)
         {
             var payrolls = await _service.GetByMonthAsync(month, ct);
-            return Ok(payrolls);
+            return Ok(ApiResponse<IReadOnlyList<CrewPayrollResponse>>.Ok(payrolls));
         }
 
         [HttpGet("by-status/{status}")]
         public async Task<ActionResult<IReadOnlyList<CrewPayrollResponse>>> GetByStatus(PayrollStatus status, CancellationToken ct)
         {
             var payrolls = await _service.GetByStatusAsync(status, ct);
-            return Ok(payrolls);
+            return Ok(ApiResponse<IReadOnlyList<CrewPayrollResponse>>.Ok(payrolls));
         }
 
         [HttpGet("outstanding")]
         public async Task<ActionResult<IReadOnlyList<CrewPayrollResponse>>> GetOutstanding(CancellationToken ct)
         {
             var payrolls = await _service.GetOutstandingAsync(ct);
-            return Ok(payrolls);
+            return Ok(ApiResponse<IReadOnlyList<CrewPayrollResponse>>.Ok(payrolls));
         }
 
         // ─────────────────────────────────────────────
@@ -85,7 +87,7 @@ namespace Marilog.Presentation.Controllers
                 request.Notes,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = payroll.Id }, payroll);
+            return CreatedAtAction(nameof(GetById), new { id = payroll.Id }, ApiResponse<CrewPayrollResponse>.Ok(payroll));
         }
 
         [HttpPut("{id:int}")]
@@ -138,7 +140,7 @@ namespace Marilog.Presentation.Controllers
                                                                request.RecipientName,
                                                                request.RecipientIdNumber,
                                                                request.Notes, ct);
-            return Ok(disbursement);
+            return Ok(ApiResponse<CrewPayrollDisbursement>.Ok(disbursement));
         }
 
         [HttpPost("{payrollId:int}/pay-bank-transfer")]
@@ -149,7 +151,7 @@ namespace Marilog.Presentation.Controllers
                                                                      request.Amount,
                                                                      request.PaidOn,
                                                                      request.Notes, ct);
-            return Ok(disbursement);
+            return Ok(ApiResponse<CrewPayrollDisbursement>.Ok(disbursement));
         }
 
         [HttpPatch("{payrollId:int}/disbursements/{disbursementId:int}/confirm")]
