@@ -1,5 +1,7 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Country;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Application.Services;
 using Marilog.Domain.Entities;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.CountryDTOs;
@@ -62,6 +64,22 @@ namespace Marilog.Presentation.Controllers
         {
             var country = await _service.CreateAsync(request.CountryCode, request.CountryName, ct);
             return CreatedAtAction(nameof(GetById), new { id = country.Id }, ApiResponse<CountryResponse>.Ok(country));
+        }
+
+        // API/Controllers/CountriesController.cs
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<IReadOnlyList<CountryResponse>>> CreateRange(
+            [FromBody] IEnumerable<CreateCountryRequest> requests,
+            CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateCountryCommand(
+                r.CountryCode,
+                r.CountryName
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(result);
         }
 
         [HttpPut("{id:int}")]

@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Rank;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -85,6 +86,53 @@ namespace Marilog.Application.Services
                 IsActive = true,
                 Name = rankName,
             };
+        }
+
+        public async Task<IReadOnlyList<RankResponse>> CreateRangeAsync(
+        IEnumerable<CreateRankCommand> commands,
+        CancellationToken ct = default)
+        {
+            var commandList = commands.ToList();
+            if (!commandList.Any())
+                return Array.Empty<RankResponse>();
+
+            // --- تحقق من التكرار داخل الـ batch ---
+            var codeSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in commandList)
+            {
+                if (!codeSet.Add(c.RankCode))
+                    throw new InvalidOperationException(
+                        $"Duplicate RankCode found in the request: '{c.RankCode}'");
+            }
+
+            // --- تحقق من التكرار في DB بـ query واحدة ---
+            var codes = codeSet.Select(x => x.ToUpperInvariant()).ToList();
+            var existingCodes = await _repo.Query()
+                .Where(r => codes.Contains(r.RankCode))
+                .Select(r => r.RankCode)
+                .ToListAsync(ct);
+
+            if (existingCodes.Any())
+                throw new InvalidOperationException(
+                    $"Rank code(s) already exist: {string.Join(", ", existingCodes)}");
+
+            // --- إنشاء دفعة واحدة ---
+            var ranks = commandList
+                .Select(c => Rank.Create(c.RankCode, c.RankName, c.Department))
+                .ToList();
+
+            await _repo.AddRangeAsync(ranks, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return ranks
+                .Select(rank => new RankResponse
+                {
+                    Code = rank.RankCode,
+                    Name = rank.RankName,
+                    Department = (int)rank.Department,
+                    IsActive = rank.IsActive
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string rankCode, string rankName,

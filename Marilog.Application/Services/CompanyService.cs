@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Commands.Company;
+using Marilog.Application.DTOs.Responses;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Application.DTOs;
-using Marilog.Application.DTOs.Responses;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services
 {
@@ -149,6 +150,38 @@ namespace Marilog.Application.Services
                 ContactName = company.ContactName,
                 RegistrationNumber = company.RegistrationNumber
             };
+        }
+
+        public async Task<IReadOnlyList<CompanyResponse>> CreateRangeAsync(
+        IEnumerable<CreateCompanyCommand> commands, CancellationToken ct = default)
+        {
+            var companies = commands
+                .Select(c => Company.Create(
+                    c.RegistrationNumber,
+                    c.CompanyName,
+                    c.CountryId,
+                    c.ContactName,
+                    c.Email,
+                    c.Phone,
+                    c.Address))
+                .ToList();
+
+            await _repo.AddRangeAsync(companies, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return companies
+                .Select(company => new CompanyResponse
+                {
+                    Id = company.Id,
+                    Name = company.CompanyName,
+                    Address = company.Address,
+                    IsActive = company.IsActive,
+                    Email = company.Email,
+                    Phone = company.Phone,
+                    ContactName = company.ContactName,
+                    RegistrationNumber = company.RegistrationNumber
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string companyName, int? countryId = null,

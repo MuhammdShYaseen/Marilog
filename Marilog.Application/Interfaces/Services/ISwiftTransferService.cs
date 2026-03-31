@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.SwiftTransfer;
 using Marilog.Application.DTOs.Reports.SwiftTransferReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
@@ -22,6 +23,11 @@ namespace Marilog.Application.Interfaces.Services
                                         string? senderBank = null, string? receiverBank = null,
                                         string? paymentReference = null, string? rawMessage = null,
                                         CancellationToken ct = default);
+
+        Task<IReadOnlyList<SwiftTransferResponse>> CreateRangeAsync(
+        IEnumerable<CreateSwiftTransferCommand> commands,
+        CancellationToken ct = default);
+
         Task                UpdateAsync(int id, int currencyId, decimal amount,
                                         string? senderBank, string? receiverBank,
                                         string? paymentReference, string? rawMessage,

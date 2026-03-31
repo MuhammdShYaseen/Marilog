@@ -1,7 +1,9 @@
 ﻿namespace Marilog.Presentation.Controllers
 {
+    using Marilog.Application.DTOs.Commands.Company;
     using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
+    using Marilog.Application.Services;
     using Marilog.Domain.Entities;
     using Marilog.Presentation.Common;
     using Marilog.Presentation.DTOs.CompanyDTOs;
@@ -81,6 +83,25 @@
                 ct);
 
             return CreatedAtAction(nameof(GetById), new { id = company.Id }, ApiResponse<CompanyResponse>.Ok(company));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<IReadOnlyList<CompanyResponse>>> CreateRange(
+        [FromBody] IEnumerable<CreateCompanyRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateCompanyCommand(
+                r.RegistrationNumber,
+                r.CompanyName,
+                r.CountryId,
+                r.ContactName,
+                r.Email,
+                r.Phone,
+                r.Address
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(result);
         }
 
         [HttpPut("{id:int}")]

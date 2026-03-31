@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs.Commands.Country;
+using Marilog.Application.DTOs.Responses;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Application.DTOs.Responses;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services
 {
@@ -99,6 +100,34 @@ namespace Marilog.Application.Services
                 Name = country.CountryName,
                 IsActive = country.IsActive
             };
+        }
+
+        public async Task<IReadOnlyList<CountryResponse>> CreateRangeAsync(
+        IEnumerable<CreateCountryCommand> commands,
+        CancellationToken ct = default)
+        {
+            foreach (var command in commands)
+            {
+                if (await ExistsByCodeAsync(command.CountryCode, ct))
+                    throw new InvalidOperationException($"Country code '{command.CountryCode}' already exists.");
+            }
+
+            var countries = commands
+                .Select(c => Country.Create(c.CountryCode, c.CountryName))
+                .ToList();
+
+            await _repo.AddRangeAsync(countries, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return countries
+                .Select(country => new CountryResponse
+                {
+                    Id = country.Id,
+                    Code = country.CountryCode,
+                    Name = country.CountryName,
+                    IsActive = country.IsActive
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string countryCode, string countryName,

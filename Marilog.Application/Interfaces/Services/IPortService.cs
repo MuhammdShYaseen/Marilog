@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Port;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -15,6 +16,7 @@ namespace Marilog.Application.Interfaces.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<PortResponse> CreateAsync(string portCode, string portName, int? countryId = null, CancellationToken ct = default);
+        Task<IReadOnlyList<PortResponse>> CreateRangeAsync(IEnumerable<CreatePortCommand> commands, CancellationToken ct = default);
         Task       UpdateAsync(int id, string portCode, string portName, int? countryId = null, CancellationToken ct = default);
         Task       ActivateAsync(int id, CancellationToken ct = default);
         Task       DeactivateAsync(int id, CancellationToken ct = default);

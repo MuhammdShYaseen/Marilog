@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Office;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -75,6 +76,33 @@ namespace Marilog.Application.Services
                 Phone = phone,
                 Name = officeName
             };
+        }
+
+        public async Task<IReadOnlyList<OfficeResponse>> CreateRangeAsync(
+        IEnumerable<CreateOfficeCommand> commands,
+        CancellationToken ct = default)
+        {
+            var offices = commands
+                .Select(c => Office.Create(c.OfficeName, c.City, c.CountryId,
+                                           c.Address, c.Phone, c.ContactName))
+                .ToList();
+
+            await _repo.AddRangeAsync(offices, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return offices
+                .Select(office => new OfficeResponse
+                {
+                    Id = office.Id,
+                    Name = office.OfficeName,
+                    City = office.City,
+                    CountryId = office.CountryId,
+                    Address = office.Address,
+                    Phone = office.Phone,
+                    ContactName = office.ContactName,
+                    IsActive = office.IsActive
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string officeName, string city, int countryId,

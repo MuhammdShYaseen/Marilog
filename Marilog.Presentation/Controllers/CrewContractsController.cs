@@ -1,9 +1,9 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.CrewContract;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.CrewDTOs;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics.Contracts;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -86,6 +86,25 @@ namespace Marilog.Presentation.Controllers
                 ct);
 
             return CreatedAtAction(nameof(GetById), new { id = contract.ContractId }, ApiResponse<CrewContractResponse>.Ok(contract));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<CrewContractResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateCrewContractRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateCrewContractCommand(
+                r.PersonId,
+                r.VesselId,
+                r.RankId,
+                r.MonthlyWage,
+                r.SignOnDate,
+                r.SignOnPort,
+                r.Notes
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Vessel;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.VesselDTOs;
@@ -70,6 +71,23 @@ namespace Marilog.Presentation.Controllers
             );
 
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, Ok(ApiResponse<VesselResponse>.Ok(result)));
+        }
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<VesselResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateVesselRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateVesselCommand(
+                r.CompanyId,
+                r.VesselName,
+                r.ImoNumber,
+                r.GrossTonnage,
+                r.FlagCountryId,
+                r.Notes
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<VesselResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

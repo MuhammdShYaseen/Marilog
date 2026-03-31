@@ -1,9 +1,9 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Voyage;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.VoyageDTOs;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -81,6 +81,29 @@ namespace Marilog.Presentation.Controllers
             );
 
             return CreatedAtAction(nameof(GetById), new { id = result.VoyageId }, ApiResponse<VoyageResponse>.Ok(result));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<VoyageResponse>>>> CreateRange(
+    [FromBody] IEnumerable<CreateVoyageRequest> requests,
+    CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateVoyageCommand(
+                r.VesselId,
+                r.VoyageNumber,
+                r.VoyageMonth,
+                r.MasterContractId,
+                r.DeparturePortId,
+                r.ArrivalPortId,
+                r.DepartureDate,
+                r.ArrivalDate,
+                r.CargoType,
+                r.CargoQuantityMt,
+                r.Notes
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<VoyageResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

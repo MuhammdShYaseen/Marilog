@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Country;
 using Marilog.Application.DTOs.Responses;
 
 namespace Marilog.Application.Interfaces.Services
@@ -13,6 +14,7 @@ namespace Marilog.Application.Interfaces.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<CountryResponse> CreateAsync(string countryCode, string countryName, CancellationToken ct = default);
+        Task<IReadOnlyList<CountryResponse>> CreateRangeAsync(IEnumerable<CreateCountryCommand> commands, CancellationToken ct = default);
         Task          UpdateAsync(int id, string countryCode, string countryName, CancellationToken ct = default);
         Task          ActivateAsync(int id, CancellationToken ct = default);
         Task          DeactivateAsync(int id, CancellationToken ct = default);

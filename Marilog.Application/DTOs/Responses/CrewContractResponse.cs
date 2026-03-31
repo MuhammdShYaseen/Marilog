@@ -24,11 +24,11 @@ namespace Marilog.Application.DTOs.Responses
         // Domain-calculated fields → احسبها في الخدمة وليس هنا
         public int? ContractDurationDays { get; set; }
         public decimal? TotalWageEarned { get; set; }
-        public PersonResponse Person { get; private set; } = new PersonResponse();
-        public VesselResponse Vessel { get; private set; } = new VesselResponse();
-        public RankResponse Rank { get; private set; } = new RankResponse();
-        public PortResponse? SignOnPortNav { get; private set; } = new PortResponse();
-        public PortResponse? SignOffPortNav { get; private set; } = new PortResponse();
-
+        public PersonResponse Person { get;  set; } = new PersonResponse();
+        public VesselResponse Vessel { get;  set; } = new VesselResponse();
+        public RankResponse Rank { get;  set; } = new RankResponse();
+        public PortResponse? SignOnPortNav { get;  set; } = new PortResponse();
+        public PortResponse? SignOffPortNav { get;  set; } = new PortResponse();
+        public string? Notes { get;  set; }
     }
 }

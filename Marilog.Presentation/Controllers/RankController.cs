@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Rank;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Presentation.Common;
@@ -51,6 +52,21 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.CreateAsync(request.RankCode, request.RankName, request.Department, ct);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, Ok(ApiResponse<RankResponse>.Ok(result)));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<RankResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateRankRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateRankCommand(
+                r.RankCode,
+                r.RankName,
+                r.Department
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<RankResponse>>.Ok(result));
         }
 
         [HttpPut("{id}")]

@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.SwiftTransfer;
 using Marilog.Application.DTOs.Reports.SwiftTransferReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
@@ -258,6 +259,69 @@ namespace Marilog.Application.Services
                 ReceiverBank = receiverBank,
                 PaymentReference = paymentReference
             };
+        }
+
+        public async Task<IReadOnlyList<SwiftTransferResponse>> CreateRangeAsync(
+        IEnumerable<CreateSwiftTransferCommand> commands,
+        CancellationToken ct = default)
+        {
+            var commandList = commands.ToList();
+            if (!commandList.Any())
+                return Array.Empty<SwiftTransferResponse>();
+
+            // --- تحقق من التكرار داخل الـ batch ---
+            var referenceSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in commandList)
+            {
+                if (!referenceSet.Add(c.SwiftReference))
+                    throw new InvalidOperationException(
+                        $"Duplicate SwiftReference found in the request: '{c.SwiftReference}'");
+            }
+
+            // --- تحقق من التكرار في DB بـ query واحدة ---
+            var references = referenceSet.ToList();
+            var existingReferences = await _repo.Query()
+                .Where(s => references.Contains(s.SwiftReference))
+                .Select(s => s.SwiftReference)
+                .ToListAsync(ct);
+
+            if (existingReferences.Any())
+                throw new InvalidOperationException(
+                    $"SwiftReference(s) already exist: {string.Join(", ", existingReferences)}");
+
+            // --- إنشاء دفعة واحدة ---
+            var transfers = commandList
+                .Select(c => SwiftTransfer.Create(
+                    c.SwiftReference,
+                    c.TransactionDate,
+                    c.CurrencyId,
+                    c.Amount,
+                    c.SenderCompanyId,
+                    c.ReceiverCompanyId,
+                    c.SenderBank,
+                    c.ReceiverBank,
+                    c.PaymentReference,
+                    c.RawMessage))
+                .ToList();
+
+            await _repo.AddRangeAsync(transfers, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return transfers
+                .Select(transfer => new SwiftTransferResponse
+                {
+                    Id = transfer.Id,
+                    SwiftReference = transfer.SwiftReference,
+                    TransactionDate = transfer.TransactionDate,
+                    CurrencyId = transfer.CurrencyId,
+                    Amount = transfer.Amount,
+                    SenderCompanyId = transfer.SenderCompanyId,
+                    ReceiverCompanyId = transfer.ReceiverCompanyId,
+                    SenderBank = transfer.SenderBank,
+                    ReceiverBank = transfer.ReceiverBank,
+                    PaymentReference = transfer.PaymentReference
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, int currencyId, decimal amount,

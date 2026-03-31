@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Company;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -17,6 +18,8 @@ namespace Marilog.Application.Interfaces.Services
                                   string? contactName = null, string? email = null,
                                   string? phone = null, string? address = null,
                                   CancellationToken ct = default);
+
+        Task<IReadOnlyList<CompanyResponse>> CreateRangeAsync(IEnumerable<CreateCompanyCommand> commands, CancellationToken ct = default);
         Task          UpdateAsync(int id, string companyName, int? countryId = null,
                                   string? contactName = null, string? email = null,
                                   string? phone = null, string? address = null,

@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Person;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -128,6 +129,94 @@ namespace Marilog.Application.Services
                 Id = person.Id,
                 IsActive = true
             };
+        }
+
+        public async Task<IReadOnlyList<PersonResponse>> CreateRangeAsync(IEnumerable<CreatePersonCommand> commands, CancellationToken ct = default)
+        {
+            if (commands == null || !commands.Any())
+                return Array.Empty<PersonResponse>();
+
+            // --- التحقق من التكرار داخل الـ batch باستخدام HashSet ---
+            var passportSet = new HashSet<string>();
+            var seamanBookSet = new HashSet<string>();
+
+            foreach (var c in commands)
+            {
+                if (!string.IsNullOrWhiteSpace(c.PassportNo))
+                {
+                    if (!passportSet.Add(c.PassportNo))
+                        throw new InvalidOperationException($"Duplicate PassportNo found in the request: {c.PassportNo}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(c.SeamanBookNo))
+                {
+                    if (!seamanBookSet.Add(c.SeamanBookNo))
+                        throw new InvalidOperationException($"Duplicate SeamanBookNo found in the request: {c.SeamanBookNo}");
+                }
+            }
+
+            // --- التحقق من التكرار في قاعدة البيانات دفعة واحدة ---
+            var passportNos = passportSet.ToList();
+            var seamanBookNos = seamanBookSet.ToList();
+
+            var existingPersons = await _repo.Query()
+                .Where(p => (p.PassportNo != null && passportNos.Contains(p.PassportNo)) ||
+                            (p.SeamanBookNo != null && seamanBookNos.Contains(p.SeamanBookNo)))
+                .Select(p => new { p.PassportNo, p.SeamanBookNo })
+                .ToListAsync(ct);
+
+            if (existingPersons.Any())
+            {
+                var existingPassports = existingPersons.Where(p => p.PassportNo != null).Select(p => p.PassportNo);
+                var existingSeamanBooks = existingPersons.Where(p => p.SeamanBookNo != null).Select(p => p.SeamanBookNo);
+
+                if (existingPassports.Any())
+                    throw new InvalidOperationException($"PassportNo(s) already exist in DB: {string.Join(", ", existingPassports)}");
+
+                if (existingSeamanBooks.Any())
+                    throw new InvalidOperationException($"SeamanBookNo(s) already exist in DB: {string.Join(", ", existingSeamanBooks)}");
+            }
+
+            // --- إنشاء الأشخاص ---
+            var persons = commands
+                .Select(c => Person.Create(
+                    c.BankName,
+                    c.IBAN,
+                    c.IsPassportExpired,
+                    c.BankSwiftCode,
+                    c.FullName,
+                    c.Nationality,
+                    c.PassportNo,
+                    c.PassportExpiry,
+                    c.SeamanBookNo,
+                    c.DateOfBirth,
+                    c.Phone,
+                    c.Email))
+                .ToList();
+
+            // --- إضافة دفعة واحدة وحفظ ---
+            await _repo.AddRangeAsync(persons, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            // --- إنشاء الرد ---
+            return persons
+                .Select(p => new PersonResponse
+                {
+                    Id = p.Id,
+                    FullName = p.FullName,
+                    PassportNo = p.PassportNo,
+                    PassportExpiry = p.PassportExpiry,
+                    SeamanBookNo = p.SeamanBookNo,
+                    DateOfBirth = p.DateOfBirth,
+                    Phone = p.Phone,
+                    Email = p.Email,
+                    BankName = p.BankName,
+                    IBAN = p.IBAN,
+                    BankSwiftCode = p.BankSwiftCode,
+                    IsPassportExpired = p.IsPassportExpired(),
+                    IsActive = p.IsActive
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string fullName, int? nationality = null,

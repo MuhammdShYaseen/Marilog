@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Vessel;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -17,6 +18,8 @@ namespace Marilog.Application.Interfaces.Services
                                  string? imoNumber = null, decimal? grossTonnage = null,
                                  int? flagCountryId = null, string? notes = null,
                                  CancellationToken ct = default);
+
+        Task<IReadOnlyList<VesselResponse>> CreateRangeAsync(IEnumerable<CreateVesselCommand> commands, CancellationToken ct = default);
         Task         UpdateAsync(int id, string vesselName,
                                  string? imoNumber = null, decimal? grossTonnage = null,
                                  int? flagCountryId = null, string? notes = null,

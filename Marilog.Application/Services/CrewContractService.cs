@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+using Marilog.Application.DTOs.Commands.CrewContract;
+using Marilog.Application.DTOs.Reports.CrewContractReports;
+using Marilog.Application.DTOs.Responses;
+using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.DTOs.Reports.CrewContractReports;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services
 {
@@ -233,6 +234,39 @@ namespace Marilog.Application.Services
                 SignOffPortName = contract.SignOffPortNav!.PortName,
                 IsActive = contract.IsActive
             };
+        }
+
+        public async Task<IReadOnlyList<CrewContractResponse>> CreateRangeAsync(
+        IEnumerable<CreateCrewContractCommand> commands,
+        CancellationToken ct = default)
+        {
+            var contracts = commands
+                .Select(c => CrewContract.Create(
+                    c.PersonId,
+                    c.VesselId,
+                    c.RankId,
+                    c.MonthlyWage,
+                    c.SignOnDate,
+                    c.SignOnPort,
+                    c.Notes))
+                .ToList();
+
+            await _repo.AddRangeAsync(contracts, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return contracts
+                .Select(contract => new CrewContractResponse
+                {
+                    ContractId = contract.Id,
+                    PersonId = contract.Id,
+                    VesselId = contract.Id,
+                    RankId = contract.Id,
+                    MonthlyWage = contract.MonthlyWage,
+                    SignOnDate = contract.SignOnDate,
+                    SignOnPort = contract.SignOnPort,
+                    Notes = contract.Notes
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, decimal monthlyWage,

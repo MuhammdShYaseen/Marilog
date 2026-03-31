@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Office;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Presentation.Common;
@@ -70,6 +71,24 @@ namespace Marilog.Presentation.Controllers
                 ct);
 
             return CreatedAtAction(nameof(GetById), new { id = office.Id }, ApiResponse<OfficeResponse>.Ok(office));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<OfficeResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateOfficeRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateOfficeCommand(
+                r.OfficeName,
+                r.City,
+                r.CountryId,
+                r.Address,
+                r.Phone,
+                r.ContactName
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<OfficeResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

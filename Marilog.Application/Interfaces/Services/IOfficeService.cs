@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Office;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -15,6 +16,10 @@ namespace Marilog.Application.Interfaces.Services
         Task<OfficeResponse> CreateAsync(string officeName, string city, int countryId,
                                  string? address = null, string? phone = null,
                                  string? contactName = null, CancellationToken ct = default);
+
+        Task<IReadOnlyList<OfficeResponse>> CreateRangeAsync(IEnumerable<CreateOfficeCommand> commands,
+        CancellationToken ct = default);
+
         Task         UpdateAsync(int id, string officeName, string city, int countryId,
                                  string? address = null, string? phone = null,
                                  string? contactName = null, CancellationToken ct = default);

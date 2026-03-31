@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Vessel;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -96,6 +97,79 @@ namespace Marilog.Application.Services
                 IMONumber = imoNumber,
                 GrossTonnage = grossTonnage,
             };
+        }
+
+        // Application/Vessels/Services/VesselService.cs
+
+        public async Task<IReadOnlyList<VesselResponse>> CreateRangeAsync(
+            IEnumerable<CreateVesselCommand> commands,
+            CancellationToken ct = default)
+        {
+            var commandList = commands.ToList();
+            if (!commandList.Any())
+                return Array.Empty<VesselResponse>();
+
+            // --- تحقق من أن جميع الـ CompanyIds موجودة ونشطة بـ query واحدة ---
+            var companyIds = commandList.Select(c => c.CompanyId).Distinct().ToList();
+            var activeCompanyIds = await _companyRepo.Query()
+                .Where(x => companyIds.Contains(x.Id) && x.IsActive)
+                .Select(x => x.Id)
+                .ToListAsync(ct);
+
+            var missingCompanyIds = companyIds.Except(activeCompanyIds).ToList();
+            if (missingCompanyIds.Any())
+                throw new KeyNotFoundException(
+                    $"Company Id(s) not found or inactive: {string.Join(", ", missingCompanyIds)}");
+
+            // --- تحقق من التكرار في IMO داخل الـ batch ---
+            var imoSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in commandList.Where(c => !string.IsNullOrWhiteSpace(c.ImoNumber)))
+            {
+                if (!imoSet.Add(c.ImoNumber!))
+                    throw new InvalidOperationException(
+                        $"Duplicate IMO number found in the request: '{c.ImoNumber}'");
+            }
+
+            // --- تحقق من التكرار في DB بـ query واحدة ---
+            var imoNumbers = imoSet.ToList();
+            if (imoNumbers.Any())
+            {
+                var existingImos = await _repo.Query()
+                    .Where(v => imoNumbers.Contains(v.IMONumber!))
+                    .Select(v => v.IMONumber)
+                    .ToListAsync(ct);
+
+                if (existingImos.Any())
+                    throw new InvalidOperationException(
+                        $"IMO number(s) already exist: {string.Join(", ", existingImos)}");
+            }
+
+            // --- إنشاء دفعة واحدة ---
+            var vessels = commandList
+                .Select(c => Vessel.Create(
+                    c.CompanyId,
+                    c.VesselName,
+                    c.ImoNumber,
+                    c.GrossTonnage,
+                    c.FlagCountryId,
+                    c.Notes))
+                .ToList();
+
+            await _repo.AddRangeAsync(vessels, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return vessels
+                .Select(vessel => new VesselResponse
+                {
+                    Id = vessel.Id,
+                    CompanyId = vessel.CompanyID,
+                    Name = vessel.VesselName,
+                    IMONumber = vessel.IMONumber,
+                    GrossTonnage = vessel.GrossTonnage,
+                    FlagCountryId = vessel.FlagCountryID,
+                    IsActive = vessel.IsActive
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string vesselName,

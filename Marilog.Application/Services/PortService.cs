@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Port;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -88,6 +89,54 @@ namespace Marilog.Application.Services
                 CountryName = port.Country!.CountryName ?? "",
                 Name = portName
             };
+        }
+
+        public async Task<IReadOnlyList<PortResponse>> CreateRangeAsync(
+        IEnumerable<CreatePortCommand> commands,
+        CancellationToken ct = default)
+        {
+            var commandList = commands.ToList();
+            if (!commandList.Any())
+                return Array.Empty<PortResponse>();
+
+            // --- تحقق من التكرار داخل الـ batch ---
+            var codeSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in commandList)
+            {
+                if (!codeSet.Add(c.PortCode))
+                    throw new InvalidOperationException(
+                        $"Duplicate PortCode found in the request: '{c.PortCode}'");
+            }
+
+            // --- تحقق من التكرار في DB بـ query واحدة ---
+            var codes = codeSet.ToList();
+            var existingCodes = await _repo.Query()
+                .Where(p => codes.Contains(p.PortCode))
+                .Select(p => p.PortCode)
+                .ToListAsync(ct);
+
+            if (existingCodes.Any())
+                throw new InvalidOperationException(
+                    $"Port code(s) already exist: {string.Join(", ", existingCodes)}");
+
+            // --- إنشاء دفعة واحدة ---
+            var ports = commandList
+                .Select(c => Port.Create(c.PortCode, c.PortName, c.CountryId))
+                .ToList();
+
+            await _repo.AddRangeAsync(ports, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return ports
+                .Select(port => new PortResponse
+                {
+                    Code = port.PortCode,
+                    Name = port.PortName,
+                    CountryId = port.CountryID,
+                    CountryName = port.Country?.CountryName ?? "",
+                    IsActive = port.IsActive
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string portCode, string portName,

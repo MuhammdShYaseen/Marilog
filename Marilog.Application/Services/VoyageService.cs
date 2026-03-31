@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Voyage;
 using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
@@ -233,6 +234,104 @@ namespace Marilog.Application.Services
                 Notes = notes,
                 VoyageId = voyage.Id
             };
+        }
+
+        public async Task<IReadOnlyList<VoyageResponse>> CreateRangeAsync(
+    IEnumerable<CreateVoyageCommand> commands,
+    CancellationToken ct = default)
+        {
+            var commandList = commands.ToList();
+            if (!commandList.Any())
+                return Array.Empty<VoyageResponse>();
+
+            // --- تحقق من التكرار في VoyageNumber داخل الـ batch ---
+            var voyageNumberSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in commandList)
+            {
+                if (!voyageNumberSet.Add(c.VoyageNumber))
+                    throw new InvalidOperationException(
+                        $"Duplicate VoyageNumber found in the request: '{c.VoyageNumber}'");
+            }
+
+            // --- تحقق من الـ VesselIds بـ query واحدة ---
+            var vesselIds = commandList.Select(c => c.VesselId).Distinct().ToList();
+            var activeVesselIds = await _vesselRepo.Query()
+                .Where(v => vesselIds.Contains(v.Id) && v.IsActive)
+                .Select(v => v.Id)
+                .ToListAsync(ct);
+
+            var inactiveVesselIds = vesselIds.Except(activeVesselIds).ToList();
+            if (inactiveVesselIds.Any())
+                throw new InvalidOperationException(
+                    $"Vessel Id(s) not found or inactive: {string.Join(", ", inactiveVesselIds)}");
+
+            // --- تحقق من التكرار في VoyageNumber في DB بـ query واحدة ---
+            var voyageNumbers = voyageNumberSet.ToList();
+            var existingNumbers = await _repo.Query()
+                .Where(v => voyageNumbers.Contains(v.VoyageNumber))
+                .Select(v => v.VoyageNumber)
+                .ToListAsync(ct);
+
+            if (existingNumbers.Any())
+                throw new InvalidOperationException(
+                    $"VoyageNumber(s) already exist: {string.Join(", ", existingNumbers)}");
+
+            // --- تحقق من الـ MasterContractIds بـ query واحدة ---
+            var contractIds = commandList
+                .Where(c => c.MasterContractId.HasValue)
+                .Select(c => c.MasterContractId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (contractIds.Any())
+            {
+                var activeContractIds = await _contractRepo.Query()
+                    .Where(c => contractIds.Contains(c.Id) && c.IsActive)
+                    .Select(c => c.Id)
+                    .ToListAsync(ct);
+
+                var inactiveContractIds = contractIds.Except(activeContractIds).ToList();
+                if (inactiveContractIds.Any())
+                    throw new InvalidOperationException(
+                        $"MasterContract Id(s) not found or inactive: {string.Join(", ", inactiveContractIds)}");
+            }
+
+            // --- إنشاء دفعة واحدة ---
+            var voyages = commandList
+                .Select(c => Voyage.Create(
+                    c.VesselId,
+                    c.VoyageNumber,
+                    c.VoyageMonth,
+                    c.MasterContractId,
+                    c.DeparturePortId,
+                    c.ArrivalPortId,
+                    c.DepartureDate,
+                    c.ArrivalDate,
+                    c.CargoType,
+                    c.CargoQuantityMt,
+                    notes: c.Notes))
+                .ToList();
+
+            await _repo.AddRangeAsync(voyages, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return voyages
+                .Select(voyage => new VoyageResponse
+                {
+                    VoyageId = voyage.Id,
+                    VesselId = voyage.Id,
+                    VoyageNumber = voyage.VoyageNumber,
+                    VoyageMonth = voyage.VoyageMonth,
+                    MasterContractId = voyage.MasterContractID,
+                    DeparturePortId = voyage.DeparturePortID,
+                    ArrivalPortId = voyage.ArrivalPortID,
+                    DepartureDate = voyage.DepartureDate,
+                    ArrivalDate = voyage.ArrivalDate,
+                    CargoType = voyage.CargoType,
+                    CargoQuantityMT = voyage.CargoQuantityMT,
+                    Notes = voyage.Notes
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, int? departurePortId, int? arrivalPortId,

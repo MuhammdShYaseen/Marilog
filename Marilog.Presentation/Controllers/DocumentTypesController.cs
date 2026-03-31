@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Document;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.DocumentTypeDTOs;
@@ -62,6 +63,21 @@ namespace Marilog.Presentation.Controllers
             var result = await _service.CreateAsync(request.Code, request.Name, request.SortOrder, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<DocumentTypeResponse>.Ok(result));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<DocumentTypeResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateDocumentTypeRequest> requests,
+         CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateDocumentTypeCommand(
+                r.Code,
+                r.Name,
+                r.SortOrder
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<DocumentTypeResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

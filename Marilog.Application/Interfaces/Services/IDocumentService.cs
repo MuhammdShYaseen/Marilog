@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Document;
 using Marilog.Application.DTOs.Reports.DocumentReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
@@ -28,6 +29,10 @@ namespace Marilog.Application.Interfaces.Services
                                    int? parentDocumentId = null,
                                    string? reference = null, string? filePath = null,
                                    CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
+                                                IEnumerable<CreateDocumentCommand> commands,
+                                                CancellationToken ct = default);
+
         Task           UpdateAsync(int id, int docTypeId, DateOnly docDate,
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
@@ -44,6 +49,9 @@ namespace Marilog.Application.Interfaces.Services
         Task<DocumentItem> AddItemAsync(int documentId, string productName, decimal quantity,
                                         decimal unitPrice, string? unit = null,
                                         CancellationToken ct = default);
+
+        Task<IReadOnlyList<DocumentItem>> AddItemsRangeAsync(int documentId, IEnumerable<AddDocumentItemCommand> commands, CancellationToken ct = default);
+
         Task               UpdateItemAsync(int documentId, int itemId, string productName,
                                            decimal quantity, decimal unitPrice,
                                            string? unit = null, CancellationToken ct = default);

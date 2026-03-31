@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Person;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -20,6 +21,8 @@ namespace Marilog.Application.Interfaces.Services
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
             string? phone = null, string? email = null,
             CancellationToken ct = default);
+
+        Task<IReadOnlyList<PersonResponse>> CreateRangeAsync(IEnumerable<CreatePersonCommand> commands, CancellationToken ct = default);
         Task         UpdateAsync(int id, string fullName, int? nationality = null,
                                  string? passportNo = null, DateOnly? passportExpiry = null,
                                  string? seamanBookNo = null, DateOnly? dateOfBirth = null,

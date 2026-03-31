@@ -1,5 +1,6 @@
 ﻿namespace Marilog.Presentation.Controllers
 {
+    using Marilog.Application.DTOs.Commands.Currency;
     using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
     using Marilog.Domain.Entities;
@@ -86,6 +87,22 @@
                 ct);
 
             return CreatedAtAction(nameof(GetById), new { id = currency.Id }, ApiResponse<CurrencyResponse>.Ok(currency));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<CurrencyResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateCurrencyRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateCurrencyCommand(
+                r.Code,
+                r.Name,
+                r.ExchangeRate,
+                r.Symbol
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<CurrencyResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

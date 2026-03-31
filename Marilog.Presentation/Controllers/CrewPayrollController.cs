@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.CrewPayroll;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
 using Marilog.Presentation.Common;
@@ -88,6 +89,23 @@ namespace Marilog.Presentation.Controllers
                 ct);
 
             return CreatedAtAction(nameof(GetById), new { id = payroll.Id }, ApiResponse<CrewPayrollResponse>.Ok(payroll));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreateCrewPayrollRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateCrewPayrollCommand(
+                r.ContractId,
+                r.PayrollMonth,
+                r.Allowances,
+                r.Deductions,
+                r.Notes
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<CrewPayrollResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

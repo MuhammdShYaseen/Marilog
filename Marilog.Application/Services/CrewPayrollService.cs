@@ -1,4 +1,5 @@
 using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Commands.CrewPayroll;
 using Marilog.Application.DTOs.Reports.CrewPayrollReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
@@ -407,6 +408,52 @@ namespace Marilog.Application.Services
                 PayrollMonth = payroll.PayrollMonth,
                 Id = payroll.Id,
             };
+        }
+
+        public async Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(
+        IEnumerable<CreateCrewPayrollCommand> commands,
+        CancellationToken ct = default)
+        {
+            var payrolls = new List<CrewPayroll>();
+
+            foreach (var c in commands)
+            {
+                await EnsureContractActiveAsync(c.ContractId, ct);
+                await EnsureNoDuplicatePayrollAsync(c.ContractId, c.PayrollMonth, excludeId: null, ct);
+
+                var contract = await _contractRepo.GetByIdAsync(c.ContractId, ct)
+                    ?? throw new KeyNotFoundException($"Contract '{c.ContractId}' not found.");
+
+                var workingDays = _CalculatorService.GetWorkingDays(contract, c.PayrollMonth);
+                var totalDays = DateTime.DaysInMonth(c.PayrollMonth.Year, c.PayrollMonth.Month);
+                var basicWage = _CalculatorService.CalculateBasicWage(contract.MonthlyWage, workingDays, totalDays);
+
+                var payroll = CrewPayroll.Create(c.ContractId, c.PayrollMonth, workingDays,
+                                                 basicWage, c.Allowances, c.Deductions, c.Notes);
+                payrolls.Add(payroll);
+            }
+
+            await _repo.AddRangeAsync(payrolls, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return payrolls
+                .Select(payroll => new CrewPayrollResponse
+                {
+                    Id = payroll.Id,
+                    ContractId = payroll.ContractId,
+                    PayrollMonth = payroll.PayrollMonth,
+                    WorkingDays = payroll.WorkingDays,
+                    BasicWage = payroll.BasicWage,
+                    Allowances = payroll.Allowances,
+                    Deductions = payroll.Deductions,
+                    GrossAmount = payroll.GrossAmount,
+                    Status = payroll.Status,
+                    IsFullyPaid = payroll.IsFullyPaid,
+                    RemainingBalance = payroll.RemainingBalance,
+                    TotalDisbursed = payroll.TotalDisbursed,
+                    Notes = payroll.Notes,
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, int workingDays, decimal basicWage,

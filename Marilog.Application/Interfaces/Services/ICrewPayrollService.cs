@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.CrewPayroll;
 using Marilog.Application.DTOs.Reports.CrewPayrollReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
@@ -18,6 +19,8 @@ namespace Marilog.Application.Interfaces.Services
         Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth,
                                       decimal allowances = 0m, decimal deductions = 0m,
                                       string? notes = null, CancellationToken ct = default);
+        Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(IEnumerable<CreateCrewPayrollCommand> commands,
+                                                 CancellationToken ct = default);
         Task              UpdateAsync(int id, int workingDays, decimal basicWage,
                                       decimal allowances = 0m, decimal deductions = 0m,
                                       string? notes = null, CancellationToken ct = default);

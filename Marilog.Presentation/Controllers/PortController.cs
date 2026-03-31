@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Port;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.PortDTOs;
@@ -50,6 +51,21 @@ namespace Marilog.Presentation.Controllers
         {
             var result = await _service.CreateAsync(request.PortCode, request.PortName, request.CountryId, ct);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<PortResponse>.Ok(result));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<PortResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreatePortRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreatePortCommand(
+                r.PortCode,
+                r.PortName,
+                r.CountryId
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<PortResponse>>.Ok(result));
         }
 
         [HttpPut("{id}")]

@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.SwiftTransfer;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.SwiftTransferDTOs;
@@ -81,6 +82,28 @@ namespace Marilog.Presentation.Controllers
             );
 
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<SwiftTransferResponse>.Ok(result));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<SwiftTransferResponse>>>> CreateRange(
+         [FromBody] IEnumerable<CreateSwiftTransferRequest> requests,
+         CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateSwiftTransferCommand(
+                r.SwiftReference,
+                r.TransactionDate,
+                r.CurrencyId,
+                r.Amount,
+                r.SenderCompanyId,
+                r.ReceiverCompanyId,
+                r.SenderBank,
+                r.ReceiverBank,
+                r.PaymentReference,
+                r.RawMessage
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]

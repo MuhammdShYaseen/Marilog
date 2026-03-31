@@ -1,4 +1,5 @@
 using Marilog.Application.DTOs;
+using Marilog.Application.DTOs.Commands.Document;
 using Marilog.Application.DTOs.Reports.DocumentReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
@@ -145,7 +146,40 @@ namespace Marilog.Application.Services
                 FilePath = filePath
             };
         }
+        public async Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
+        IEnumerable<CreateDocumentCommand> commands,
+        CancellationToken ct = default)
+        {
+            var documents = new List<Document>();
 
+            foreach (var c in commands)
+            {
+                await EnsureUniqueDocNumberAsync(c.DocNumber, excludeId: null, ct);
+
+                var document = Document.Create(c.DocNumber, c.DocTypeId, c.DocDate, c.CurrencyId,
+                                               c.TotalAmount, c.SupplierId, c.BuyerId, c.VesselId,
+                                               c.PortId, c.ParentDocumentId, c.Reference, c.FilePath);
+                documents.Add(document);
+            }
+
+            await _repo.AddRangeAsync(documents, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return documents
+                .Select(doc => new DocumentResponse
+                {
+                    DocNumber = doc.DocNumber,
+                    TotalAmount = doc.TotalAmount,
+                    SupplierId = doc.SupplierId,
+                    BuyerId = doc.BuyerId,
+                    VesselId = doc.VesselId,
+                    PortId = doc.PortId,
+                    ParentDocumentId = doc.ParentDocumentId,
+                    Reference = doc.Reference,
+                    FilePath = doc.FilePath
+                })
+                .ToList();
+        }
         public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, string? reference = null,
@@ -222,6 +256,23 @@ namespace Marilog.Application.Services
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
             return item;
+        }
+
+        public async Task<IReadOnlyList<DocumentItem>> AddItemsRangeAsync(
+        int documentId,
+        IEnumerable<AddDocumentItemCommand> commands,
+        CancellationToken ct = default)
+        {
+            var document = await GetWithItemsOrThrowAsync(documentId, ct);
+
+            var items = commands
+                .Select(c => document.AddItem(c.ProductName, c.Quantity, c.UnitPrice, c.Unit))
+                .ToList();
+
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+
+            return items;
         }
 
         public async Task UpdateItemAsync(int documentId, int itemId, string productName,

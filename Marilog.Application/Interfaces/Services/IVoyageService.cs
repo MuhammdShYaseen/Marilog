@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Voyage;
 using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
@@ -22,6 +23,7 @@ namespace Marilog.Application.Interfaces.Services
                                  DateTime? arrivalDate = null, string? cargoType = null,
                                  decimal? cargoQuantityMt = null, string? notes = null,
                                  CancellationToken ct = default);
+        Task<IReadOnlyList<VoyageResponse>> CreateRangeAsync(IEnumerable<CreateVoyageCommand> commands, CancellationToken ct = default);
         Task         UpdateAsync(int id, int? departurePortId, int? arrivalPortId,
                                  DateTime? departureDate, DateTime? arrivalDate,
                                  string? cargoType, decimal? cargoQuantityMt,

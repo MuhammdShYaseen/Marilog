@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Rank;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 namespace Marilog.Application.Interfaces.Services
@@ -13,6 +14,7 @@ namespace Marilog.Application.Interfaces.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<RankResponse> CreateAsync(string rankCode, string rankName, Department department, CancellationToken ct = default);
+        Task<IReadOnlyList<RankResponse>> CreateRangeAsync(IEnumerable<CreateRankCommand> commands, CancellationToken ct = default);
         Task       UpdateAsync(int id, string rankCode, string rankName, Department department, CancellationToken ct = default);
         Task       ActivateAsync(int id, CancellationToken ct = default);
         Task       DeactivateAsync(int id, CancellationToken ct = default);

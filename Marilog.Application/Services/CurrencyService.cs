@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Currency;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -86,6 +87,41 @@ namespace Marilog.Application.Services
             };
         }
 
+        public async Task<IReadOnlyList<CurrencyResponse>> CreateRangeAsync(
+        IEnumerable<CreateCurrencyCommand> commands,
+        CancellationToken ct = default)
+        {
+            var codes = commands.Select(c => c.Code.ToUpperInvariant()).ToList();
+
+            var existingCodes = await _repo.Query()
+                .Where(x => codes.Contains(x.CurrencyCode))
+                .Select(x => x.CurrencyCode)
+                .ToListAsync(ct);
+
+            if (existingCodes.Any())
+                throw new InvalidOperationException(
+                    $"Currency codes already exist: {string.Join(", ", existingCodes)}");
+
+            var currencies = commands
+                .Select(c => Currency.Create(c.Code, c.Name, c.ExchangeRate, c.Symbol))
+                .ToList();
+
+            await _repo.AddRangeAsync(currencies, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return currencies
+                .Select(currency => new CurrencyResponse
+                {
+                    Id = currency.Id,
+                    Code = currency.CurrencyCode,
+                    Name = currency.CurrencyName,
+                    Symbol = currency.Symbol,
+                    ExchangeRate = currency.ExchangeRate,
+                    IsBaseCurrency = currency.IsBaseCurrency,
+                    IsActive = currency.IsActive
+                })
+                .ToList();
+        }
         public async Task UpdateAsync(int id, string name, decimal exchangeRate,
             string? symbol = null, CancellationToken ct = default)
         {

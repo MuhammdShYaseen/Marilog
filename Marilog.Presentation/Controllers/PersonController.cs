@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Responses;
+﻿using Marilog.Application.DTOs.Commands.Person;
+using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.PersonDTOs;
@@ -76,6 +77,30 @@ namespace Marilog.Presentation.Controllers
                 ct
             );
             return CreatedAtAction(nameof(GetById), new { id = response.Id }, ApiResponse<PersonResponse>.Ok(response));
+        }
+
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<PersonResponse>>>> CreateRange(
+        [FromBody] IEnumerable<CreatePersonRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreatePersonCommand(
+                r.BankName,
+                r.IBAN,
+                r.IsPassportExpired,
+                r.FullName,
+                r.BankSwiftCode,
+                r.Nationality,
+                r.PassportNo,
+                r.PassportExpiry,
+                r.SeamanBookNo,
+                r.DateOfBirth,
+                r.Phone,
+                r.Email
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(result));
         }
 
         [HttpPut("{id}")]

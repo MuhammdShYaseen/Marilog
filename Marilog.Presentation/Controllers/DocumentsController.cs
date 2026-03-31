@@ -1,5 +1,6 @@
 ﻿namespace Marilog.Presentation.Controllers
 {
+    using Marilog.Application.DTOs.Commands.Document;
     using Marilog.Application.DTOs.Responses;
     using Marilog.Application.Interfaces.Services;
     using Marilog.Domain.Entities;
@@ -126,6 +127,30 @@
             return CreatedAtAction(nameof(GetById), new { id = doc.Id }, ApiResponse<DocumentResponse>.Ok(doc));
         }
 
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<DocumentResponse>>>> CreateRange(
+            [FromBody] IEnumerable<CreateDocumentRequest> requests,
+            CancellationToken ct)
+        {
+            var commands = requests.Select(r => new CreateDocumentCommand(
+                r.DocNumber,
+                r.DocTypeId,
+                r.DocDate,
+                r.CurrencyId,
+                r.TotalAmount,
+                r.SupplierId,
+                r.BuyerId,
+                r.VesselId,
+                r.PortId,
+                r.ParentDocumentId,
+                r.Reference,
+                r.FilePath
+            ));
+
+            var result = await _service.CreateRangeAsync(commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(result));
+        }
+
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request, CancellationToken ct)
         {
@@ -189,6 +214,23 @@
         {
             var item = await _service.AddItemAsync(id, request.ProductName, request.Quantity, request.UnitPrice, request.Unit, ct);
             return Ok(item);
+        }
+
+        [HttpPost("{documentId:int}/items/batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<DocumentItem>>>> AddItemsRange(
+        int documentId,
+        [FromBody] IEnumerable<AddDocumentItemRequest> requests,
+        CancellationToken ct)
+        {
+            var commands = requests.Select(r => new AddDocumentItemCommand(
+                r.ProductName,
+                r.Quantity,
+                r.UnitPrice,
+                r.Unit
+            ));
+
+            var result = await _service.AddItemsRangeAsync(documentId, commands, ct);
+            return Ok(ApiResponse<IReadOnlyList<DocumentItem>>.Ok(result));
         }
 
         [HttpPut("{id:int}/items/{itemId:int}")]

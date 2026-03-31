@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Document;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities;
@@ -75,6 +76,44 @@ namespace Marilog.Application.Services
                 Name = name,
                 SortOrder = sortOrder,
             };
+        }
+
+        public async Task<IReadOnlyList<DocumentTypeResponse>> CreateRangeAsync(
+        IEnumerable<CreateDocumentTypeCommand> commands,
+        CancellationToken ct = default)
+        {
+            var codes = commands.Select(c => c.Code.ToUpperInvariant()).ToList();
+
+            // تحقق من التكرار داخل الـ batch
+            if (codes.Count != codes.Distinct().Count())
+                throw new InvalidOperationException("Duplicate codes found in the request.");
+
+            // تحقق من التكرار في DB
+            var existingCodes = await _repo.Query()
+                .Where(x => codes.Contains(x.Code))
+                .Select(x => x.Code)
+                .ToListAsync(ct);
+
+            if (existingCodes.Any())
+                throw new InvalidOperationException(
+                    $"Document type codes already exist: {string.Join(", ", existingCodes)}");
+
+            var docTypes = commands
+                .Select(c => DocumentType.Create(c.Code, c.Name, c.SortOrder))
+                .ToList();
+
+            await _repo.AddRangeAsync(docTypes, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return docTypes
+                .Select(docType => new DocumentTypeResponse
+                {
+                    Id = docType.Id,
+                    Code = docType.Code,
+                    Name = docType.Name,
+                    SortOrder = docType.SortOrder
+                })
+                .ToList();
         }
 
         public async Task UpdateAsync(int id, string name, int sortOrder,

@@ -1,3 +1,4 @@
+using Marilog.Application.DTOs.Commands.Document;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities;
 
@@ -13,6 +14,7 @@ namespace Marilog.Application.Interfaces.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<DocumentTypeResponse> CreateAsync(string code, string name, int sortOrder = 0, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentTypeResponse>> CreateRangeAsync(IEnumerable<CreateDocumentTypeCommand> commands, CancellationToken ct = default);
         Task               UpdateAsync(int id, string name, int sortOrder, CancellationToken ct = default);
         Task               ActivateAsync(int id, CancellationToken ct = default);
         Task               DeactivateAsync(int id, CancellationToken ct = default);
