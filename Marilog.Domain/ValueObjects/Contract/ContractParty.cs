@@ -24,5 +24,9 @@ namespace Marilog.Domain.ValueObjects.Contract
             CompanyId = companyId;
             Role = role;
         }
+        public override string ToString()
+        {
+            return Role.ToString();
+        }
     }
 }

@@ -5,21 +5,11 @@ using Marilog.Domain.ValueObjects.Contract;
 
 namespace Marilog.Domain.Entities
 {
-    // ─── Enum ─────────────────────────────────────────────────────────────────
-    public enum ContractType
-    {
-        CharterParty,   // عقد إيجار بحري
-        CrewEmployment, // عقد توظيف بحار
-        Supplier,       // عقد مورد
-        Agency,         // عقد وكالة
-    }
-
-    // ─── AContract ────────────────────────────────────────────────────────────
     public class AContract : Entity
     {
         // ─── Properties ───────────────────────────────────────────────────────
         public string ContractNumber { get; private set; } = null!;
-        public ContractType Type { get; private set; }
+        public ContractType Type { get; private set; } = null!;
         public ContractStatus Status { get; private set; } = null!;
         public DateOnly EffectiveDate { get; private set; }
         public DateOnly? ExpiryDate { get; private set; }
@@ -40,12 +30,7 @@ namespace Marilog.Domain.Entities
         // ─── Constructors ─────────────────────────────────────────────────────
         protected AContract() { }   // EF Core
 
-        protected AContract(
-            string contractNumber,
-            ContractType type,
-            DateOnly effectiveDate,
-            DateOnly? expiryDate = null,
-            string? notes = null)
+        public static AContract Create(string contractNumber, ContractType type, DateOnly effectiveDate, DateOnly? expiryDate = null, string? notes = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(contractNumber);
 
@@ -54,13 +39,16 @@ namespace Marilog.Domain.Entities
 
             if (expiryDate.HasValue && expiryDate.Value <= effectiveDate)
                 throw new ArgumentException("ExpiryDate must be after EffectiveDate.");
-
-            ContractNumber = contractNumber;
-            Type = type;
-            Status = ContractStatus.Draft;
-            EffectiveDate = effectiveDate;
-            ExpiryDate = expiryDate;
-            Notes = notes;
+            return new AContract
+            {
+                ContractNumber = contractNumber,
+                Type = type,
+                Status = ContractStatus.Draft,
+                EffectiveDate = effectiveDate,
+                ExpiryDate = expiryDate,
+                Notes = notes
+            };
+            
         }
 
         // ─── Party Management ─────────────────────────────────────────────────

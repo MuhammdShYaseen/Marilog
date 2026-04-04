@@ -23,5 +23,19 @@ namespace Marilog.Domain.Enumerations
             4 => Agency,
             _ => throw new ArgumentException($"Invalid ContractType id: {id}")
         };
+
+        public static bool TryFromName(string name, out ContractType? result)
+        {
+            result = name?.ToLower() switch
+            {
+                "charterparty" => CharterParty,
+                "crewemployment" => CrewEmployment,
+                "supplier" => Supplier,
+                "agency" => Agency,
+                _ => null
+            };
+
+            return result is not null;
+        }
     }
 }

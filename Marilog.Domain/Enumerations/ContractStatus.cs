@@ -32,6 +32,21 @@ namespace Marilog.Domain.Enumerations
             IsClosed = isClosed;
         }
 
+
+        public static bool TryFromName(string name, out ContractStatus? result)
+        {
+            result = name?.ToLower() switch
+            { 
+                "draft" => Draft,
+                "active" => Active,
+                "Expired" => Expired,
+                "Terminated" => Terminated,
+                "Suspended" => Suspended,
+                _ => null
+            };
+
+            return result is not null;
+        }
         public static ContractStatus FromId(int id) => id switch
         {
             1 => Draft,
