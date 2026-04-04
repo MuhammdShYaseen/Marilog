@@ -1,11 +1,11 @@
-﻿
-
-using Marilog.Domain.Common;
+﻿using Marilog.Domain.Common;
+using Marilog.Domain.Enumerations;
 using Marilog.Domain.Events;
 using Marilog.Domain.ValueObjects.Contract;
 
 namespace Marilog.Domain.Entities
 {
+    // ─── Enum ─────────────────────────────────────────────────────────────────
     public enum ContractType
     {
         CharterParty,   // عقد إيجار بحري
@@ -13,34 +13,31 @@ namespace Marilog.Domain.Entities
         Supplier,       // عقد مورد
         Agency,         // عقد وكالة
     }
-    public enum ContractStatus
-    {
-        Draft,
-        Active,
-        Expired,
-        Terminated,
-        Suspended,
-    }
-    public class AContract : Entity
-    {
-        public string ContractNumber { get; private protected set; } = null!;
-        public ContractType Type { get; private protected set; }
-        public ContractStatus Status { get; private protected set; }
-        public DateOnly EffectiveDate { get; private protected set; }
-        public DateOnly? ExpiryDate { get; private protected set; }
-        public string? Notes { get; private protected set; }
 
-        // ─── ملف العقد ───────────────────────────────────────────────────────
+    // ─── AContract ────────────────────────────────────────────────────────────
+    public abstract class AContract : Entity
+    {
+        // ─── Properties ───────────────────────────────────────────────────────
+        public string ContractNumber { get; private set; } = null!;
+        public ContractType Type { get; private set; }
+        public ContractStatus Status { get; private set; } = null!;
+        public DateOnly EffectiveDate { get; private set; }
+        public DateOnly? ExpiryDate { get; private set; }
+        public string? Notes { get; private set; }
         public string? ContractFileUrl { get; private set; }
         public string? ContractFileName { get; private set; }
 
         private readonly List<ContractParty> _parties = [];
+        private readonly List<ContractAmendment> _amendments = [];
+
         public IReadOnlyCollection<ContractParty> Parties => _parties.AsReadOnly();
+        public IReadOnlyCollection<ContractAmendment> Amendments => _amendments.AsReadOnly();
 
         // ─── Computed ─────────────────────────────────────────────────────────
-        public bool IsExpired => ExpiryDate.HasValue && ExpiryDate.Value < DateOnly.FromDateTime(DateTime.UtcNow);
+        public bool IsExpiredAsOf(DateOnly today)
+            => ExpiryDate.HasValue && ExpiryDate.Value < today;
 
-        // ─── Constructor ─────────────────────────────────────────────────────
+        // ─── Constructors ─────────────────────────────────────────────────────
         protected AContract() { }   // EF Core
 
         protected AContract(
@@ -51,6 +48,9 @@ namespace Marilog.Domain.Entities
             string? notes = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(contractNumber);
+
+            if (!Enum.IsDefined(typeof(ContractType), type))
+                throw new ArgumentException("Invalid contract type.");
 
             if (expiryDate.HasValue && expiryDate.Value <= effectiveDate)
                 throw new ArgumentException("ExpiryDate must be after EffectiveDate.");
@@ -64,75 +64,185 @@ namespace Marilog.Domain.Entities
         }
 
         // ─── Party Management ─────────────────────────────────────────────────
-        public void AddParty(int companyId, ContractRole role)
+
+        public Result AddParty(int companyId, ContractRole role)
         {
             if (_parties.Any(p => p.CompanyId == companyId && p.Role == role))
-                throw new ArgumentException($"Company {companyId} already has role {role} in this contract.");
+                return Result.Fail(
+                    $"Company {companyId} already holds role '{role}' in this contract.");
 
             _parties.Add(new ContractParty(companyId, role));
+            return Result.Ok();
         }
 
-        public void RemoveParty(int companyId, ContractRole role)
+        /// <summary>
+        /// الحذف في حالة Draft فقط — لا يسمح بالحذف من عقد Active.
+        /// لحذف طرف من عقد Active استخدم <see cref="RemovePartyViaAmendment"/>.
+        /// </summary>
+        public Result RemoveParty(int companyId, ContractRole role)
         {
-            var party = _parties.FirstOrDefault(p => p.CompanyId == companyId && p.Role == role)
-                ?? throw new ArgumentException($"Party not found.");
+            var party = _parties.FirstOrDefault(p => p.CompanyId == companyId && p.Role == role);
+            if (party is null)
+                return Result.Fail($"Party (company={companyId}, role={role}) not found.");
+
+            if (Status != ContractStatus.Draft)
+                return Result.Fail(
+                    $"Cannot remove a party from a contract in '{Status}' status. " +
+                    "Use RemovePartyViaAmendment for Active contracts.");
+
+            if (_parties.Count == 1)
+                return Result.Fail("Cannot remove the last party from the contract.");
 
             _parties.Remove(party);
+            return Result.Ok();
         }
 
-        public IReadOnlyList<int> GetCompanyIdsByRole(ContractRole role)
-            => _parties
-                .Where(p => p.Role == role)
-                .Select(p => p.CompanyId)
-                .ToList();
+        /// <summary>
+        /// الحذف الرسمي من عقد Active — يشترط Amendment مسجَّل مسبقاً.
+        /// </summary>
+        public Result RemovePartyViaAmendment(int companyId, ContractRole role, int amendmentNumber)
+        {
+            var amendment = _amendments.FirstOrDefault(a => a.AmendmentNumber == amendmentNumber);
+            if (amendment is null)
+                return Result.Fail($"Amendment #{amendmentNumber} not found.");
+
+            var party = _parties.FirstOrDefault(p => p.CompanyId == companyId && p.Role == role);
+            if (party is null)
+                return Result.Fail($"Party (company={companyId}, role={role}) not found.");
+
+            if (_parties.Count == 1)
+                return Result.Fail("Cannot remove the last party from the contract.");
+
+            _parties.Remove(party);
+            AppendNote($"Party (company={companyId}, role={role}) removed via Amendment #{amendmentNumber}.");
+            return Result.Ok();
+        }
 
         // ─── Status Transitions ───────────────────────────────────────────────
-        public override void Activate()
-        {
-            if (Status != ContractStatus.Draft)
-                throw new ArgumentException("Only Draft contracts can be activated.");
 
-            if (!_parties.Any())
-                throw new ArgumentException("Cannot activate contract without parties.");
+        public Result Activate(DateOnly today)
+        {
+            if (!Status.CanBeActivated)
+                return Result.Fail($"Cannot activate a contract in '{Status}' status.");
+
+            if (_parties.Count == 0)
+                return Result.Fail("Cannot activate contract without parties.");
+
+            if (IsExpiredAsOf(today))
+                return Result.Fail(
+                    $"Cannot activate contract '{ContractNumber}': it expired on {ExpiryDate}.");
 
             Status = ContractStatus.Active;
             AddDomainEvent(new ContractActivatedEvent(Id, ContractNumber, Type));
+            return Result.Ok();
         }
 
-        public void Suspend(string reason)
+        public Result Suspend(string reason)
         {
-            if (Status != ContractStatus.Active)
-                throw new ArgumentException("Only Active contracts can be suspended.");
+            if (!Status.CanBeSuspended)
+                return Result.Fail($"Cannot suspend a contract in '{Status}' status.");
 
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+            if (string.IsNullOrWhiteSpace(reason))
+                return Result.Fail("Suspension reason is required.");
 
             Status = ContractStatus.Suspended;
             AppendNote($"Suspended: {reason}");
             AddDomainEvent(new ContractSuspendedEvent(Id, reason));
+            return Result.Ok();
         }
 
-        public void Terminate(string reason)
+        public Result Terminate(string reason)
         {
-            if (Status is ContractStatus.Expired or ContractStatus.Terminated)
-                throw new ArgumentException("Contract is already closed.");
+            if (!Status.CanBeTerminated)
+                return Result.Fail($"Cannot terminate a contract in '{Status}' status.");
 
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+            if (string.IsNullOrWhiteSpace(reason))
+                return Result.Fail("Termination reason is required.");
 
             Status = ContractStatus.Terminated;
             AppendNote($"Terminated: {reason}");
             AddDomainEvent(new ContractTerminatedEvent(Id, reason));
+            return Result.Ok();
         }
 
-        public void MarkExpired()
+        public Result MarkExpired(DateOnly today)
         {
-            if (Status != ContractStatus.Active)
-                throw new ArgumentException("Only Active contracts can expire.");
+            if (!IsExpiredAsOf(today))
+                return Result.Fail("Contract has not reached its expiry date yet.");
+
+            if (Status.IsClosed)
+                return Result.Fail($"Cannot expire a contract in '{Status}' status.");
 
             Status = ContractStatus.Expired;
             AddDomainEvent(new ContractExpiredEvent(Id));
+            return Result.Ok();
+        }
+
+        // ─── Amendment ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// يُسجِّل تعديلاً رسمياً على العقد دون تغيير الحالة.
+        /// التغييرات الفعلية (ExpiryDate / Parties) تتم عبر دوال مخصصة تستلزم رقم التعديل.
+        /// </summary>
+        public Result RecordAmendment(
+            string description,
+            DateOnly effectiveDate,
+            string changedBy,
+            DateOnly today,
+            DateTime recordedAtUtc)   // يُمرَّر من Application Layer عبر IDateTimeProvider
+        {
+            if (Status.IsClosed)
+                return Result.Fail($"Cannot amend a contract in '{Status}' status.");
+
+            if (string.IsNullOrWhiteSpace(description))
+                return Result.Fail("Amendment description is required.");
+
+            if (string.IsNullOrWhiteSpace(changedBy))
+                return Result.Fail("ChangedBy is required.");
+
+            if (effectiveDate < today)
+                return Result.Fail("Amendment effective date cannot be in the past.");
+
+            var number = _amendments.Count + 1;
+
+            var amendment = new ContractAmendment(
+                amendmentNumber: number,
+                description: description,
+                effectiveDate: effectiveDate,
+                changedBy: changedBy,
+                recordedAtUtc: recordedAtUtc);
+
+            _amendments.Add(amendment);
+            AppendNote($"Amendment #{number}: {description}");
+            AddDomainEvent(new ContractAmendedEvent(Id, number, description, effectiveDate, changedBy));
+            return Result.Ok();
+        }
+
+        /// <summary>
+        /// تمديد تاريخ الانتهاء — يشترط ربطه بـ Amendment مسجَّل مسبقاً.
+        /// </summary>
+        public Result ExtendExpiry(DateOnly newExpiryDate, int amendmentNumber, DateOnly today)
+        {
+            if (Status.IsClosed)
+                return Result.Fail("Cannot extend a closed contract.");
+
+            var amendment = _amendments.FirstOrDefault(a => a.AmendmentNumber == amendmentNumber);
+            if (amendment is null)
+                return Result.Fail($"Amendment #{amendmentNumber} not found.");
+
+            if (ExpiryDate.HasValue && newExpiryDate <= ExpiryDate.Value)
+                return Result.Fail($"New expiry must be after current expiry ({ExpiryDate}).");
+
+            if (newExpiryDate <= today)
+                return Result.Fail("New expiry date must be in the future.");
+
+            ExpiryDate = newExpiryDate;
+            AddDomainEvent(new ContractExpiryExtendedEvent(Id, ContractNumber, newExpiryDate, amendmentNumber));
+            return Result.Ok();
         }
 
         // ─── File Attachment ──────────────────────────────────────────────────
+
         public void AttachFile(string fileUrl, string fileName)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(fileUrl);
@@ -143,11 +253,8 @@ namespace Marilog.Domain.Entities
         }
 
         // ─── Private Helpers ──────────────────────────────────────────────────
-        private void AppendNote(string note)
-        {
-            Notes = string.IsNullOrWhiteSpace(Notes)
-                ? note
-                : $"{Notes} | {note}";
-        }
+
+        private void AppendNote(string note) =>
+            Notes = string.IsNullOrWhiteSpace(Notes) ? note : $"{Notes} | {note}";
     }
 }
