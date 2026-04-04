@@ -1,11 +1,8 @@
-﻿using Marilog.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.ValueObjects.Contract
 {
-    public class ContractAmendment :Entity
+    public class ContractAmendment
     {
         // Identity داخل Aggregate
         public int AmendmentNumber { get; private set; }

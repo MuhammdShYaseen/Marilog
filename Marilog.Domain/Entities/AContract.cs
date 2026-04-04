@@ -15,7 +15,7 @@ namespace Marilog.Domain.Entities
     }
 
     // ─── AContract ────────────────────────────────────────────────────────────
-    public abstract class AContract : Entity
+    public class AContract : Entity
     {
         // ─── Properties ───────────────────────────────────────────────────────
         public string ContractNumber { get; private set; } = null!;
