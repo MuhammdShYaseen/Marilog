@@ -42,7 +42,7 @@ namespace Marilog.Domain.Common
         protected void AddDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
         public void ClearDomainEvents() => _domainEvents.Clear();
         public void Deactivate() { IsActive = false; Touch(); }
-        public void Activate() { IsActive = true; Touch(); }
+        public virtual void Activate() { IsActive = true; Touch(); }
     }
 
     public interface IDomainEvent { }
