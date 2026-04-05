@@ -35,7 +35,7 @@
 
   <ItemGroup>
     <Folder Include="IntegrationTest\Controllers\" />
-    <Folder Include="UnitTest\Services\" />
+    <Folder Include="UnitTest\Services\Contract\" />
   </ItemGroup>
 
   <ItemGroup>

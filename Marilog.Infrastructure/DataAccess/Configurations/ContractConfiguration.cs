@@ -23,8 +23,10 @@ namespace Marilog.Infrastructure.Persistence.Configurations
 
             builder.Property(c => c.Type)
                 .IsRequired()
-                .HasConversion<string>()        // ✅ "CharterParty" في DB
-                .HasMaxLength(30);
+                .HasConversion(
+                    v => v.Id,
+                    v => ContractType.FromId(v))
+                .HasColumnName("TypeId");
 
             builder.Property(c => c.Status)
                 .IsRequired()

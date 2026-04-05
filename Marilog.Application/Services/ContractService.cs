@@ -48,25 +48,21 @@ namespace Marilog.Application.Services
         public async Task<PagedResponse<ContractSummary>> GetPagedAsync(
             ContractFilter filter, CancellationToken ct = default)
         {
-            // تأكد أن الصفحة لا تقل عن 1
             var page = Math.Max(filter.Page, 1);
-            var pageSize = Math.Max(filter.PageSize, 1);
+            var pageSize = Math.Min(Math.Max(filter.PageSize, 1), 100);
 
-            // بناء الاستعلام الأساسي
             var query = _repository
                 .Query()
                 .AsNoTracking()
-                .ApplyFilter(filter); // Extension method موجود لديك
+                .ApplyFilter(filter);
 
-            // إجمالي عدد النتائج
             var total = await query.CountAsync(ct);
 
-            // جلب الصفحة المطلوبة
             var items = await query
-                .ApplySort(filter) // يجب حماية SortBy داخل ApplySort
+                .ApplySort(filter) // MUST ensure default ordering
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(ToSummaryResponse)
+                .Select(ToSummaryResponse) // MUST be Expression
                 .ToListAsync(ct);
 
             return new PagedResponse<ContractSummary>
