@@ -6,7 +6,7 @@ using Marilog.Domain.Entities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Application.Services
+namespace Marilog.Application.Services.ApplicationServices
 {
     public class CrewContractService : ICrewContractService
     {

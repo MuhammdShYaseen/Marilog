@@ -7,7 +7,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services
+namespace Marilog.Application.Services.ApplicationServices
 {
     public class VoyageService : IVoyageService
     {

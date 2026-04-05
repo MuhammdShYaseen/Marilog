@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 
-namespace Marilog.Application.Services
+namespace Marilog.Application.Services.ApplicationServices
 {
     public class ContractService : IContractService
     {

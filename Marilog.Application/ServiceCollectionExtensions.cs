@@ -1,7 +1,7 @@
 ﻿using Marilog.Application.EventHandlers;
-using Marilog.Application.Services;
 using Marilog.Application.Interfaces.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Marilog.Application.Services.ApplicationServices;
 
 namespace Marilog.Application
 {

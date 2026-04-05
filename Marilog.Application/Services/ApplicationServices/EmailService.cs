@@ -4,7 +4,7 @@ using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Application.Interfaces.Services;
 
-namespace Marilog.Application.Services
+namespace Marilog.Application.Services.ApplicationServices
 {
     public class EmailService : IEmailService
     {

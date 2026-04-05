@@ -8,7 +8,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.Contracts;
 
-namespace Marilog.Application.Services
+namespace Marilog.Application.Services.ApplicationServices
 {
     public class CrewPayrollService : ICrewPayrollService
     {
