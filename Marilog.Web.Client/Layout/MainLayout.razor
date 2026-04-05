@@ -1,0 +1,68 @@
+﻿@inherits LayoutComponentBase
+
+<MudLayout>
+
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="ToggleDrawer" />
+        <MudText Typo="Typo.h6" Class="ml-3">Marilog</MudText>
+        <MudSpacer />
+        <MudText Typo="Typo.body2" Class="mr-3">WKA Ocean Shipping</MudText>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="drawerOpen"
+               Elevation="2"
+               Variant="DrawerVariant.Responsive">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Navigation</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/"
+                        Match="NavLinkMatch.All"
+                        Icon="@Icons.Material.Filled.Dashboard"
+                        ForceLoad="false">
+                Dashboard
+            </MudNavLink>
+            <MudNavLink Href="/vessels"
+                        Icon="@Icons.Material.Filled.DirectionsBoat"
+                        ForceLoad="false">
+                Vessels
+            </MudNavLink>
+            <MudNavLink Href="/voyages"
+                        Icon="@Icons.Material.Filled.Route"
+                        ForceLoad="false">
+                Voyages
+            </MudNavLink>
+            <MudNavLink Href="/crew"
+                        Icon="@Icons.Material.Filled.People"
+                        ForceLoad="false">
+                Crew
+            </MudNavLink>
+            <MudNavLink Href="/finance"
+                        Icon="@Icons.Material.Filled.AccountBalance"
+                        ForceLoad="false">
+                Finance
+            </MudNavLink>
+            <MudNavLink Href="/hseq"
+                        Icon="@Icons.Material.Filled.HealthAndSafety"
+                        ForceLoad="false">
+                HSEQ
+            </MudNavLink>
+            <MudNavLink Href="/reports"
+                        Icon="@Icons.Material.Filled.Assessment"
+                        ForceLoad="false">
+                Reports
+            </MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+
+</MudLayout>
+
