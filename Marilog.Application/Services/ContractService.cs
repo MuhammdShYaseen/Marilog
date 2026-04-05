@@ -9,11 +9,8 @@ using Marilog.Domain.Enumerations;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Contract;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Text;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+
 
 namespace Marilog.Application.Services
 {
@@ -96,11 +93,10 @@ namespace Marilog.Application.Services
             var today = DateOnly.FromDateTime(DateTime.Today);
             var threshold = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
 
-            var query =  _repository.Query().AsNoTracking();
+            var query = _repository.Query().AsNoTracking();
 
-            var expiring = await _repository
-                .Query()
-                .AsNoTracking()
+            // Expiring
+            var expiring = await query
                 .Where(x => x.ExpiryDate.HasValue
                          && x.ExpiryDate.Value >= today
                          && x.ExpiryDate.Value <= threshold
@@ -109,24 +105,36 @@ namespace Marilog.Application.Services
                 .Select(ToSummaryResponse)
                 .ToListAsync(ct);
 
-            var recentlyAmended = await _repository
-                .Query()
-                .AsNoTracking()
+            // Recently amended
+            var recentlyAmended = await query
                 .Where(x => x.Amendments.Any())
-                .OrderByDescending(x => x.Amendments
-                    .Max(a => a.RecordedAtUtc))
+                .OrderByDescending(x => x.Amendments.Max(a => a.RecordedAtUtc))
                 .Take(10)
                 .Select(ToSummaryResponse)
                 .ToListAsync(ct);
 
+            // Stats (single query)
+            var stats = await query
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Active = g.Count(x => x.Status.Id == ContractStatus.Active.Id),
+                    Draft = g.Count(x => x.Status.Id == ContractStatus.Draft.Id),
+                    Expired = g.Count(x => x.Status.Id == ContractStatus.Expired.Id),
+                    Terminated = g.Count(x => x.Status.Id == ContractStatus.Terminated.Id),
+                    Suspended = g.Count(x => x.Status.Id == ContractStatus.Suspended.Id)
+                })
+                .FirstOrDefaultAsync(ct);
+
             return new ContractReport
             {
-                TotalContracts = await query.CountAsync(ct),
-                ActiveContracts = await query.CountAsync(x => x.Status.Id == ContractStatus.Active.Id, ct),
-                DraftContracts = await query.CountAsync(x => x.Status.Id == ContractStatus.Draft.Id, ct),
-                ExpiredContracts =await query.CountAsync(x => x.Status.Id == ContractStatus.Expired.Id, ct),
-                TerminatedContracts = await query.CountAsync(x => x.Status.Id == ContractStatus.Terminated.Id, ct),
-                SuspendedContracts = await query.CountAsync(x => x.Status.Id == ContractStatus.Suspended.Id, ct),
+                TotalContracts = stats?.Total ?? 0,
+                ActiveContracts = stats?.Active ?? 0,
+                DraftContracts = stats?.Draft ?? 0,
+                ExpiredContracts = stats?.Expired ?? 0,
+                TerminatedContracts = stats?.Terminated ?? 0,
+                SuspendedContracts = stats?.Suspended ?? 0,
                 ExpiringWithin30Days = expiring,
                 RecentlyAmended = recentlyAmended
             };
