@@ -1,3 +1,4 @@
+using Marilog.Web.Client.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -12,12 +13,14 @@ namespace Marilog.Web.Client
 
             builder.Services.AddScoped(sp => new HttpClient
             {
-                BaseAddress = new Uri("https://localhost:7001/")
+                BaseAddress = new Uri("https://localhost:7247/")
             });
 
             builder.Services.AddMudServices();
+            builder.Services.AddScoped<NavigationService>();
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
+
             await builder.Build().RunAsync();
         }
     }

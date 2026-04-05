@@ -19,12 +19,9 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Route).HasMaxLength(200);
             builder.Property(x => x.Icon).HasMaxLength(50);
 
-            builder.HasMany(typeof(NavItem), "_children")
-                .WithOne()
-                .HasForeignKey("ParentId");
-
-            builder.Navigation(x => x.Children)
-                .UsePropertyAccessMode(PropertyAccessMode.Field);
+            builder.HasMany(x => x.Children)
+                   .WithOne()
+                   .HasForeignKey(x => x.ParentId);
         }
     }
 }

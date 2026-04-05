@@ -21,6 +21,7 @@ namespace Marilog.Presentation
                 // Specify the OpenAPI version to use
                 options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
             });
+            
 
             var app = builder.Build();
             app.UseErrorHandler();

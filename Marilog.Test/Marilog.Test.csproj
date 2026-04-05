@@ -34,8 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="IntegrationTest\Controllers\" />
-    <Folder Include="UnitTest\Services\Contract\" />
+    <Folder Include="Backend\IntegrationTest\Controllers\" />
+    <Folder Include="Backend\" />
+    <Folder Include="Backend\UnitTest\Services\Contract\" />
+    <Folder Include="Frontend\UnitTest\Services\Contract\" />
   </ItemGroup>
 
   <ItemGroup>
