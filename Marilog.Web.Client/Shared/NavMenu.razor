@@ -1,50 +1,20 @@
-﻿<MudNavMenu>
+﻿@inherits LayoutComponentBase
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+<MudNavMenu Dense="true" Rounded="true">
+
     @foreach (var item in Items)
     {
         @RenderItem(item)
     }
 </MudNavMenu>
 
+
 @code {
-    [Parameter] public List<NavItemVm> Items { get; set; } = new();
-
-    RenderFragment RenderItem(NavItemVm item) => builder =>
-    {
-        if (item.Children.Any())
-        {
-            builder.OpenComponent<MudNavGroup>(0);
-            builder.AddAttribute(1, "Text", item.Title);
-            builder.AddAttribute(2, "Icon", GetIcon(item.Icon));
-
-            builder.AddAttribute(3, "ChildContent", (RenderFragment)(b =>
-            {
-                foreach (var child in item.Children)
-                    b.AddContent(4, RenderItem(child));
-            }));
-
-            builder.CloseComponent();
-        }
-        else
-        {
-            builder.OpenComponent<MudNavLink>(5);
-            builder.AddAttribute(6, "Href", item.Route);
-            builder.AddAttribute(7, "Icon", GetIcon(item.Icon));
-            builder.AddAttribute(8, "ChildContent", (RenderFragment)(b =>
-            {
-                b.AddContent(9, item.Title);
-            }));
-            builder.CloseComponent();
-        }
-    };
-
-    string GetIcon(string? icon) => icon switch
-    {
-        "Dashboard" => Icons.Material.Filled.Dashboard,
-        "DirectionsBoat" => Icons.Material.Filled.DirectionsBoat,
-        "Route" => Icons.Material.Filled.Route,
-        "People" => Icons.Material.Filled.People,
-        "AccountBalance" => Icons.Material.Filled.AccountBalance,
-        "Assessment" => Icons.Material.Filled.Assessment,
-        _ => Icons.Material.Filled.Menu
-    };
+    
 }

@@ -13,7 +13,7 @@ namespace Marilog.Web.Client
 
             builder.Services.AddScoped(sp => new HttpClient
             {
-                BaseAddress = new Uri("https://localhost:7247/")
+                BaseAddress = new Uri("https://localhost:5001/")
             });
 
             builder.Services.AddMudServices();

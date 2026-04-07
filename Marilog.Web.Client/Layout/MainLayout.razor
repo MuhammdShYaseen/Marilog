@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+﻿
+@inherits LayoutComponentBase
+@inject NavigationService NavService
 @* Required *@
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -27,43 +29,15 @@
             <MudText Typo="Typo.h6">Navigation</MudText>
         </MudDrawerHeader>
         <MudNavMenu>
-            <MudNavLink Href="/"
-                        Match="NavLinkMatch.All"
-                        Icon="@Icons.Material.Filled.Dashboard"
-                        ForceLoad="false">
-                Dashboard
-            </MudNavLink>
-            <MudNavLink Href="/vessels"
-                        Icon="@Icons.Material.Filled.DirectionsBoat"
-                        ForceLoad="false">
-                Vessels
-            </MudNavLink>
-            <MudNavLink Href="/voyages"
-                        Icon="@Icons.Material.Filled.Route"
-                        ForceLoad="false">
-                Voyages
-            </MudNavLink>
-            <MudNavLink Href="/crew"
-                        Icon="@Icons.Material.Filled.People"
-                        ForceLoad="false">
-                Crew
-            </MudNavLink>
-            <MudNavLink Href="/finance"
-                        Icon="@Icons.Material.Filled.AccountBalance"
-                        ForceLoad="false">
-                Finance
-            </MudNavLink>
-            <MudNavLink Href="/hseq"
-                        Icon="@Icons.Material.Filled.HealthAndSafety"
-                        ForceLoad="false">
-                HSEQ
-            </MudNavLink>
-            <MudNavLink Href="/reports"
-                        Icon="@Icons.Material.Filled.Assessment"
-                        ForceLoad="false">
-                Reports
-            </MudNavLink>
-        </MudNavMenu>
+    @if (Items is null)
+    {
+        <MudText>Loading...</MudText>
+    }
+    else
+    {
+        <NavMenu Items="Items" />
+    }
+</MudNavMenu>
     </MudDrawer>
 
     <MudMainContent>

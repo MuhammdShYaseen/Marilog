@@ -1,4 +1,6 @@
-﻿namespace Marilog.Web.Client.Layout
+﻿using Marilog.Web.Client.Models;
+
+namespace Marilog.Web.Client.Layout
 {
     public partial class MainLayout
     {
@@ -8,5 +10,14 @@
         {
             drawerOpen = !drawerOpen;
         }
+
+        private List<NavItemVm>? Items;
+
+        protected override async Task OnInitializedAsync()
+        {
+            Items = await NavService.GetAsync();
+        }
     }
+
+
 }

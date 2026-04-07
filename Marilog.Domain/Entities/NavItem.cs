@@ -26,5 +26,19 @@ namespace Marilog.Domain.Entities
             Order = order,
             IsActive = true
         };
+
+        public void Update(
+    string title,
+    string? route,
+    string? icon,
+    int? parentId,
+    int order)
+        {
+            Title = title;
+            Route = route;
+            Icon = icon;
+            ParentId = parentId;
+            Order = order;
+        }
     }
 }

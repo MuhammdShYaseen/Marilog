@@ -21,9 +21,19 @@ namespace Marilog.Presentation
                 // Specify the OpenAPI version to use
                 options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
             });
-            
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowClient", policy =>
+                {
+                    policy
+                        .WithOrigins("https://localhost:5003")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
 
             var app = builder.Build();
+            app.UseCors("AllowClient");
             app.UseErrorHandler();
             app.UseSerilogRequestLogging(opts =>
             {
