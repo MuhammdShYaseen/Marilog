@@ -75,7 +75,17 @@ namespace Marilog.Web.Client.Shared
             "Payments" => Icons.Material.Filled.Payments,
             "Email" => Icons.Material.Filled.Email,
             "Settings" => Icons.Material.Filled.Settings,
-
+            "Apartment" => Icons.Material.Filled.Apartment,
+            "LocationOn" => Icons.Material.Filled.LocationOn,
+            "Business" => Icons.Material.Filled.Business,
+            "Person" => Icons.Material.Filled.Person,
+            "Map" => Icons.Material.Filled.Map,
+            "Badge" => Icons.Material.Filled.Badge,
+            "Folder" => Icons.Material.Filled.Folder,
+            "SwapHoriz" => Icons.Material.Filled.SwapHoriz,
+            "Security" => Icons.Material.Filled.Security,
+            "Public" => Icons.Material.Filled.Public,
+            "AttachMoney" => Icons.Material.Filled.AttachMoney,
 
 
             _ => Icons.Material.Filled.Menu
