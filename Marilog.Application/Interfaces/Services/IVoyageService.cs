@@ -9,6 +9,7 @@ namespace Marilog.Application.Interfaces.Services
     {
         // ── Queries ───────────────────────────────────────────────────────────────
         Task<VoyageResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
+        Task<IReadOnlyList<VoyageResponse>>GetActiveVoyagesAsync(CancellationToken ct = default);
         Task<VoyageResponse?>              GetWithStopsAsync(int id, CancellationToken ct = default);
         Task<IReadOnlyList<VoyageResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
         Task<IReadOnlyList<VoyageResponse>> GetByMonthAsync(DateOnly month, CancellationToken ct = default);

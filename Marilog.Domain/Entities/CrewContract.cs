@@ -18,12 +18,14 @@ namespace Marilog.Domain.Entities
         public int? SignOffPort { get; private set; }
         public Port? SignOffPortNav { get; private set; }
         public string? Notes { get; private set; }
+        public int? DurationInMonth { get; private set; }
 
         private CrewContract() { }
-        public static CrewContract Create(int personId, int vesselId, int rankId,
+        public static CrewContract Create(int durationInMonth, int personId, int vesselId, int rankId,
             decimal monthlyWage, DateOnly signOnDate, int? signOnPort = null,
             string? notes = null)
         {
+            if (durationInMonth <=0) throw new ArgumentException("Invalid durationInMonth");
             if (personId <= 0) throw new ArgumentException("Invalid PersonID.");
             if (vesselId <= 0) throw new ArgumentException("Invalid VesselID.");
             if (rankId <= 0) throw new ArgumentException("Invalid RankID.");
@@ -31,6 +33,7 @@ namespace Marilog.Domain.Entities
 
             return new CrewContract
             {
+                DurationInMonth = durationInMonth,
                 PersonID = personId,
                 VesselID = vesselId,
                 RankID = rankId,

@@ -1,7 +1,7 @@
 ﻿
 namespace Marilog.Application.DTOs.Commands.CrewContract
 {
-    public record CreateCrewContractCommand(
+    public record CreateCrewContractCommand(int durationInMonth,
      int PersonId,
      int VesselId,
      int RankId,

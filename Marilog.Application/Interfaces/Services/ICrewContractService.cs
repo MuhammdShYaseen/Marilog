@@ -16,7 +16,7 @@ namespace Marilog.Application.Interfaces.Services
         Task<IReadOnlyList<CrewContractResponse>> GetActiveOnDateAsync(DateOnly date, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<CrewContractResponse> CreateAsync(int personId, int vesselId, int rankId,
+        Task<CrewContractResponse> CreateAsync(int durationInMonth, int personId, int vesselId, int rankId,
                                        decimal monthlyWage, DateOnly signOnDate,
                                        int? signOnPort = null, string? notes = null,
                                        CancellationToken ct = default);
@@ -32,5 +32,7 @@ namespace Marilog.Application.Interfaces.Services
 
         //----Reports-----------------------------------------------------------------
         Task<CrewContractReport> GetCrewContractsReportAsync(CrewContractFilterOptions options, CancellationToken ct = default);
+        Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct);
+        Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct);
     }
 }

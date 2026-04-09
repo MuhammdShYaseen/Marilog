@@ -113,7 +113,63 @@ namespace Marilog.Application.Services.ApplicationServices
                 })
                 .ToListAsync(ct);
         }
+        public async Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) < today)
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.Id,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
 
+        public async Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var nextTwoMonths = today.AddMonths(2);
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) >= today && c.SignOnDate.AddMonths(c.DurationInMonth!.Value) <= nextTwoMonths)
+                .Select(x => new CrewContractResponse
+                {
+                    ContractId = x.Id,
+                    PersonId = x.PersonID,
+                    PersonFullName = x.Person.FullName,
+                    VesselId = x.VesselID,
+                    VesselName = x.Vessel.VesselName,
+                    RankId = x.RankID,
+                    RankName = x.Rank.RankName,
+                    RankDepartment = x.Rank.Department,
+                    MonthlyWage = x.MonthlyWage,
+                    SignOnDate = x.SignOnDate,
+                    SignOffDate = x.SignOffDate,
+                    SignOnPort = x.SignOnPort,
+                    SignOnPortName = x.SignOnPortNav!.PortName,
+                    SignOffPort = x.SignOffPort,
+                    SignOffPortName = x.SignOffPortNav!.PortName,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync(ct);
+        }
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId,
             CancellationToken ct = default)
         {
@@ -202,7 +258,7 @@ namespace Marilog.Application.Services.ApplicationServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CrewContractResponse> CreateAsync(int personId, int vesselId, int rankId,
+        public async Task<CrewContractResponse> CreateAsync(int durationInMonth, int personId, int vesselId, int rankId,
             decimal monthlyWage, DateOnly signOnDate, int? signOnPort = null,
             string? notes = null, CancellationToken ct = default)
         {
@@ -211,7 +267,7 @@ namespace Marilog.Application.Services.ApplicationServices
             await EnsureRankExistsAsync(rankId, ct);
             await EnsureNoActiveContractAsync(personId, vesselId, signOnDate, ct);
 
-            var contract = CrewContract.Create(personId, vesselId, rankId,
+            var contract = CrewContract.Create(durationInMonth, personId, vesselId, rankId,
                                                monthlyWage, signOnDate, signOnPort, notes);
             await _repo.AddAsync(contract, ct);
             await _repo.SaveChangesAsync(ct);
@@ -242,6 +298,7 @@ namespace Marilog.Application.Services.ApplicationServices
         {
             var contracts = commands
                 .Select(c => CrewContract.Create(
+                    c.durationInMonth,
                     c.PersonId,
                     c.VesselId,
                     c.RankId,
@@ -460,5 +517,7 @@ namespace Marilog.Application.Services.ApplicationServices
                 throw new InvalidOperationException(
                     "This crew member already has an active contract on this vessel.");
         }
+
+        
     }
 }

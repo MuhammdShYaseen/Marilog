@@ -69,6 +69,16 @@ namespace Marilog.Application.Services.ApplicationServices
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<VoyageResponse>> GetActiveVoyagesAsync(CancellationToken ct = default)
+        {
+            var activeVoyages =  await _repo.Query()
+                .AsNoTracking()
+                .Where(v => v.IsActive == true)
+                .Select (ToResponseWithStops)
+                .ToListAsync (ct);
+            return activeVoyages;
+        }
+
         public async Task<IReadOnlyList<VoyageResponse>> GetByStatusAsync(VoyageStatus status,
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
@@ -483,6 +493,8 @@ namespace Marilog.Application.Services.ApplicationServices
                 throw new InvalidOperationException(
                     $"Voyage number '{voyageNumber}' already exists.");
         }
+
+        
 
         private static readonly Expression<Func<Voyage, VoyageResponse>> ToResponse =
         x => new VoyageResponse
