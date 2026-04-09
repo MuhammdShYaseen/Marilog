@@ -9,5 +9,7 @@
         public DateOnly SignOnDate { get; set; }
         public int? SignOnPort { get; set; }
         public string? Notes { get; set; }
+
+        public int DurationInMonth {  get; set; }
     }
 }

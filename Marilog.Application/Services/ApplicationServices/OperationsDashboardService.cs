@@ -18,63 +18,93 @@ namespace Marilog.Application.Services.ApplicationServices
             _documentService = documentService;
         }
 
-        public async Task<OperationsDashboardResponse> GetAsync(CancellationToken ct = default)
+        public async Task<OperationsDashboardResponse>GetAsync(CancellationToken ct = default)
         {
-            var today = DateTime.Today;
+            // ─────────────────────────────────────────────
+            // Parallel execution
+            // ─────────────────────────────────────────────
+
+            var activeVoyagesTask = _voyageService.GetActiveVoyagesAsync(ct);
+
+            var expiringContractsTask = _crewService.GetAboutExpireAsync(ct);
+
+            var expiredContractsTask = _crewService.GetExpiredAsync(ct);
+
+            var unpaidDocumentsTask = _documentService.GetUnpaidAsync(ct);
+
+            await Task.WhenAll(activeVoyagesTask, expiringContractsTask, expiredContractsTask, unpaidDocumentsTask);
+
+            // ─────────────────────────────────────────────
+            // Await results safely
+            // ─────────────────────────────────────────────
+
+            var activeVoyages = await activeVoyagesTask ?? new List<VoyageResponse>();
+
+            var expiringContracts = await expiringContractsTask ?? new List<CrewContractResponse>();
+
+            var expiredContracts = await expiredContractsTask ?? new List<CrewContractResponse>();
+
+            var unpaidDocuments = await unpaidDocumentsTask ?? new List<DocumentResponse>();
+
+            // ─────────────────────────────────────────────
+            // Date logic
+            // ─────────────────────────────────────────────
+
+            var today = DateTime.Now.Date;
+
             var next7Days = today.AddDays(7);
 
-            // Active Voyages
-
-            var activeVoyages = await _voyageService.GetActiveVoyagesAsync(ct);
-
+            // ─────────────────────────────────────────────
             // Upcoming Arrivals
+            // ─────────────────────────────────────────────
 
             var upcoming = activeVoyages
-            .Where(v =>
-                v.ArrivalDate.HasValue &&
-                v.ArrivalDate.Value.Date >= today &&
-                v.ArrivalDate.Value.Date <= next7Days)
-            .ToList();
+                    .Where(v =>
+                        v.ArrivalDate.HasValue &&
+                        v.ArrivalDate.Value.Date >= today &&
+                        v.ArrivalDate.Value.Date <= next7Days)
+                    .OrderBy(v => v.ArrivalDate)
+                    .ToList();
 
+            // ─────────────────────────────────────────────
             // Aggregations
+            // ─────────────────────────────────────────────
 
             var totalCash = activeVoyages.Sum(v => v.CashOnBoard);
 
-            var totalCargo = activeVoyages.Sum(v =>  v.CargoQuantityMT ?? 0);
+            var totalCargo = activeVoyages.Sum(v => v.CargoQuantityMT ?? 0);
 
-            // Crew Contracts
-
-            var expiringContracts =  await _crewService.GetAboutExpireAsync(ct);
-            var expairedContracts = await _crewService.GetExpiredAsync(ct);
-            var unpaidDocuments = await _documentService.GetUnpaidAsync(ct);
-
+            // ─────────────────────────────────────────────
             // Alerts
+            // ─────────────────────────────────────────────
 
             var alerts = new List<string>();
 
             if (expiringContracts.Count > 0)
             {
                 alerts.Add(
-                    $"{expiringContracts.Count} crew contracts about Expaird");
+                    $"{expiringContracts.Count} crew contracts expiring soon");
             }
 
-            if (expairedContracts.Count > 0) 
+            if (expiredContracts.Count > 0)
             {
                 alerts.Add(
-                    $"{expairedContracts.Count} crew contracts Expaird");
+                    $"{expiredContracts.Count} crew contracts expired");
             }
 
             if (unpaidDocuments.Count > 0)
             {
-                alerts.Add(
-                    $"{unpaidDocuments.Count} unpaid document");
+                alerts.Add($"{unpaidDocuments.Count} unpaid documents");
             }
 
             if (upcoming.Any())
             {
-                alerts.Add(
-                    $"{upcoming.Count} vessels arriving soon");
+                alerts.Add( $"{upcoming.Count} vessels arriving within 7 days");
             }
+
+            // ─────────────────────────────────────────────
+            // Final Response
+            // ─────────────────────────────────────────────
 
             return new OperationsDashboardResponse
             {
@@ -83,9 +113,9 @@ namespace Marilog.Application.Services.ApplicationServices
                 TotalCashOnBoard = totalCash,
                 TotalCargoMT = totalCargo,
                 ExpiringCrewContracts = expiringContracts,
-                Alerts = alerts,
+                ExpiredCrewContracts = expiredContracts,
                 Documents = unpaidDocuments,
-                ExpiredCrewContracts = expairedContracts,
+                Alerts = alerts
             };
         }
     }

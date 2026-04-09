@@ -17,7 +17,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Notes).HasMaxLength(500);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
-
+            builder.Property(x => x.DurationInMonth).IsRequired().HasDefaultValue(6);
             builder.HasOne(x => x.Rank)
                    .WithMany()
                    .HasForeignKey(x => x.RankID)

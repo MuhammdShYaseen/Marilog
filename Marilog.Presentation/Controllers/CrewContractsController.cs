@@ -76,6 +76,7 @@ namespace Marilog.Presentation.Controllers
             CancellationToken ct)
         {
             var contract = await _service.CreateAsync(
+                request.DurationInMonth,
                 request.PersonId,
                 request.VesselId,
                 request.RankId,
@@ -100,7 +101,8 @@ namespace Marilog.Presentation.Controllers
                 r.MonthlyWage,
                 r.SignOnDate,
                 r.SignOnPort,
-                r.Notes
+                r.Notes,
+                r.DurationInMonth
             ));
 
             var result = await _service.CreateRangeAsync(commands, ct);

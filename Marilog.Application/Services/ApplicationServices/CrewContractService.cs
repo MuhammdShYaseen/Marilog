@@ -298,14 +298,15 @@ namespace Marilog.Application.Services.ApplicationServices
         {
             var contracts = commands
                 .Select(c => CrewContract.Create(
-                    c.durationInMonth,
+                    c.DurationInMonth,
                     c.PersonId,
                     c.VesselId,
                     c.RankId,
                     c.MonthlyWage,
                     c.SignOnDate,
                     c.SignOnPort,
-                    c.Notes))
+                    c.Notes
+                    ))
                 .ToList();
 
             await _repo.AddRangeAsync(contracts, ct);
