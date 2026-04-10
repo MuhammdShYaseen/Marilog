@@ -1,0 +1,82 @@
+/*
+ * UI.Framework — framework-level utility classes
+ * These classes support the XAML-inspired layout system.
+ * MudBlazor's own stylesheet handles component appearance.
+ */
+
+/* ── CollectionView ───────────────────────────────────────────────────── */
+
+.xf-collectionview {
+    width: 100%;
+}
+
+.xf-collectionview__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    gap: 12px;
+}
+
+.xf-collectionview__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    opacity: 0.6;
+}
+
+.xf-collectionview__item {
+    width: 100%;
+    transition: background-color 0.15s ease;
+}
+
+    .xf-collectionview__item:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+.xf-collectionview__item--selected {
+    background-color: var(--mud-palette-primary-hover);
+    border-radius: 4px;
+}
+
+/* ── Grid ─────────────────────────────────────────────────────────────── */
+
+.xf-grid {
+    width: 100%;
+}
+
+.xf-grid-cell {
+    min-width: 0; /* prevents grid blowout on long content */
+    min-height: 0;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+
+.xf-card {
+    overflow: hidden; /* respect border-radius on children */
+}
+
+/* ── ScrollViewer ─────────────────────────────────────────────────────── */
+
+.xf-scrollviewer {
+    position: relative;
+}
+
+/* ── StackPanel ───────────────────────────────────────────────────────── */
+
+/* MudStack handles the layout; these are supplemental */
+.xf-stackpanel > * {
+    /* Ensures Stretch alignment works for direct children */
+    max-width: 100%;
+}
+
+/* ── Global resets for framework components ───────────────────────────── */
+
+/* Prevent double margins when components are nested */
+.xf-collectionview > .mud-card:first-child,
+.xf-stackpanel > .mud-card:first-child {
+    margin-top: 0;
+}

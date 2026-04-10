@@ -1,0 +1,88 @@
+@using MudBlazor
+@inherits FrameworkElement
+
+<MudCard Elevation="@((int)Elevation)"
+         Outlined="@Outlined"
+         Style="@BuildCardStyle()"
+         Class="@($"xf-card {GetCachedClass()}")">
+
+    @if (!string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Subtitle))
+    {
+        <div class="xf-card-header">
+
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <MudText Typo="Typo.h6">
+                    @Title
+                </MudText>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <MudText Typo="Typo.body2"
+                         Color="@ToMudColor(ThemeColor.Secondary)">
+                    @Subtitle
+                </MudText>
+            }
+
+            @if (HeaderActions is not null)
+            {
+                <div class="xf-card-header-actions">
+                    @HeaderActions
+                </div>
+            }
+
+        </div>
+    }
+
+    <MudCardContent Style="@GetContentPadding()">
+        @ChildContent
+    </MudCardContent>
+
+    @if (Actions is not null)
+    {
+        <MudCardActions>
+            @Actions
+        </MudCardActions>
+    }
+
+</MudCard>
+
+@code {
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    [Parameter] public ElevationLevel Elevation { get; set; } = ElevationLevel.Low;
+    [Parameter] public bool Outlined { get; set; }
+
+    private string BuildCardStyle()
+    {
+        var sb = new System.Text.StringBuilder(GetCachedStyle());
+        sb.Append("min-width:0;");
+        sb.Append("min-height:0;");
+        return sb.ToString();
+    }
+
+    private string? _cachedPadding;
+    private Thickness _lastPadding;
+
+    private string? GetContentPadding()
+    {
+        if (_cachedPadding is null || !_lastPadding.Equals(Padding))
+        {
+            _lastPadding = Padding;
+
+            _cachedPadding = Padding != Thickness.Zero
+                ? $"padding:{Padding.ToCss()};"
+                : null;
+        }
+
+        return _cachedPadding;
+    }
+}
