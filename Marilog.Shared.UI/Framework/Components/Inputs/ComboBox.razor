@@ -1,0 +1,83 @@
+@inherits FrameworkElement
+@typeparam TValue
+
+
+<MudSelect T="TValue"
+           Value="@BoundValue"
+           ValueChanged="@OnValueChanged"
+           Label="@Label"
+           Placeholder="@Placeholder"
+           HelperText="@HelperText"
+           Variant="@ResolveVariant()"
+           MultiSelection="@MultiSelect"
+           Disabled="@(!IsEnabled)"
+           ReadOnly="@IsReadOnly"
+           Dense="@Dense"
+           AnchorOrigin="MudBlazor.Origin.BottomLeft"
+           Style="@BuildBaseStyle()"
+           Class="@Class"
+           Error="@HasError"
+           ErrorText="@ErrorText">
+
+    @if (ItemsSource is not null)
+    {
+        @foreach (var item in ItemsSource)
+        {
+            <MudSelectItem T="TValue" Value="@item">
+
+                @if (ItemTemplate is not null)
+                {
+                    @ItemTemplate(item)
+                }
+                else
+                {
+                    @(DisplayMember?.Invoke(item) ?? item?.ToString())
+                }
+
+            </MudSelectItem>
+        }
+    }
+
+</MudSelect>
+
+@code {
+
+    [Parameter] public IEnumerable<TValue>? ItemsSource { get; set; }
+
+    [Parameter] public TValue? SelectedValue { get; set; }
+    [Parameter] public EventCallback<TValue?> SelectedValueChanged { get; set; }
+
+    [Parameter] public Func<TValue, string?>? DisplayMember { get; set; }
+    [Parameter] public RenderFragment<TValue>? ItemTemplate { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+
+    [Parameter] public bool MultiSelect { get; set; }
+    [Parameter] public bool IsReadOnly { get; set; }
+    [Parameter] public bool Dense { get; set; }
+
+    [Parameter] public ButtonVariant FieldVariant { get; set; } = ButtonVariant.Outlined;
+
+    [Parameter] public bool HasError { get; set; }
+    [Parameter] public string? ErrorText { get; set; }
+
+    private TValue? BoundValue => SelectedValue;
+
+    private async Task OnValueChanged(TValue? value)
+    {
+        if (!EqualityComparer<TValue?>.Default.Equals(SelectedValue, value))
+        {
+            SelectedValue = value;
+            await SelectedValueChanged.InvokeAsync(value);
+        }
+    }
+
+    private MudBlazor.Variant ResolveVariant() => FieldVariant switch
+    {
+        ButtonVariant.Filled => MudBlazor.Variant.Filled,
+        ButtonVariant.Text => MudBlazor.Variant.Text,
+        _ => MudBlazor.Variant.Outlined
+    };
+}

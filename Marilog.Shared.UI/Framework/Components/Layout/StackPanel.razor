@@ -1,0 +1,120 @@
+@inherits FrameworkElement
+
+<MudStack Row="@(Orientation == Enums.Orientation.Horizontal)"
+          Spacing="@NormalizedSpacing"
+          AlignItems="@ResolveAlignItems()"
+          Justify="@ResolveJustify()"
+          Wrap="@(WrapContent ? MudBlazor.Wrap.Wrap : MudBlazor.Wrap.NoWrap)"
+          Style="@GetPanelStyle()"
+          Class="@GetCachedClass()">
+
+    @ChildContent
+
+</MudStack>
+
+@code {
+
+    [Parameter]
+    public Enums.Orientation Orientation { get; set; }
+        = Enums.Orientation.Vertical;
+
+    /// <summary>
+    /// Gap between children in pixels.
+    /// MudBlazor spacing scale = px / 4
+    /// </summary>
+    [Parameter]
+    public int Spacing { get; set; } = 8;
+
+    /// <summary>
+    /// Allow wrapping — behaves like WrapPanel when true.
+    /// </summary>
+    [Parameter]
+    public bool WrapContent { get; set; }
+
+    /// <summary>
+    /// Cross-axis alignment.
+    /// </summary>
+    [Parameter]
+    public HAlign ChildAlignment { get; set; }
+        = HAlign.Stretch;
+
+    /// <summary>
+    /// Main-axis justification.
+    /// </summary>
+    [Parameter]
+    public HAlign ChildJustify { get; set; }
+        = HAlign.Left;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    // =========================
+    // Spacing normalization
+    // =========================
+
+    private int NormalizedSpacing
+        => Math.Clamp(Spacing / 4, 0, 16);
+
+    // =========================
+    // Alignment mapping
+    // =========================
+
+    private MudBlazor.AlignItems ResolveAlignItems()
+        => ChildAlignment switch
+        {
+            HAlign.Left => MudBlazor.AlignItems.Start,
+            HAlign.Center => MudBlazor.AlignItems.Center,
+            HAlign.Right => MudBlazor.AlignItems.End,
+            HAlign.Stretch => MudBlazor.AlignItems.Stretch,
+            _ => MudBlazor.AlignItems.Stretch
+        };
+
+    private MudBlazor.Justify ResolveJustify()
+        => ChildJustify switch
+        {
+            HAlign.Left => MudBlazor.Justify.FlexStart,
+            HAlign.Center => MudBlazor.Justify.Center,
+            HAlign.Right => MudBlazor.Justify.FlexEnd,
+            HAlign.Stretch => MudBlazor.Justify.SpaceBetween,
+            _ => MudBlazor.Justify.FlexStart
+        };
+
+    // =========================
+    // Style caching
+    // =========================
+
+    private string? _cachedPanelStyle;
+
+    private Enums.Orientation _lastOrientation;
+    private int _lastSpacing;
+    private bool _lastWrap;
+
+    private string GetPanelStyle()
+    {
+        if (_cachedPanelStyle is null ||
+            _lastOrientation != Orientation ||
+            _lastSpacing != Spacing ||
+            _lastWrap != WrapContent)
+        {
+            _lastOrientation = Orientation;
+            _lastSpacing = Spacing;
+            _lastWrap = WrapContent;
+
+            _cachedPanelStyle = BuildPanelStyle();
+        }
+
+        return _cachedPanelStyle;
+    }
+
+    private string BuildPanelStyle()
+    {
+        var sb = new System.Text.StringBuilder(GetCachedStyle());
+
+        // مهم جدًا داخل Grid / Flex
+        sb.Append("min-width:0;");
+        sb.Append("min-height:0;");
+
+        return sb.ToString();
+    }
+
+}

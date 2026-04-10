@@ -1,0 +1,52 @@
+
+
+
+@*
+    CheckBox — mirrors WPF CheckBox.
+    All MudBlazor types fully-qualified.
+*@
+
+@inherits FrameworkElement
+
+<MudCheckBox T="bool?"
+             Value="@BoundValue"
+             ValueChanged="@OnValueChanged"
+             Label="@Content"
+             Color="@ToMudColor(ThemeColor)"
+             TriState="@IsThreeState"
+             ReadOnly="@IsReadOnly"
+             Disabled="@(!IsEnabled)"
+             Dense="@Dense"
+             Style="@BuildBaseStyle()"
+             Class="@Class">
+
+    @ChildContent
+
+</MudCheckBox>
+
+@code {
+
+    [Parameter] public bool? IsChecked { get; set; }
+    [Parameter] public EventCallback<bool?> IsCheckedChanged { get; set; }
+
+    [Parameter] public string? Content { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public bool IsThreeState { get; set; }
+    [Parameter] public bool IsReadOnly { get; set; }
+    //[Parameter] public bool IsEnabled { get; set; } = true;
+
+    [Parameter] public ThemeColor ThemeColor { get; set; } = ThemeColor.Primary;
+    [Parameter] public bool Dense { get; set; }
+
+    private bool? BoundValue => IsChecked;
+
+    private async Task OnValueChanged(bool? value)
+    {
+        if (IsChecked != value)
+        {
+            IsChecked = value;
+            await IsCheckedChanged.InvokeAsync(value);
+        }
+    }
+}

@@ -1,0 +1,91 @@
+@inherits FrameworkElement
+
+@if (!string.IsNullOrEmpty(Text) || ChildContent is not null)
+{
+    <MudText Typo="@ResolveTypo()"
+             Align="@ResolveTextAlign()"
+             Color="@ResolveColor()"
+             Style="@BuildTextStyle()"
+             Class="@GetCachedClass()">
+
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            @Text
+        }
+
+    </MudText>
+}
+
+@code {
+
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public FontSize FontSize { get; set; } = FontSize.Regular;
+    [Parameter] public bool Bold { get; set; }
+    [Parameter] public bool Italic { get; set; }
+    [Parameter] public bool Underline { get; set; }
+
+    [Parameter] public ThemeColor Foreground { get; set; } = ThemeColor.Default;
+
+    [Parameter] public WrapMode TextWrapping { get; set; } = WrapMode.Wrap;
+
+    [Parameter] public HAlign TextAlignment { get; set; } = HAlign.Left;
+
+    private MudBlazor.Typo ResolveTypo() => FontSize switch
+    {
+        FontSize.Tiny => MudBlazor.Typo.caption,
+        FontSize.Small => MudBlazor.Typo.caption,
+        FontSize.Regular => MudBlazor.Typo.body2,
+        FontSize.Medium => MudBlazor.Typo.body1,
+        FontSize.Large => MudBlazor.Typo.subtitle1,
+        FontSize.XLarge => MudBlazor.Typo.h6,
+        FontSize.XXLarge => MudBlazor.Typo.h5,
+        FontSize.Display => MudBlazor.Typo.h4,
+        _ => MudBlazor.Typo.body1
+    };
+
+    private MudBlazor.Align ResolveTextAlign() => TextAlignment switch
+    {
+        HAlign.Left => MudBlazor.Align.Left,
+        HAlign.Center => MudBlazor.Align.Center,
+        HAlign.Right => MudBlazor.Align.Right,
+        HAlign.Stretch => MudBlazor.Align.Justify,
+        _ => MudBlazor.Align.Inherit
+    };
+
+    private MudBlazor.Color ResolveColor()
+        => ToMudColor(Foreground);
+
+    private string BuildTextStyle()
+    {
+        var sb = new System.Text.StringBuilder(GetCachedStyle());
+
+        if (Bold)
+            sb.Append("font-weight:700;");
+
+        if (Italic)
+            sb.Append("font-style:italic;");
+
+        if (Underline)
+            sb.Append("text-decoration:underline;");
+
+        sb.Append(TextWrapping switch
+        {
+            WrapMode.NoWrap =>
+                "white-space:nowrap;",
+
+            WrapMode.WrapWithOverflow =>
+                "white-space:pre-wrap;overflow-wrap:anywhere;",
+
+            _ =>
+                "white-space:normal;"
+        });
+
+        return sb.ToString();
+    }
+}

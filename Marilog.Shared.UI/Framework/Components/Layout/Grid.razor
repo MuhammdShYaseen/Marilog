@@ -1,0 +1,60 @@
+@inherits FrameworkElement
+
+<div style="@BuildGridStyle()" class="xf-grid @GetCachedClass()">
+    @ChildContent
+</div>
+
+@code {
+
+    [Parameter] public string ColumnDefinitions { get; set; } = "*";
+    [Parameter] public string RowDefinitions { get; set; } = "Auto";
+
+    [Parameter] public int ColumnGap { get; set; } = 8;
+    [Parameter] public int RowGap { get; set; } = 8;
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string BuildGridStyle()
+    {
+        var sb = new System.Text.StringBuilder(GetCachedStyle());
+
+        sb.Append("display:grid;");
+
+        sb.Append($"grid-template-columns:{ParseTracks(ColumnDefinitions)};");
+        sb.Append($"grid-template-rows:{ParseTracks(RowDefinitions)};");
+
+        if (ColumnGap > 0)
+            sb.Append($"column-gap:{ColumnGap}px;");
+
+        if (RowGap > 0)
+            sb.Append($"row-gap:{RowGap}px;");
+
+        return sb.ToString();
+    }
+
+    private static string ParseTracks(string? definitions)
+    {
+        if (string.IsNullOrWhiteSpace(definitions))
+            return "auto";
+
+        var tracks = definitions
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var result = new List<string>(tracks.Length);
+
+        foreach (var t in tracks)
+        {
+            if (GridLength.TryParse(t, out var gl))
+            {
+                result.Add(gl.ToCss());
+            }
+            else
+            {
+                result.Add("auto");
+            }
+        }
+
+        return string.Join(' ', result);
+    }
+}

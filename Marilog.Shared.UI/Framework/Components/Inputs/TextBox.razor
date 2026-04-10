@@ -1,0 +1,100 @@
+
+
+@*
+    TextBox<TValue> — mirrors WPF TextBox / PasswordBox.
+    All MudBlazor types fully-qualified.
+*@
+
+@inherits FrameworkElement
+@typeparam TValue
+
+<MudTextField T="TValue"
+              Value="@BoundValue"
+              ValueChanged="@OnValueChanged"
+              Label="@Label"
+              Placeholder="@Placeholder"
+              HelperText="@HelperText"
+              Variant="@ResolveVariant()"
+              InputType="@ResolveInputType()"
+              Lines="@(Multiline ? Lines : 1)"
+              MaxLength="@(MaxLength > 0 ? MaxLength : int.MaxValue)"
+              ReadOnly="@IsReadOnly"
+              Disabled="@(!IsEnabled)"
+              Immediate="@Immediate"
+              Adornment="@ResolveAdornment()"
+              AdornmentIcon="@ResolveAdornmentIcon()"
+              AdornmentColor="MudBlazor.Color.Default"
+              Style="@BuildBaseStyle()"
+              Class="@Class"
+              Error="@HasError"
+              ErrorText="@ErrorText"
+              OnBlur="@HandleBlur"
+              OnKeyUp="@HandleKeyUp" />
+
+@code {
+
+    [Parameter] public TValue? Text { get; set; }
+    [Parameter] public EventCallback<TValue?> TextChanged { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+
+    [Parameter] public bool IsPassword { get; set; }
+    [Parameter] public bool Multiline { get; set; }
+    [Parameter] public int Lines { get; set; } = 4;
+    [Parameter] public int MaxLength { get; set; }
+    [Parameter] public bool Immediate { get; set; } = true;
+    [Parameter] public bool IsReadOnly { get; set; }
+
+    [Parameter] public ButtonVariant FieldVariant { get; set; } = ButtonVariant.Outlined;
+    [Parameter] public string? LeadingIcon { get; set; }
+    [Parameter] public string? TrailingIcon { get; set; }
+
+    [Parameter] public bool HasError { get; set; }
+    [Parameter] public string? ErrorText { get; set; }
+
+    [Parameter] public EventCallback<FocusEventArgs> Blur { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> KeyUp { get; set; }
+
+    private TValue? BoundValue => Text;
+
+    private async Task OnValueChanged(TValue? value)
+    {
+        if (!EqualityComparer<TValue?>.Default.Equals(Text, value))
+        {
+            Text = value;
+            await TextChanged.InvokeAsync(value);
+        }
+    }
+
+    private MudBlazor.Variant ResolveVariant() => FieldVariant switch
+    {
+        ButtonVariant.Filled => MudBlazor.Variant.Filled,
+        ButtonVariant.Text => MudBlazor.Variant.Text,
+        _ => MudBlazor.Variant.Outlined
+    };
+
+    private MudBlazor.InputType ResolveInputType() =>
+        IsPassword ? MudBlazor.InputType.Password : MudBlazor.InputType.Text;
+
+    private MudBlazor.Adornment ResolveAdornment()
+    {
+        if (LeadingIcon != null) return MudBlazor.Adornment.Start;
+        if (TrailingIcon != null) return MudBlazor.Adornment.End;
+        return MudBlazor.Adornment.None;
+    }
+
+    private string? ResolveAdornmentIcon()
+    {
+        if (LeadingIcon != null) return LeadingIcon;
+        if (TrailingIcon != null) return TrailingIcon;
+        return null;
+    }
+
+    private async Task HandleBlur(FocusEventArgs e)
+        => await Blur.InvokeAsync(e);
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+        => await KeyUp.InvokeAsync(e);
+}

@@ -1,0 +1,77 @@
+
+@inherits FrameworkElement
+
+<MudButton Variant="@ResolveVariant()"
+           Color="@ToMudColor(ThemeColor)"
+           Size="@ResolveSize()"
+           Disabled="@IsDisabled()"
+           OnClick="@HandleClick"
+           StartIcon="@StartIcon"
+           EndIcon="@EndIcon"
+           FullWidth="@(HorizontalAlignment == HAlign.Stretch)"
+           Style="@BuildBaseStyle()"
+           Class="@Class">
+
+    @ChildContent ?? Content
+
+</MudButton>
+
+@code {
+
+    [Parameter] public string? Content { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public ICommand? Command { get; set; }
+    [Parameter] public object? CommandParameter { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+
+    [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Filled;
+    [Parameter] public ThemeColor ThemeColor { get; set; } = ThemeColor.Primary;
+    [Parameter] public FontSize Size { get; set; } = FontSize.Regular;
+
+    [Parameter] public string? StartIcon { get; set; }
+    [Parameter] public string? EndIcon { get; set; }
+
+    //[Parameter] public bool IsEnabled { get; set; } = true;
+
+    private bool _canExecuteCache = true;
+
+    protected override void OnParametersSet()
+    {
+        if (Command != null)
+        {
+            _canExecuteCache = Command.CanExecute(CommandParameter);
+        }
+
+        base.OnParametersSet();
+    }
+
+    private bool IsDisabled() =>
+        !IsEnabled || (Command != null && !_canExecuteCache);
+
+    private async Task HandleClick(MouseEventArgs args)
+    {
+        if (!IsEnabled)
+            return;
+
+        if (Command is not null && Command.CanExecute(CommandParameter))
+            Command.Execute(CommandParameter);
+
+        if (Click.HasDelegate)
+            await Click.InvokeAsync(args);
+    }
+
+    private MudBlazor.Variant ResolveVariant() => ButtonVariant switch
+    {
+        ButtonVariant.Outlined => MudBlazor.Variant.Outlined,
+        ButtonVariant.Text => MudBlazor.Variant.Text,
+        _ => MudBlazor.Variant.Filled
+    };
+
+    private MudBlazor.Size ResolveSize() => Size switch
+    {
+        FontSize.Small or FontSize.Tiny => MudBlazor.Size.Small,
+        FontSize.Large or FontSize.XLarge or FontSize.XXLarge or FontSize.Display => MudBlazor.Size.Large,
+        _ => MudBlazor.Size.Medium
+    };
+}

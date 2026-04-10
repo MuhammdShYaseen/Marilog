@@ -1,0 +1,149 @@
+@inherits UI.Framework.Abstractions.FrameworkElement
+@typeparam TItem
+
+<div style="@BuildBaseStyle()" class="xf-collectionview @Class">
+
+    @if (IsLoading)
+    {
+        @if (LoadingTemplate is not null)
+        {
+            @LoadingTemplate
+        }
+        else
+        {
+            <div class="xf-collectionview__loading">
+                <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
+                <MudText Typo="MudBlazor.Typo.body2" Class="ml-2">
+                    Loading...
+                </MudText>
+            </div>
+        }
+    }
+    else if (Items == null || !Items.Any())
+    {
+        @if (EmptyTemplate is not null)
+        {
+            @EmptyTemplate
+        }
+        else
+        {
+            <div class="xf-collectionview__empty">
+                <MudText Typo="MudBlazor.Typo.body2"
+                         Color="MudBlazor.Color.Secondary">
+                    No items to display.
+                </MudText>
+            </div>
+        }
+    }
+    else
+    {
+        <div style="@BuildListStyle()">
+            @foreach (var item in Items)
+            {
+                <div class="xf-collectionview__item @(IsSelected(item) ? "xf-collectionview__item--selected" : "")"
+                     @onclick="() => HandleItemClick(item)"
+                     style="@GetItemStyle()">
+
+                    @DataTemplate?.Invoke(item)
+
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+
+    [Parameter] public RenderFragment<TItem>? DataTemplate { get; set; }
+    [Parameter] public RenderFragment? EmptyTemplate { get; set; }
+    [Parameter] public RenderFragment? LoadingTemplate { get; set; }
+
+    private Enums.Orientation _orientation = Enums.Orientation.Vertical;
+
+    [Parameter]
+    public Enums.Orientation Orientation
+    {
+        get => _orientation;
+        set => _orientation = value;
+    }
+
+    [Parameter] public int ItemSpacing { get; set; } = 8;
+    [Parameter] public int Columns { get; set; } = 0;
+
+    [Parameter] public bool IsLoading { get; set; }
+
+    private Framework.Enums.SelectionMode _selectionMode = Framework.Enums.SelectionMode.None;
+
+    [Parameter]
+    public Framework.Enums.SelectionMode SelectionMode
+    {
+        get => _selectionMode;
+        set => _selectionMode = value;
+    }
+
+    [Parameter] public TItem? SelectedItem { get; set; }
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
+
+    [Parameter] public IList<TItem>? SelectedItems { get; set; }
+    [Parameter] public EventCallback<IList<TItem>> SelectedItemsChanged { get; set; }
+
+    private string BuildListStyle()
+    {
+        if (Columns > 0)
+        {
+            return $"display:grid;grid-template-columns:repeat({Columns},1fr);gap:{ItemSpacing}px;";
+        }
+
+        return _orientation == Enums.Orientation.Horizontal
+            ? $"display:flex;flex-direction:row;flex-wrap:wrap;gap:{ItemSpacing}px;"
+            : $"display:flex;flex-direction:column;gap:{ItemSpacing}px;";
+    }
+
+    private string GetItemStyle()
+    {
+        return _selectionMode != Framework.Enums.SelectionMode.None
+            ? "cursor:pointer;"
+            : string.Empty;
+    }
+
+    private bool IsSelected(TItem item)
+    {
+        if (_selectionMode == Framework.Enums.SelectionMode.Single)
+        {
+            return EqualityComparer<TItem>.Default.Equals(item, SelectedItem);
+        }
+
+        if (_selectionMode == Framework.Enums.SelectionMode.Multiple)
+        {
+            return SelectedItems?.Contains(item) == true;
+        }
+
+        return false;
+    }
+
+    private async Task HandleItemClick(TItem item)
+    {
+        if (_selectionMode == Framework.Enums.SelectionMode.None)
+            return;
+
+        if (_selectionMode == Framework.Enums.SelectionMode.Single)
+        {
+            SelectedItem = item;
+            await SelectedItemChanged.InvokeAsync(item);
+        }
+        else
+        {
+            SelectedItems ??= new List<TItem>();
+
+            if (SelectedItems.Contains(item))
+                SelectedItems.Remove(item);
+            else
+                SelectedItems.Add(item);
+
+            await SelectedItemsChanged.InvokeAsync(SelectedItems);
+        }
+    }
+}

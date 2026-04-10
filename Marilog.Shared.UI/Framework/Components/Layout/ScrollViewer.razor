@@ -1,0 +1,49 @@
+@inherits FrameworkElement
+
+<div style="@GetScrollStyle()" class="xf-scrollviewer @GetCachedClass()">
+    @ChildContent
+</div>
+
+@code {
+
+    [Parameter] public bool HorizontalScroll { get; set; }
+    [Parameter] public bool VerticalScroll { get; set; } = true;
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string? _cachedScrollStyle;
+
+    private bool _lastHorizontal;
+    private bool _lastVertical;
+
+    private string GetScrollStyle()
+    {
+        if (_cachedScrollStyle is null ||
+            _lastHorizontal != HorizontalScroll ||
+            _lastVertical != VerticalScroll)
+        {
+            _lastHorizontal = HorizontalScroll;
+            _lastVertical = VerticalScroll;
+
+            _cachedScrollStyle = BuildScrollStyle();
+        }
+
+        return _cachedScrollStyle;
+    }
+
+    private string BuildScrollStyle()
+    {
+        var sb = new System.Text.StringBuilder(GetCachedStyle());
+
+        sb.Append("display:block;");
+
+        sb.Append($"overflow-x:{(HorizontalScroll ? "auto" : "hidden")};");
+        sb.Append($"overflow-y:{(VerticalScroll ? "auto" : "hidden")};");
+
+        // مهم جدًا لمنع flex/grid overflow bugs
+        sb.Append("min-width:0;");
+        sb.Append("min-height:0;");
+
+        return sb.ToString();
+    }
+}
