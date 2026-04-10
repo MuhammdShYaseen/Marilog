@@ -1,82 +1,101 @@
 /*
  * UI.Framework — framework-level utility classes
- * These classes support the XAML-inspired layout system.
- * MudBlazor's own stylesheet handles component appearance.
+ * XAML-inspired layout system over MudBlazor
  */
 
-/* ── CollectionView ───────────────────────────────────────────────────── */
+/* ── CollectionView ───────────────────────────────────────────── */
 
 .xf-collectionview {
     width: 100%;
+    min-width: 0;
 }
 
-.xf-collectionview__loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    gap: 12px;
-}
-
+.xf-collectionview__loading,
 .xf-collectionview__empty {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 12px;
+}
+
+.xf-collectionview__loading {
+    padding: 32px;
+}
+
+.xf-collectionview__empty {
     padding: 48px 16px;
     opacity: 0.6;
 }
 
+/* item */
 .xf-collectionview__item {
     width: 100%;
+    min-width: 0;
     transition: background-color 0.15s ease;
+    border-radius: 4px;
 }
 
     .xf-collectionview__item:focus-visible {
         outline: 2px solid var(--mud-palette-primary);
         outline-offset: 2px;
-        border-radius: 4px;
     }
 
 .xf-collectionview__item--selected {
     background-color: var(--mud-palette-primary-hover);
-    border-radius: 4px;
 }
 
-/* ── Grid ─────────────────────────────────────────────────────────────── */
+/* ── Grid ───────────────────────────────────────────── */
 
 .xf-grid {
     width: 100%;
+    min-width: 0;
 }
 
 .xf-grid-cell {
-    min-width: 0; /* prevents grid blowout on long content */
+    min-width: 0;
     min-height: 0;
 }
 
-/* ── Card ─────────────────────────────────────────────────────────────── */
+/* ── Card ───────────────────────────────────────────── */
 
 .xf-card {
-    overflow: hidden; /* respect border-radius on children */
+    overflow: hidden;
+    border-radius: var(--mud-default-borderradius);
 }
 
-/* ── ScrollViewer ─────────────────────────────────────────────────────── */
+/* header layout helper (if not using MudCardHeader) */
+.xf-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+}
+
+.xf-card-header-actions {
+    margin-top: 4px;
+}
+
+/* ── ScrollViewer ───────────────────────────────────── */
 
 .xf-scrollviewer {
     position: relative;
+    overflow: auto;
 }
 
-/* ── StackPanel ───────────────────────────────────────────────────────── */
+/* ── StackPanel ─────────────────────────────────────── */
 
-/* MudStack handles the layout; these are supplemental */
-.xf-stackpanel > * {
-    /* Ensures Stretch alignment works for direct children */
-    max-width: 100%;
+.xf-stackpanel {
+    display: flex;
+    min-width: 0;
 }
 
-/* ── Global resets for framework components ───────────────────────────── */
+    .xf-stackpanel > * {
+        max-width: 100%;
+    }
 
-/* Prevent double margins when components are nested */
-.xf-collectionview > .mud-card:first-child,
-.xf-stackpanel > .mud-card:first-child {
-    margin-top: 0;
-}
+    /* ── Global resets (safe version) ───────────────────── */
+
+    .xf-collectionview > .mud-card:first-child,
+    .xf-stackpanel > .mud-card:first-child {
+        margin-top: 0;
+    }
