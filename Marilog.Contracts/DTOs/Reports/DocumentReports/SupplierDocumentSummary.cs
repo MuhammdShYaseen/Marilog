@@ -1,0 +1,12 @@
+﻿namespace Marilog.Contracts.DTOs.Reports.DocumentReports
+{
+    public class SupplierDocumentSummary
+    {
+        public int SupplierId { get; set; }
+        public string? SupplierName { get; set; }
+        public decimal? TotalValue { get; set; }
+        public decimal? TotalPaid { get; set; }
+        public decimal? TotalRemain { get; set; }
+        public int Count { get; set; }
+    }
+}

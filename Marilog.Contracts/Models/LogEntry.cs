@@ -1,6 +1,6 @@
-﻿namespace Marilog.Domain.ReadModels
+﻿namespace Marilog.Contracts.Models
 {
-    public sealed record LogEntry
+    public class LogEntry
     {
         public int LineNumber { get; init; }
         public DateTime Timestamp { get; init; }

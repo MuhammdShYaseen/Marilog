@@ -70,7 +70,7 @@
         // ─────────────────────────────────────────────
 
         [HttpPost]
-        public async Task<ActionResult<CompanyResponse>> Create([FromBody] CreateCompanyRequest request, CancellationToken ct)
+        public async Task<ActionResult<CompanyResponse>> Create([FromBody] CreateCompanyCommand request, CancellationToken ct)
         {
             var company = await _service.CreateAsync(
                 request.RegistrationNumber,
@@ -87,7 +87,7 @@
 
         [HttpPost("batch")]
         public async Task<ActionResult<IReadOnlyList<CompanyResponse>>> CreateRange(
-        [FromBody] IEnumerable<CreateCompanyRequest> requests,
+        [FromBody] IEnumerable<CreateCompanyCommand> requests,
         CancellationToken ct)
         {
             var commands = requests.Select(r => new CreateCompanyCommand(
