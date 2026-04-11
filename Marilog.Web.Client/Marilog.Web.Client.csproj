@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Marilog.Shared.CSharp\Marilog.Shared.CSharp.csproj" />
+    <ProjectReference Include="..\Marilog.Shared.UI\Marilog.Shared.UI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,51 +1,63 @@
+@namespace Marilog.Shared.UI.Framework.Components.Layout
 @inherits Marilog.Shared.UI.Framework.Abstractions.FrameworkElement
 
 @*
     StackPanel — mirrors WPF StackPanel.
     Pure HTML div + Tailwind flex. Zero MudBlazor.
-
-    Orientation.Vertical  → flex-col  (default)
-    Orientation.Horizontal → flex-row
-    WrapContent=true       → flex-wrap (mimics WPF WrapPanel)
 *@
 
-<div class="@GetCachedClass()"
-     style="@GetCachedStyle()">
+<div class="@GetCachedClass()" style="@GetCachedStyle()">
     @ChildContent
 </div>
 
 @code {
 
-    // ── Layout ───────────────────────────────────────────────────────────
+    // ── Backing fields ────────────────────────────────────────────────────
+    // Required to avoid "field initializer cannot reference non-static member"
+    // when property name matches type name (Orientation Orientation).
 
     private Orientation _orientation = Orientation.Vertical;
-    private Orientation _lastOrientation;
-    private int _lastSpacing;
-    [Parameter] public Orientation Orientation { get; set; }
-
     private int _spacing = 8;
 
-    /// <summary>Gap between children in pixels.</summary>
-    [Parameter] public int Spacing { get; set; } = 8;
+    // ── Parameters ────────────────────────────────────────────────────────
 
-    /// <summary>Allow children to wrap — mimics WPF WrapPanel.</summary>
+    [Parameter]
+    public Orientation Orientation
+    {
+        get => _orientation;
+        set
+        {
+            if (_orientation == value) return;
+            _orientation = value;
+            InvalidateVisual();
+        }
+    }
+
+    [Parameter]
+    public int Spacing
+    {
+        get => _spacing;
+        set
+        {
+            if (_spacing == value) return;
+            _spacing = value;
+            InvalidateVisual();
+        }
+    }
+
     [Parameter] public bool WrapContent { get; set; } = false;
-
-    // ── Alignment ─────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Cross-axis alignment of children.
-    /// On Vertical stack   → controls horizontal alignment (items-*)
-    /// On Horizontal stack → controls vertical alignment   (items-*)
-    /// </summary>
     [Parameter] public HAlign ChildAlignment { get; set; } = HAlign.Stretch;
-
-    /// <summary>Main-axis justification — mirrors WPF HorizontalAlignment on the panel.</summary>
     [Parameter] public HAlign ChildJustify { get; set; } = HAlign.Left;
-
-    // ── Content ───────────────────────────────────────────────────────────
-
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    // ── OnParametersSet ───────────────────────────────────────────────────
+    // Must call base — FrameworkElement.OnParametersSet() handles its own
+    // dirty tracking for Margin, Padding, Width, Height, Visibility, IsEnabled.
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet(); // ← required
+    }
 
     // ── Class builder ─────────────────────────────────────────────────────
 
@@ -54,26 +66,13 @@
         var isHorizontal = _orientation == Orientation.Horizontal;
 
         return TailwindHelper.Classes(
-            // flex direction
             "flex",
             isHorizontal ? "flex-row" : "flex-col",
-
-            // wrap
             WrapContent ? "flex-wrap" : "flex-nowrap",
-
-            // gap
             TailwindHelper.GapClass(_spacing),
-
-            // cross-axis alignment
             ResolveAlignItems(),
-
-            // main-axis justification
             TailwindHelper.JustifyClass(ChildJustify),
-
-            // sizing — important inside nested Grid / Flex
             "w-full min-w-0 min-h-0 box-border",
-
-            // base (Margin, Visibility, custom Class, etc.)
             base.BuildBaseClass()
         );
     }
@@ -82,36 +81,30 @@
 
     protected override string BuildBaseStyle()
     {
+        // base already handles Margin, Padding, Visibility, ZIndex, ColorHex
+        // We only add explicit px overrides that Tailwind cannot express
         var sb = new System.Text.StringBuilder(base.BuildBaseStyle());
-
-        // Only add explicit pixel sizes when set — Tailwind handles the rest
         if (Width.HasValue) sb.Append($"width:{Width}px;");
         if (Height.HasValue) sb.Append($"height:{Height}px;");
-
         return sb.ToString();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // ── Alignment helper ──────────────────────────────────────────────────
 
     private string ResolveAlignItems()
     {
-        // Stretch on a horizontal stack centres children vertically,
-        // not stretches them — mirrors the MudBlazor/WPF behaviour.
-        if (ChildAlignment == HAlign.Stretch && _orientation == Orientation.Horizontal)
-            return "items-center";
-
-        return TailwindHelper.HAlignItemsClass(ChildAlignment);
-    }
-
-    protected override void OnParametersSet()
-    {
-        if (_lastOrientation != Orientation ||
-            _lastSpacing != Spacing)
+        if (_orientation == Orientation.Horizontal)
         {
-            _lastOrientation = Orientation;
-            _lastSpacing = Spacing;
-
-            InvalidateVisual(); // or mark dirty cache
+            // Horizontal: Stretch = children fill height (cross axis = vertical)
+            return ChildAlignment == HAlign.Stretch
+                ? "items-stretch"
+                : TailwindHelper.HAlignItemsClass(ChildAlignment);
+        }
+        else
+        {
+            // Vertical: Stretch = children fill width
+            // items-stretch alone is enough — w-full on children is their own responsibility
+            return TailwindHelper.HAlignItemsClass(ChildAlignment);
         }
     }
 }

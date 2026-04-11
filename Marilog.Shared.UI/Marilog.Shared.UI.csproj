@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <Folder Include="Framework\Components\Container\" />
-    <Folder Include="Framework\NewFolder\" />
   </ItemGroup>
 
 </Project>

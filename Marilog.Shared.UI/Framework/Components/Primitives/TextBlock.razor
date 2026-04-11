@@ -31,16 +31,6 @@
     [Parameter] public WrapMode TextWrapping { get; set; } = WrapMode.Wrap;
 
     [Parameter] public HAlign TextAlignment { get; set; } = HAlign.Left;
-
-    private string BuildClass()
-    {
-        return TailwindHelper.Classes(
-            TailwindHelper.FontSizeClass(FontSize),
-            ResolveWeight(),
-            ResolveAlignment(),
-            ResolveWrap()
-        );
-    }
     private string ResolveWeight()
     {
         return Bold ? "font-bold" : "font-normal";
