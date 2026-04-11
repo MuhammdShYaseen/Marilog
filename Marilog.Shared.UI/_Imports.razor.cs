@@ -4,3 +4,8 @@ global using Microsoft.AspNetCore.Components.Rendering;
 global using Marilog.Shared.UI.Framework.Enums;
 global using Marilog.Shared.UI.Framework.Abstractions;
 global using System.Windows.Input;
+global using Marilog.Shared.UI.Framework.Components.Layout;
+global using Marilog.Shared.UI.Framework.Components.Primitives;
+global using Marilog.Shared.UI.Framework.Components.Surfaces;
+global using Marilog.Shared.UI.Framework.Components.Inputs;
+global using Marilog.Shared.UI.Framework.Components.Collections;

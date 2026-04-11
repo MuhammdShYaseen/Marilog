@@ -1,0 +1,132 @@
+@using Marilog.Shared.UI.Framework.Components.Inputs
+@using Marilog.Shared.UI.Framework.Components.Layout
+@using Marilog.Shared.UI.Framework.Components.Primitives
+
+@inherits FrameworkElement
+
+<Grid ColumnDefinitions="260 *"
+      RowDefinitions="Auto *">
+
+    <!-- Sidebar -->
+
+    <ScrollViewer Grid.Column="0"
+                  Grid.RowSpan="2">
+
+        <NavMenu>
+
+            @foreach (var item in Items)
+            {
+                @RenderItem(item)
+            }
+
+        </NavMenu>
+
+    </ScrollViewer>
+
+    <!-- Top Bar -->
+
+    <Grid Grid.Column="1"
+            Grid.Row="0"
+            Padding="8">
+
+        <Grid ColumnDefinitions="300 * Auto"
+              ColumnGap="8">
+
+            <TextBox TValue="string"
+                     Placeholder="Search"
+                     Grid.Column="0">
+
+                <LeadingIcon>
+                    <i class="material-icons">
+                        search
+                    </i>
+                </LeadingIcon>
+
+            </TextBox>
+
+            <IconButton Grid.Column="2"
+                        Icon="material-icons account_circle"
+                        ButtonVariant="ButtonVariant.Text" />
+
+        </Grid>
+
+    </Grid>
+
+    <!-- Main Content -->
+
+    <ScrollViewer Grid.Column="1"
+                  Grid.Row="1">
+
+        @ChildContent
+
+    </ScrollViewer>
+
+</Grid>
+
+@code {
+
+    [Parameter]
+    public IEnumerable<NavItemModel> Items { get; set; }
+        = Enumerable.Empty<NavItemModel>();
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    // =========================
+
+    private RenderFragment RenderItem(NavItemModel item)
+        => builder =>
+    {
+        if (item.HasChildren)
+        {
+            builder.OpenComponent<NavGroup>(0);
+
+            builder.AddAttribute(1,
+                "Title",
+                item.Title);
+
+            builder.AddAttribute(2,
+                "Icon",
+                item.Icon);
+
+            builder.AddAttribute(3,
+                "Key",
+                item.Key);
+
+            builder.AddAttribute(4,
+                "ChildContent",
+                (RenderFragment)(childBuilder =>
+                {
+                    int seq = 0;
+
+                    foreach (var child in item.Children)
+                    {
+                        childBuilder.AddContent(
+                            seq++,
+                            RenderItem(child));
+                    }
+                }));
+
+            builder.CloseComponent();
+        }
+        else
+        {
+            builder.OpenComponent<NavItem>(0);
+
+            builder.AddAttribute(1,
+                "Text",
+                item.Title);
+
+            builder.AddAttribute(2,
+                "Icon",
+                item.Icon);
+
+            builder.AddAttribute(3,
+                "Key",
+                item.Key);
+
+            builder.CloseComponent();
+        }
+    };
+
+}
