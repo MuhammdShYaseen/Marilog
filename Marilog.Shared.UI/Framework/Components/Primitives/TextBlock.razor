@@ -1,10 +1,11 @@
+@using System.Text
 @inherits FrameworkElement
 
 @if (!string.IsNullOrEmpty(Text) || ChildContent is not null)
 {
     <MudText Typo="@ResolveTypo()"
              Align="@ResolveTextAlign()"
-             Color="@ResolveColor()"
+             Color="@ResolveMudColor()"
              Style="@BuildTextStyle()"
              Class="@GetCachedClass()">
 
@@ -59,11 +60,21 @@
     };
 
     private MudBlazor.Color ResolveColor()
-        => ToMudColor(Foreground);
+    {
+        // Foreground له أولوية
+        if (Foreground != ThemeColor.Default)
+            return ToMudColor(Foreground);
+
+        // fallback إلى Color من FrameworkElement
+        return ToMudColor(Color);
+    }
 
     private string BuildTextStyle()
     {
-        var sb = new System.Text.StringBuilder(GetCachedStyle());
+        var sb = new StringBuilder(GetCachedStyle());
+
+        if (!string.IsNullOrWhiteSpace(ColorHex))
+            sb.Append($"color:{ColorHex};");
 
         if (Bold)
             sb.Append("font-weight:700;");

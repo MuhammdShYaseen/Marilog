@@ -60,14 +60,20 @@
     // =========================
 
     private MudBlazor.AlignItems ResolveAlignItems()
-        => ChildAlignment switch
-        {
-            HAlign.Left => MudBlazor.AlignItems.Start,
-            HAlign.Center => MudBlazor.AlignItems.Center,
-            HAlign.Right => MudBlazor.AlignItems.End,
-            HAlign.Stretch => MudBlazor.AlignItems.Stretch,
-            _ => MudBlazor.AlignItems.Stretch
-        };
+    => ChildAlignment switch
+    {
+        HAlign.Left => MudBlazor.AlignItems.Start,
+        HAlign.Center => MudBlazor.AlignItems.Center,
+        HAlign.Right => MudBlazor.AlignItems.End,
+
+        // أهم تعديل هنا
+        HAlign.Stretch =>
+            Orientation == Enums.Orientation.Horizontal
+                ? MudBlazor.AlignItems.Center
+                : MudBlazor.AlignItems.Stretch,
+
+        _ => MudBlazor.AlignItems.Stretch
+    };
 
     private MudBlazor.Justify ResolveJustify()
         => ChildJustify switch
@@ -113,7 +119,8 @@
         // مهم جدًا داخل Grid / Flex
         sb.Append("min-width:0;");
         sb.Append("min-height:0;");
-
+        sb.Append("width:100%;");
+        sb.Append("box-sizing:border-box;");
         return sb.ToString();
     }
 

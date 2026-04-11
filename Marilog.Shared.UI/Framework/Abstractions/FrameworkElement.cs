@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using System.Text;
-using MudBlazor;
 
 namespace Marilog.Shared.UI.Framework.Abstractions
 {
@@ -95,6 +94,8 @@ namespace Marilog.Shared.UI.Framework.Abstractions
         [Parameter] public string? Style { get; set; }
         [Parameter] public string? ElementId { get; set; }
         [Parameter] public ThemeColor Color { get; set; } = ThemeColor.Default;
+
+        [Parameter]public string? ColorHex { get; set; }
         [Parameter] public Dictionary<string, object>? DataAttributes { get; set; }
 
         // =========================
@@ -187,6 +188,19 @@ namespace Marilog.Shared.UI.Framework.Abstractions
                 _lastStyleVersion = _styleVersion;
             }
             return _cachedStyle;
+        }
+
+        protected MudBlazor.Color ResolveMudColor()
+        {
+            return ToMudColor(Color);
+        }
+
+        protected string? ResolveCssColor()
+        {
+            if (!string.IsNullOrWhiteSpace(ColorHex))
+                return $"color:{ColorHex};";
+
+            return null;
         }
 
         // =========================
