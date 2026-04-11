@@ -1,5 +1,4 @@
-﻿
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @inject NavigationService NavService
 @* Required *@
 <MudThemeProvider />
@@ -29,15 +28,15 @@
             <MudText Typo="Typo.h6">Navigation</MudText>
         </MudDrawerHeader>
         <MudNavMenu>
-    @if (Items is null)
-    {
-        <MudText>Loading...</MudText>
-    }
-    else
-    {
-        <NavMenu Items="Items" />
-    }
-</MudNavMenu>
+            @if (Items is null)
+            {
+                <MudText>Loading...</MudText>
+            }
+            else
+            {
+                <NavMenu Items="Items" />
+            }
+        </MudNavMenu>
     </MudDrawer>
 
     <MudMainContent>

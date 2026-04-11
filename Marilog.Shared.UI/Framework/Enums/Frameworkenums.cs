@@ -170,7 +170,9 @@
     {
         Filled,     // solid background
         Outlined,   // border only
-        Text        // no background or border
+        Text,
+        Ghost,
+        Subtle// no background or border
     }
 
     public enum ButtonSize

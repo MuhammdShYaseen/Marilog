@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
+    <PackageReference Include="MudBlazor" Version="9.3.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Marilog.Shared.CSharp\Marilog.Shared.CSharp.csproj" />
-    <ProjectReference Include="..\Marilog.Shared.UI\Marilog.Shared.UI.csproj" />
   </ItemGroup>
 
 </Project>
