@@ -22,30 +22,27 @@
     [Parameter] public string? Text { get; set; }
     [Parameter] public string? Icon { get; set; }
 
-    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public string? Key { get; set; }
 
-    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+    [CascadingParameter] public NavContext? NavContext { get; set; }
 
-    // =========================
-    // CLICK
-    // =========================
+    private bool IsActive =>
+        NavContext?.IsActive(Key) == true;
 
     private async Task HandleClick(MouseEventArgs args)
     {
         if (!IsEnabled)
             return;
 
-        await Click.InvokeAsync(args);
+        if (!string.IsNullOrWhiteSpace(Key))
+        {
+            NavContext?.SetActive(Key);
+        }
     }
-
-    // =========================
-    // CLASS SYSTEM (FIXED)
-    // =========================
 
     protected override string BuildBaseClass()
     {
         return TailwindHelper.Classes(
-
             "xf-nav-item",
             "flex items-center gap-2",
             "px-3 py-2 rounded-md",
@@ -63,12 +60,6 @@
         );
     }
 
-    // =========================
-    // STYLE SYSTEM (FIXED)
-    // =========================
-
     protected override string BuildBaseStyle()
-    {
-        return base.BuildBaseStyle();
-    }
+        => base.BuildBaseStyle();
 }

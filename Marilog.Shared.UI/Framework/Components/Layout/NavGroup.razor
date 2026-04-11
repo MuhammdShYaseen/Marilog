@@ -1,0 +1,181 @@
+@inherits FrameworkElement
+
+<div class="@GetCachedClass()"
+     style="@GetCachedStyle()">
+
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <div class="xf-nav-group-header"
+             @onclick="ToggleCollapse">
+
+            <span class="xf-nav-group-title">
+                @Title
+            </span>
+
+            @if (Collapsible)
+            {
+                <span class="xf-nav-group-chevron">
+                    @(IsExpanded ? "▾" : "▸")
+                </span>
+            }
+
+        </div>
+    }
+
+    @if (IsExpanded)
+    {
+        <nav class="@BuildItemsClass()">
+            @ChildContent
+        </nav>
+    }
+
+</div>
+
+@code {
+
+    // =========================
+    // PARAMETERS
+    // =========================
+
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public bool Collapsible { get; set; } = true;
+
+    [Parameter] public bool InitiallyExpanded { get; set; } = false;
+
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+
+    [Parameter] public int Spacing { get; set; } = 4;
+
+    // =========================
+    // CONTEXT
+    // =========================
+
+    [CascadingParameter] public NavContext? NavContext { get; set; }
+
+    // =========================
+    // STATE
+    // =========================
+
+    private bool _isExpanded;
+    private bool _userCollapsedOverride;
+
+    private bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value)
+                return;
+
+            _isExpanded = value;
+            InvalidateVisual();
+        }
+    }
+
+    // =========================
+    // LIFECYCLE
+    // =========================
+
+    protected override void OnInitialized()
+    {
+        _isExpanded = InitiallyExpanded;
+
+        if (NavContext is not null)
+        {
+            NavContext.OnChange += HandleNavChanged;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        SyncWithActiveState();
+    }
+
+    // =========================
+    // AUTO EXPAND LOGIC
+    // =========================
+
+    private void HandleNavChanged()
+    {
+        SyncWithActiveState();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncWithActiveState()
+    {
+        if (NavContext is null || !Collapsible)
+            return;
+
+        // إذا يوجد أي NavItem داخل هذا group active → expand
+        var shouldExpand = ContainsActiveItem();
+
+        if (shouldExpand)
+        {
+            _isExpanded = true;
+            _userCollapsedOverride = false;
+        }
+        else
+        {
+            // إذا المستخدم أغلقه manually، نحترم ذلك
+            if (!_userCollapsedOverride)
+                _isExpanded = InitiallyExpanded;
+        }
+    }
+
+    // =========================
+    // DETECTION STRATEGY
+    // =========================
+    // ملاحظة: هذا يعتمد على Key prefix convention (WPF-like grouping)
+
+    private bool ContainsActiveItem()
+    {
+        if (NavContext is null)
+            return false;
+
+        // Strategy 1 (simple + production-safe):
+        // group considers active if any active key starts with group name
+        if (string.IsNullOrWhiteSpace(Title))
+            return false;
+
+        return NavContext.ActiveKey?.StartsWith(Title, StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    // =========================
+    // USER ACTION
+    // =========================
+
+    private void ToggleCollapse()
+    {
+        if (!Collapsible)
+            return;
+
+        _userCollapsedOverride = true;
+        IsExpanded = !IsExpanded;
+    }
+
+    // =========================
+    // CLASS BUILDING
+    // =========================
+
+    protected override string BuildBaseClass()
+    {
+        return TailwindHelper.Classes(
+            "xf-nav-group",
+            "flex flex-col",
+            base.BuildBaseClass()
+        );
+    }
+
+    private string BuildItemsClass()
+    {
+        return TailwindHelper.Classes(
+            "flex",
+            Orientation == Orientation.Vertical ? "flex-col" : "flex-row flex-wrap",
+            TailwindHelper.GapClass(Spacing)
+        );
+    }
+}
