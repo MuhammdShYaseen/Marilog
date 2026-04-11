@@ -1,16 +1,16 @@
 @inherits FrameworkElement
 @typeparam TValue
 
-<div class="@BuildWrapperClass()">
+<div class="w-full @GetCachedClass()">
 
     @if (!string.IsNullOrWhiteSpace(Label))
     {
-        <label class="@TailwindHelper.Classes("block mb-1 text-sm text-slate-700")">
+        <label class="block mb-1 text-sm text-slate-700">
             @Label
         </label>
     }
 
-    <select class="@BuildClass()"
+    <select class="@GetCachedClass()"
             value="@SelectedValue"
             @onchange="HandleChange"
             disabled="@(!IsEnabled || IsReadOnly)">
@@ -36,14 +36,14 @@
 
     @if (!string.IsNullOrWhiteSpace(HelperText))
     {
-        <div class="@TailwindHelper.Classes("mt-1 text-xs text-slate-500")">
+        <div class="mt-1 text-xs text-slate-500">
             @HelperText
         </div>
     }
 
     @if (HasError && !string.IsNullOrWhiteSpace(ErrorText))
     {
-        <div class="@TailwindHelper.Classes("mt-1 text-xs text-red-600")">
+        <div class="mt-1 text-xs text-red-600">
             @ErrorText
         </div>
     }
@@ -94,14 +94,10 @@
         return Convert.ChangeType(value, typeof(TValue));
     }
 
-    private string BuildClass()
+    protected override string BuildBaseClass()
     {
         return TailwindHelper.Classes(
-            "w-full",
-            "px-3 py-2",
-            "rounded-md",
-            "border",
-            "outline-none",
+            "w-full px-3 py-2 rounded-md border outline-none",
 
             FieldVariant switch
             {

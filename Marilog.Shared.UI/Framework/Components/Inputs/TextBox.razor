@@ -1,3 +1,4 @@
+@using System.Text
 @inherits Marilog.Shared.UI.Framework.Abstractions.FrameworkElement
 @typeparam TValue
 
@@ -55,12 +56,13 @@
                       style="@InputStyle"
                       @oninput="HandleInput"
                       @onblur="HandleBlur"
+                      type="@ResolveInputType()"
                       @onkeyup="HandleKeyUp">@(Text?.ToString())</textarea>
         }
         else
         {
             <input id="@_inputId"
-                   type="@InputType"
+                   type="@ResolveInputType()"
                    value="@Text?.ToString()"
                    placeholder="@Placeholder"
                    maxlength="@(MaxLength > 0 ? MaxLength : 524288)"
@@ -155,7 +157,7 @@
 
     private readonly string _inputId = $"xf-textbox-{Guid.NewGuid():N}";
 
-    private string InputType => IsPassword ? "password" : "text";
+    [Parameter] public string Type { get; set; } = "text";
 
     // ── Class builders ────────────────────────────────────────────────────
 
@@ -216,10 +218,16 @@
         }
     }
 
-    private string InputStyle => TailwindHelper.Classes(
-        Width.HasValue ? $"width:{Width}px" : null,
-        Height.HasValue ? $"height:{Height}px" : null
-    ) is { Length: > 0 } s ? s : string.Empty;
+    private string InputStyle
+    {
+        get
+        {
+            return TailwindHelper.Classes(
+                Width.HasValue ? $"width:{Width}px" : null,
+                Height.HasValue ? $"height:{Height}px" : null
+            );
+        }
+    }
 
     // ── Event handlers ────────────────────────────────────────────────────
 
@@ -296,5 +304,16 @@
         };
 
         return (TValue?)result;
+    }
+
+    private string ResolveInputType()
+    {
+        if (IsPassword)
+            return "password";
+
+        if (Multiline)
+            return "text";
+
+        return Type;
     }
 }

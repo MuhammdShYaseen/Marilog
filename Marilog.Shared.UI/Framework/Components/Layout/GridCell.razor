@@ -2,69 +2,52 @@
     GridCell — Blazor equivalent of WPF Grid attached properties.
 *@
 @inherits FrameworkElement
-<div class="xf-grid @GetCachedClass()"
-     style="@BuildGridStyle()">
+
+<div class="@GetCachedClass()"
+     style="@GetCachedStyle()">
 
     @ChildContent
 
 </div>
 @code {
 
-    [Parameter] public string ColumnDefinitions { get; set; } = "*";
-    [Parameter] public string RowDefinitions { get; set; } = "Auto";
+    [Parameter] public int Column { get; set; }
 
-    [Parameter] public int ColumnGap { get; set; } = 8;
-    [Parameter] public int RowGap { get; set; } = 8;
+    [Parameter] public int Row { get; set; }
+
+    [Parameter] public int ColumnSpan { get; set; } = 1;
+
+    [Parameter] public int RowSpan { get; set; } = 1;
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string? _cachedStyle;
-    private string? _lastSignature;
-
-    protected override void OnParametersSet()
+    protected override string BuildBaseClass()
     {
-        var signature = $"{ColumnDefinitions}|{RowDefinitions}|{ColumnGap}|{RowGap}|{GetCachedStyle()}";
-
-        if (signature != _lastSignature)
-        {
-            _lastSignature = signature;
-            _cachedStyle = BuildGridStyleInternal();
-        }
-    }
-
-    private string BuildGridStyle()
-    {
-        return _cachedStyle ?? BuildGridStyleInternal();
-    }
-
-    private string BuildGridStyleInternal()
-    {
-        return string.Concat(
-            GetCachedStyle(),
-            "display:grid;",
-            $"grid-template-columns:{ParseTracks(ColumnDefinitions)};",
-            $"grid-template-rows:{ParseTracks(RowDefinitions)};",
-            ColumnGap > 0 ? $"column-gap:{ColumnGap}px;" : null,
-            RowGap > 0 ? $"row-gap:{RowGap}px;" : null
+        return TailwindHelper.Classes(
+            "xf-grid-cell",
+            base.BuildBaseClass()
         );
     }
 
-    private static string ParseTracks(string? definitions)
+    protected override string BuildBaseStyle()
     {
-        if (string.IsNullOrWhiteSpace(definitions))
-            return "auto";
+        var sb = new System.Text.StringBuilder(
+            base.BuildBaseStyle()
+        );
 
-        return string.Join(' ',
-            definitions
-                .Trim()
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Select(ParseTrack));
+        var colStart = Column + 1;
+        var rowStart = Row + 1;
+
+        var colEnd = colStart + ColumnSpan;
+        var rowEnd = rowStart + RowSpan;
+
+        sb.Append($"grid-column:{colStart}/{colEnd};");
+        sb.Append($"grid-row:{rowStart}/{rowEnd};");
+
+        sb.Append("min-width:0;");
+        sb.Append("min-height:0;");
+
+        return sb.ToString();
     }
 
-    private static string ParseTrack(string t)
-    {
-        return GridLength.TryParse(t, out var gl)
-            ? gl.ToCss()
-            : "auto";
-    }
 }

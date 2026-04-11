@@ -1,49 +1,52 @@
 @inherits FrameworkElement
 
-<div style="@GetScrollStyle()" class="xf-scrollviewer @GetCachedClass()">
+<div class="@GetCachedClass()"
+     style="@GetCachedStyle()">
+
     @ChildContent
+
 </div>
 
 @code {
 
     [Parameter] public bool HorizontalScroll { get; set; }
+
     [Parameter] public bool VerticalScroll { get; set; } = true;
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string? _cachedScrollStyle;
+    // =========================
+    // CLASS BUILDING
+    // =========================
 
-    private bool _lastHorizontal;
-    private bool _lastVertical;
-
-    private string GetScrollStyle()
+    protected override string BuildBaseClass()
     {
-        if (_cachedScrollStyle is null ||
-            _lastHorizontal != HorizontalScroll ||
-            _lastVertical != VerticalScroll)
-        {
-            _lastHorizontal = HorizontalScroll;
-            _lastVertical = VerticalScroll;
+        return TailwindHelper.Classes(
+            "xf-scrollviewer",
+            "block",
 
-            _cachedScrollStyle = BuildScrollStyle();
-        }
+            // Always prevent flex/grid overflow bugs
+            "min-w-0",
+            "min-h-0",
 
-        return _cachedScrollStyle;
+            base.BuildBaseClass()
+        );
     }
 
-    private string BuildScrollStyle()
-    {
-        var sb = new System.Text.StringBuilder(GetCachedStyle());
+    // =========================
+    // STYLE BUILDING
+    // =========================
 
-        sb.Append("display:block;");
+    protected override string BuildBaseStyle()
+    {
+        var sb = new System.Text.StringBuilder(
+            base.BuildBaseStyle()
+        );
 
         sb.Append($"overflow-x:{(HorizontalScroll ? "auto" : "hidden")};");
         sb.Append($"overflow-y:{(VerticalScroll ? "auto" : "hidden")};");
 
-        // مهم جدًا لمنع flex/grid overflow bugs
-        sb.Append("min-width:0;");
-        sb.Append("min-height:0;");
-
         return sb.ToString();
     }
+
 }

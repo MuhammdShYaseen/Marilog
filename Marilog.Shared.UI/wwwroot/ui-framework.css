@@ -99,3 +99,6 @@
     .xf-stackpanel > .mud-card:first-child {
         margin-top: 0;
     }
+.xf-nav-item {
+    transition: all 120ms ease-in-out;
+}

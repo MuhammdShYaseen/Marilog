@@ -1,36 +1,62 @@
 @inherits FrameworkElement
 
-<div style="@BuildGridStyle()" class="xf-grid @GetCachedClass()">
+<div class="@GetCachedClass()"
+     style="@GetCachedStyle()">
+
     @ChildContent
+
 </div>
 
 @code {
 
     [Parameter] public string ColumnDefinitions { get; set; } = "*";
+
     [Parameter] public string RowDefinitions { get; set; } = "Auto";
 
     [Parameter] public int ColumnGap { get; set; } = 8;
+
     [Parameter] public int RowGap { get; set; } = 8;
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string BuildGridStyle()
-    {
-        var sb = new System.Text.StringBuilder(GetCachedStyle());
+    // =========================
+    // CLASS BUILDING
+    // =========================
 
-        sb.Append("display:grid;");
+    protected override string BuildBaseClass()
+    {
+        return TailwindHelper.Classes(
+            "xf-grid",
+            "grid",
+
+            TailwindHelper.GapClass(ColumnGap),
+
+            base.BuildBaseClass()
+        );
+    }
+
+    // =========================
+    // STYLE BUILDING
+    // =========================
+
+    protected override string BuildBaseStyle()
+    {
+        var sb = new System.Text.StringBuilder(
+            base.BuildBaseStyle()
+        );
 
         sb.Append($"grid-template-columns:{ParseTracks(ColumnDefinitions)};");
         sb.Append($"grid-template-rows:{ParseTracks(RowDefinitions)};");
 
-        if (ColumnGap > 0)
-            sb.Append($"column-gap:{ColumnGap}px;");
-
-        if (RowGap > 0)
+        if (RowGap != ColumnGap)
             sb.Append($"row-gap:{RowGap}px;");
 
         return sb.ToString();
     }
+
+    // =========================
+    // TRACK PARSER (WPF style)
+    // =========================
 
     private static string ParseTracks(string? definitions)
     {
@@ -57,4 +83,5 @@
 
         return string.Join(' ', result);
     }
+
 }

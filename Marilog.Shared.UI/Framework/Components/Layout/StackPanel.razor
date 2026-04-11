@@ -19,34 +19,14 @@
     // ── Layout ───────────────────────────────────────────────────────────
 
     private Orientation _orientation = Orientation.Vertical;
-
-    /// <summary>Stack direction — mirrors WPF StackPanel.Orientation.</summary>
-    [Parameter]
-    public Orientation Orientation
-    {
-        get => _orientation;
-        set
-        {
-            if (_orientation == value) return;
-            _orientation = value;
-            InvalidateVisual();
-        }
-    }
+    private Orientation _lastOrientation;
+    private int _lastSpacing;
+    [Parameter] public Orientation Orientation { get; set; }
 
     private int _spacing = 8;
 
     /// <summary>Gap between children in pixels.</summary>
-    [Parameter]
-    public int Spacing
-    {
-        get => _spacing;
-        set
-        {
-            if (_spacing == value) return;
-            _spacing = value;
-            InvalidateVisual();
-        }
-    }
+    [Parameter] public int Spacing { get; set; } = 8;
 
     /// <summary>Allow children to wrap — mimics WPF WrapPanel.</summary>
     [Parameter] public bool WrapContent { get; set; } = false;
@@ -121,5 +101,17 @@
             return "items-center";
 
         return TailwindHelper.HAlignItemsClass(ChildAlignment);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_lastOrientation != Orientation ||
+            _lastSpacing != Spacing)
+        {
+            _lastOrientation = Orientation;
+            _lastSpacing = Spacing;
+
+            InvalidateVisual(); // or mark dirty cache
+        }
     }
 }

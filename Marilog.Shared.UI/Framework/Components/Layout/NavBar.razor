@@ -1,0 +1,88 @@
+@inherits FrameworkElement
+
+<nav class="@GetCachedClass()"
+     style="@GetCachedStyle()">
+
+    @ChildContent
+
+</nav>
+
+@code {
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public Orientation Orientation { get; set; }
+        = Orientation.Vertical;
+
+    [Parameter]
+    public SpacingSize Spacing { get; set; }
+        = SpacingSize.Small;
+
+    [Parameter] public bool Compact { get; set; }
+
+    [Parameter]
+    public HAlign HorizontalAlign { get; set; }
+        = HAlign.Left;
+
+    // =========================
+    // CLASS
+    // =========================
+
+    protected override string BuildBaseClass()
+    {
+        return TailwindHelper.Classes(
+
+            "xf-navbar",
+
+            // Layout
+            "flex",
+
+            Orientation == Orientation.Vertical
+                ? "flex-col"
+                : "flex-row",
+
+            // Spacing
+            TailwindHelper.GapClass(Spacing),
+
+            // Typography
+            Compact ? "text-sm" : "text-base",
+
+            // Alignment
+            ResolveHorizontalAlignment(),
+
+            // Base
+            base.BuildBaseClass()
+        );
+    }
+
+    private string ResolveHorizontalAlignment()
+    {
+        return HorizontalAlign switch
+        {
+            HAlign.Left => "items-start",
+            HAlign.Center => "items-center",
+            HAlign.Right => "items-end",
+            HAlign.Stretch => "items-stretch",
+            _ => "items-start"
+        };
+    }
+
+    // =========================
+    // STYLE
+    // =========================
+
+    protected override string BuildBaseStyle()
+    {
+        var sb = new System.Text.StringBuilder(
+            base.BuildBaseStyle()
+        );
+
+        // Navbar-specific safety rules
+        sb.Append("min-width:0;");
+        sb.Append("min-height:0;");
+
+        return sb.ToString();
+    }
+
+}

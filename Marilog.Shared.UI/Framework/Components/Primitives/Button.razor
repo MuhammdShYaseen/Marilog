@@ -1,8 +1,8 @@
 @inherits FrameworkElement
 
 <button type="button"
-        class="@BuildClass()"
-        style="@BuildBaseStyle()"
+        class="@GetCachedClass()"
+        style="@GetCachedStyle()"
         disabled="@IsDisabled()"
         @onclick="HandleClick">
 
@@ -19,7 +19,9 @@
     }
     else if (!string.IsNullOrWhiteSpace(Content))
     {
-        <span>@TailwindHelper.FontSizeClass(Size)">@Content</span>
+        <span class="@TailwindHelper.FontSizeClass(Size)">
+            @Content
+        </span>
     }
 
     @if (!string.IsNullOrWhiteSpace(EndIcon))
@@ -48,7 +50,9 @@
     [Parameter] public string? StartIcon { get; set; }
     [Parameter] public string? EndIcon { get; set; }
 
-    //[Parameter] public bool IsEnabled { get; set; } = true;
+    // =========================
+    // COMMAND STATE
+    // =========================
 
     private bool _canExecuteCache = true;
 
@@ -56,14 +60,20 @@
     {
         if (Command != null)
         {
-            _canExecuteCache = Command.CanExecute(CommandParameter);
+            _canExecuteCache =
+                Command.CanExecute(CommandParameter);
         }
 
         base.OnParametersSet();
     }
 
-    private bool IsDisabled() =>
-        !IsEnabled || (Command != null && !_canExecuteCache);
+    private bool IsDisabled()
+        => !IsEnabled ||
+           (Command != null && !_canExecuteCache);
+
+    // =========================
+    // CLICK
+    // =========================
 
     private async Task HandleClick(MouseEventArgs args)
     {
@@ -77,28 +87,56 @@
             await Click.InvokeAsync(args);
     }
 
-    private string BuildClass()
+    // =========================
+    // CLASS SYSTEM (CORRECT)
+    // =========================
+
+    protected override string BuildBaseClass()
     {
         return TailwindHelper.Classes(
+
             // layout
             "inline-flex items-center justify-center",
 
-            // spacing + size (WPF-like)
+            // spacing
             TailwindHelper.ButtonSizeClass(ButtonSize),
 
-            // typography (mapped from enum)
+            // typography
             TailwindHelper.FontSizeClass(Size),
 
-            // variant system
-            TailwindHelper.ButtonClass(ButtonVariant, ThemeColor),
+            // variant
+            TailwindHelper.ButtonClass(
+                ButtonVariant,
+                ThemeColor
+            ),
 
             // state
             IsDisabled()
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer",
 
-            // base inheritance
             base.BuildBaseClass()
         );
     }
+
+    protected override string BuildBaseStyle()
+    {
+        var sb = new System.Text.StringBuilder();
+
+        // base style (Width / Height / Margin / etc)
+        sb.Append(base.BuildBaseStyle());
+
+        // Minimum button width (WPF-like behavior)
+        if (!Width.HasValue)
+        {
+            sb.Append("min-width:64px;");
+        }
+
+        // Prevent layout overflow bugs
+        sb.Append("min-height:0;");
+        sb.Append("min-width:0;");
+
+        return sb.ToString();
+    }
+
 }

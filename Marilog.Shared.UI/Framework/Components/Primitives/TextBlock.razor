@@ -2,8 +2,8 @@
 
 @if (!string.IsNullOrEmpty(Text) || ChildContent is not null)
 {
-    <span class="@BuildClass()"
-          style="@BuildTextStyle()">
+    <span class="@GetCachedClass()"
+          style="@GetCachedStyle()">
 
         @if (ChildContent is not null)
         {
@@ -16,7 +16,6 @@
 
     </span>
 }
-
 @code {
 
     [Parameter] public string? Text { get; set; }
@@ -66,14 +65,48 @@
             _ => "whitespace-normal"
         };
     }
-
-    private string BuildTextStyle()
+    protected override string BuildBaseClass()
     {
+        return TailwindHelper.Classes(
+
+            // Font size
+            TailwindHelper.FontSizeClass(FontSize),
+
+            // Weight
+            Bold ? "font-bold" : "font-normal",
+
+            // Italic
+            Italic ? "italic" : null,
+
+            // Underline
+            Underline ? "underline" : null,
+
+            // Alignment
+            ResolveAlignment(),
+
+            // Wrap
+            ResolveWrap(),
+
+            // Color via Tailwind when possible
+            Foreground != ThemeColor.Default
+                ? TailwindHelper.TextColorClass(Foreground)
+                : null,
+
+            base.BuildBaseClass()
+        );
+    }
+    protected override string BuildBaseStyle()
+    {
+        var baseStyle = base.BuildBaseStyle();
+
         return string.Concat(
-            GetCachedStyle(),
+
+            baseStyle,
+
+            // Hex override only (not expressible via Tailwind)
             !string.IsNullOrWhiteSpace(ColorHex)
                 ? $"color:{ColorHex};"
-                : ResolveColorClassAsStyle()
+                : null
         );
     }
 
