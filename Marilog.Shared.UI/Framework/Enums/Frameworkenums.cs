@@ -1,9 +1,27 @@
 ﻿namespace Marilog.Shared.UI.Framework.Enums
 {
     // =========================
-    // BASIC LAYOUT
+    // LAYOUT
     // =========================
+    public enum WrapMode
+    {
+        /// <summary>
+        /// Default wrapping behavior (normal line wrapping).
+        /// </summary>
+        Wrap,
 
+        /// <summary>
+        /// No wrapping — text stays on a single line.
+        /// Equivalent to WPF TextWrapping.NoWrap.
+        /// </summary>
+        NoWrap,
+
+        /// <summary>
+        /// Wrap text and allow breaking long words if needed.
+        /// Similar to overflow-wrap:anywhere in CSS.
+        /// </summary>
+        WrapWithOverflow
+    }
     public enum Orientation
     {
         Horizontal,
@@ -19,30 +37,51 @@
     }
 
     // =========================
-    // TEXT & TYPOGRAPHY
+    // ALIGNMENT
     // =========================
 
-    /// <summary>
-    /// Semantic font size scale — mirrors WPF/XAML named sizes.
-    /// </summary>
+    /// <summary>Horizontal alignment — mirrors WPF HorizontalAlignment.</summary>
+    public enum HAlign
+    {
+        Left,
+        Center,
+        Right,
+        Stretch
+    }
+
+    /// <summary>Vertical alignment — mirrors WPF VerticalAlignment.</summary>
+    public enum VAlign
+    {
+        Top,
+        Center,
+        Bottom,
+        Stretch
+    }
+
+    // =========================
+    // TYPOGRAPHY
+    // =========================
+
     public enum FontSize
     {
-        /// <summary>10px equivalent — fine print, labels</summary>
-        Tiny,
-        /// <summary>12px — captions, secondary text</summary>
-        Small,
-        /// <summary>14px — default body copy</summary>
-        Regular,
-        /// <summary>16px — slightly emphasized body</summary>
+        Tiny,       // 10px — fine print
+        Small,      // 12px — captions
+        Regular,    // 14px — body default
+        Medium,     // 16px — slightly emphasized
+        Large,      // 20px — sub-headings
+        XLarge,     // 24px — section headings
+        XXLarge,    // 32px — page titles
+        Display     // 48px — hero text
+    }
+
+    public enum FontWeight
+    {
+        Thin,
+        Light,
+        Normal,
         Medium,
-        /// <summary>20px — sub-headings</summary>
-        Large,
-        /// <summary>24px — section headings</summary>
-        XLarge,
-        /// <summary>32px — page titles</summary>
-        XXLarge,
-        /// <summary>48px — display / hero text</summary>
-        Display
+        SemiBold,
+        Bold
     }
 
     public enum TextAlignment
@@ -53,68 +92,29 @@
         Justify
     }
 
-    public enum TextWrapping
+    /// <summary>
+    /// Text wrapping — unified enum (was split between TextWrapping and WrapMode).
+    /// Use this everywhere in UI.Framework.
+    /// </summary>
+    public enum TextWrap
     {
         NoWrap,
         Wrap,
         WrapWithOverflow
     }
 
-    public enum FontWeight
-    {
-        Normal,
-        Bold,
-        SemiBold,
-        Light,
-        Medium,
-        Thin
-    }
-
-    // =========================
-    // ALIGNMENT
-    // =========================
-
-    /// <summary>
-    /// Horizontal alignment — mirrors WPF HorizontalAlignment.
-    /// </summary>
-    public enum HAlign
-    {
-        Left,
-        Center,
-        Right,
-        Stretch
-    }
-
-    /// <summary>
-    /// Vertical alignment — mirrors WPF VerticalAlignment.
-    /// </summary>
-    public enum VAlign
-    {
-        Top,
-        Center,
-        Bottom,
-        Stretch
-    }
-
     // =========================
     // SPACING & SIZING
     // =========================
 
-    public enum Spacing
+    public enum SpacingSize
     {
-        None,
-        Tiny,
-        Small,
-        Medium,
-        Large,
-        XLarge
-    }
-
-    public enum Visibility
-    {
-        Visible,
-        Hidden,
-        Collapsed
+        None,   // 0px
+        Tiny,   // 4px
+        Small,  // 8px
+        Medium, // 16px
+        Large,  // 24px
+        XLarge  // 32px
     }
 
     public enum Stretch
@@ -126,17 +126,40 @@
     }
 
     // =========================
-    // GRID SYSTEM
+    // VISIBILITY
+    // =========================
+
+    public enum VisibilityMode
+    {
+        Visible,
+        Hidden,     // occupies space but invisible
+        Collapsed   // removed from layout entirely
+    }
+
+    // =========================
+    // GRID
     // =========================
 
     public enum GridUnitType
     {
-        /// <summary>Fixed pixel size</summary>
-        Pixel,
-        /// <summary>Star sizing — proportional remaining space</summary>
-        Star,
-        /// <summary>Size to content</summary>
-        Auto
+        Pixel,  // fixed px
+        Star,   // proportional (1fr)
+        Auto    // size to content
+    }
+
+    // =========================
+    // CURSOR
+    // =========================
+
+    public enum CursorType
+    {
+        Default,
+        Pointer,
+        Text,
+        NotAllowed,
+        Wait,
+        Move,
+        Resize
     }
 
     // =========================
@@ -145,12 +168,9 @@
 
     public enum ButtonVariant
     {
-        /// <summary>Solid filled background</summary>
-        Filled,
-        /// <summary>Outlined border only</summary>
-        Outlined,
-        /// <summary>Text-only, no background or border</summary>
-        Text
+        Filled,     // solid background
+        Outlined,   // border only
+        Text        // no background or border
     }
 
     public enum ButtonSize
@@ -167,27 +187,12 @@
     }
 
     // =========================
-    // CARDS & SURFACES
-    // =========================
-
-    /// <summary>
-    /// Card elevation levels — mirrors WPF/Material depth.
-    /// </summary>
-    public enum ElevationLevel
-    {
-        None = 0,
-        Low = 1,
-        Medium = 4,
-        High = 8,
-        Floating = 16
-    }
-
-    // =========================
     // COLORS & THEMING
     // =========================
 
     /// <summary>
-    /// Semantic theme colour — maps to MudBlazor.Color internally.
+    /// Semantic color intent.
+    /// Maps to Tailwind utility classes via TailwindHelper — no MudBlazor dependency.
     /// </summary>
     public enum ThemeColor
     {
@@ -199,47 +204,49 @@
         Error,
         Info,
         Dark,
+        Light,
         Inherit,
         Transparent
+    }
+
+    // =========================
+    // CARDS & SURFACES
+    // =========================
+
+    public enum ElevationLevel
+    {
+        None = 0,
+        Low = 1,
+        Medium = 4,
+        High = 8,
+        Floating = 16
     }
 
     // =========================
     // INPUT & FORM CONTROLS
     // =========================
 
-    public enum InputState
+    public enum InputVariant
     {
-        Enabled,
-        Disabled,
-        ReadOnly
-    }
-
-    public enum ControlState
-    {
-        Normal,
-        Hover,
-        Focused,
-        Pressed,
-        Disabled
-    }
-
-    public enum CursorType
-    {
-        Default,
-        Pointer,
-        Text,
-        NotAllowed,
-        Wait,
-        Move,
-        Resize
+        Outlined,
+        Filled,
+        Underline
     }
 
     public enum SelectionMode
     {
+        None,
         Single,
         Multiple,
-        Extended,
-        None
+        Extended
+    }
+
+    public enum ValidationMode
+    {
+        None,
+        OnChange,
+        OnBlur,
+        Explicit
     }
 
     // =========================
@@ -248,63 +255,14 @@
 
     public enum ScrollBarVisibility
     {
-        Disabled,
         Auto,
+        Always,
         Hidden,
-        Visible
+        Disabled
     }
 
     // =========================
-    // POPUPS & OVERLAYS
-    // =========================
-
-    public enum PopupPlacement
-    {
-        Bottom,
-        Top,
-        Left,
-        Right,
-        BottomStart,
-        BottomEnd,
-        TopStart,
-        TopEnd,
-        LeftStart,
-        LeftEnd,
-        RightStart,
-        RightEnd
-    }
-
-    // =========================
-    // DATA BINDING
-    // =========================
-
-    public enum BindingMode
-    {
-        OneWay,
-        TwoWay,
-        OneTime,
-        OneWayToSource,
-        Default
-    }
-
-    public enum UpdateSourceTrigger
-    {
-        Default,
-        PropertyChanged,
-        LostFocus,
-        Explicit
-    }
-
-    public enum ValidationMode
-    {
-        None,
-        OnPropertyChanged,
-        OnLostFocus,
-        Explicit
-    }
-
-    // =========================
-    // SORTING & GROUPING
+    // SORTING
     // =========================
 
     public enum SortDirection
@@ -312,36 +270,6 @@
         None,
         Ascending,
         Descending
-    }
-
-    // =========================
-    // IMAGES & MEDIA
-    // =========================
-
-    public enum ImageFit
-    {
-        Contain,
-        Cover,
-        Fill,
-        ScaleDown,
-        None
-    }
-
-    // =========================
-    // PROGRESS & STATUS
-    // =========================
-
-    public enum ProgressType
-    {
-        Linear,
-        Circular
-    }
-
-    public enum ProgressSize
-    {
-        Small,
-        Medium,
-        Large
     }
 
     // =========================
@@ -357,6 +285,22 @@
     }
 
     // =========================
+    // POPUPS & OVERLAYS
+    // =========================
+
+    public enum PopupPlacement
+    {
+        Bottom,
+        Top,
+        Left,
+        Right,
+        BottomStart,
+        BottomEnd,
+        TopStart,
+        TopEnd
+    }
+
+    // =========================
     // DIALOGS
     // =========================
 
@@ -369,26 +313,26 @@
         FullScreen
     }
 
-    public enum DialogPosition
+    // =========================
+    // IMAGES
+    // =========================
+
+    public enum ImageFit
     {
-        Center,
-        Top,
-        Bottom,
-        Custom
+        Contain,
+        Cover,
+        Fill,
+        ScaleDown,
+        None
     }
 
-    public enum WrapMode
+    // =========================
+    // PROGRESS
+    // =========================
+
+    public enum ProgressType
     {
-        NoWrap,
-
-        /// <summary>
-        /// Normal wrapping.
-        /// </summary>
-        Wrap,
-
-        /// <summary>
-        /// Wrap with overflow breaking.
-        /// </summary>
-        WrapWithOverflow
+        Linear,
+        Circular
     }
 }

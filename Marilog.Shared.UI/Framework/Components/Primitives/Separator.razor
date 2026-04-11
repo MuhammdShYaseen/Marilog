@@ -1,5 +1,29 @@
 @inherits FrameworkElement
 
-<MudDivider Class="@GetCachedClass()"
-            Style="@GetCachedStyle()"
-            @attributes="GetDataAttributes()" />
+<hr class="@BuildClass()"
+    style="@GetCachedStyle()"
+    @attributes="GetDataAttributes()" />
+@code {
+
+    [Parameter] public bool Vertical { get; set; }
+    [Parameter] public bool Inset { get; set; }
+
+    private string BuildClass()
+    {
+        return TailwindHelper.Classes(
+            Vertical ? "w-px h-full" : "h-px w-full",
+            "bg-slate-200",
+            Inset ? "ml-4" : null,
+            GetCachedClass()
+        );
+    }
+
+    protected override Dictionary<string, object> GetDataAttributes()
+    {
+        return new()
+        {
+            ["data-control"] = GetType().Name,
+            ["data-enabled"] = IsEnabled
+        };
+    }
+}

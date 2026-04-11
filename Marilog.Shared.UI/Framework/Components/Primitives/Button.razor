@@ -1,16 +1,17 @@
-
 @inherits FrameworkElement
 
-<MudButton Variant="@ResolveVariant()"
-           Color="@ToMudColor(ThemeColor)"
-           Size="@ResolveSize()"
-           Disabled="@IsDisabled()"
-           OnClick="@HandleClick"
-           StartIcon="@StartIcon"
-           EndIcon="@EndIcon"
-           FullWidth="@(HorizontalAlignment == HAlign.Stretch)"
-           Style="@BuildBaseStyle()"
-           Class="@Class">
+<button type="button"
+        class="@BuildClass()"
+        style="@BuildBaseStyle()"
+        disabled="@IsDisabled()"
+        @onclick="HandleClick">
+
+    @if (!string.IsNullOrWhiteSpace(StartIcon))
+    {
+        <span class="inline-flex items-center mr-2">
+            <i class="@StartIcon"></i>
+        </span>
+    }
 
     @if (ChildContent is not null)
     {
@@ -18,10 +19,17 @@
     }
     else if (!string.IsNullOrWhiteSpace(Content))
     {
-        @Content
+        <span>@TailwindHelper.FontSizeClass(Size)">@Content</span>
     }
 
-</MudButton>
+    @if (!string.IsNullOrWhiteSpace(EndIcon))
+    {
+        <span class="inline-flex items-center ml-2">
+            <i class="@EndIcon"></i>
+        </span>
+    }
+
+</button>
 
 @code {
 
@@ -35,6 +43,7 @@
     [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Filled;
     [Parameter] public ThemeColor ThemeColor { get; set; } = ThemeColor.Primary;
     [Parameter] public FontSize Size { get; set; } = FontSize.Regular;
+    [Parameter] public ButtonSize ButtonSize { get; set; } = ButtonSize.Medium;
 
     [Parameter] public string? StartIcon { get; set; }
     [Parameter] public string? EndIcon { get; set; }
@@ -58,27 +67,38 @@
 
     private async Task HandleClick(MouseEventArgs args)
     {
-        if (!IsEnabled)
+        if (IsDisabled())
             return;
 
-        if (Command is not null && Command.CanExecute(CommandParameter))
+        if (Command?.CanExecute(CommandParameter) == true)
             Command.Execute(CommandParameter);
 
         if (Click.HasDelegate)
             await Click.InvokeAsync(args);
     }
 
-    private MudBlazor.Variant ResolveVariant() => ButtonVariant switch
+    private string BuildClass()
     {
-        ButtonVariant.Outlined => MudBlazor.Variant.Outlined,
-        ButtonVariant.Text => MudBlazor.Variant.Text,
-        _ => MudBlazor.Variant.Filled
-    };
+        return TailwindHelper.Classes(
+            // layout
+            "inline-flex items-center justify-center",
 
-    private MudBlazor.Size ResolveSize() => Size switch
-    {
-        FontSize.Small or FontSize.Tiny => MudBlazor.Size.Small,
-        FontSize.Large or FontSize.XLarge or FontSize.XXLarge or FontSize.Display => MudBlazor.Size.Large,
-        _ => MudBlazor.Size.Medium
-    };
+            // spacing + size (WPF-like)
+            TailwindHelper.ButtonSizeClass(ButtonSize),
+
+            // typography (mapped from enum)
+            TailwindHelper.FontSizeClass(Size),
+
+            // variant system
+            TailwindHelper.ButtonClass(ButtonVariant, ThemeColor),
+
+            // state
+            IsDisabled()
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer",
+
+            // base inheritance
+            base.BuildBaseClass()
+        );
+    }
 }

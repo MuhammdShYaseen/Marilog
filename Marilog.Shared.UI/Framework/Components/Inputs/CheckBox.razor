@@ -1,52 +1,179 @@
-
-
+@inherits Marilog.Shared.UI.Framework.Abstractions.FrameworkElement
 
 @*
     CheckBox — mirrors WPF CheckBox.
-    All MudBlazor types fully-qualified.
+    Pure HTML input[type=checkbox] + Tailwind. Zero MudBlazor.
+
+    Supports:
+      - Two-way IsChecked (bool?)
+      - Tri-state: false → true → null (indeterminate)
+      - Content label (string) or rich ChildContent (RenderFragment)
+      - Dense mode for compact layouts
+      - ThemeColor maps to Tailwind accent colour
 *@
 
-@inherits FrameworkElement
+<label class="@GetCachedClass()"
+       style="@GetCachedStyle()">
 
-<MudCheckBox T="bool?"
-             Value="@BoundValue"
-             ValueChanged="@OnValueChanged"
-             Label="@Content"
-             Color="@ToMudColor(ThemeColor)"
-             TriState="@IsThreeState"
-             ReadOnly="@IsReadOnly"
-             Disabled="@(!IsEnabled)"
-             Dense="@Dense"
-             Style="@BuildBaseStyle()"
-             Class="@Class">
+    <span class="relative flex items-center @(Dense ? "mt-0" : "mt-0.5")">
 
-    @ChildContent
+        @* ── Native checkbox (visually hidden, custom styled) ── *@
+        <input type="checkbox"
+               checked="@(IsChecked == true)"
+               @ref="_inputRef"
+               disabled="@(!IsEnabled)"
+               readonly="@IsReadOnly"
+               tabindex="@TabIndex"
+               class="sr-only peer"
+               @onchange="HandleChange" />
 
-</MudCheckBox>
+        @* ── Custom checkbox face ── *@
+        <span class="@CheckboxFaceClass">
+
+            @* Checkmark icon *@
+            @if (IsChecked == true)
+            {
+                <svg class="@IconClass" viewBox="0 0 12 12" fill="none"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 6l3 3 5-5"
+                          stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            }
+
+            @* Indeterminate dash *@
+            @if (IsChecked is null)
+            {
+                <svg class="@IconClass" viewBox="0 0 12 12" fill="none"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 6h7"
+                          stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" />
+                </svg>
+            }
+
+        </span>
+
+    </span>
+
+    @* ── Label text ── *@
+    @if (ChildContent is not null)
+    {
+        <span class="@LabelClass">@ChildContent</span>
+    }
+    else if (!string.IsNullOrEmpty(Content))
+    {
+        <span class="@LabelClass">@Content</span>
+    }
+
+</label>
 
 @code {
 
-    [Parameter] public bool? IsChecked { get; set; }
+    // ── Value ─────────────────────────────────────────────────────────────
+
+    [Parameter] public bool? IsChecked { get; set; } = false;
     [Parameter] public EventCallback<bool?> IsCheckedChanged { get; set; }
 
+    // ── Content ───────────────────────────────────────────────────────────
+
+    /// <summary>Text label — mirrors WPF CheckBox.Content when string.</summary>
     [Parameter] public string? Content { get; set; }
+
+    /// <summary>Rich label — overrides Content when set.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    [Parameter] public bool IsThreeState { get; set; }
-    [Parameter] public bool IsReadOnly { get; set; }
-    //[Parameter] public bool IsEnabled { get; set; } = true;
+    // ── Behaviour ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Cycles false → true → null (indeterminate) — mirrors WPF IsThreeState.
+    /// </summary>
+    [Parameter] public bool IsThreeState { get; set; } = false;
+
+    [Parameter] public bool IsReadOnly { get; set; } = false;
+
+    // ── Appearance ────────────────────────────────────────────────────────
 
     [Parameter] public ThemeColor ThemeColor { get; set; } = ThemeColor.Primary;
-    [Parameter] public bool Dense { get; set; }
 
-    private bool? BoundValue => IsChecked;
+    /// <summary>Reduces size and padding for dense/compact layouts.</summary>
+    [Parameter] public bool Dense { get; set; } = false;
 
-    private async Task OnValueChanged(bool? value)
+    // ── Ref (used to set indeterminate state via JS-free approach) ────────
+
+    private ElementReference _inputRef;
+
+    // ── Class builders ────────────────────────────────────────────────────
+
+    protected override string BuildBaseClass()
     {
-        if (IsChecked != value)
+        return TailwindHelper.Classes(
+        "inline-flex items-start",
+        Dense ? "gap-1.5 mt-0" : "gap-2 mt-0.5",
+        IsEnabled && !IsReadOnly ? "cursor-pointer" : "cursor-default",
+        !IsEnabled ? "opacity-60" : null,
+        base.BuildBaseClass()
+    );
+    }
+
+    private string CheckboxFaceClass => TailwindHelper.Classes(
+        // size
+        Dense ? "h-4 w-4" : "h-5 w-5",
+        // shape
+        "rounded",
+        // flex centering for the icon inside
+        "flex items-center justify-center",
+        // transition
+        "transition-colors duration-150",
+        // state-based styling
+        IsChecked == true ? TailwindHelper.BgColorClass(ThemeColor) + " " +
+                             TailwindHelper.BorderColorClass(ThemeColor) + " border-2" :
+        IsChecked is null ? "bg-slate-200 border-2 border-slate-400" :
+                             "bg-white border-2 " + TailwindHelper.BorderColorClass(IsEnabled ? ThemeColor.Default : ThemeColor.Secondary),
+        // focus ring — driven by peer (the hidden <input>)
+        "peer-focus-visible:ring-2 peer-focus-visible:ring-offset-1",
+        IsEnabled && !IsReadOnly ? "peer-focus-visible:ring-blue-500" : null
+    );
+
+    private string IconClass => TailwindHelper.Classes(
+        Dense ? "h-3 w-3" : "h-3.5 w-3.5",
+        IsChecked == true ? "text-white" : "text-slate-600"
+    );
+
+    private string LabelClass => TailwindHelper.Classes(
+        Dense ? "text-sm" : "text-sm",
+        "leading-snug select-none",
+        !IsEnabled ? "text-slate-400" : "text-slate-700"
+    );
+
+    // ── Event handler ─────────────────────────────────────────────────────
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        if (!IsEnabled || IsReadOnly) return;
+
+        bool? next;
+
+        if (IsThreeState)
         {
-            IsChecked = value;
-            await IsCheckedChanged.InvokeAsync(value);
+            // Tri-state cycle: false → true → null → false …
+            next = IsChecked switch
+            {
+                false => true,
+                true => null,
+                null => false
+            };
+        }
+        else
+        {
+            // Standard toggle
+            next = e.Value is bool b ? b : IsChecked != true;
+        }
+
+        if (IsChecked != next)
+        {
+            IsChecked = next;
+            await IsCheckedChanged.InvokeAsync(next);
         }
     }
 }

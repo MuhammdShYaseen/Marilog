@@ -1,100 +1,300 @@
-
+@inherits Marilog.Shared.UI.Framework.Abstractions.FrameworkElement
+@typeparam TValue
 
 @*
     TextBox<TValue> — mirrors WPF TextBox / PasswordBox.
-    All MudBlazor types fully-qualified.
+    Pure HTML input + Tailwind. Zero MudBlazor.
+
+    Supports:
+      - Two-way binding via Text / TextChanged
+      - Single-line, multiline (textarea), password
+      - Leading / trailing icons (SVG slot)
+      - Label, Placeholder, HelperText
+      - Error state with message
+      - Outlined / Filled / Underline variants
+      - Immediate (onChange) vs OnBlur update trigger
 *@
 
-@inherits FrameworkElement
-@typeparam TValue
+<div class="@GetCachedClass()" style="@GetCachedStyle()">
 
-<MudTextField T="TValue"
-              Value="@BoundValue"
-              ValueChanged="@OnValueChanged"
-              Label="@Label"
-              Placeholder="@Placeholder"
-              HelperText="@HelperText"
-              Variant="@ResolveVariant()"
-              InputType="@ResolveInputType()"
-              Lines="@(Multiline ? Lines : 1)"
-              MaxLength="@(MaxLength > 0 ? MaxLength : int.MaxValue)"
-              ReadOnly="@IsReadOnly"
-              Disabled="@(!IsEnabled)"
-              Immediate="@Immediate"
-              Adornment="@ResolveAdornment()"
-              AdornmentIcon="@ResolveAdornmentIcon()"
-              AdornmentColor="MudBlazor.Color.Default"
-              Style="@BuildBaseStyle()"
-              Class="@Class"
-              Error="@HasError"
-              ErrorText="@ErrorText"
-              OnBlur="@HandleBlur"
-              OnKeyUp="@HandleKeyUp" />
+    @* ── Label ────────────────────────────────────────────────────────── *@
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label for="@_inputId"
+               class="@LabelClass">
+            @Label
+            @if (IsRequired)
+            {
+                <span class="text-red-500 ml-0.5">*</span>
+            }
+        </label>
+    }
+
+    @* ── Input wrapper (handles icon slots) ───────────────────────────── *@
+    <div class="relative flex items-center">
+
+        @* Leading icon *@
+        @if (LeadingIcon is not null)
+        {
+            <div class="absolute left-3 flex items-center pointer-events-none text-slate-400">
+                @LeadingIcon
+            </div>
+        }
+
+        @* Input or Textarea *@
+        @if (Multiline)
+        {
+            <textarea id="@_inputId"
+                      rows="@Lines"
+                      placeholder="@Placeholder"
+                      maxlength="@(MaxLength > 0 ? MaxLength : int.MaxValue)"
+                      readonly="@IsReadOnly"
+                      disabled="@(!IsEnabled)"
+                      tabindex="@TabIndex"
+                      class="@InputClass"
+                      style="@InputStyle"
+                      @oninput="HandleInput"
+                      @onblur="HandleBlur"
+                      @onkeyup="HandleKeyUp">@(Text?.ToString())</textarea>
+        }
+        else
+        {
+            <input id="@_inputId"
+                   type="@InputType"
+                   value="@Text?.ToString()"
+                   placeholder="@Placeholder"
+                   maxlength="@(MaxLength > 0 ? MaxLength : 524288)"
+                   readonly="@IsReadOnly"
+                   disabled="@(!IsEnabled)"
+                   tabindex="@TabIndex"
+                   class="@InputClass"
+                   style="@InputStyle"
+                   @oninput="HandleInput"
+                   @onblur="HandleBlur"
+                   @onkeyup="HandleKeyUp" />
+        }
+
+        @* Trailing icon *@
+        @if (TrailingIcon is not null)
+        {
+            <div class="absolute right-3 flex items-center pointer-events-none text-slate-400">
+                @TrailingIcon
+            </div>
+        }
+
+    </div>
+
+    @* ── Helper / Error text ──────────────────────────────────────────── *@
+    @if (HasError && !string.IsNullOrEmpty(ErrorText))
+    {
+        <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+            <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clip-rule="evenodd" />
+            </svg>
+            @ErrorText
+        </p>
+    }
+    else if (!string.IsNullOrEmpty(HelperText))
+    {
+        <p class="mt-1 text-xs text-slate-400">@HelperText</p>
+    }
+
+</div>
 
 @code {
 
+    // ── Value binding ─────────────────────────────────────────────────────
+
     [Parameter] public TValue? Text { get; set; }
     [Parameter] public EventCallback<TValue?> TextChanged { get; set; }
+
+    // ── Labels & hints ────────────────────────────────────────────────────
 
     [Parameter] public string? Label { get; set; }
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public string? HelperText { get; set; }
 
-    [Parameter] public bool IsPassword { get; set; }
-    [Parameter] public bool Multiline { get; set; }
+    // ── Input behaviour ───────────────────────────────────────────────────
+
+    [Parameter] public bool IsPassword { get; set; } = false;
+    [Parameter] public bool Multiline { get; set; } = false;
     [Parameter] public int Lines { get; set; } = 4;
-    [Parameter] public int MaxLength { get; set; }
+    [Parameter] public int MaxLength { get; set; } = 0;
+    [Parameter] public bool IsReadOnly { get; set; } = false;
+    [Parameter] public bool IsRequired { get; set; } = false;
+
+    /// <summary>
+    /// When true (default) fires TextChanged on every keystroke.
+    /// When false fires only on blur — mirrors WPF UpdateSourceTrigger.
+    /// </summary>
     [Parameter] public bool Immediate { get; set; } = true;
-    [Parameter] public bool IsReadOnly { get; set; }
 
-    [Parameter] public ButtonVariant FieldVariant { get; set; } = ButtonVariant.Outlined;
-    [Parameter] public string? LeadingIcon { get; set; }
-    [Parameter] public string? TrailingIcon { get; set; }
+    // ── Appearance ────────────────────────────────────────────────────────
 
-    [Parameter] public bool HasError { get; set; }
+    [Parameter] public InputVariant FieldVariant { get; set; } = InputVariant.Outlined;
+
+    /// <summary>Leading icon — pass a RenderFragment containing an SVG or any markup.</summary>
+    [Parameter] public RenderFragment? LeadingIcon { get; set; }
+
+    /// <summary>Trailing icon — same pattern as LeadingIcon.</summary>
+    [Parameter] public RenderFragment? TrailingIcon { get; set; }
+
+    // ── Validation ────────────────────────────────────────────────────────
+
+    [Parameter] public bool HasError { get; set; } = false;
     [Parameter] public string? ErrorText { get; set; }
+
+    // ── Events ────────────────────────────────────────────────────────────
 
     [Parameter] public EventCallback<FocusEventArgs> Blur { get; set; }
     [Parameter] public EventCallback<KeyboardEventArgs> KeyUp { get; set; }
 
-    private TValue? BoundValue => Text;
+    // ── Internals ─────────────────────────────────────────────────────────
 
-    private async Task OnValueChanged(TValue? value)
+    private readonly string _inputId = $"xf-textbox-{Guid.NewGuid():N}";
+
+    private string InputType => IsPassword ? "password" : "text";
+
+    // ── Class builders ────────────────────────────────────────────────────
+
+    protected override string BuildBaseClass()
     {
-        if (!EqualityComparer<TValue?>.Default.Equals(Text, value))
+        return TailwindHelper.Classes(
+            "flex flex-col gap-1",
+            "w-full",
+            base.BuildBaseClass()
+        );
+    }
+
+    private string LabelClass => TailwindHelper.Classes(
+        "text-sm font-medium",
+        HasError ? "text-red-600" :
+        !IsEnabled ? "text-slate-400" :
+                          "text-slate-700"
+    );
+
+    private string InputClass
+    {
+        get
         {
-            Text = value;
-            await TextChanged.InvokeAsync(value);
+            // Base variant style
+            var variant = FieldVariant switch
+            {
+                InputVariant.Filled => "bg-slate-100 border-0 border-b-2 rounded-t-md px-3 py-2",
+                InputVariant.Underline => "bg-transparent border-0 border-b-2 rounded-none px-0 py-2",
+                _ => "bg-white border rounded-md px-3 py-2"   // Outlined
+            };
+
+            // Border/ring colour — error overrides focus colour
+            var borderColor = HasError
+                ? (FieldVariant == InputVariant.Outlined
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    : "border-red-500 focus:border-red-500")
+                : (FieldVariant == InputVariant.Outlined
+                    ? "border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    : "border-slate-300 focus:border-blue-500");
+
+            // Padding adjustments for icons
+            var paddingLeft = LeadingIcon is not null ? "pl-9" : null;
+            var paddingRight = TrailingIcon is not null ? "pr-9" : null;
+
+            return TailwindHelper.Classes(
+                "w-full",
+                "text-sm text-slate-800",
+                "outline-none",
+                "transition-colors duration-150",
+                !Multiline ? "h-10" : null,
+                IsReadOnly ? "bg-slate-50 cursor-default" : null,
+                !IsEnabled ? "opacity-60 cursor-not-allowed bg-slate-50" : null,
+                variant,
+                borderColor,
+                paddingLeft,
+                paddingRight
+            );
         }
     }
 
-    private MudBlazor.Variant ResolveVariant() => FieldVariant switch
-    {
-        ButtonVariant.Filled => MudBlazor.Variant.Filled,
-        ButtonVariant.Text => MudBlazor.Variant.Text,
-        _ => MudBlazor.Variant.Outlined
-    };
+    private string InputStyle => TailwindHelper.Classes(
+        Width.HasValue ? $"width:{Width}px" : null,
+        Height.HasValue ? $"height:{Height}px" : null
+    ) is { Length: > 0 } s ? s : string.Empty;
 
-    private MudBlazor.InputType ResolveInputType() =>
-        IsPassword ? MudBlazor.InputType.Password : MudBlazor.InputType.Text;
+    // ── Event handlers ────────────────────────────────────────────────────
 
-    private MudBlazor.Adornment ResolveAdornment()
+    private async Task HandleInput(ChangeEventArgs e)
     {
-        if (LeadingIcon != null) return MudBlazor.Adornment.Start;
-        if (TrailingIcon != null) return MudBlazor.Adornment.End;
-        return MudBlazor.Adornment.None;
-    }
-
-    private string? ResolveAdornmentIcon()
-    {
-        if (LeadingIcon != null) return LeadingIcon;
-        if (TrailingIcon != null) return TrailingIcon;
-        return null;
+        if (!Immediate) return;
+        await UpdateValue(e.Value?.ToString());
     }
 
     private async Task HandleBlur(FocusEventArgs e)
-        => await Blur.InvokeAsync(e);
+    {
+        // Always update on blur regardless of Immediate setting
+        if (!Immediate && _pendingValue is not null)
+            await UpdateValue(_pendingValue);
+
+        if (Blur.HasDelegate)
+            await Blur.InvokeAsync(e);
+    }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)
-        => await KeyUp.InvokeAsync(e);
+    {
+        if (KeyUp.HasDelegate)
+            await KeyUp.InvokeAsync(e);
+    }
+
+    private string? _pendingValue;
+
+    private async Task UpdateValue(string? raw)
+    {
+        try
+        {
+            TValue? converted = ConvertFromString(raw);
+
+            if (!EqualityComparer<TValue?>.Default.Equals(Text, converted))
+            {
+                Text = converted;
+                await TextChanged.InvokeAsync(converted);
+            }
+        }
+        catch
+        {
+            // Conversion failed (e.g. user typed letters in a TValue=int field)
+            // Swallow silently — HasError + ErrorText handle validation feedback
+        }
+    }
+
+    /// <summary>
+    /// Converts raw string input to TValue.
+    /// Handles: string, int, double, decimal, DateTime, bool, Guid, and nullable variants.
+    /// </summary>
+    private static TValue? ConvertFromString(string? raw)
+    {
+        if (raw is null) return default;
+
+        var targetType = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+
+        if (targetType == typeof(string))
+            return (TValue?)(object?)raw;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return default;
+
+        object? result = targetType switch
+        {
+            _ when targetType == typeof(int) => int.TryParse(raw, out var i) ? i : throw new FormatException(),
+            _ when targetType == typeof(double) => double.TryParse(raw, System.Globalization.NumberStyles.Any,
+                                                        System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : throw new FormatException(),
+            _ when targetType == typeof(decimal) => decimal.TryParse(raw, System.Globalization.NumberStyles.Any,
+                                                        System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : throw new FormatException(),
+            _ when targetType == typeof(DateTime) => DateTime.TryParse(raw, out var dt) ? dt : throw new FormatException(),
+            _ when targetType == typeof(bool) => bool.TryParse(raw, out var b) ? b : throw new FormatException(),
+            _ when targetType == typeof(Guid) => Guid.TryParse(raw, out var g) ? g : throw new FormatException(),
+            _ => Convert.ChangeType(raw, targetType)
+        };
+
+        return (TValue?)result;
+    }
 }

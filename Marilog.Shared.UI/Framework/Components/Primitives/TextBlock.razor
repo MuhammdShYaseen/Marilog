@@ -1,13 +1,9 @@
-@using System.Text
 @inherits FrameworkElement
 
 @if (!string.IsNullOrEmpty(Text) || ChildContent is not null)
 {
-    <MudText Typo="@ResolveTypo()"
-             Align="@ResolveTextAlign()"
-             Color="@ResolveMudColor()"
-             Style="@BuildTextStyle()"
-             Class="@GetCachedClass()">
+    <span class="@BuildClass()"
+          style="@BuildTextStyle()">
 
         @if (ChildContent is not null)
         {
@@ -18,7 +14,7 @@
             @Text
         }
 
-    </MudText>
+    </span>
 }
 
 @code {
@@ -37,66 +33,60 @@
 
     [Parameter] public HAlign TextAlignment { get; set; } = HAlign.Left;
 
-    private MudBlazor.Typo ResolveTypo() => FontSize switch
+    private string BuildClass()
     {
-        FontSize.Tiny => MudBlazor.Typo.caption,
-        FontSize.Small => MudBlazor.Typo.caption,
-        FontSize.Regular => MudBlazor.Typo.body2,
-        FontSize.Medium => MudBlazor.Typo.body1,
-        FontSize.Large => MudBlazor.Typo.subtitle1,
-        FontSize.XLarge => MudBlazor.Typo.h6,
-        FontSize.XXLarge => MudBlazor.Typo.h5,
-        FontSize.Display => MudBlazor.Typo.h4,
-        _ => MudBlazor.Typo.body1
-    };
-
-    private MudBlazor.Align ResolveTextAlign() => TextAlignment switch
+        return TailwindHelper.Classes(
+            TailwindHelper.FontSizeClass(FontSize),
+            ResolveWeight(),
+            ResolveAlignment(),
+            ResolveWrap()
+        );
+    }
+    private string ResolveWeight()
     {
-        HAlign.Left => MudBlazor.Align.Left,
-        HAlign.Center => MudBlazor.Align.Center,
-        HAlign.Right => MudBlazor.Align.Right,
-        HAlign.Stretch => MudBlazor.Align.Justify,
-        _ => MudBlazor.Align.Inherit
-    };
-
-    private MudBlazor.Color ResolveColor()
+        return Bold ? "font-bold" : "font-normal";
+    }
+    private string ResolveAlignment()
     {
-        // Foreground له أولوية
-        if (Foreground != ThemeColor.Default)
-            return ToMudColor(Foreground);
-
-        // fallback إلى Color من FrameworkElement
-        return ToMudColor(Color);
+        return TextAlignment switch
+        {
+            HAlign.Left => "text-left",
+            HAlign.Center => "text-center",
+            HAlign.Right => "text-right",
+            HAlign.Stretch => "text-justify",
+            _ => "text-left"
+        };
+    }
+    private string ResolveWrap()
+    {
+        return TextWrapping switch
+        {
+            WrapMode.NoWrap => "whitespace-nowrap",
+            WrapMode.WrapWithOverflow => "break-words",
+            _ => "whitespace-normal"
+        };
     }
 
     private string BuildTextStyle()
     {
-        var sb = new StringBuilder(GetCachedStyle());
+        return string.Concat(
+            GetCachedStyle(),
+            !string.IsNullOrWhiteSpace(ColorHex)
+                ? $"color:{ColorHex};"
+                : ResolveColorClassAsStyle()
+        );
+    }
 
-        if (!string.IsNullOrWhiteSpace(ColorHex))
-            sb.Append($"color:{ColorHex};");
-
-        if (Bold)
-            sb.Append("font-weight:700;");
-
-        if (Italic)
-            sb.Append("font-style:italic;");
-
-        if (Underline)
-            sb.Append("text-decoration:underline;");
-
-        sb.Append(TextWrapping switch
+    private string ResolveColorClassAsStyle()
+    {
+        return Foreground switch
         {
-            WrapMode.NoWrap =>
-                "white-space:nowrap;",
-
-            WrapMode.WrapWithOverflow =>
-                "white-space:pre-wrap;overflow-wrap:anywhere;",
-
-            _ =>
-                "white-space:normal;"
-        });
-
-        return sb.ToString();
+            ThemeColor.Primary => "color:#2563eb;",
+            ThemeColor.Secondary => "color:#64748b;",
+            ThemeColor.Success => "color:#059669;",
+            ThemeColor.Warning => "color:#d97706;",
+            ThemeColor.Error => "color:#dc2626;",
+            _ => ""
+        };
     }
 }

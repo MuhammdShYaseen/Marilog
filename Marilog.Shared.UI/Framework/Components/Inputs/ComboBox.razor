@@ -1,44 +1,54 @@
 @inherits FrameworkElement
 @typeparam TValue
 
+<div class="@BuildWrapperClass()">
 
-<MudSelect T="TValue"
-           Value="@BoundValue"
-           ValueChanged="@OnValueChanged"
-           Label="@Label"
-           Placeholder="@Placeholder"
-           HelperText="@HelperText"
-           Variant="@ResolveVariant()"
-           MultiSelection="@MultiSelect"
-           Disabled="@(!IsEnabled)"
-           ReadOnly="@IsReadOnly"
-           Dense="@Dense"
-           AnchorOrigin="MudBlazor.Origin.BottomLeft"
-           Style="@BuildBaseStyle()"
-           Class="@Class"
-           Error="@HasError"
-           ErrorText="@ErrorText">
-
-    @if (ItemsSource is not null)
+    @if (!string.IsNullOrWhiteSpace(Label))
     {
-        @foreach (var item in ItemsSource)
-        {
-            <MudSelectItem T="TValue" Value="@item">
-
-                @if (ItemTemplate is not null)
-                {
-                    @ItemTemplate(item)
-                }
-                else
-                {
-                    @(DisplayMember?.Invoke(item) ?? item?.ToString())
-                }
-
-            </MudSelectItem>
-        }
+        <label class="@TailwindHelper.Classes("block mb-1 text-sm text-slate-700")">
+            @Label
+        </label>
     }
 
-</MudSelect>
+    <select class="@BuildClass()"
+            value="@SelectedValue"
+            @onchange="HandleChange"
+            disabled="@(!IsEnabled || IsReadOnly)">
+
+        @if (!string.IsNullOrWhiteSpace(Placeholder))
+        {
+            <option disabled selected value="">
+                @Placeholder
+            </option>
+        }
+
+        @if (ItemsSource is not null)
+        {
+            foreach (var item in ItemsSource)
+            {
+                <option value="@item">
+                    @(DisplayMember?.Invoke(item) ?? item?.ToString())
+                </option>
+            }
+        }
+
+    </select>
+
+    @if (!string.IsNullOrWhiteSpace(HelperText))
+    {
+        <div class="@TailwindHelper.Classes("mt-1 text-xs text-slate-500")">
+            @HelperText
+        </div>
+    }
+
+    @if (HasError && !string.IsNullOrWhiteSpace(ErrorText))
+    {
+        <div class="@TailwindHelper.Classes("mt-1 text-xs text-red-600")">
+            @ErrorText
+        </div>
+    }
+
+</div>
 
 @code {
 
@@ -48,25 +58,25 @@
     [Parameter] public EventCallback<TValue?> SelectedValueChanged { get; set; }
 
     [Parameter] public Func<TValue, string?>? DisplayMember { get; set; }
-    [Parameter] public RenderFragment<TValue>? ItemTemplate { get; set; }
 
     [Parameter] public string? Label { get; set; }
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public string? HelperText { get; set; }
 
-    [Parameter] public bool MultiSelect { get; set; }
     [Parameter] public bool IsReadOnly { get; set; }
-    [Parameter] public bool Dense { get; set; }
 
     [Parameter] public ButtonVariant FieldVariant { get; set; } = ButtonVariant.Outlined;
 
     [Parameter] public bool HasError { get; set; }
     [Parameter] public string? ErrorText { get; set; }
 
-    private TValue? BoundValue => SelectedValue;
-
-    private async Task OnValueChanged(TValue? value)
+    private async Task HandleChange(ChangeEventArgs e)
     {
+        if (!IsEnabled || IsReadOnly)
+            return;
+
+        var value = (TValue?)ConvertValue(e.Value);
+
         if (!EqualityComparer<TValue?>.Default.Equals(SelectedValue, value))
         {
             SelectedValue = value;
@@ -74,10 +84,50 @@
         }
     }
 
-    private MudBlazor.Variant ResolveVariant() => FieldVariant switch
+    private object? ConvertValue(object? value)
     {
-        ButtonVariant.Filled => MudBlazor.Variant.Filled,
-        ButtonVariant.Text => MudBlazor.Variant.Text,
-        _ => MudBlazor.Variant.Outlined
-    };
+        if (value is null) return default;
+
+        if (typeof(TValue).IsEnum)
+            return Enum.Parse(typeof(TValue), value.ToString()!);
+
+        return Convert.ChangeType(value, typeof(TValue));
+    }
+
+    private string BuildClass()
+    {
+        return TailwindHelper.Classes(
+            "w-full",
+            "px-3 py-2",
+            "rounded-md",
+            "border",
+            "outline-none",
+
+            FieldVariant switch
+            {
+                ButtonVariant.Filled =>
+                    "bg-slate-100 border-slate-200 focus:border-blue-600",
+
+                ButtonVariant.Outlined =>
+                    "bg-white border-slate-300 focus:border-blue-600",
+
+                ButtonVariant.Text =>
+                    "bg-transparent border-transparent",
+
+                _ => "bg-white border-slate-300"
+            },
+
+            HasError ? "border-red-500 focus:border-red-500" : null,
+
+            !IsEnabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+        );
+    }
+
+    private string BuildWrapperClass()
+    {
+        return TailwindHelper.Classes(
+            "w-full",
+            base.BuildBaseClass()
+        );
+    }
 }

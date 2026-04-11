@@ -1,10 +1,7 @@
-@using MudBlazor
 @inherits FrameworkElement
 
-<MudCard Elevation="@((int)Elevation)"
-         Outlined="@Outlined"
-         Style="@BuildCardStyle()"
-         Class="@($"xf-card {GetCachedClass()}")">
+<div class="@BuildClass()"
+     style="@BuildCardStyle()">
 
     @if (!string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Subtitle))
     {
@@ -12,17 +9,16 @@
 
             @if (!string.IsNullOrWhiteSpace(Title))
             {
-                <MudText Typo="Typo.h6">
+                <div class="@TailwindHelper.Classes("text-lg font-semibold")">
                     @Title
-                </MudText>
+                </div>
             }
 
             @if (!string.IsNullOrWhiteSpace(Subtitle))
             {
-                <MudText Typo="Typo.body2"
-                         Color="@ToMudColor(ThemeColor.Secondary)">
+                <div class="@TailwindHelper.Classes("text-sm text-slate-500")">
                     @Subtitle
-                </MudText>
+                </div>
             }
 
             @if (HeaderActions is not null)
@@ -35,18 +31,18 @@
         </div>
     }
 
-    <MudCardContent Style="@GetContentPadding()">
+    <div class="xf-card-content @GetContentClass()">
         @ChildContent
-    </MudCardContent>
+    </div>
 
     @if (Actions is not null)
     {
-        <MudCardActions>
+        <div class="xf-card-actions">
             @Actions
-        </MudCardActions>
+        </div>
     }
 
-</MudCard>
+</div>
 
 @code {
 
@@ -63,10 +59,7 @@
 
     private string BuildCardStyle()
     {
-        var sb = new System.Text.StringBuilder(GetCachedStyle());
-        sb.Append("min-width:0;");
-        sb.Append("min-height:0;");
-        return sb.ToString();
+        return GetCachedStyle();
     }
 
     private string? _cachedPadding;
@@ -84,5 +77,31 @@
         }
 
         return _cachedPadding;
+    }
+
+    private string BuildClass()
+    {
+        return TailwindHelper.Classes(
+            "rounded-lg",
+            "bg-white",
+            "min-w-0",
+            "min-h-0",
+
+            TailwindHelper.ElevationClass(Elevation),
+
+            Outlined
+                ? "border border-slate-200"
+                : "border border-transparent",
+
+            GetCachedClass()
+        );
+    }
+
+    private string GetContentClass()
+    {
+        if (Padding.Equals(Thickness.Zero))
+            return "p-0";
+
+        return "p-4";
     }
 }

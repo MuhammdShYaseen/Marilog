@@ -1,60 +1,70 @@
 @*
     GridCell — Blazor equivalent of WPF Grid attached properties.
 *@
+@inherits FrameworkElement
+<div class="xf-grid @GetCachedClass()"
+     style="@BuildGridStyle()">
 
-<div style="@GetCachedStyle()" class="xf-grid-cell @Class">
     @ChildContent
-</div>
 
+</div>
 @code {
 
-    [Parameter] public int Column { get; set; } = 0;
-    [Parameter] public int Row { get; set; } = 0;
+    [Parameter] public string ColumnDefinitions { get; set; } = "*";
+    [Parameter] public string RowDefinitions { get; set; } = "Auto";
 
-    [Parameter] public int ColumnSpan { get; set; } = 1;
-    [Parameter] public int RowSpan { get; set; } = 1;
+    [Parameter] public int ColumnGap { get; set; } = 8;
+    [Parameter] public int RowGap { get; set; } = 8;
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public string? Class { get; set; }
 
     private string? _cachedStyle;
-    private int _lastColumn;
-    private int _lastRow;
-    private int _lastColumnSpan;
-    private int _lastRowSpan;
+    private string? _lastSignature;
 
-    private string GetCachedStyle()
+    protected override void OnParametersSet()
     {
-        if (_cachedStyle is null ||
-            _lastColumn != Column ||
-            _lastRow != Row ||
-            _lastColumnSpan != ColumnSpan ||
-            _lastRowSpan != RowSpan)
+        var signature = $"{ColumnDefinitions}|{RowDefinitions}|{ColumnGap}|{RowGap}|{GetCachedStyle()}";
+
+        if (signature != _lastSignature)
         {
-            _lastColumn = Column;
-            _lastRow = Row;
-            _lastColumnSpan = ColumnSpan;
-            _lastRowSpan = RowSpan;
-
-            _cachedStyle = BuildCellStyle();
+            _lastSignature = signature;
+            _cachedStyle = BuildGridStyleInternal();
         }
-
-        return _cachedStyle;
     }
 
-    private string BuildCellStyle()
+    private string BuildGridStyle()
     {
-        // CSS Grid uses 1-based indices
-        var colStart = Math.Max(1, Column + 1);
-        var rowStart = Math.Max(1, Row + 1);
+        return _cachedStyle ?? BuildGridStyleInternal();
+    }
 
-        var colEnd = colStart + Math.Max(1, ColumnSpan);
-        var rowEnd = rowStart + Math.Max(1, RowSpan);
+    private string BuildGridStyleInternal()
+    {
+        return string.Concat(
+            GetCachedStyle(),
+            "display:grid;",
+            $"grid-template-columns:{ParseTracks(ColumnDefinitions)};",
+            $"grid-template-rows:{ParseTracks(RowDefinitions)};",
+            ColumnGap > 0 ? $"column-gap:{ColumnGap}px;" : null,
+            RowGap > 0 ? $"row-gap:{RowGap}px;" : null
+        );
+    }
 
-        return
-            $"grid-column:{colStart}/{colEnd};" +
-            $"grid-row:{rowStart}/{rowEnd};" +
-            "min-width:0;" +
-            "min-height:0;";
+    private static string ParseTracks(string? definitions)
+    {
+        if (string.IsNullOrWhiteSpace(definitions))
+            return "auto";
+
+        return string.Join(' ',
+            definitions
+                .Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(ParseTrack));
+    }
+
+    private static string ParseTrack(string t)
+    {
+        return GridLength.TryParse(t, out var gl)
+            ? gl.ToCss()
+            : "auto";
     }
 }
