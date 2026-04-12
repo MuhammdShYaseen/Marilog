@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Marilog.Shared.UI.Framework.Abstractions
+﻿namespace Marilog.Shared.UI.Framework.Abstractions
 {
     /// <summary>
     /// A lightweight ICommand implementation — mirrors WPF RelayCommand / DelegateCommand.

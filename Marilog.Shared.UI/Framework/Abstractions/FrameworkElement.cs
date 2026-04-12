@@ -93,6 +93,9 @@ namespace Marilog.Shared.UI.Framework.Abstractions
         [Parameter] public EventCallback<FocusEventArgs> OnFocus { get; set; }
         [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
 
+        //--Command------------------
+        [CascadingParameter]public CommandContext? CommandContext { get; set; }
+
         // =========================
         // 6. RENDER BATCHING
         // =========================
