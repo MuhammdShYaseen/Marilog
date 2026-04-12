@@ -15,7 +15,7 @@
         }
         else if (!string.IsNullOrWhiteSpace(Icon))
         {
-            <i class="@Icon"></i>
+            <i class="@BuildIconElementClass()"></i>
         }
     </span>
 
@@ -153,5 +153,21 @@
             ButtonSize.Large => "text-lg",
             _ => "text-base"
         };
+    }
+    private string BuildIconElementClass()
+    {
+        return TailwindHelper.Classes(
+
+            Icon,
+
+            // مهم للأيقونات
+            "inline-block",
+
+            // يمنع مشاكل line-height
+            "align-middle",
+
+            // يسمح بتغيير اللون
+            "pointer-events-none"
+        );
     }
 }

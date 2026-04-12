@@ -278,19 +278,21 @@ namespace Marilog.Shared.UI.Framework.Abstractions
         protected virtual string BuildBaseClass()
         {
             return TailwindHelper.Classes(
-                // alignment
+                // Alignment
                 TailwindHelper.HAlignSelfClass(HorizontalAlignment),
-                // cursor
-                IsEnabled
-                    ? TailwindHelper.CursorClass(Cursor)
-                    : "cursor-not-allowed",
-                // disabled state
-                !IsEnabled ? "opacity-60 pointer-events-none" : null,
-                // color
-                Color != ThemeColor.Default
+                TailwindHelper.VAlignSelfClass(VerticalAlignment),
+                // Cursor (only when enabled)
+                IsEnabled ? TailwindHelper.CursorClass(Cursor) : null,
+
+                // Disabled state (بدون pointer-events-none)
+                !IsEnabled ? TailwindHelper.DisabledClass : null,
+
+                // Text color
+                Color != ThemeColor.Default && Color != ThemeColor.Inherit
                     ? TailwindHelper.TextColorClass(Color)
                     : null,
-                // consumer classes
+
+                // Custom classes
                 Class
             );
         }

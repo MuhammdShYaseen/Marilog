@@ -9,6 +9,42 @@ namespace Marilog.Shared.UI.Framework.Abstractions
     /// </summary>
     public static class TailwindHelper
     {
+        //Image-----------------
+
+        public static string ImageFit(ImageFitMode mode) => mode switch
+        {
+            ImageFitMode.Cover => "object-cover",
+            ImageFitMode.Contain => "object-contain",
+            ImageFitMode.Fill => "object-fill",
+            ImageFitMode.ScaleDown => "object-scale-down",
+            _ => "object-none"
+        };
+
+        public static string ImageShape(ImageShape shape) => shape switch
+        {
+            Enums.ImageShape.Circle => "rounded-full",
+            Enums.ImageShape.Rounded => "rounded-lg",
+            Enums.ImageShape.Square => "rounded-none",
+            Enums.ImageShape.Rectangle => "rounded-md",
+            _ => "rounded-none"
+        };
+
+        public static string ImageOverflow(ImageOverflowMode mode) => mode switch
+        {
+            ImageOverflowMode.Clip => "overflow-hidden",
+            ImageOverflowMode.Visible => "overflow-visible",
+            _ => "overflow-hidden"
+        };
+
+        //navbar----------------
+        public static string NavMenuModeClass(NavMenuMode mode) => mode switch
+        {
+            NavMenuMode.Vertical => "flex flex-col",
+            NavMenuMode.Horizontal => "flex flex-row",
+            NavMenuMode.Compact => "flex flex-col text-sm gap-1",
+            NavMenuMode.Mini => "flex flex-col w-12",
+            _ => "flex flex-col"
+        };
         // =========================
         // FONT SIZE
         // =========================
@@ -71,17 +107,19 @@ namespace Marilog.Shared.UI.Framework.Abstractions
 
         public static string TextColorClass(ThemeColor color) => color switch
         {
-            ThemeColor.Primary => "text-blue-600",
-            ThemeColor.Secondary => "text-slate-500",
-            ThemeColor.Success => "text-emerald-600",
-            ThemeColor.Warning => "text-amber-500",
-            ThemeColor.Error => "text-red-600",
-            ThemeColor.Info => "text-sky-500",
-            ThemeColor.Dark => "text-slate-900",
-            ThemeColor.Light => "text-slate-100",
+            ThemeColor.Primary => "text-primary-600 dark:text-primary-400",
+            ThemeColor.Secondary => "text-secondary-600 dark:text-secondary-400",
+            ThemeColor.Success => "text-success-600 dark:text-success-400",
+            ThemeColor.Warning => "text-warning-600 dark:text-warning-400",
+            ThemeColor.Error => "text-error-600 dark:text-error-400",
+            ThemeColor.Info => "text-info-600 dark:text-info-400",
+            ThemeColor.Dark => "text-gray-900 dark:text-gray-100",
+            ThemeColor.Light => "text-gray-600 dark:text-gray-300",  // ✅ قابل للقراءة
             ThemeColor.Inherit => "text-inherit",
             ThemeColor.Transparent => "text-transparent",
-            _ => "text-slate-800"  // Default
+            ThemeColor.Default => "text-gray-700 dark:text-gray-300"  // ✅ متسق
+,
+            _ => throw new NotImplementedException()
         };
 
         // =========================
@@ -90,21 +128,25 @@ namespace Marilog.Shared.UI.Framework.Abstractions
 
         public static string BgColorClass(ThemeColor color) => color switch
         {
-            ThemeColor.Primary => "bg-blue-600",
-            ThemeColor.Secondary => "bg-slate-500",
-            ThemeColor.Success => "bg-emerald-600",
-            ThemeColor.Warning => "bg-amber-500",
-            ThemeColor.Error => "bg-red-600",
-            ThemeColor.Info => "bg-sky-500",
-            ThemeColor.Dark => "bg-slate-900",
-            ThemeColor.Light => "bg-slate-100",
+            ThemeColor.Primary => "bg-primary-600 dark:bg-primary-500",
+            ThemeColor.Secondary => "bg-secondary-600 dark:bg-secondary-500",
+            ThemeColor.Success => "bg-success-600 dark:bg-success-500",
+            ThemeColor.Warning => "bg-warning-500 dark:bg-warning-400",
+            ThemeColor.Error => "bg-error-600 dark:bg-error-500",
+            ThemeColor.Info => "bg-info-600 dark:bg-info-500",
+            ThemeColor.Dark => "bg-gray-900 dark:bg-gray-800",
+            ThemeColor.Light => "bg-gray-100 dark:bg-gray-700",
+            ThemeColor.Inherit => "bg-inherit",
             ThemeColor.Transparent => "bg-transparent",
-            _ => "bg-white"
+            ThemeColor.Default => "bg-white dark:bg-gray-800",
+            _ =>  "bg-white dark:bg-gray-800"
         };
 
         // =========================
         // THEME COLOR → BORDER
         // =========================
+        public static string DisabledClass =>
+        "opacity-50 cursor-not-allowed";  // ✅ بدون pointer-events-none
 
         public static string BorderColorClass(ThemeColor color) => color switch
         {
@@ -116,6 +158,15 @@ namespace Marilog.Shared.UI.Framework.Abstractions
             ThemeColor.Info => "border-sky-500",
             ThemeColor.Dark => "border-slate-900",
             _ => "border-slate-300"
+        };
+
+        public static string VAlignSelfClass(VAlign alignment) => alignment switch
+        {
+            VAlign.Top => "self-start",
+            VAlign.Center => "self-center",
+            VAlign.Bottom => "self-end",
+            VAlign.Stretch => "self-stretch",
+            _ => ""
         };
 
         // =========================

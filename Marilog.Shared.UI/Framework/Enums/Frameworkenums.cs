@@ -337,4 +337,27 @@
         Linear,
         Circular
     }
+
+    //Images
+    public enum ImageFitMode
+    {
+        None,
+        Cover,
+        Contain,
+        Fill,
+        ScaleDown
+    }
+
+    public enum ImageShape
+    {
+        Rectangle,
+        Rounded,
+        Circle,
+        Square
+    }
+    public enum ImageOverflowMode
+    {
+        Clip,
+        Visible
+    }
 }

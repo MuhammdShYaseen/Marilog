@@ -19,13 +19,14 @@
     // LAYOUT
     // =========================
 
-    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+    //[Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
 
     [Parameter] public int Spacing { get; set; } = 4;
 
     [Parameter] public bool Compact { get; set; }
 
     [Parameter] public bool FillWidth { get; set; } = true;
+    [Parameter] public NavMenuMode NavMode { get; set; } = NavMenuMode.Vertical;
 
     // =========================
     // CLASS BUILDING
@@ -34,28 +35,18 @@
     protected override string BuildBaseClass()
     {
         return TailwindHelper.Classes(
-            "xf-nav-menu",
-            "flex",
+         "xf-nav-menu",
 
-            // orientation
-            Orientation == Orientation.Vertical
-                ? "flex-col"
-                : "flex-row flex-wrap",
+         TailwindHelper.NavMenuModeClass(NavMode),
 
-            // spacing
-            TailwindHelper.GapClass(Spacing),
+         // sizing behavior (only true extra flags)
+         FillWidth ? "w-full" : null,
 
-            // sizing behavior
-            FillWidth ? "w-full" : null,
+         // safe defaults
+         "min-w-0 min-h-0",
 
-            // typography density
-            Compact ? "text-sm" : "text-base",
-
-            // safe defaults
-            "min-w-0 min-h-0",
-
-            base.BuildBaseClass()
-        );
+         base.BuildBaseClass()
+     );
     }
 
     // =========================
