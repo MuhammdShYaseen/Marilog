@@ -1,5 +1,5 @@
 @namespace Marilog.Shared.UI.Framework.Components.Primitives
-@inherits FrameworkElement
+@inherits CommandElementBase
 
 <button type="button"
         class="@GetCachedClass()"
@@ -39,8 +39,8 @@
     [Parameter] public string? Content { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    [Parameter] public ICommand? Command { get; set; }
-    [Parameter] public object? CommandParameter { get; set; }
+    //[Parameter] public ICommand? Command { get; set; }
+    //[Parameter] public object? CommandParameter { get; set; }
     [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Filled;

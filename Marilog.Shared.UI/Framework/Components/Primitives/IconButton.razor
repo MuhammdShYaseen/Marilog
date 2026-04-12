@@ -1,5 +1,5 @@
 @namespace Marilog.Shared.UI.Framework.Components.Primitives
-@inherits FrameworkElement
+@inherits CommandElementBase
 
 <button type="button"
         class="@BuildBaseClass()"
@@ -32,8 +32,8 @@
 
     [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
-    [Parameter] public ICommand? Command { get; set; }
-    [Parameter] public object? CommandParameter { get; set; }
+    //[Parameter] public ICommand? Command { get; set; }
+    //[Parameter] public object? CommandParameter { get; set; }
 
     [Parameter] public string? Tooltip { get; set; }
 
