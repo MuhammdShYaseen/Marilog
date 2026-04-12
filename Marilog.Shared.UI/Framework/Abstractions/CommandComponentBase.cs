@@ -9,6 +9,11 @@ namespace Marilog.Shared.UI.Framework.Abstractions
     /// </summary>
     public abstract class CommandElementBase : FrameworkElement
     {
+        //--Private Parm------
+        private bool _canExecuteCache = true;
+        private ICommand? _currentCommand;
+        private object? _currentCommandParameter;
+
         // =========================
         // COMMAND PARAMETERS
         // =========================
@@ -22,6 +27,8 @@ namespace Marilog.Shared.UI.Framework.Abstractions
         // Optional direct command
         [Parameter]
         public ICommand? Command { get; set; }
+        [Parameter]
+        public EventCallback<MouseEventArgs> Click { get; set; }
 
         // =========================
         // EXECUTION
@@ -60,6 +67,70 @@ namespace Marilog.Shared.UI.Framework.Abstractions
         }
 
         // =========================
+        // SUBSCRIBE
+        // =========================
+
+        private void Subscribe(ICommand? command)
+        {
+            if (command is IRaiseCanExecuteChanged raise)
+            {
+                raise.CanExecuteChanged += OnCanExecuteChanged;
+            }
+        }
+
+        private void Unsubscribe(ICommand? command)
+        {
+            if (command is IRaiseCanExecuteChanged raise)
+            {
+                raise.CanExecuteChanged -= OnCanExecuteChanged;
+            }
+        }
+
+        private void OnCanExecuteChanged(object? sender, EventArgs e)
+        {
+            InvokeAsync(UpdateCanExecute);
+        }
+        // =========================
+        // STATE
+        // =========================
+
+        private void UpdateCanExecute()
+        {
+            var newValue =
+                Command?.CanExecute(CommandParameter) ?? true;
+
+            if (_canExecuteCache != newValue)
+            {
+                _canExecuteCache = newValue;
+                InvokeAsync(StateHasChanged);
+            }
+        }
+
+        protected bool IsDisabled()
+            => !IsEnabled ||
+               (Command != null && !_canExecuteCache);
+
+        // =========================
+        // CLICK
+        // =========================
+
+        protected async Task HandleClick(MouseEventArgs args)
+        {
+            if (IsDisabled())
+                return;
+
+            if (Command?.CanExecute(CommandParameter) == true)
+            {
+                Command.Execute(CommandParameter);
+
+                UpdateCanExecute();
+            }
+
+            if (Click.HasDelegate)
+                await Click.InvokeAsync(args);
+        }
+
+        // =========================
         // CLICK HELPER
         // =========================
 
@@ -71,6 +142,40 @@ namespace Marilog.Shared.UI.Framework.Abstractions
 
             if (click.HasDelegate)
                 await click.InvokeAsync(args);
+        }
+
+        protected override void OnParametersSet()
+        {
+            if (_currentCommand != Command)
+            {
+                Unsubscribe(_currentCommand);
+                Subscribe(Command);
+                _currentCommand = Command;
+
+                UpdateCanExecute();
+            }
+
+            if (!Equals(_currentCommandParameter, CommandParameter))
+            {
+                _currentCommandParameter = CommandParameter;
+                UpdateCanExecute();
+            }
+
+            base.OnParametersSet();
+        }
+
+        // =========================
+        // DISPOSE
+        // =========================
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Unsubscribe(_currentCommand);
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

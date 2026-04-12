@@ -4,7 +4,7 @@
     /// A lightweight ICommand implementation — mirrors WPF RelayCommand / DelegateCommand.
     /// Supports CanExecute logic and raises CanExecuteChanged via ComponentBase.StateHasChanged pattern.
     /// </summary>
-    public sealed class RelayCommand : ICommand
+    public sealed class RelayCommand : ICommand, IRaiseCanExecuteChanged
     {
         private readonly Action _execute;
         private readonly Func<bool>? _canExecute;
