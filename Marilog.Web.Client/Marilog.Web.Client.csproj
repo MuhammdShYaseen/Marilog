@@ -19,7 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Marilog.Shared.CSharp\Marilog.Client.Services.csproj" />
     <ProjectReference Include="..\Marilog.Shared.UI\Marilog.Shared.UI.csproj" />
   </ItemGroup>
 

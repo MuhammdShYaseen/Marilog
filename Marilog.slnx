@@ -1,11 +1,16 @@
 <Solution>
+  <Folder Name="/Backend/" />
+  <Folder Name="/Frontend/">
+    <Project Path="Marilog.Client/Marilog.Client.csproj" Id="db06763d-0566-4374-9534-9ab6a438113c" />
+    <Project Path="Marilog.Shared.UI/Marilog.Shared.UI.csproj" Id="e9fd1d37-b6fd-4e7e-bf5b-7e3062c551bd" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Marilog.Test/Marilog.Test.csproj" Id="138159ff-144d-42ec-935f-76cc505c4a6a" />
+  </Folder>
   <Project Path="Marilog.Application/Marilog.Application.csproj" Id="f7997582-78b7-4a34-b6d5-8ea0c65a0432" />
   <Project Path="Marilog.Contracts/Marilog.Contracts.csproj" Id="1520916c-cbb4-4f8b-bad0-983184d3f6d1" />
   <Project Path="Marilog.Domain/Marilog.Domain.csproj" />
   <Project Path="Marilog.Infrastructure/Marilog.Infrastructure.csproj" Id="7719a59c-9531-4022-b645-44f3cd120aa0" />
   <Project Path="Marilog.Presentation/Marilog.Presentation.csproj" Id="5af85a2f-8fd0-45e4-a004-2628afe02e7a" />
-  <Project Path="Marilog.Shared.CSharp/Marilog.Client.Services.csproj" Id="cb68dd26-95da-4bdf-95ab-0ac749680e9b" />
-  <Project Path="Marilog.Shared.UI/Marilog.Shared.UI.csproj" Id="e9fd1d37-b6fd-4e7e-bf5b-7e3062c551bd" />
-  <Project Path="Marilog.Test/Marilog.Test.csproj" Id="138159ff-144d-42ec-935f-76cc505c4a6a" />
   <Project Path="Marilog.Web.Client/Marilog.Web.Client.csproj" Id="cfc408ad-9641-4452-b0e3-773071597a8f" />
 </Solution>
