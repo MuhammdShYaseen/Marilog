@@ -239,9 +239,9 @@
 
     private async Task HandleBlur(FocusEventArgs e)
     {
-        // Always update on blur regardless of Immediate setting
+        // ✅ هذا صحيح
         if (!Immediate && _pendingValue is not null)
-            await UpdateValue(_pendingValue);
+            await UpdateValue(_pendingValue.ToString());  // ✅ صحيح، ToString() يعمل على أي TValue
 
         if (Blur.HasDelegate)
             await Blur.InvokeAsync(e);
@@ -253,7 +253,7 @@
             await KeyUp.InvokeAsync(e);
     }
 
-    private string? _pendingValue;
+    private TValue? _pendingValue;
 
     private async Task UpdateValue(string? raw)
     {
@@ -315,5 +315,15 @@
             return "text";
 
         return Type;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!EqualityComparer<TValue>.Default.Equals(_pendingValue, Text))
+        {
+            _pendingValue = Text;
+        }
+    
+        base.OnParametersSet();
     }
 }

@@ -30,16 +30,7 @@
     private bool IsActive =>
         NavContext?.IsActive(Key) == true;
 
-    private void HandleClick(MouseEventArgs _)
-    {
-        if (!IsEnabled)
-            return;
-
-        if (!string.IsNullOrWhiteSpace(Key))
-        {
-            NavContext?.SetActive(Key);
-        }
-    }
+    
 
     protected override string BuildBaseClass()
     {

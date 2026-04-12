@@ -41,7 +41,7 @@
 
     //[Parameter] public ICommand? Command { get; set; }
     //[Parameter] public object? CommandParameter { get; set; }
-    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+    //[Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Filled;
     [Parameter] public ThemeColor ThemeColor { get; set; } = ThemeColor.Primary;
@@ -68,25 +68,7 @@
         base.OnParametersSet();
     }
 
-    private bool IsDisabled()
-        => !IsEnabled ||
-           (Command != null && !_canExecuteCache);
-
-    // =========================
-    // CLICK
-    // =========================
-
-    private async Task HandleClick(MouseEventArgs args)
-    {
-        if (IsDisabled())
-            return;
-
-        if (Command?.CanExecute(CommandParameter) == true)
-            Command.Execute(CommandParameter);
-
-        if (Click.HasDelegate)
-            await Click.InvokeAsync(args);
-    }
+    
 
     // =========================
     // CLASS SYSTEM (CORRECT)

@@ -30,7 +30,7 @@
     [Parameter] public string? Icon { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+    //[Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
 
     //[Parameter] public ICommand? Command { get; set; }
     //[Parameter] public object? CommandParameter { get; set; }
@@ -57,24 +57,13 @@
         base.OnParametersSet();
     }
 
-    private bool IsDisabled()
-        => !IsEnabled || (Command != null && !_canExecute);
+    
 
     // =========================
     // CLICK HANDLING
     // =========================
 
-    private async Task HandleClick(MouseEventArgs args)
-    {
-        if (IsDisabled())
-            return;
-
-        if (Command?.CanExecute(CommandParameter) == true)
-            Command.Execute(CommandParameter);
-
-        if (Click.HasDelegate)
-            await Click.InvokeAsync(args);
-    }
+    
 
     // =========================
     // CLASS SYSTEM
