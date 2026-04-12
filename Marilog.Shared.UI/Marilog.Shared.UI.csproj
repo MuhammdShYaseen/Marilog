@@ -4,7 +4,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+	  <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Models\NavItemVm.cs" />
+  </ItemGroup>
 
 
   <ItemGroup>
@@ -13,10 +18,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.5" />
+    <PackageReference Include="MudBlazor" Version="9.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="SharedUI\" />
+    <Folder Include="Components\Navigation\" />
+    <Folder Include="Base\" />
+    <Folder Include="Styles\" />
   </ItemGroup>
 
 </Project>

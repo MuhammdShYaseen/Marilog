@@ -1,0 +1,19 @@
+
+@using Marilog.Shared.UI.Models
+@using MudBlazor
+<MudNavMenu Dense="true" Rounded="true">
+
+    @foreach (var item in Items)
+    {
+        <NavMenuItem Item="item" />
+    }
+
+</MudNavMenu>
+
+@code {
+
+    [Parameter]
+    public List<NavItemVm> Items { get; set; }
+        = new();
+
+}
