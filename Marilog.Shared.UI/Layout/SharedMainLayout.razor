@@ -1,8 +1,9 @@
-﻿@using Marilog.Shared.UI.Components.Navigation
+﻿@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Navigation
 @using MudBlazor
-@inherits LayoutComponentBase
-@*inject NavigationService NavService*@
-@* Required *@
+@namespace Marilog.Shared.UI.Layout
+
+
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -11,23 +12,35 @@
 <MudLayout>
 
     <MudAppBar Elevation="1" Color="Color.Primary">
+
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
                        OnClick="ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-3">Marilog</MudText>
+
+        <MudText Typo="Typo.h6" Class="ml-3">
+            @AppTitle
+        </MudText>
+
         <MudSpacer />
-        <MudText Typo="Typo.body2" Class="mr-3">WKA Ocean Shipping</MudText>
+
+        <MudText Typo="Typo.body2" Class="mr-3">
+            @AppSubtitle
+        </MudText>
+
     </MudAppBar>
 
     <MudDrawer @bind-Open="drawerOpen"
                Elevation="2"
                Variant="DrawerVariant.Responsive">
+
         <MudDrawerHeader>
             <MudText Typo="Typo.h6">Navigation</MudText>
         </MudDrawerHeader>
+
         <MudNavMenu>
-            @if (Items is null)
+
+            @if (Items?.Any() != true)
             {
                 <MudText>Loading...</MudText>
             }
@@ -35,14 +48,43 @@
             {
                 <NavMenu Items="Items" />
             }
+
         </MudNavMenu>
+
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-            @Body
+
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge"
+                      Class="mt-4">
+
+            @ChildContent
+
         </MudContainer>
+
     </MudMainContent>
 
 </MudLayout>
 
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public List<NavItemResponse> Items { get; set; }
+        = new();
+
+    [Parameter]
+    public string AppTitle { get; set; }
+        = "Marilog";
+
+    [Parameter]
+    public string AppSubtitle { get; set; }
+        = "";
+
+    private bool drawerOpen = true;
+
+    private void ToggleDrawer()
+        => drawerOpen = !drawerOpen;
+}
