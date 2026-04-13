@@ -16,4 +16,6 @@
     public List<NavItemResponse> Items { get; set; }
         = new();
 
+    protected override bool ShouldRender() => false;
+
 }

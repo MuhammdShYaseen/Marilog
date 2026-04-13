@@ -4,7 +4,7 @@
 
 @inherits LayoutComponentBase
 
-<SharedMainLayout Items="Items"
+<SharedMainLayout Items="_items"
                   AppTitle="Marilog"
                   AppSubtitle="WKA Ocean Shipping">
 
@@ -18,20 +18,24 @@
     public INavigationService NavService { get; set; }
         = default!;
 
-    private List<NavItemResponse> Items = new();
-
+    private static List<NavItemResponse>? _items;  // Static cache here
+    private static bool _isLoaded = false;
     protected override async Task OnInitializedAsync()
     {
-        try
+        if (!_isLoaded)
         {
-            Items = await NavService.GetAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex);
-
-            Items = new();
+            try
+            {
+                _items = await NavService.GetAsync();
+                _isLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                _items = new();
+            }
         }
     }
+    
 
 }

@@ -9,7 +9,7 @@ namespace Marilog.Client.Services
     internal class NavigationService : INavigationService
     {
         private readonly HttpClient _http;
-
+        private static List<NavItemResponse>? _cachedItems;
         public NavigationService(HttpClient http)
         {
             _http = http;
@@ -31,8 +31,13 @@ namespace Marilog.Client.Services
 
         public async Task<List<NavItemResponse>> GetAsync(CancellationToken ct = default)
         {
-            var res = await _http.GetFromJsonAsync<ApiResponse<List<NavItemResponse>>>("api/navigation");
-            return res?.Data ?? new();
+            if (_cachedItems != null)
+                return _cachedItems;
+
+            var res = await _http.GetFromJsonAsync<ApiResponse<List<NavItemResponse>>>("api/navigation", ct);
+            _cachedItems = res?.Data ?? new();
+
+            return _cachedItems;
         }
 
         public Task<NavItemResponse> UpdateAsync(int id, string title, string? route, string? icon, int? parentId, int order, CancellationToken ct = default)
