@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Marilog.Client\Marilog.Client.csproj" />
     <ProjectReference Include="..\Marilog.Shared.UI\Marilog.Shared.UI.csproj" />
   </ItemGroup>
 

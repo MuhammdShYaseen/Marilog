@@ -7,10 +7,6 @@
 	  <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="Models\NavItemVm.cs" />
-  </ItemGroup>
-
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
@@ -25,6 +21,10 @@
     <Folder Include="Components\Navigation\" />
     <Folder Include="Base\" />
     <Folder Include="Styles\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Marilog.Contracts\Marilog.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

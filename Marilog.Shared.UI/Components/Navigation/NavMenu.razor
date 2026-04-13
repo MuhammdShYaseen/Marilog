@@ -1,5 +1,5 @@
 
-@using Marilog.Shared.UI.Models
+@using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 <MudNavMenu Dense="true" Rounded="true">
 
@@ -13,7 +13,7 @@
 @code {
 
     [Parameter]
-    public List<NavItemVm> Items { get; set; }
+    public List<NavItemResponse> Items { get; set; }
         = new();
 
 }

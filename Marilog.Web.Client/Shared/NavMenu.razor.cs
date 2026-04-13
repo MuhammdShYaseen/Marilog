@@ -1,4 +1,4 @@
-﻿using Marilog.Web.Client.Models;
+﻿using Marilog.Contracts.DTOs.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using MudBlazor;
@@ -8,9 +8,9 @@ namespace Marilog.Web.Client.Shared
     public partial class NavMenu
     {
         [Parameter]
-        public List<NavItemVm> Items { get; set; } = new();
+        public List<NavItemResponse> Items { get; set; } = new();
 
-        RenderFragment RenderItem(NavItemVm item) => builder =>
+        RenderFragment RenderItem(NavItemResponse item) => builder =>
         {
             if (item.Children.Any())
             {

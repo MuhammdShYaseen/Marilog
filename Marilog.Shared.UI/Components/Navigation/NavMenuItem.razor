@@ -1,4 +1,4 @@
-@using Marilog.Shared.UI.Models
+@using Marilog.Contracts.DTOs.Responses
 @using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
 
@@ -29,7 +29,7 @@ else
 @code {
 
     [Parameter]
-    public NavItemVm Item { get; set; }
+    public NavItemResponse Item { get; set; }
         = default!;
 
     string GetIcon(string? icon) => icon switch

@@ -1,6 +1,6 @@
 ﻿
 
-using Marilog.Shared.UI.Models;
+using Marilog.Contracts.DTOs.Responses;
 
 namespace Marilog.Shared.UI.Layout
 {
@@ -13,11 +13,11 @@ namespace Marilog.Shared.UI.Layout
             drawerOpen = !drawerOpen;
         }
 
-        private List<NavItemVm>? Items;
+        private List<NavItemResponse>? Items;
 
         protected override async Task OnInitializedAsync()
         {
-            Items = new List<NavItemVm>(); 
+            Items = new List<NavItemResponse>(); 
             //Items = await NavService.GetAsync();
         }
     }
