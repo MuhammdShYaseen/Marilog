@@ -1,6 +1,6 @@
 ﻿namespace Marilog.Contracts.DTOs.Requests.CompanyDTOs
 {
-    public class CreateCompanyCommand
+    public class CreateCompanyRequest
     {
         public string? RegistrationNumber { get; set; }
         public string CompanyName { get; set; } = default!;
