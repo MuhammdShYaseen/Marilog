@@ -1,5 +1,5 @@
 ﻿using Marilog.Domain.Common;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 
 namespace Marilog.Domain.Events
 {

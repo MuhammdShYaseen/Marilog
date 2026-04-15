@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     public class VoyageStop
     {

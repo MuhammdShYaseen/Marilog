@@ -1,7 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 
 namespace Marilog.Infrastructure.DataAccess.Configurations
 {

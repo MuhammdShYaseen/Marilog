@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     public enum EmailDirection { Outbound, Inbound }
     public enum EmailStatus { Draft, Sent, Received, Failed }

@@ -1,7 +1,7 @@
 ﻿using Marilog.Application.DTOs.Commands.Frontend;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.FrontendServices;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 

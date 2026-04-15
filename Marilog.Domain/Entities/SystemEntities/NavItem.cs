@@ -1,8 +1,6 @@
-﻿
+﻿using Marilog.Domain.Common;
 
-using Marilog.Domain.Common;
-
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     public class NavItem : Entity
     {

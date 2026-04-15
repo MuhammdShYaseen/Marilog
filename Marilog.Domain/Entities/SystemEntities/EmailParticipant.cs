@@ -1,7 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     /// <summary>
     /// Owned entity inside Email aggregate.

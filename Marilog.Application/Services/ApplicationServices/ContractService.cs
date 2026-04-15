@@ -4,7 +4,7 @@ using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Extensions;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Common;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Enumerations;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Contract;

@@ -1,5 +1,5 @@
 ﻿// Infrastructure/Persistence/Configurations/ContractConfiguration.cs
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Enumerations;
 using Marilog.Domain.ValueObjects.Contract;
 using Microsoft.EntityFrameworkCore;

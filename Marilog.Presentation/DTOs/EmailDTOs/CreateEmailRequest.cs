@@ -1,4 +1,4 @@
-﻿using Marilog.Domain.Entities;
+﻿using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Events;
 
 namespace Marilog.Presentation.DTOs.EmailDTOs

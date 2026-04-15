@@ -1,6 +1,6 @@
 ﻿using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.EmailDTOs;
 using Microsoft.AspNetCore.Http.HttpResults;

@@ -1,6 +1,6 @@
 ﻿using Marilog.Domain.Common;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     public class CrewContract : Entity
     {

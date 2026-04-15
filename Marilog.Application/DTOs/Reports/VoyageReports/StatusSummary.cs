@@ -1,4 +1,4 @@
-﻿using Marilog.Domain.Entities;
+﻿using Marilog.Domain.Entities.SystemEntities;
 
 namespace Marilog.Application.DTOs.Reports.VoyageReports
 {

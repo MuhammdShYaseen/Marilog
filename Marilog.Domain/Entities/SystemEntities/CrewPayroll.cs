@@ -1,7 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     public enum PayrollStatus { Draft, Approved, PartiallyPaid, FullyPaid, Cancelled }
 

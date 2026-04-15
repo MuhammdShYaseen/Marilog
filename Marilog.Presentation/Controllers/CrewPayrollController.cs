@@ -1,7 +1,7 @@
 ﻿using Marilog.Application.DTOs.Commands.CrewPayroll;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.CrewPayrollDTOs;
 using Microsoft.AspNetCore.Mvc;

@@ -1,7 +1,7 @@
 using Marilog.Application.DTOs.Commands.Voyage;
 using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.DTOs.Responses;
-using Marilog.Domain.Entities;
+using Marilog.Domain.Entities.SystemEntities;
 
 namespace Marilog.Application.Interfaces.Services
 {

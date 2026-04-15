@@ -1,6 +1,6 @@
 ﻿using Marilog.Domain.Common;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     /// <summary>
     /// Owned entity — lives only inside Email aggregate.

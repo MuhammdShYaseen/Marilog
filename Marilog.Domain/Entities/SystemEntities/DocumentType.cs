@@ -1,6 +1,6 @@
 ﻿using Marilog.Domain.Common;
 
-namespace Marilog.Domain.Entities
+namespace Marilog.Domain.Entities.SystemEntities
 {
     /// <summary>
     /// Lookup entity — replaces the enum to allow adding new types without migrations.
