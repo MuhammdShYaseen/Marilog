@@ -1,4 +1,5 @@
 ﻿// Infrastructure/Persistence/Configurations/ContractConfiguration.cs
+using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Enumerations;
 using Marilog.Domain.ValueObjects.Contract;
@@ -99,6 +100,15 @@ namespace Marilog.Infrastructure.Persistence.Configurations
 
             builder.Navigation(c => c.Amendments)
                 .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            //-- CharterTerms----------------------------------------------------
+            builder.HasOne(x => x.CharterTerms)
+                   .WithOne()
+                   .HasForeignKey<CharterTerms>(x => x.ContractId)
+                   .OnDelete(DeleteBehavior.Cascade);
+            builder.Navigation(x => x.CharterTerms)
+                   .UsePropertyAccessMode(
+                       PropertyAccessMode.Field);
 
             // ─── Indexes ──────────────────────────────────────────────────────
             builder.HasIndex(c => c.ContractNumber).IsUnique();

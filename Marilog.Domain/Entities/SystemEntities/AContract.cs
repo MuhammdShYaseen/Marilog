@@ -1,7 +1,9 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Enumerations;
 using Marilog.Domain.Events;
 using Marilog.Domain.ValueObjects.Contract;
+using Marilog.Domain.ValueObjects.Laytime;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -19,9 +21,16 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private readonly List<ContractParty> _parties = [];
         private readonly List<ContractAmendment> _amendments = [];
-
         public IReadOnlyCollection<ContractParty> Parties => _parties.AsReadOnly();
         public IReadOnlyCollection<ContractAmendment> Amendments => _amendments.AsReadOnly();
+
+
+        //----charter party properties----
+        private CharterTerms? _charterTerms;
+
+        public CharterTerms? CharterTerms => _charterTerms;
+
+        public bool HasCharterTerms => _charterTerms is not null;
 
         // ─── Computed ─────────────────────────────────────────────────────────
         public bool IsExpiredAsOf(DateOnly today)
@@ -39,7 +48,10 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             if (expiryDate.HasValue && expiryDate.Value <= effectiveDate)
                 throw new ArgumentException("ExpiryDate must be after EffectiveDate.");
-            return new AContract
+
+            
+            
+            var contract = new AContract
             {
                 ContractNumber = contractNumber,
                 Type = type,
@@ -48,7 +60,27 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ExpiryDate = expiryDate,
                 Notes = notes
             };
-            
+
+            //احذف اضافة الشروط من هنا و اجعلها لوحدها في كلاس  و اجعل العلاقة 1 الى 1
+
+            /*if (type == ContractType.CharterParty)
+            {
+                if (!cargoQuantityMt.HasValue)
+                    throw new ArgumentException(
+                        "Cargo quantity is required for Charter Party.");
+
+                if (laytimeTerms is null)
+                    throw new ArgumentException(
+                        "Laytime terms are required for Charter Party.");
+
+                contract.CreateCharterTerms(
+                    cargoQuantityMt.Value,
+                    laytimeTerms);
+            }*/
+
+            return contract;
+
+
         }
 
         // ─── Party Management ─────────────────────────────────────────────────
@@ -239,8 +271,61 @@ namespace Marilog.Domain.Entities.SystemEntities
             ContractFileUrl = fileUrl;
             ContractFileName = fileName;
         }
+        // ─── Charter Terms ───────────────────────────────────────────────────────────
 
-        // ─── Private Helpers ──────────────────────────────────────────────────
+        public void InitializeCharterTerms(CharterTerms charterTerms)
+        {
+            if (_charterTerms is not null)
+                throw new InvalidOperationException(
+                    "CharterTerms already initialized. Use Update methods to modify.");
+
+            _charterTerms = charterTerms
+                ?? throw new ArgumentNullException(nameof(charterTerms));
+        }
+
+        public void UpdateLoadingTerms(CargoOperationTerms loading)
+        {
+            EnsureCharterTerms();
+            _charterTerms!.UpdateLaytimeTerms(
+                _charterTerms.LaytimeTerms!.WithLoading(loading));
+        }
+
+        public void UpdateDischargingTerms(CargoOperationTerms discharging)
+        {
+            EnsureCharterTerms();
+            _charterTerms!.UpdateLaytimeTerms(
+                _charterTerms.LaytimeTerms!.WithDischarging(discharging));
+        }
+
+        public void UpdateDemurrage(DemurrageTerms demurrage)
+        {
+            EnsureCharterTerms();
+            _charterTerms!.UpdateLaytimeTerms(
+                _charterTerms.LaytimeTerms!.WithDemurrage(demurrage));
+        }
+
+        public void UpdateDespatch(DespatchTerms despatch)
+        {
+            EnsureCharterTerms();
+            _charterTerms!.UpdateLaytimeTerms(
+                _charterTerms.LaytimeTerms!.WithDespatch(despatch));
+        }
+
+        public void UpdateRuleOptions(LaytimeRuleOptions rules)
+        {
+            EnsureCharterTerms();
+            _charterTerms!.UpdateLaytimeTerms(
+                _charterTerms.LaytimeTerms!.WithRuleOptions(rules));
+        }
+
+        // ─── Private ─────────────────────────────────────────────────────────────────
+
+        private void EnsureCharterTerms()
+        {
+            if (_charterTerms is null)
+                throw new InvalidOperationException(
+                    "CharterTerms not initialized. Call InitializeCharterTerms first.");
+        }
 
         private void AppendNote(string note) =>
             Notes = string.IsNullOrWhiteSpace(Notes) ? note : $"{Notes} | {note}";
