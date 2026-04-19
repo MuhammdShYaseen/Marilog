@@ -1,7 +1,9 @@
-using Marilog.Application.DTOs.Commands.CrewContract;
-using Marilog.Application.DTOs.Reports.CrewContractReports;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+
+using Marilog.Contracts.DTOs.Reports.CrewContractReports;
+using Marilog.Contracts.DTOs.Requests.CrewDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +45,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate ,
@@ -72,7 +74,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -101,7 +103,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -128,7 +130,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -158,7 +160,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -187,7 +189,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -215,7 +217,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -243,7 +245,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Vessel.VesselName,
                     RankId = x.RankID,
                     RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
+                    RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                     MonthlyWage = x.MonthlyWage,
                     SignOnDate = x.SignOnDate,
                     SignOffDate = x.SignOffDate,
@@ -280,7 +282,7 @@ namespace Marilog.Application.Services.ApplicationServices
                 VesselName = contract.Vessel.VesselName,
                 RankId = contract.RankID,
                 RankName = contract.Rank.RankName,
-                RankDepartment = contract.Rank.Department,
+                RankDepartment = (Contracts.Enums.Department)contract.Rank.Department,
                 MonthlyWage = contract.MonthlyWage,
                 SignOnDate = contract.SignOnDate,
                 SignOffDate = contract.SignOffDate,
@@ -293,7 +295,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> CreateRangeAsync(
-        IEnumerable<CreateCrewContractCommand> commands,
+        IEnumerable<CreateCrewContractRequest> commands,
         CancellationToken ct = default)
         {
             var contracts = commands
@@ -409,7 +411,7 @@ namespace Marilog.Application.Services.ApplicationServices
                 VesselName = x.Vessel.VesselName,
                 RankId = x.RankID,
                 RankName = x.Rank.RankName,
-                RankDepartment = x.Rank.Department,
+                RankDepartment = (Contracts.Enums.Department)x.Rank.Department,
                 MonthlyWage = x.MonthlyWage,
                 SignOnDate = x.SignOnDate,
                 SignOffDate = x.SignOffDate,

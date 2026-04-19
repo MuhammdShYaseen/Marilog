@@ -1,8 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.CrewContract;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.CrewDTOs;
+﻿
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.CrewDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
+using Marilog.Domain.Entities.SystemEntities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -94,16 +95,17 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreateCrewContractRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateCrewContractCommand(
-                r.PersonId,
-                r.VesselId,
-                r.RankId,
-                r.MonthlyWage,
-                r.SignOnDate,
-                r.SignOnPort,
-                r.Notes,
-                r.DurationInMonth
-            ));
+            var commands = requests.Select(r => new CreateCrewContractRequest
+            {
+                PersonId =  r.PersonId,
+                VesselId = r.VesselId,
+                RankId =  r.RankId,
+                MonthlyWage =  r.MonthlyWage,
+                SignOnDate = r.SignOnDate,
+                SignOnPort = r.SignOnPort,
+                Notes = r.Notes,
+                DurationInMonth = r.DurationInMonth
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(result));

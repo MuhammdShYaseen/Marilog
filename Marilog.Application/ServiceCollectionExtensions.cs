@@ -25,7 +25,7 @@ namespace Marilog.Application
             services.AddScoped<IVesselService, VesselService>();
 
             // ── Operations ────────────────────────────────────────────────────────
-            services.AddScoped<ICrewContractService, CrewContractService>();
+            services.AddScoped<Contracts.Interfaces.Services.ICrewContractService, CrewContractService>();
             services.AddScoped<IVoyageService, VoyageService>();
 
 
