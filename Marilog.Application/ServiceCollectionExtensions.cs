@@ -46,7 +46,7 @@ namespace Marilog.Application
             services.AddScoped<IDocumentNumberService, DocumentNumberService>();
 
             //---Contracts-----------------------
-            services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<Contracts.Interfaces.Services.IContractService, ContractService>();
 
             //----FrontendServices-------------------
             services.AddScoped<INavigationService, NavigationService>();

@@ -1,4 +1,5 @@
-﻿using Marilog.Application.DTOs.Reports.Contract;
+﻿
+using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Enumerations;
 

@@ -1,12 +1,10 @@
-﻿using Marilog.Application.Common;
-using Marilog.Application.DTOs.Reports.Contract;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Common;
-using Marilog.Presentation.Common;
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Reports.Contract;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Presentation.DTOs.ContractDTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Identity.Client;
+using Result = Marilog.Contracts.Common.Result;
 
 namespace Marilog.Presentation.Controllers
 {
