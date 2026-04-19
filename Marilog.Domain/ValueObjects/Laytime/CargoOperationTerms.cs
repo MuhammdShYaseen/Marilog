@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Entities.LaytimeEntities;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Marilog.Domain.ValueObjects.Laytime
 {
@@ -29,10 +30,13 @@ namespace Marilog.Domain.ValueObjects.Laytime
         /// مشتق من CalendarType — لا يحتاج تخزيناً مستقلاً.
         /// true إذا كان CalendarType = WeatherWorkingDay.
         /// </summary>
+        /// 
+        [NotMapped]
         public bool IsWeatherWorkingDay =>
             CalendarType == LaytimeCalendarType.WeatherWorkingDay;
 
         private CargoOperationTerms() { } // للـ EF Core
+
 
         public static CargoOperationTerms Create(
             OperationType operationType,

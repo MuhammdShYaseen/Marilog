@@ -79,6 +79,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                       .HasConversion<string>()
                       .HasColumnName("Loading_OperationType")
                       .HasMaxLength(20);
+                    lo.Ignore(p => p.IsWeatherWorkingDay);
                 });
 
                 // ───────── Discharging ─────────
@@ -106,6 +107,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                       .HasConversion<string>()
                       .HasColumnName("Discharging_OperationType")
                       .HasMaxLength(20);
+
+                    di.Ignore(p => p.IsWeatherWorkingDay);
                 });
 
                 // ───────── Demurrage ─────────
