@@ -75,5 +75,40 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             LaytimeTerms = laytimeTerms;
             Touch();
         }
+
+        public void UpdateLoadingTerms(CargoOperationTerms loading)
+        {
+            ArgumentNullException.ThrowIfNull(loading);
+            UpdateLaytimeTerms(LaytimeTerms.WithLoading(loading));
+            Touch();
+        }
+
+        public void UpdateDischargingTerms(CargoOperationTerms discharging)
+        {
+            ArgumentNullException.ThrowIfNull(discharging);
+            UpdateLaytimeTerms(LaytimeTerms.WithDischarging(discharging));
+            Touch();
+        }
+
+        public void UpdateDemurrage(DemurrageTerms demurrage)
+        {
+            ArgumentNullException.ThrowIfNull(demurrage);
+            UpdateLaytimeTerms(LaytimeTerms.WithDemurrage(demurrage));
+            Touch();
+        }
+
+        public void UpdateDespatch(DespatchTerms despatch)
+        {
+            ArgumentNullException.ThrowIfNull(despatch);
+            UpdateLaytimeTerms(LaytimeTerms.WithDespatch(despatch));
+            Touch();
+        }
+
+        public void UpdateRuleOptions(LaytimeRuleOptions rules)
+        {
+            ArgumentNullException.ThrowIfNull(rules);
+            UpdateLaytimeTerms(LaytimeTerms.WithRuleOptions(rules));
+            Touch();
+        }
     }
 }

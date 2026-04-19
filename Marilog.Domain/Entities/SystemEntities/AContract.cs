@@ -283,49 +283,9 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ?? throw new ArgumentNullException(nameof(charterTerms));
         }
 
-        public void UpdateLoadingTerms(CargoOperationTerms loading)
-        {
-            EnsureCharterTerms();
-            _charterTerms!.UpdateLaytimeTerms(
-                _charterTerms.LaytimeTerms!.WithLoading(loading));
-        }
-
-        public void UpdateDischargingTerms(CargoOperationTerms discharging)
-        {
-            EnsureCharterTerms();
-            _charterTerms!.UpdateLaytimeTerms(
-                _charterTerms.LaytimeTerms!.WithDischarging(discharging));
-        }
-
-        public void UpdateDemurrage(DemurrageTerms demurrage)
-        {
-            EnsureCharterTerms();
-            _charterTerms!.UpdateLaytimeTerms(
-                _charterTerms.LaytimeTerms!.WithDemurrage(demurrage));
-        }
-
-        public void UpdateDespatch(DespatchTerms despatch)
-        {
-            EnsureCharterTerms();
-            _charterTerms!.UpdateLaytimeTerms(
-                _charterTerms.LaytimeTerms!.WithDespatch(despatch));
-        }
-
-        public void UpdateRuleOptions(LaytimeRuleOptions rules)
-        {
-            EnsureCharterTerms();
-            _charterTerms!.UpdateLaytimeTerms(
-                _charterTerms.LaytimeTerms!.WithRuleOptions(rules));
-        }
+       
 
         // ─── Private ─────────────────────────────────────────────────────────────────
-
-        private void EnsureCharterTerms()
-        {
-            if (_charterTerms is null)
-                throw new InvalidOperationException(
-                    "CharterTerms not initialized. Call InitializeCharterTerms first.");
-        }
 
         private void AppendNote(string note) =>
             Notes = string.IsNullOrWhiteSpace(Notes) ? note : $"{Notes} | {note}";
