@@ -12,7 +12,7 @@ namespace Marilog.Application
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             // ── Lookups ───────────────────────────────────────────────────────────
-            services.AddScoped<ICountryService, CountryService>();
+            services.AddScoped<Contracts.Interfaces.Services.ICountryService, CountryService>();
             services.AddScoped<ICurrencyService, CurrencyService>();
             services.AddScoped<IPortService, PortService>();
             services.AddScoped<IRankService, RankService>();

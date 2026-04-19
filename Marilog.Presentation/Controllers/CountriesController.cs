@@ -1,12 +1,10 @@
-﻿using Marilog.Application.DTOs.Commands.Country;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Application.Services;
-using Marilog.Domain.Entities;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.CountryDTOs;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.CountryDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics.Metrics;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -73,10 +71,11 @@ namespace Marilog.Presentation.Controllers
             [FromBody] IEnumerable<CreateCountryRequest> requests,
             CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateCountryCommand(
-                r.CountryCode,
-                r.CountryName
-            ));
+            var commands = requests.Select(r => new CreateCountryRequest 
+            {
+                CountryCode = r.CountryCode,
+                CountryName = r.CountryName
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(result);

@@ -1,6 +1,8 @@
-using Marilog.Application.DTOs.Commands.Country;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+
+using Marilog.Contracts.DTOs.Requests.CountryDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -103,7 +105,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<CountryResponse>> CreateRangeAsync(
-        IEnumerable<CreateCountryCommand> commands,
+        IEnumerable<CreateCountryRequest> commands,
         CancellationToken ct = default)
         {
             foreach (var command in commands)
