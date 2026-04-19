@@ -34,7 +34,7 @@ namespace Marilog.Application
             services.AddScoped<ISwiftTransferService, SwiftTransferService>();
 
             // ── Payroll ───────────────────────────────────────────────────────────
-            services.AddScoped<ICrewPayrollService, CrewPayrollService>();
+            services.AddScoped<Contracts.Interfaces.Services.ICrewPayrollService, CrewPayrollService>();
 
             // ── Communication ─────────────────────────────────────────────────────
             services.AddScoped<IEmailService, EmailService>();

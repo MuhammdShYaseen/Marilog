@@ -1,9 +1,8 @@
-﻿using Marilog.Application.DTOs.Commands.CrewPayroll;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities.SystemEntities;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.CrewPayrollDTOs;
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Enums;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Contracts;
 
@@ -96,13 +95,14 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreateCrewPayrollRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateCrewPayrollCommand(
-                r.ContractId,
-                r.PayrollMonth,
-                r.Allowances,
-                r.Deductions,
-                r.Notes
-            ));
+            var commands = requests.Select(r => new CreateCrewPayrollRequest 
+            {
+               ContractId = r.ContractId,
+                PayrollMonth =  r.PayrollMonth,
+                Allowances = r.Allowances,
+                Deductions = r.Deductions,
+                Notes = r.Notes
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<CrewPayrollResponse>>.Ok(result));
@@ -143,7 +143,7 @@ namespace Marilog.Presentation.Controllers
         // ─────────────────────────────────────────────
 
         [HttpPost("{payrollId:int}/pay-cash")]
-        public async Task<ActionResult<CrewPayrollDisbursement>> PayCash(int payrollId, [FromBody] PayCashRequest request, CancellationToken ct)
+        public async Task<ActionResult<DisbursementResponse>> PayCash(int payrollId, [FromBody] PayCashRequest request, CancellationToken ct)
         {
             var disbursement = await _service.PayCashAsync(payrollId, request.VoyageId, request.Amount,
                                                            request.PaidOn, request.Notes, ct);
@@ -151,25 +151,25 @@ namespace Marilog.Presentation.Controllers
         }
 
         [HttpPost("{payrollId:int}/pay-office")]
-        public async Task<ActionResult<CrewPayrollDisbursement>> PayAtOffice(int payrollId, [FromBody] PayAtOfficeRequest request, CancellationToken ct)
+        public async Task<ActionResult<DisbursementResponse>> PayAtOffice(int payrollId, [FromBody] PayAtOfficeRequest request, CancellationToken ct)
         {
             var disbursement = await _service.PayAtOfficeAsync(payrollId, request.OfficeId,
                                                                request.Amount, request.PaidOn,
                                                                request.RecipientName,
                                                                request.RecipientIdNumber,
                                                                request.Notes, ct);
-            return Ok(ApiResponse<CrewPayrollDisbursement>.Ok(disbursement));
+            return Ok(ApiResponse<DisbursementResponse>.Ok(disbursement));
         }
 
         [HttpPost("{payrollId:int}/pay-bank-transfer")]
-        public async Task<ActionResult<CrewPayrollDisbursement>> PayByBankTransfer(int payrollId, [FromBody] PayByBankTransferRequest request, CancellationToken ct)
+        public async Task<ActionResult<DisbursementResponse>> PayByBankTransfer(int payrollId, [FromBody] PayByBankTransferRequest request, CancellationToken ct)
         {
             var disbursement = await _service.PayByBankTransferAsync(payrollId,
                                                                      request.SwiftTransferId,
                                                                      request.Amount,
                                                                      request.PaidOn,
                                                                      request.Notes, ct);
-            return Ok(ApiResponse<CrewPayrollDisbursement>.Ok(disbursement));
+            return Ok(ApiResponse<DisbursementResponse>.Ok(disbursement));
         }
 
         [HttpPatch("{payrollId:int}/disbursements/{disbursementId:int}/confirm")]
