@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Application.Interfaces.Services
+namespace Marilog.Contracts.Interfaces.Services
 {
     /// <summary>
     /// واجهة خدمة Charter Party و Laytime الموحدة.
@@ -15,7 +17,7 @@ namespace Marilog.Application.Interfaces.Services
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>تهيئة Charter Terms لعقد جديد</summary>
-        Task<CharterTermsDto> InitializeCharterTermsAsync(InitializeCharterTermsRequest request, CancellationToken cancellationToken = default);
+        Task<CharterTermsResponse> InitializeCharterTermsAsync(InitializeCharterTermsRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>تحديث شروط عملية التحميل</summary>
         Task UpdateLoadingTermsAsync(int contractId, CargoOperationTermsRequest request, CancellationToken cancellationToken = default);
@@ -33,26 +35,26 @@ namespace Marilog.Application.Interfaces.Services
         Task UpdateRuleOptionsAsync(int contractId, LaytimeRuleOptionsRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>جلب Charter Terms لعقد معين</summary>
-        Task<CharterTermsDto> GetCharterTermsAsync(int contractId, CancellationToken cancellationToken = default);
+        Task<CharterTermsResponse> GetCharterTermsAsync(int contractId, CancellationToken cancellationToken = default);
 
         // ═══════════════════════════════════════════════════════════════════
         // Laytime Calculation
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>إنشاء Laytime Calculation جديد لرحلة في ميناء معين</summary>
-        Task<LaytimeCalculationDto> CreateCalculationAsync(CreateLaytimeCalculationRequest request, CancellationToken cancellationToken = default);
+        Task<LaytimeCalculationResponse> CreateCalculationAsync(CreateLaytimeCalculationRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>جلب Calculation بالمعرف</summary>
-        Task<LaytimeCalculationDto> GetCalculationAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<LaytimeCalculationResponse> GetCalculationAsync(int calculationId, CancellationToken cancellationToken = default);
 
         /// <summary>جلب جميع Calculations لرحلة معينة</summary>
-        Task<IReadOnlyList<LaytimeCalculationSummaryDto>> GetCalculationsByVoyageAsync(int voyageId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<LaytimeCalculationSummaryResponse>> GetCalculationsByVoyageAsync(int voyageId, CancellationToken cancellationToken = default);
 
         /// <summary>تشغيل حساب Laytime وبناء Segments من SOF Events</summary>
-        Task<LaytimeResultDto> ComputeAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<LaytimeResultResponse> ComputeAsync(int calculationId, CancellationToken cancellationToken = default);
 
         /// <summary>إعادة الحساب من البداية (Draft → Computed)</summary>
-        Task<LaytimeResultDto> RecomputeAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<LaytimeResultResponse> RecomputeAsync(int calculationId, CancellationToken cancellationToken = default);
 
         /// <summary>تثبيت نتيجة الحساب نهائياً (Computed → Finalized)</summary>
         Task FinalizeAsync(int calculationId, CancellationToken cancellationToken = default);
@@ -62,10 +64,10 @@ namespace Marilog.Application.Interfaces.Services
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>إضافة حدث SOF واحد</summary>
-        Task<SofEventDto> AddSofEventAsync(int calculationId, AddSofEventRequest request, CancellationToken cancellationToken = default);
+        Task<SofEventResponse> AddSofEventAsync(int calculationId, AddSofEventRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>إضافة مجموعة أحداث SOF دفعة واحدة</summary>
-        Task<IReadOnlyList<SofEventDto>> AddSofEventsBatchAsync(int calculationId, IEnumerable<AddSofEventRequest> requests, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<SofEventResponse>> AddSofEventsBatchAsync(int calculationId, IEnumerable<AddSofEventRequest> requests, CancellationToken cancellationToken = default);
 
         /// <summary>تعديل تأثير حدث SOF (ImpactType / Factor)</summary>
         Task UpdateSofEventImpactAsync(int sofEventId, UpdateSofEventImpactRequest request, CancellationToken cancellationToken = default);
@@ -74,14 +76,14 @@ namespace Marilog.Application.Interfaces.Services
         Task RemoveSofEventAsync(int calculationId, int sofEventId, CancellationToken cancellationToken = default);
 
         /// <summary>جلب جميع SOF Events لـ Calculation مرتبة زمنياً</summary>
-        Task<IReadOnlyList<SofEventDto>> GetSofEventsAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<SofEventResponse>> GetSofEventsAsync(int calculationId, CancellationToken cancellationToken = default);
 
         // ═══════════════════════════════════════════════════════════════════
         // Exceptions (Delays / Interruptions)
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>تسجيل استثناء (تأخير أو انقطاع) على Calculation</summary>
-        Task<LaytimeExceptionDto> AddExceptionAsync(int calculationId, AddLaytimeExceptionRequest request, CancellationToken cancellationToken = default);
+        Task<LaytimeExceptionResponse> AddExceptionAsync(int calculationId, AddLaytimeExceptionRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>تعديل ملاحظات أو Factor لاستثناء موجود</summary>
         Task UpdateExceptionAsync(int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken cancellationToken = default);
@@ -90,7 +92,7 @@ namespace Marilog.Application.Interfaces.Services
         Task RemoveExceptionAsync(int calculationId, int exceptionId, CancellationToken cancellationToken = default);
 
         /// <summary>جلب جميع الاستثناءات لـ Calculation</summary>
-        Task<IReadOnlyList<LaytimeExceptionDto>> GetExceptionsAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<LaytimeExceptionResponse>> GetExceptionsAsync(int calculationId, CancellationToken cancellationToken = default);
 
         // ═══════════════════════════════════════════════════════════════════
         // Segments
@@ -100,7 +102,7 @@ namespace Marilog.Application.Interfaces.Services
         /// جلب Segments المحسوبة — تمثل الـ Time Sheet الفعلي
         /// (من SOF event إلى التالي مع ImpactType و CountedDuration)
         /// </summary>
-        Task<IReadOnlyList<LaytimeSegmentDto>> GetSegmentsAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<LaytimeSegmentResponse>> GetSegmentsAsync(int calculationId, CancellationToken cancellationToken = default);
 
         // ═══════════════════════════════════════════════════════════════════
         // Time Sheet Export (Excel)
