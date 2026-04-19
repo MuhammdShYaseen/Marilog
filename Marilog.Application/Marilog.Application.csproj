@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Marilog.Contracts\Marilog.Contracts.csproj" />
     <ProjectReference Include="..\Marilog.Domain\Marilog.Domain.csproj" />
   </ItemGroup>
 

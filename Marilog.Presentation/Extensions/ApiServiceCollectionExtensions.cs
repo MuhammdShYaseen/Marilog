@@ -11,9 +11,10 @@ namespace Marilog.Presentation.Extensions
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new() { Title = "Marilog API", Version = "v1" });
-            });
+                c.SwaggerDoc("v1", new(){Title = "Marilog API", Version = "v1" });
 
+                c.CustomSchemaIds(type => type.FullName);
+            });
             services.AddAutoMapper(cfg => cfg.LicenseKey = autoMapperKey, AppDomain.CurrentDomain.GetAssemblies());
 
             services.AddCors(opt => opt.AddPolicy("AllowAll", p =>

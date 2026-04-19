@@ -1,12 +1,9 @@
 ﻿namespace Marilog.Presentation.Controllers
 {
-    using Marilog.Application.DTOs.Commands.Company;
-    using Marilog.Application.DTOs.Responses;
-    using Marilog.Application.Interfaces.Services;
-    using Marilog.Application.Services;
-    using Marilog.Domain.Entities;
-    using Marilog.Presentation.Common;
-    using Marilog.Presentation.DTOs.CompanyDTOs;
+    using Marilog.Contracts.Common;
+    using Marilog.Contracts.DTOs.Requests.CompanyDTOs;
+    using Marilog.Contracts.DTOs.Responses;
+    using Marilog.Contracts.Interfaces.Services;
     using Microsoft.AspNetCore.Mvc;
 
     [ApiController]
@@ -70,7 +67,7 @@
         // ─────────────────────────────────────────────
 
         [HttpPost]
-        public async Task<ActionResult<CompanyResponse>> Create([FromBody] CreateCompanyCommand request, CancellationToken ct)
+        public async Task<ActionResult<CompanyResponse>> Create([FromBody] CreateCompanyRequest request, CancellationToken ct)
         {
             var company = await _service.CreateAsync(
                 request.RegistrationNumber,
@@ -87,18 +84,20 @@
 
         [HttpPost("batch")]
         public async Task<ActionResult<IReadOnlyList<CompanyResponse>>> CreateRange(
-        [FromBody] IEnumerable<CreateCompanyCommand> requests,
+        [FromBody] IEnumerable<CreateCompanyRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateCompanyCommand(
-                r.RegistrationNumber,
-                r.CompanyName,
-                r.CountryId,
-                r.ContactName,
-                r.Email,
-                r.Phone,
-                r.Address
-            ));
+            var commands = requests.Select(r => new CreateCompanyRequest
+            {
+                RegistrationNumber = r.RegistrationNumber,
+                CompanyName = r.CompanyName,
+                CountryId = r.CountryId,
+                ContactName = r.ContactName,
+                Email = r.Email,
+                Phone = r.Phone,
+                Address = r.Address
+            }
+            );
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(result);
