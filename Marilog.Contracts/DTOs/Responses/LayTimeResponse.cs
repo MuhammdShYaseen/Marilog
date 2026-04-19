@@ -43,7 +43,7 @@ namespace Marilog.Contracts.DTOs.Responses
         bool AllowShiftingTime);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Laytime Calculation — DTOs
+    // Laytime Calculation — Response
     // ═══════════════════════════════════════════════════════════════════════
 
     public record LaytimeCalculationResponse(
@@ -79,7 +79,7 @@ namespace Marilog.Contracts.DTOs.Responses
 
 
     // ═══════════════════════════════════════════════════════════════════════
-    // SofEvent — DTOs
+    // SofEvent — Response
     // ═══════════════════════════════════════════════════════════════════════
     public record SofEventResponse(
         int Id,
@@ -92,7 +92,7 @@ namespace Marilog.Contracts.DTOs.Responses
 
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Laytime Segments — DTO
+    // Laytime Segments — Response
     // ═══════════════════════════════════════════════════════════════════════
 
     public record LaytimeSegmentResponse(
@@ -105,7 +105,7 @@ namespace Marilog.Contracts.DTOs.Responses
         string CountedDurationDisplay, // "7h 15m" أو "0h 00m"
         string? Reason);
     // ═══════════════════════════════════════════════════════════════════════
-    // Exceptions —  DTOs
+    // Exceptions —  Response
     // ═══════════════════════════════════════════════════════════════════════
 
     public record LaytimeExceptionResponse(
