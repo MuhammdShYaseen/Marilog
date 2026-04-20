@@ -13,7 +13,7 @@ namespace Marilog.Application
         {
             // ── Lookups ───────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICountryService, CountryService>();
-            services.AddScoped<ICurrencyService, CurrencyService>();
+            services.AddScoped<Contracts.Interfaces.Services.ICurrencyService, CurrencyService>();
             services.AddScoped<IPortService, PortService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();

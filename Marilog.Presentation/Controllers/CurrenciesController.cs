@@ -1,13 +1,11 @@
-﻿namespace Marilog.Presentation.Controllers
-{
-    using Marilog.Application.DTOs.Commands.Currency;
-    using Marilog.Application.DTOs.Responses;
-    using Marilog.Application.Interfaces.Services;
-    using Marilog.Domain.Entities;
-    using Marilog.Presentation.Common;
-    using Marilog.Presentation.DTOs.CurrencyDTOs;
-    using Microsoft.AspNetCore.Mvc;
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.CurrencyDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
 
+namespace Marilog.Presentation.Controllers
+{
     [ApiController]
     [Route("api/currencies")]
     public class CurrenciesController : ControllerBase
@@ -43,12 +41,12 @@
             var currency = await _service.GetBaseCurrencyAsync(ct);
             return currency is null
                 ? throw new KeyNotFoundException("currency not found")
-                
+
                 : Ok(ApiResponse<CurrencyResponse>.Ok(new CurrencyResponse
                 {
                     Id = currency.Id,
-                    Code = currency.CurrencyCode,
-                    Name = currency.CurrencyName,
+                    Code = currency.Code,
+                    Name = currency.Name,
                     Symbol = currency.Symbol,
                     ExchangeRate = currency.ExchangeRate,
                     IsBaseCurrency = currency.IsBaseCurrency,
@@ -94,12 +92,13 @@
         [FromBody] IEnumerable<CreateCurrencyRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateCurrencyCommand(
-                r.Code,
-                r.Name,
-                r.ExchangeRate,
-                r.Symbol
-            ));
+            var commands = requests.Select(r => new CreateCurrencyRequest
+            {
+                Code = r.Code,
+                Name = r.Name,
+                ExchangeRate = r.ExchangeRate,
+                Symbol = r.Symbol
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<CurrencyResponse>>.Ok(result));

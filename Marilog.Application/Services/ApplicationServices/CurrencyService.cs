@@ -1,6 +1,8 @@
-using Marilog.Application.DTOs.Commands.Currency;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+
+using Marilog.Contracts.DTOs.Requests.CurrencyDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -36,12 +38,14 @@ namespace Marilog.Application.Services.ApplicationServices
                 .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<Currency?> GetBaseCurrencyAsync(CancellationToken ct = default)
+        public async Task<CurrencyResponse?> GetBaseCurrencyAsync(CancellationToken ct = default)
         {
             return await _repo.Query()
-                .AsNoTracking()
-                .Where(x => x.IsBaseCurrency)
-                .FirstOrDefaultAsync(ct);
+                              .Where(x => x.IsBaseCurrency)
+                              .Select (ToResponse)
+                              .FirstOrDefaultAsync(ct);
+
+
         }
         public async Task<IReadOnlyList<CurrencyResponse>> GetAllAsync(CancellationToken ct = default)
         {
@@ -88,7 +92,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<CurrencyResponse>> CreateRangeAsync(
-        IEnumerable<CreateCurrencyCommand> commands,
+        IEnumerable<CreateCurrencyRequest> commands,
         CancellationToken ct = default)
         {
             var codes = commands.Select(c => c.Code.ToUpperInvariant()).ToList();
@@ -142,7 +146,10 @@ namespace Marilog.Application.Services.ApplicationServices
         public async Task SetAsBaseAsync(int id, CancellationToken ct = default)
         {
             // Unset current base currency first
-            var currentBase = await GetBaseCurrencyAsync(ct);
+            var currentBase = await _repo.Query()
+                                         .Where(c => c.IsBaseCurrency)
+                                         .FirstOrDefaultAsync(ct);
+
             if (currentBase is not null && currentBase.Id != id)
             {
                 currentBase.Update(currentBase.CurrencyName, currentBase.ExchangeRate, currentBase.Symbol);
