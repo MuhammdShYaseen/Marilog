@@ -1,6 +1,7 @@
-using Marilog.Application.DTOs.Commands.Port;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+using Marilog.Contracts.DTOs.Requests.PortDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -92,7 +93,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<PortResponse>> CreateRangeAsync(
-        IEnumerable<CreatePortCommand> commands,
+        IEnumerable<CreatePortRequest> commands,
         CancellationToken ct = default)
         {
             var commandList = commands.ToList();

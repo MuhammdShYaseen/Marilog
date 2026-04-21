@@ -1,6 +1,6 @@
-using Marilog.Application.DTOs.Commands.Rank;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+using Marilog.Contracts.DTOs.Requests.RankDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
@@ -90,7 +90,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<RankResponse>> CreateRangeAsync(
-        IEnumerable<CreateRankCommand> commands,
+        IEnumerable<CreateRankRequest> commands,
         CancellationToken ct = default)
         {
             var commandList = commands.ToList();

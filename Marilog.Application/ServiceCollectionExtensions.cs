@@ -14,8 +14,8 @@ namespace Marilog.Application
             // ── Lookups ───────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICountryService, CountryService>();
             services.AddScoped<Contracts.Interfaces.Services.ICurrencyService, CurrencyService>();
-            services.AddScoped<IPortService, PortService>();
-            services.AddScoped<IRankService, RankService>();
+            services.AddScoped<Contracts.Interfaces.Services.IPortService, PortService>();
+            services.AddScoped<Contracts.Interfaces.Services.IRankService, RankService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             services.AddScoped<IOfficeService, OfficeService>();
 
@@ -31,7 +31,7 @@ namespace Marilog.Application
 
             // ── Financial ─────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.IDocumentService, DocumentService>();
-            services.AddScoped<ISwiftTransferService, SwiftTransferService>();
+            services.AddScoped<Contracts.Interfaces.Services.ISwiftTransferService, SwiftTransferService>();
 
             // ── Payroll ───────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICrewPayrollService, CrewPayrollService>();
