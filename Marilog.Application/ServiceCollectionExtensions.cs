@@ -1,7 +1,6 @@
 ﻿using Marilog.Application.EventHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using Marilog.Application.Services.ApplicationServices;
-using Marilog.Application.Interfaces.FrontendServices;
 using Marilog.Application.Services.FrontendServices;
 using Marilog.Application.Interfaces.Services;
 

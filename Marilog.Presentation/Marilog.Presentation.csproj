@@ -25,10 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />
     <ProjectReference Include="..\Marilog.Infrastructure\Marilog.Infrastructure.csproj" />
   </ItemGroup>
