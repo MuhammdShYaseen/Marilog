@@ -1,8 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.Frontend;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.FrontendServices;
-using Marilog.Presentation.Common;
-//using Marilog.Presentation.DTOs.FrontendDTOs;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Frontend;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.FrontendServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers

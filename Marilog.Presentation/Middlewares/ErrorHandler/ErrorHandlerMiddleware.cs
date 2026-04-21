@@ -1,4 +1,5 @@
-﻿using Marilog.Presentation.Common;
+﻿
+using Marilog.Contracts.Common;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using System.Diagnostics;

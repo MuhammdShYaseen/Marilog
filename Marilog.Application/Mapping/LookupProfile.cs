@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Marilog.Application.DTOs.Responses;
+using Marilog.Contracts.DTOs.Responses;
 using Marilog.Domain.Entities.SystemEntities;
 
 namespace Marilog.Application.Mapping

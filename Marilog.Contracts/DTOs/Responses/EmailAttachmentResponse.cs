@@ -2,9 +2,9 @@
 {
     public class EmailAttachmentResponse
     {
-        public int EmailId { get; private set; }
-        public string FileName { get; private set; } = null!;
-        public string FilePath { get; private set; } = null!;
-        public long FileSizeBytes { get; private set; }
+        public int EmailId { get;  set; }
+        public string FileName { get;  set; } = null!;
+        public string FilePath { get;  set; } = null!;
+        public long FileSizeBytes { get;  set; }
     }
 }

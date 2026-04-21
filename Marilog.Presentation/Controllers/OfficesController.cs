@@ -1,11 +1,10 @@
-﻿using Marilog.Application.DTOs.Commands.Office;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.OfficeDTOs;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.OfficeDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Mail;
 
 namespace Marilog.Presentation.Controllers
 {
@@ -78,14 +77,14 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreateOfficeRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateOfficeCommand(
-                r.OfficeName,
-                r.City,
-                r.CountryId,
-                r.Address,
-                r.Phone,
-                r.ContactName
-            ));
+            var commands = requests.Select(r => new CreateOfficeRequest{
+                OfficeName = r.OfficeName,
+                City = r.City,
+                CountryId = r.CountryId,
+                Address = r.Address,
+                Phone = r.Phone,
+                ContactName = r.ContactName
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<OfficeResponse>>.Ok(result));

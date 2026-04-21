@@ -1,8 +1,8 @@
-﻿using Marilog.Application.DTOs.Commands.Document;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.DocumentTypeDTOs;
+﻿
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.DocumentTypeDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 
@@ -70,11 +70,12 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreateDocumentTypeRequest> requests,
          CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateDocumentTypeCommand(
-                r.Code,
-                r.Name,
-                r.SortOrder
-            ));
+            var commands = requests.Select(r => new CreateDocumentTypeRequest
+            {
+                Code = r.Code,
+                Name = r.Name,
+                SortOrder = r.SortOrder
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<DocumentTypeResponse>>.Ok(result));

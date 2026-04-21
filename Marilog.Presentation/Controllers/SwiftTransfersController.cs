@@ -1,8 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.SwiftTransfer;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.SwiftTransferDTOs;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -89,18 +90,18 @@ namespace Marilog.Presentation.Controllers
          [FromBody] IEnumerable<CreateSwiftTransferRequest> requests,
          CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateSwiftTransferCommand(
-                r.SwiftReference,
-                r.TransactionDate,
-                r.CurrencyId,
-                r.Amount,
-                r.SenderCompanyId,
-                r.ReceiverCompanyId,
-                r.SenderBank,
-                r.ReceiverBank,
-                r.PaymentReference,
-                r.RawMessage
-            ));
+            var commands = requests.Select(r => new CreateSwiftTransferRequest{
+                SwiftReference = r.SwiftReference,
+                TransactionDate = r.TransactionDate,
+                CurrencyId = r.CurrencyId,
+                Amount = r.Amount,
+                SenderCompanyId = r.SenderCompanyId,
+                ReceiverCompanyId = r.ReceiverCompanyId,
+                SenderBank = r.SenderBank,
+                ReceiverBank = r.ReceiverBank,
+                PaymentReference = r.PaymentReference,
+                RawMessage = r.RawMessage
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));

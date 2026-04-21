@@ -1,9 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.Rank;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+﻿
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.RankDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Kernel.Enums;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.RankDTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -59,11 +59,11 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreateRankRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateRankCommand(
-                r.RankCode,
-                r.RankName,
-                r.Department
-            ));
+            var commands = requests.Select(r => new CreateRankRequest{
+                RankCode = r.RankCode,
+                RankName = r.RankName,
+                Department = r.Department
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<RankResponse>>.Ok(result));

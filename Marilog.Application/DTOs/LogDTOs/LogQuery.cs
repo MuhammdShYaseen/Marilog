@@ -1,6 +1,4 @@
-﻿
-
-namespace Marilog.Application.DTOs.Logs
+﻿namespace Marilog.Application.DTOs.LogDTOs
 {
     public sealed class LogQuery
     {

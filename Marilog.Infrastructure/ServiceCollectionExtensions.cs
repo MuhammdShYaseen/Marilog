@@ -1,4 +1,4 @@
-﻿using Marilog.Application.Interfaces.LogInterfaces;
+﻿using Marilog.Application.Interfaces.LogService;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Repositories;

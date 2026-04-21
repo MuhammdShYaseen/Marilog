@@ -15,7 +15,7 @@ namespace Marilog.Contracts.Interfaces.Services
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<EmailResponse> CreateAsync(string entityType, int entityId, string subject, string body,
-                                EmailDirection direction, IReadOnlyList<EmailParticipantData> participants,
+                                EmailDirection direction, IReadOnlyList<EmailParticipantResponse> participants,
                                 CancellationToken ct = default);
         Task        MarkAsSentAsync(int id, DateTime sentAt, string? externalId = null, CancellationToken ct = default);
         Task        MarkAsReceivedAsync(int id, CancellationToken ct = default);
@@ -24,7 +24,7 @@ namespace Marilog.Contracts.Interfaces.Services
         Task        DeleteAsync(int id, CancellationToken ct = default);
 
         // ── Participants ──────────────────────────────────────────────────────────
-        Task<EmailParticipantData> AddParticipantAsync(int emailId, ParticipantRole role,
+        Task<EmailParticipantResponse> AddParticipantAsync(int emailId, ParticipantRole role,
                                                    ParticipantType participantType,
                                                    int participantId,
                                                    string? displayName = null,

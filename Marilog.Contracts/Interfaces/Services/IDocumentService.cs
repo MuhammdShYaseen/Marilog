@@ -64,7 +64,7 @@ namespace Marilog.Contracts.Interfaces.Services
 
         // ── Emails ────────────────────────────────────────────────────────────────
         Task LogEmailAsync(int documentId, string subject, string body,
-                           IReadOnlyList<EmailParticipantData> participants,
+                           IReadOnlyList<EmailParticipantResponse> participants,
                            EmailDirection direction = EmailDirection.Outbound,
                            CancellationToken ct = default);
         //---Reports------------------------------------------------------------------

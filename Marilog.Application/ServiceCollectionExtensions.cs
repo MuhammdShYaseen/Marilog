@@ -1,9 +1,9 @@
 ﻿using Marilog.Application.EventHandlers;
-using Marilog.Application.Interfaces.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Marilog.Application.Services.ApplicationServices;
 using Marilog.Application.Interfaces.FrontendServices;
 using Marilog.Application.Services.FrontendServices;
+using Marilog.Application.Interfaces.Services;
 
 namespace Marilog.Application
 {
@@ -21,7 +21,7 @@ namespace Marilog.Application
 
             // ── Core ──────────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICompanyService, CompanyService>();
-            services.AddScoped<IPersonService, PersonService>();
+            services.AddScoped<Contracts.Interfaces.Services.IPersonService, PersonService>();
             services.AddScoped<Contracts.Interfaces.Services.IVesselService, VesselService>();
 
             // ── Operations ────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ namespace Marilog.Application
             services.AddScoped<Contracts.Interfaces.Services.ICrewPayrollService, CrewPayrollService>();
 
             // ── Communication ─────────────────────────────────────────────────────
-            services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<Contracts.Interfaces.Services.IEmailService, EmailService>();
             services.AddScoped<DocumentEmailRequestedEventHandler>();
 
 
@@ -49,7 +49,7 @@ namespace Marilog.Application
             services.AddScoped<Contracts.Interfaces.Services.IContractService, ContractService>();
 
             //----FrontendServices-------------------
-            services.AddScoped<INavigationService, NavigationService>();
+            services.AddScoped<Contracts.Interfaces.FrontendServices.INavigationService, NavigationService>();
 
             string autoMapperKey = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ikx1Y2t5UGVubnlTb2Z0d2FyZUxpY2Vuc2VLZXkvYmJiMTNhY2I1OTkwNGQ4OWI0Y2IxYzg1ZjA4OGNjZjkiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2x1Y2t5cGVubnlzb2Z0d2FyZS5jb20iLCJhdWQiOiJMdWNreVBlbm55U29mdHdhcmUiLCJleHAiOiIxODA1NDE0NDAwIiwiaWF0IjoiMTc3MzkxNDI2NyIsImFjY291bnRfaWQiOiIwMTlkMDU4NmVlZmM3OWRkYjg0MzQ5NjI0MTA1NDU5NSIsImN1c3RvbWVyX2lkIjoiY3RtXzAxa20ycmY3YmN2bjNoc3g4a3ZoY3EweW03Iiwic3ViX2lkIjoiLSIsImVkaXRpb24iOiIwIiwidHlwZSI6IjIifQ.Pii8V4OkoaGgzQz0pPLlzMCyDKbZSvQAGJxssaFEK7OO-3HhYd1PD7iIcCZjNj0kQQEE_WLMXyacwpcW41sS4OkrVPbD2UCWmMz9cdwnE5aMNjckI4-EiRlo1i5iOcIcbJ3iO-KFwgnfQtyo0-qOBdNV7KTz3wOe_Nrak2_1UlZ0oQoJnKO4Bmp_Spoh9idNvSH1SjQLIb_HPiNnUK4PojiDk8QCw-wNecsKaxflls2VWa2qZGlcKi8nW6L6wDXX0YTcQM8WZWCGScxTedU0xT-ke-ag4AeuDWASvHKNyNvdJ_tXIG6QSna-LttHdeWiFA1LZ4oBeSmDWy6yejaTmQ";
             services.AddAutoMapper(cfg => cfg.LicenseKey = autoMapperKey, AppDomain.CurrentDomain.GetAssemblies());

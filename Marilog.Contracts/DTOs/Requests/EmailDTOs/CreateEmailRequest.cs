@@ -12,7 +12,7 @@ namespace Marilog.Contracts.DTOs.Requests.EmailDTOs
         public string Body { get; set; } = default!;
         public EmailDirection Direction { get; set; }
 
-        public IReadOnlyList<EmailParticipantData> Participants { get; set; }
-            = new List<EmailParticipantData>();
+        public IReadOnlyList<EmailParticipantResponse> Participants { get; set; }
+            = new List<EmailParticipantResponse>();
     }
 }

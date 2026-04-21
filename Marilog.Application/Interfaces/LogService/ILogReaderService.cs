@@ -1,10 +1,9 @@
 ﻿using Marilog.Application.DTOs.LogDTOs;
-using Marilog.Application.DTOs.Logs;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Application.Interfaces.LogInterfaces
+namespace Marilog.Application.Interfaces.LogService
 {
     public interface ILogReaderService
     {

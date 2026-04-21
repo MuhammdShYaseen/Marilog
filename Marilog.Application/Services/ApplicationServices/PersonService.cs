@@ -1,6 +1,7 @@
-using Marilog.Application.DTOs.Commands.Person;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+using Marilog.Contracts.DTOs.Requests.PersonDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -131,7 +132,7 @@ namespace Marilog.Application.Services.ApplicationServices
             };
         }
 
-        public async Task<IReadOnlyList<PersonResponse>> CreateRangeAsync(IEnumerable<CreatePersonCommand> commands, CancellationToken ct = default)
+        public async Task<IReadOnlyList<PersonResponse>> CreateRangeAsync(IEnumerable<CreatePersonRequest> commands, CancellationToken ct = default)
         {
             if (commands == null || !commands.Any())
                 return Array.Empty<PersonResponse>();

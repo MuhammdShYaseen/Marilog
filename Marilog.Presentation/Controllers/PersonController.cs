@@ -1,8 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.Person;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.PersonDTOs;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.PersonDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -84,20 +85,21 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreatePersonRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreatePersonCommand(
-                r.BankName,
-                r.IBAN,
-                r.IsPassportExpired,
-                r.FullName,
-                r.BankSwiftCode,
-                r.Nationality,
-                r.PassportNo,
-                r.PassportExpiry,
-                r.SeamanBookNo,
-                r.DateOfBirth,
-                r.Phone,
-                r.Email
-            ));
+            var commands = requests.Select(r => new CreatePersonRequest
+            {
+                BankName = r.BankName,
+                IBAN = r.IBAN,
+                IsPassportExpired = r.IsPassportExpired,
+                FullName =r.FullName,
+                BankSwiftCode = r.BankSwiftCode,
+                Nationality = r.Nationality,
+                PassportNo = r.PassportNo,
+                PassportExpiry = r.PassportExpiry,
+                SeamanBookNo = r.SeamanBookNo,
+                DateOfBirth = r.DateOfBirth,
+                Phone = r.Phone,
+                Email = r.Email
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(result));

@@ -1,12 +1,13 @@
-﻿namespace Marilog.Presentation.Controllers
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Marilog.Presentation.Controllers
 {
-    using Marilog.Application.DTOs.Commands.Document;
-    using Marilog.Application.DTOs.Responses;
-    using Marilog.Application.Interfaces.Services;
-    using Marilog.Domain.Entities.SystemEntities;
-    using Marilog.Presentation.Common;
-    using Marilog.Presentation.DTOs.DocumentDTOs;
-    using Microsoft.AspNetCore.Mvc;
+
+
 
     [ApiController]
     [Route("api/documents")]
@@ -62,7 +63,7 @@
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetBySupplier(int supplierId, CancellationToken ct)
         {
             var docs = await _service.GetBySupplierAsync(supplierId, ct);
-            return docs is null ? NotFound() : Ok(ApiResponse < IReadOnlyList<DocumentResponse>>.Ok(docs));
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-buyer/{buyerId:int}")]
@@ -132,20 +133,21 @@
             [FromBody] IEnumerable<CreateDocumentRequest> requests,
             CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateDocumentCommand(
-                r.DocNumber,
-                r.DocTypeId,
-                r.DocDate,
-                r.CurrencyId,
-                r.TotalAmount,
-                r.SupplierId,
-                r.BuyerId,
-                r.VesselId,
-                r.PortId,
-                r.ParentDocumentId,
-                r.Reference,
-                r.FilePath
-            ));
+            var commands = requests.Select(r => new CreateDocumentRequest
+            {
+                DocNumber = r.DocNumber,
+                DocTypeId = r.DocTypeId,
+                DocDate = r.DocDate,
+                CurrencyId = r.CurrencyId,
+                TotalAmount = r.TotalAmount,
+                SupplierId = r.SupplierId,
+                BuyerId = r.BuyerId,
+                VesselId = r.VesselId,
+                PortId = r.PortId,
+                ParentDocumentId = r.ParentDocumentId,
+                Reference = r.Reference,
+                FilePath = r.FilePath
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(result));
@@ -210,27 +212,28 @@
         // ─────────────────────────────────────────────
 
         [HttpPost("{id:int}/items")]
-        public async Task<ActionResult<DocumentItem>> AddItem(int id, [FromBody] AddDocumentItemRequest request, CancellationToken ct)
+        public async Task<ActionResult<DocumentItemResponse>> AddItem(int id, [FromBody] AddDocumentItemRequest request, CancellationToken ct)
         {
             var item = await _service.AddItemAsync(id, request.ProductName, request.Quantity, request.UnitPrice, request.Unit, ct);
             return Ok(item);
         }
 
         [HttpPost("{documentId:int}/items/batch")]
-        public async Task<ActionResult<ApiResponse<IReadOnlyList<DocumentItem>>>> AddItemsRange(
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<DocumentItemResponse>>>> AddItemsRange(
         int documentId,
         [FromBody] IEnumerable<AddDocumentItemRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new AddDocumentItemCommand(
-                r.ProductName,
-                r.Quantity,
-                r.UnitPrice,
-                r.Unit
-            ));
+            var commands = requests.Select(r => new AddDocumentItemRequest
+            {
+                ProductName = r.ProductName,
+                Quantity = r.Quantity,
+                UnitPrice = r.UnitPrice,
+                Unit = r.Unit
+            });
 
             var result = await _service.AddItemsRangeAsync(documentId, commands, ct);
-            return Ok(ApiResponse<IReadOnlyList<DocumentItem>>.Ok(result));
+            return Ok(ApiResponse<IReadOnlyList<DocumentItemResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}/items/{itemId:int}")]
@@ -252,7 +255,7 @@
         // ─────────────────────────────────────────────
 
         [HttpPost("{id:int}/payments")]
-        public async Task<ActionResult<Payment>> AddPayment(int id, [FromBody] AddPaymentRequest request, CancellationToken ct)
+        public async Task<ActionResult<PaymentResponse>> AddPayment(int id, [FromBody] AddPaymentRequest request, CancellationToken ct)
         {
             var payment = await _service.AddPaymentAsync(id, request.SwiftTransferId, request.PaidAmount, request.PaymentDate, ct);
             return Ok(payment);
@@ -267,6 +270,6 @@
         {
             await _service.LogEmailAsync(id, request.Subject, request.Body, request.Participants, request.Direction, ct);
             return NoContent();
-        }
+        } 
     }
 }

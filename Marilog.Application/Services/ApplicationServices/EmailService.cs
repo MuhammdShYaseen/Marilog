@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Kernel.Enums;
+using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.DTOs.Responses;
 
 namespace Marilog.Application.Services.ApplicationServices
 {
@@ -15,50 +16,244 @@ namespace Marilog.Application.Services.ApplicationServices
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<Email?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Participants)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+        public async Task<EmailResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(email => new EmailResponse
+                {
+                    Id = email.Id,
 
-        public async Task<Email?> GetFullAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Include(x => x.Participants).ThenInclude(x => x.Company)
-                          .Include(x => x.Attachments)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
+                    Direction = email.Direction,
+                    SentAt = email.SentAt,
+                    Status = email.Status,
+                    Subject = email.Subject,
+                    Body = email.Body,
+                    EntityId = email.EntityId,
+                    EntityType = email.EntityType,
+                    ExternalId = email.ExternalId,
 
-        public async Task<IReadOnlyList<Email>> GetByEntityAsync(string entityType,
+                    Attachments = email.Attachments
+                .Select(a => new EmailAttachmentResponse
+                {
+                    EmailId = a.Id,
+                    FileName = a.FileName,
+                    FilePath = a.FilePath,
+                    FileSizeBytes = a.FileSizeBytes
+                })
+                .ToList(),
+
+                Participants = email.Participants
+                .Select(p => new EmailParticipantResponse
+                {
+                    CompanyId = p.CompanyId,
+                    DisplayName = p.DisplayName,
+                    EmailAddress = p.EmailAddress,
+                    EmailId = p.EmailId,
+                    ParticipantId = p.ParticipantId,
+                    Id = p.Id,
+                    ParticipantType = p.ParticipantType,
+                    Role = p.Role
+                }).ToList()
+        }).FirstOrDefaultAsync(ct);
+        } 
+
+        public async Task<EmailResponse?> GetFullAsync(int id, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(email => new EmailResponse
+                {
+                    Id = email.Id,
+
+                    Direction = email.Direction,
+                    SentAt = email.SentAt,
+                    Status = email.Status,
+                    Subject = email.Subject,
+                    Body = email.Body,
+                    EntityId = email.EntityId,
+                    EntityType = email.EntityType,
+                    ExternalId = email.ExternalId,
+
+                    Attachments = email.Attachments
+                        .Select(a => new EmailAttachmentResponse
+                        {
+                            EmailId = a.Id,
+                            FileName = a.FileName,
+                            FilePath = a.FilePath,
+                            FileSizeBytes = a.FileSizeBytes
+                        })
+                        .ToList(),
+
+                    Participants = email.Participants
+                        .Select(p => new EmailParticipantResponse
+                        {
+                            Id = p.Id,
+                            EmailId = p.EmailId,
+                            ParticipantId = p.ParticipantId,
+                            CompanyId = p.CompanyId,
+                            DisplayName = p.DisplayName,
+                            EmailAddress = p.EmailAddress,
+                            ParticipantType = p.ParticipantType,
+                            Role = p.Role
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(string entityType,
             int entityId, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.EntityType == entityType &&
-                                      x.EntityId   == entityId)
-                          .Include(x => x.Participants)
-                          .OrderByDescending(x => x.CreatedAt)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.EntityType == entityType &&
+                            x.EntityId == entityId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(email => new EmailResponse
+                {
+                    Id = email.Id,
 
-        public async Task<IReadOnlyList<Email>> GetByStatusAsync(EmailStatus status,
+                    Direction = email.Direction,
+                    SentAt = email.SentAt,
+                    Status = email.Status,
+                    Subject = email.Subject,
+                    Body = email.Body,
+                    EntityId = email.EntityId,
+                    EntityType = email.EntityType,
+                    ExternalId = email.ExternalId,
+
+                    Participants = email.Participants
+                        .Select(p => new EmailParticipantResponse
+                        {
+                            Id = p.Id,
+                            EmailId = p.EmailId,
+                            ParticipantId = p.ParticipantId,
+                            CompanyId = p.CompanyId,
+                            DisplayName = p.DisplayName,
+                            EmailAddress = p.EmailAddress,
+                            ParticipantType = p.ParticipantType,
+                            Role = p.Role
+                        })
+                        .ToList(),
+
+                    Attachments = email.Attachments
+                        .Select(a => new EmailAttachmentResponse
+                        {
+                            EmailId = a.Id,
+                            FileName = a.FileName,
+                            FilePath = a.FilePath,
+                            FileSizeBytes = a.FileSizeBytes
+                        })
+                        .ToList()
+                })
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<EmailResponse>> GetByStatusAsync(EmailStatus status,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.Status == status)
-                          .Include(x => x.Participants)
-                          .OrderByDescending(x => x.CreatedAt)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Status == status)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(email => new EmailResponse
+                {
+                    Id = email.Id,
 
-        public async Task<IReadOnlyList<Email>> GetByParticipantAsync(
+                    Direction = email.Direction,
+                    SentAt = email.SentAt,
+                    Status = email.Status,
+                    Subject = email.Subject,
+                    Body = email.Body,
+                    EntityId = email.EntityId,
+                    EntityType = email.EntityType,
+                    ExternalId = email.ExternalId,
+
+                    Participants = email.Participants
+                        .Select(p => new EmailParticipantResponse
+                        {
+                            Id = p.Id,
+                            EmailId = p.EmailId,
+                            ParticipantId = p.ParticipantId,
+                            CompanyId = p.CompanyId,
+                            DisplayName = p.DisplayName,
+                            EmailAddress = p.EmailAddress,
+                            ParticipantType = p.ParticipantType,
+                            Role = p.Role
+                        })
+                        .ToList(),
+
+                    Attachments = email.Attachments
+                        .Select(a => new EmailAttachmentResponse
+                        {
+                            EmailId = a.Id,
+                            FileName = a.FileName,
+                            FilePath = a.FilePath,
+                            FileSizeBytes = a.FileSizeBytes
+                        })
+                        .ToList()
+                })
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<EmailResponse>> GetByParticipantAsync(
             ParticipantType participantType, int participantId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.Participants.Any(
-                              p => p.ParticipantType == participantType &&
-                                   p.ParticipantId   == participantId))
-                          .Include(x => x.Participants)
-                          .OrderByDescending(x => x.CreatedAt)
-                          .ToListAsync(ct);
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Participants.Any(
+                    p => p.ParticipantType == participantType &&
+                         p.ParticipantId == participantId))
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(email => new EmailResponse
+                {
+                    Id = email.Id,
+
+                    Direction = email.Direction,
+                    SentAt = email.SentAt,
+                    Status = email.Status,
+                    Subject = email.Subject,
+                    Body = email.Body,
+                    EntityId = email.EntityId,
+                    EntityType = email.EntityType,
+                    ExternalId = email.ExternalId,
+
+                    Participants = email.Participants
+                        .Select(p => new EmailParticipantResponse
+                        {
+                            Id = p.Id,
+                            EmailId = p.EmailId,
+                            ParticipantId = p.ParticipantId,
+                            CompanyId = p.CompanyId,
+                            DisplayName = p.DisplayName,
+                            EmailAddress = p.EmailAddress,
+                            ParticipantType = p.ParticipantType,
+                            Role = p.Role
+                        })
+                        .ToList(),
+
+                    Attachments = email.Attachments
+                        .Select(a => new EmailAttachmentResponse
+                        {
+                            EmailId = a.Id,
+                            FileName = a.FileName,
+                            FilePath = a.FilePath,
+                            FileSizeBytes = a.FileSizeBytes
+                        })
+                        .ToList()
+                })
+                .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<Email> CreateAsync(string entityType, int entityId,
+        public async Task<EmailResponse> CreateAsync(string entityType, int entityId,
             string subject, string body, EmailDirection direction,
-            IReadOnlyList<EmailParticipantData> participants,
+            IReadOnlyList<EmailParticipantResponse> participants,
             CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(entityType);
@@ -76,7 +271,43 @@ namespace Marilog.Application.Services.ApplicationServices
 
             await _repo.AddAsync(email, ct);
             await _repo.SaveChangesAsync(ct);
-            return email;
+            return new EmailResponse
+            {
+                Id = email.Id,
+
+                Direction = email.Direction,
+                SentAt = email.SentAt,
+                Status = email.Status,
+                Subject = email.Subject,
+                Body = email.Body,
+                EntityId = email.EntityId,
+                EntityType = email.EntityType,
+                ExternalId = email.ExternalId,
+
+                Participants = email.Participants
+           .Select(p => new EmailParticipantResponse
+           {
+               Id = p.Id,
+               EmailId = p.EmailId,
+               ParticipantId = p.ParticipantId,
+               CompanyId = p.CompanyId,
+               DisplayName = p.DisplayName,
+               EmailAddress = p.EmailAddress,
+               ParticipantType = p.ParticipantType,
+               Role = p.Role
+           })
+           .ToList(),
+
+                Attachments = email.Attachments
+           .Select(a => new EmailAttachmentResponse
+           {
+               EmailId = a.Id,
+               FileName = a.FileName,
+               FilePath = a.FilePath,
+               FileSizeBytes = a.FileSizeBytes
+           })
+           .ToList()
+            };
         }
 
         public async Task MarkAsSentAsync(int id, DateTime sentAt,
@@ -124,7 +355,7 @@ namespace Marilog.Application.Services.ApplicationServices
 
         // ── Participants ──────────────────────────────────────────────────────────
 
-        public async Task<EmailParticipant> AddParticipantAsync(int emailId,
+        public async Task<EmailParticipantResponse> AddParticipantAsync(int emailId,
             ParticipantRole role, ParticipantType participantType, int participantId,
             string? displayName = null, string? emailAddress = null,
             CancellationToken ct = default)
@@ -134,7 +365,17 @@ namespace Marilog.Application.Services.ApplicationServices
                                                    participantId, displayName, emailAddress);
             _repo.Update(email);
             await _repo.SaveChangesAsync(ct);
-            return participant;
+            return new EmailParticipantResponse
+            {
+                Id = participant.Id,
+                EmailId = participant.EmailId,
+                ParticipantId = participant.ParticipantId,
+                CompanyId = participant.CompanyId,
+                DisplayName = participant.DisplayName,
+                EmailAddress = participant.EmailAddress,
+                ParticipantType = participant.ParticipantType,
+                Role = participant.Role
+            };
         }
 
         public async Task RemoveParticipantAsync(int emailId, int participantId,
@@ -148,14 +389,20 @@ namespace Marilog.Application.Services.ApplicationServices
 
         // ── Attachments ───────────────────────────────────────────────────────────
 
-        public async Task<EmailAttachment> AddAttachmentAsync(int emailId, string fileName,
+        public async Task<EmailAttachmentResponse> AddAttachmentAsync(int emailId, string fileName,
             string filePath, long fileSizeBytes, CancellationToken ct = default)
         {
             var email = await GetWithAttachmentsOrThrowAsync(emailId, ct);
             var attachment = email.AddAttachment(fileName, filePath, fileSizeBytes);
             _repo.Update(email);
             await _repo.SaveChangesAsync(ct);
-            return attachment;
+            return new EmailAttachmentResponse
+            {
+                EmailId = attachment.Id,
+                FileName = attachment.FileName,
+                FilePath = attachment.FilePath,
+                FileSizeBytes = attachment.FileSizeBytes
+            };
         }
 
         public async Task RemoveAttachmentAsync(int emailId, int attachmentId,

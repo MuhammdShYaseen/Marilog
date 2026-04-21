@@ -342,7 +342,7 @@ namespace Marilog.Application.Services.ApplicationServices
         // ── Email ──────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,
-            IReadOnlyList<EmailParticipantData> participants, EmailDirection direction = EmailDirection.Outbound,
+            IReadOnlyList<EmailParticipantResponse> participants, EmailDirection direction = EmailDirection.Outbound,
             CancellationToken ct = default)
         {
 

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Marilog.Application.DTOs.Responses;
+using Marilog.Contracts.DTOs.Responses;
 using Marilog.Domain.Entities.SystemEntities;
 using System;
 using System.Collections.Generic;

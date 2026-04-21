@@ -1,10 +1,12 @@
-﻿using Marilog.Application.DTOs.Reports.CrewContractReports;
-using Marilog.Application.DTOs.Reports.CrewPayrollReports;
-using Marilog.Application.DTOs.Reports.DocumentReports;
-using Marilog.Application.DTOs.Reports.SwiftTransferReports;
-using Marilog.Application.DTOs.Reports.VoyageReports;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Reports.CrewContractReports;
+using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
+using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
+using Marilog.Contracts.DTOs.Reports.VoyageReports;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers

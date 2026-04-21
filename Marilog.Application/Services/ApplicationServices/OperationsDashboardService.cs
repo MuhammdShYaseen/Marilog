@@ -1,11 +1,11 @@
-﻿using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+﻿using Marilog.Application.Interfaces.Services;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 
 
 namespace Marilog.Application.Services.ApplicationServices
 {
-    public class OperationsDashboardService
-    : IOperationsDashboardService
+    public class OperationsDashboardService : IOperationsDashboardService
     {
         private readonly IVoyageService _voyageService;
         private readonly ICrewContractService _crewService;

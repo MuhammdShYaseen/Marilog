@@ -8,7 +8,7 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
     {
         public string Subject { get; set; } = default!;
         public string Body { get; set; } = default!;
-        public IReadOnlyList<EmailParticipantData> Participants { get; set; } = new List<EmailParticipantData>();
+        public IReadOnlyList<EmailParticipantResponse> Participants { get; set; } = new List<EmailParticipantResponse>();
         public EmailDirection Direction { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 using Marilog.Domain.Events;
-using Marilog.Application.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.DTOs.Responses;
 
 namespace Marilog.Application.EventHandlers
 {
@@ -24,8 +25,15 @@ namespace Marilog.Application.EventHandlers
                 subject:      @event.Subject,
                 body:         @event.Body,
                 direction:    @event.Direction,
-                participants: @event.Participants,
-                ct:           ct);
-        }
+                participants: @event.Participants
+                .Select(p => new EmailParticipantResponse 
+                      { 
+                          DisplayName = p.DisplayName,
+                          EmailAddress = p.EmailAddress,
+                          ParticipantId = p.ParticipantId,
+                          ParticipantType = p.ParticipantType,
+                          Role = p.Role }).ToList()
+                           ,ct: ct);
+                      }
     }
 }

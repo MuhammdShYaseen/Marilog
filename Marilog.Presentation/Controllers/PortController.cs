@@ -1,8 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.Port;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.PortDTOs;
+﻿
+
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.PortDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -58,11 +59,12 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreatePortRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreatePortCommand(
-                r.PortCode,
-                r.PortName,
-                r.CountryId
-            ));
+            var commands = requests.Select(r => new CreatePortRequest
+            {
+                PortCode = r.PortCode,
+                PortName = r.PortName,
+                CountryId = r.CountryId
+            });
 
             var result = await _service.CreateRangeAsync(commands, ct);
             return Ok(ApiResponse<IReadOnlyList<PortResponse>>.Ok(result));

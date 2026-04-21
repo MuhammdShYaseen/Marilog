@@ -1,10 +1,9 @@
-﻿using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities.SystemEntities;
+﻿
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.EmailDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Kernel.Enums;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.EmailDTOs;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -25,46 +24,46 @@ namespace Marilog.Presentation.Controllers
         // ─────────────────────────────────────────────
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Email>> GetById(int id, CancellationToken ct)
+        public async Task<ActionResult<EmailResponse>> GetById(int id, CancellationToken ct)
         {
             var email = await _service.GetByIdAsync(id, ct);
-            return email is null ? NotFound() : Ok(ApiResponse<Email>.Ok(email));
+            return email is null ? NotFound() : Ok(ApiResponse<EmailResponse>.Ok(email));
         }
 
         [HttpGet("{id:int}/full")]
-        public async Task<ActionResult<Email>> GetFull(int id, CancellationToken ct)
+        public async Task<ActionResult<EmailResponse>> GetFull(int id, CancellationToken ct)
         {
             var email = await _service.GetFullAsync(id, ct);
-            return email is null ? NotFound() : Ok(ApiResponse<Email>.Ok(email));
+            return email is null ? NotFound() : Ok(ApiResponse<EmailResponse>.Ok(email));
         }
 
         [HttpGet("by-entity")]
-        public async Task<ActionResult<IReadOnlyList<Email>>> GetByEntity(
+        public async Task<ActionResult<IReadOnlyList<EmailResponse>>> GetByEntity(
             [FromQuery] string entityType,
             [FromQuery] int entityId,
             CancellationToken ct)
         {
             var result = await _service.GetByEntityAsync(entityType, entityId, ct);
-            return Ok(ApiResponse < IReadOnlyList<Email>>.Ok(result));
+            return Ok(ApiResponse < IReadOnlyList<EmailResponse>>.Ok(result));
         }
 
         [HttpGet("by-status/{status}")]
-        public async Task<ActionResult<IReadOnlyList<Email>>> GetByStatus(
+        public async Task<ActionResult<IReadOnlyList<EmailResponse>>> GetByStatus(
             EmailStatus status,
             CancellationToken ct)
         {
             var results = await _service.GetByStatusAsync(status, ct);
-            return Ok(ApiResponse<IReadOnlyList<Email>>.Ok(results));
+            return Ok(ApiResponse<IReadOnlyList<EmailResponse>>.Ok(results));
         }
 
         [HttpGet("by-participant")]
-        public async Task<ActionResult<IReadOnlyList<Email>>> GetByParticipant(
+        public async Task<ActionResult<IReadOnlyList<EmailResponse>>> GetByParticipant(
             [FromQuery] ParticipantType participantType,
             [FromQuery] int participantId,
             CancellationToken ct)
         {
             var results = await _service.GetByParticipantAsync(participantType, participantId, ct);
-            return Ok(ApiResponse<IReadOnlyList<Email>>.Ok(results));
+            return Ok(ApiResponse<IReadOnlyList<EmailResponse>>.Ok(results));
         }
 
         // ─────────────────────────────────────────────
@@ -72,7 +71,7 @@ namespace Marilog.Presentation.Controllers
         // ─────────────────────────────────────────────
 
         [HttpPost]
-        public async Task<ActionResult<Email>> Create(
+        public async Task<ActionResult<EmailResponse>> Create(
             [FromBody] CreateEmailRequest request,
             CancellationToken ct)
         {
@@ -85,7 +84,7 @@ namespace Marilog.Presentation.Controllers
                 request.Participants,
                 ct);
 
-            return CreatedAtAction(nameof(GetById), new { id = email.Id }, ApiResponse<Email>.Ok(email));
+            return CreatedAtAction(nameof(GetById), new { id = email.Id }, ApiResponse<EmailResponse>.Ok(email));
         }
 
         [HttpPatch("{id:int}/mark-sent")]
@@ -131,7 +130,7 @@ namespace Marilog.Presentation.Controllers
         // ─────────────────────────────────────────────
 
         [HttpPost("{id:int}/participants")]
-        public async Task<ActionResult<EmailParticipant>> AddParticipant(
+        public async Task<ActionResult<EmailParticipantResponse>> AddParticipant(
             int id,
             [FromBody] AddParticipantRequest request,
             CancellationToken ct)
@@ -145,7 +144,7 @@ namespace Marilog.Presentation.Controllers
                 request.EmailAddress,
                 ct);
 
-            return Ok(ApiResponse<EmailParticipant>.Ok(participant));
+            return Ok(ApiResponse<EmailParticipantResponse>.Ok(participant));
         }
 
         [HttpDelete("{id:int}/participants/{participantId:int}")]
@@ -163,7 +162,7 @@ namespace Marilog.Presentation.Controllers
         // ─────────────────────────────────────────────
 
         [HttpPost("{id:int}/attachments")]
-        public async Task<ActionResult<EmailAttachment>> AddAttachment(
+        public async Task<ActionResult<EmailAttachmentResponse>> AddAttachment(
             int id,
             [FromBody] AddAttachmentRequest request,
             CancellationToken ct)
@@ -175,7 +174,7 @@ namespace Marilog.Presentation.Controllers
                 request.FileSizeBytes,
                 ct);
 
-            return Ok(ApiResponse<EmailAttachment>.Ok(attachment));
+            return Ok(ApiResponse<EmailAttachmentResponse>.Ok(attachment));
         }
 
         [HttpDelete("{id:int}/attachments/{attachmentId:int}")]
