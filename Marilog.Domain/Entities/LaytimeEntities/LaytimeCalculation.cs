@@ -1,6 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.ValueObjects.Laytime;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Primitives;
 
 namespace Marilog.Domain.Entities.LaytimeEntities
 {
@@ -72,11 +73,11 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             EnsureNotFinalized();
 
             if (_sofEvents.Any(e => e.EventTime == sofEvent.EventTime))
-                return Common.Result.Fail(
+                return Kernel.Primitives.Result.Fail(
                     $"A SOF event already exists at {sofEvent.EventTime:yyyy-MM-dd HH:mm}.");
 
             _sofEvents.Add(sofEvent);
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         public Result RemoveSofEvent(int sofEventId)
@@ -85,10 +86,10 @@ namespace Marilog.Domain.Entities.LaytimeEntities
 
             var ev = _sofEvents.FirstOrDefault(e => e.Id == sofEventId);
             if (ev is null)
-                return Common.Result.Fail("SOF event not found.");
+                return Kernel.Primitives.Result.Fail("SOF event not found.");
 
             _sofEvents.Remove(ev);
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         // ─────────────────────────────
@@ -121,10 +122,10 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                     e.ExceptionType == exception.ExceptionType &&
                     e.From == exception.From &&
                     e.To == exception.To))
-                return Common.Result.Fail("An identical exception already exists.");
+                return Kernel.Primitives.Result.Fail("An identical exception already exists.");
 
             _exceptions.Add(exception);
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         public Result RemoveException(int exceptionId)
@@ -133,10 +134,10 @@ namespace Marilog.Domain.Entities.LaytimeEntities
 
             var exception = _exceptions.FirstOrDefault(e => e.Id == exceptionId);
             if (exception is null)
-                return Common.Result.Fail("Exception not found.");
+                return Kernel.Primitives.Result.Fail("Exception not found.");
 
             _exceptions.Remove(exception);
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         // ─────────────────────────────
@@ -167,34 +168,34 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             EnsureNotFinalized();
 
             if (_sofEvents.Count < 2)
-                return Common.Result.Fail(
+                return Kernel.Primitives.Result.Fail(
                     "At least 2 SOF events are required before setting result.");
 
             if (_segments.Count == 0)
-                return Common.Result.Fail(
+                return Kernel.Primitives.Result.Fail(
                     "Segments must be built before setting result.");
 
             Result = result;
             Status = LaytimeStatus.Computed;
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         public Result FinalizeCalculation()
         {
             if (Status != LaytimeStatus.Computed)
-                return Common.Result.Fail("Calculation must be computed before finalizing.");
+                return Kernel.Primitives.Result.Fail("Calculation must be computed before finalizing.");
 
             if (Result is null)
-                return Common.Result.Fail("Cannot finalize without a computed result.");
+                return Kernel.Primitives.Result.Fail("Cannot finalize without a computed result.");
 
             Status = LaytimeStatus.Finalized;
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         public Result Recompute()
         {
             if (Status == LaytimeStatus.Finalized)
-                return Common.Result.Fail("Cannot recompute a finalized calculation.");
+                return Kernel.Primitives.Result.Fail("Cannot recompute a finalized calculation.");
 
             _segments.Clear();
             Result = null;
@@ -202,7 +203,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             LaytimeCommencedAt = null;
             LaytimeCompletedAt = null;
 
-            return Common.Result.Ok();
+            return Kernel.Primitives.Result.Ok();
         }
 
         // ─────────────────────────────

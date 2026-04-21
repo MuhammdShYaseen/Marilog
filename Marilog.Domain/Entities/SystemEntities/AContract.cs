@@ -4,6 +4,7 @@ using Marilog.Domain.Enumerations;
 using Marilog.Domain.Events;
 using Marilog.Domain.ValueObjects.Contract;
 using Marilog.Domain.ValueObjects.Laytime;
+using Marilog.Kernel.Primitives;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {

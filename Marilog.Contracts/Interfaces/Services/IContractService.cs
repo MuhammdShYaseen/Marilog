@@ -1,6 +1,7 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Kernel.Primitives;
 
 namespace Marilog.Contracts.Interfaces.Services
 {

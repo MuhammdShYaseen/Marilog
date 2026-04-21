@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Marilog.Contracts.Common
+﻿
+namespace Marilog.Kernel.Primitives
 {
     public sealed class Result
     {

@@ -1,7 +1,7 @@
 ﻿using Marilog.Application.Common;
 using Marilog.Application.DTOs.Reports.Contract;
 using Marilog.Application.DTOs.Responses;
-using Marilog.Domain.Common;
+using Marilog.Kernel.Primitives;
 
 namespace Marilog.Application.Interfaces.Services
 {

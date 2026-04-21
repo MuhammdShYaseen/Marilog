@@ -2,9 +2,9 @@
 using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services;
+using Marilog.Kernel.Primitives;
 using Marilog.Presentation.DTOs.ContractDTOs;
 using Microsoft.AspNetCore.Mvc;
-using Result = Marilog.Contracts.Common.Result;
 
 namespace Marilog.Presentation.Controllers
 {
