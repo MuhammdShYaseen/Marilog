@@ -1,7 +1,8 @@
-using Marilog.Application.DTOs.Commands.Voyage;
-using Marilog.Application.DTOs.Reports.VoyageReports;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+using Marilog.Contracts.DTOs.Reports.VoyageReports;
+using Marilog.Contracts.DTOs.Requests.VoyageDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
@@ -248,7 +249,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<VoyageResponse>> CreateRangeAsync(
-    IEnumerable<CreateVoyageCommand> commands,
+    IEnumerable<CreateVoyageRequest> commands,
     CancellationToken ct = default)
         {
             var commandList = commands.ToList();
