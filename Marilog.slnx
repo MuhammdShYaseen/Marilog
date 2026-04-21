@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/Common/">
     <Project Path="Marilog.Contracts/Marilog.Contracts.csproj" Id="1520916c-cbb4-4f8b-bad0-983184d3f6d1" />
+    <Project Path="Marilog.Kernel/Marilog.Kernel.csproj" Id="746e637b-33d4-48f1-9ab4-632b7dfa3da0" />
   </Folder>
   <Folder Name="/Frontend/">
     <Project Path="Marilog.Client/Marilog.Client.csproj" Id="db06763d-0566-4374-9534-9ab6a438113c" />

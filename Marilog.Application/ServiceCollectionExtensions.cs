@@ -30,7 +30,7 @@ namespace Marilog.Application
 
 
             // ── Financial ─────────────────────────────────────────────────────────
-            services.AddScoped<IDocumentService, DocumentService>();
+            services.AddScoped<Contracts.Interfaces.Services.IDocumentService, DocumentService>();
             services.AddScoped<ISwiftTransferService, SwiftTransferService>();
 
             // ── Payroll ───────────────────────────────────────────────────────────
