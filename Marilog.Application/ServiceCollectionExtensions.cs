@@ -22,7 +22,7 @@ namespace Marilog.Application
             // ── Core ──────────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICompanyService, CompanyService>();
             services.AddScoped<IPersonService, PersonService>();
-            services.AddScoped<IVesselService, VesselService>();
+            services.AddScoped<Contracts.Interfaces.Services.IVesselService, VesselService>();
 
             // ── Operations ────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICrewContractService, CrewContractService>();

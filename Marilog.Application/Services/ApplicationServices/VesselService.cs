@@ -1,6 +1,7 @@
-using Marilog.Application.DTOs.Commands.Vessel;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+using Marilog.Contracts.DTOs.Requests.VesselDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -102,7 +103,7 @@ namespace Marilog.Application.Services.ApplicationServices
         // Application/Vessels/Services/VesselService.cs
 
         public async Task<IReadOnlyList<VesselResponse>> CreateRangeAsync(
-            IEnumerable<CreateVesselCommand> commands,
+            IEnumerable<CreateVesselRequest> commands,
             CancellationToken ct = default)
         {
             var commandList = commands.ToList();

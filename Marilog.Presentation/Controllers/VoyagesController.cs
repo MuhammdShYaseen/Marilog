@@ -1,9 +1,9 @@
-﻿using Marilog.Application.DTOs.Commands.Voyage;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+﻿
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.VoyageDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Kernel.Enums;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.VoyageDTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -88,7 +88,7 @@ namespace Marilog.Presentation.Controllers
     [FromBody] IEnumerable<CreateVoyageRequest> requests,
     CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateVoyageCommand(
+            var commands = requests.Select(r => new CreateVoyageRequest(
                 r.VesselId,
                 r.VoyageNumber,
                 r.VoyageMonth,

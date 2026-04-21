@@ -1,7 +1,8 @@
-using Marilog.Application.DTOs.Commands.SwiftTransfer;
-using Marilog.Application.DTOs.Reports.SwiftTransferReports;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
+using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -262,7 +263,7 @@ namespace Marilog.Application.Services.ApplicationServices
         }
 
         public async Task<IReadOnlyList<SwiftTransferResponse>> CreateRangeAsync(
-        IEnumerable<CreateSwiftTransferCommand> commands,
+        IEnumerable<CreateSwiftTransferRequest> commands,
         CancellationToken ct = default)
         {
             var commandList = commands.ToList();

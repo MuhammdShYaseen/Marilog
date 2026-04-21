@@ -1,8 +1,8 @@
-﻿using Marilog.Application.DTOs.Commands.Vessel;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
-using Marilog.Presentation.Common;
-using Marilog.Presentation.DTOs.VesselDTOs;
+﻿
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.VesselDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers
@@ -77,7 +77,7 @@ namespace Marilog.Presentation.Controllers
         [FromBody] IEnumerable<CreateVesselRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateVesselCommand(
+            var commands = requests.Select(r => new CreateVesselRequest(
                 r.CompanyId,
                 r.VesselName,
                 r.ImoNumber,
