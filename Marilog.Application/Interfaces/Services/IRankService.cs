@@ -1,6 +1,8 @@
 using Marilog.Application.DTOs.Commands.Rank;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
+
 namespace Marilog.Application.Interfaces.Services
 {
     public interface IRankService

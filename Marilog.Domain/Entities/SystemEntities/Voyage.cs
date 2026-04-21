@@ -1,11 +1,12 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
-    public enum VoyageStatus { PLANNED, UNDERWAY, COMPLETED, CANCELLED }
+    
 
     // ── Aggregate Root ──────────────────────────────────────────────────────────
     public class Voyage : Entity

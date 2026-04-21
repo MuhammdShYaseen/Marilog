@@ -1,5 +1,4 @@
-﻿using Marilog.Domain.Entities.SystemEntities;
-
+﻿using Marilog.Kernel.Enums;
 namespace Marilog.Presentation.DTOs.EmailDTOs
 {
     public class AddParticipantRequest

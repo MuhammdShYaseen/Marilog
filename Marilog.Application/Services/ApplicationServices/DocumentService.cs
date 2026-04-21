@@ -5,6 +5,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Net.Mail;
@@ -341,22 +342,21 @@ namespace Marilog.Application.Services.ApplicationServices
         // ── Email ──────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,
-            IReadOnlyList<EmailParticipantData> participants,
-            Marilog.Contracts.Enums.EmailDirection direction = Marilog.Contracts.Enums.EmailDirection.Outbound,
+            IReadOnlyList<EmailParticipantData> participants, EmailDirection direction = EmailDirection.Outbound,
             CancellationToken ct = default)
         {
 
             var dtoParticipants = participants
                 .Select(x => new Marilog.Domain.Events.EmailParticipantData(
-                     (Marilog.Domain.Entities.SystemEntities.ParticipantRole) x.Role,
-                     (Marilog.Domain.Entities.SystemEntities.ParticipantType)x.ParticipantType,
+                     x.Role,
+                     x.ParticipantType,
                      x.ParticipantId,
                      x.DisplayName,
                      x.EmailAddress))
                 .ToList()
                 .AsReadOnly();
             var document = await GetOrThrowAsync(documentId, ct);
-            document.LogEmail(subject, body, dtoParticipants, (Domain.Entities.SystemEntities.EmailDirection)direction);
+            document.LogEmail(subject, body, dtoParticipants, direction);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
         }

@@ -5,6 +5,7 @@ using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.Services.ApplicationServices
 {
@@ -56,7 +57,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     TotalDisbursed = x.TotalDisbursed,
                     RemainingBalance = x.RemainingBalance,
                     IsFullyPaid = x.IsFullyPaid,
-                    Status = (Contracts.Enums.PayrollStatus)x.Status,
+                    Status = x.Status,
                     Notes = x.Notes
                 })
                 .FirstOrDefaultAsync(ct);
@@ -85,20 +86,20 @@ namespace Marilog.Application.Services.ApplicationServices
                         TotalDisbursed = x.TotalDisbursed,
                         RemainingBalance = x.RemainingBalance,
                         IsFullyPaid = x.IsFullyPaid,
-                        Status = (Contracts.Enums.PayrollStatus)x.Status,
+                        Status = x.Status,
                         Notes = x.Notes,
                         Disbursements = x.Disbursements
                 .Select(d => new DisbursementResponse
                 {
                         Id = d.Id,
                         Amount = d.Amount,
-                        Status = (Contracts.Enums.DisbursementStatus?)d.Status,
+                        Status = d.Status,
                         VoyageId = d.Voyage!.Id,
                         OfficeName = d.Office!.OfficeName,
                         SwiftReference = d.SwiftTransfer!.SwiftReference,
                         CancelReason = d.CancelReason,
                         SwiftTransferId = d.SwiftTransferId,
-                        Method = (Contracts.Enums.PaymentMethod)d.Method,
+                        Method = d.Method,
                         Notes = d.Notes,
                         OfficeId = d.OfficeId,
                         PaidOn = d.PaidOn,
@@ -129,7 +130,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     PayrollMonth = x.PayrollMonth,
                     TotalDisbursed = x.TotalDisbursed,
                     RemainingBalance = x.RemainingBalance,
-                    Status = (Contracts.Enums.PayrollStatus)x.Status,
+                    Status = x.Status,
 
                     Disbursements = x.Disbursements
                         .Select(d => new DisbursementResponse
@@ -155,7 +156,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     PayrollMonth = x.PayrollMonth,
                     TotalDisbursed = x.TotalDisbursed,
                     RemainingBalance = x.RemainingBalance,
-                    Status = (Contracts.Enums.PayrollStatus)x.Status
+                    Status = x.Status
                 })
                 .ToListAsync(ct);
         }
@@ -175,24 +176,24 @@ namespace Marilog.Application.Services.ApplicationServices
                     PersonFullName = x.Contract.Person.FullName,
                     VesselName = x.Contract.Vessel.VesselName,
                     PayrollMonth = x.PayrollMonth,
-                    Status = (Contracts.Enums.PayrollStatus)x.Status
+                    Status = x.Status
                 })
                 .ToListAsync(ct);
         }
 
-        public async Task<IReadOnlyList<CrewPayrollResponse>> GetByStatusAsync(Contracts.Enums.PayrollStatus status,
+        public async Task<IReadOnlyList<CrewPayrollResponse>> GetByStatusAsync(PayrollStatus status,
             CancellationToken ct = default)
         {
             return await _repo.Query()
                 .AsNoTracking()
-                .Where(x => (Contracts.Enums.PayrollStatus)x.Status == status)
+                .Where(x => x.Status == status)
                 .OrderByDescending(x => x.PayrollMonth)
                 .Select(x => new CrewPayrollResponse
                 {
                     Id = x.Id,
                     PersonFullName = x.Contract.Person.FullName,
                     PayrollMonth = x.PayrollMonth,
-                    Status = (Contracts.Enums.PayrollStatus)x.Status
+                    Status = x.Status
                 })
                 .ToListAsync(ct);
         }
@@ -213,7 +214,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     VesselName = x.Contract.Vessel.VesselName,
                     PayrollMonth = x.PayrollMonth,
                     RemainingBalance = x.RemainingBalance,
-                    Status = (Contracts.Enums.PayrollStatus)x.Status
+                    Status = x.Status
                 })
                 .ToListAsync(ct);
         }
@@ -244,7 +245,7 @@ namespace Marilog.Application.Services.ApplicationServices
             if (options.OnlyOutstanding)
                 query = query.Where(x => x.RemainingBalance > 0);
             else if (options.Status.HasValue)
-                query = query.Where(x => (Contracts.Enums.PayrollStatus)x.Status == options.Status);
+                query = query.Where(x => x.Status == options.Status);
 
             // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderBy(x => x.PayrollMonth)
@@ -282,7 +283,7 @@ namespace Marilog.Application.Services.ApplicationServices
                 TotalDisbursed = x.TotalDisbursed,
                 RemainingBalance = x.RemainingBalance,
                 IsFullyPaid = x.IsFullyPaid,
-                Status = (Contracts.Enums.PayrollStatus)x.Status,
+                Status = x.Status,
                 Notes = x.Notes,
 
                 Disbursements = options.IncludeDisbursements
@@ -290,7 +291,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     {
                         Id = d.Id,
                         Amount = d.Amount,
-                        Status = (Contracts.Enums.DisbursementStatus?)d.Status,
+                        Status = d.Status,
                         PaidOn = d.PaidOn,
                         OfficeName = d.Office != null ? d.Office.OfficeName : null,
                         SwiftReference = d.SwiftTransfer != null ? d.SwiftTransfer.SwiftReference : null,
@@ -398,7 +399,7 @@ namespace Marilog.Application.Services.ApplicationServices
                 BasicWage = payroll.BasicWage,
                 ContractId = payroll.ContractId,
                 Deductions = payroll.Deductions,
-                Status = (Contracts.Enums.PayrollStatus)payroll.Status,
+                Status = payroll.Status,
                 IsFullyPaid = payroll.IsFullyPaid,
                 RemainingBalance = payroll.RemainingBalance,
                 TotalDisbursed = payroll.TotalDisbursed,
@@ -445,7 +446,7 @@ namespace Marilog.Application.Services.ApplicationServices
                     Allowances = payroll.Allowances,
                     Deductions = payroll.Deductions,
                     GrossAmount = payroll.GrossAmount,
-                    Status = (Contracts.Enums.PayrollStatus)payroll.Status,
+                    Status = payroll.Status,
                     IsFullyPaid = payroll.IsFullyPaid,
                     RemainingBalance = payroll.RemainingBalance,
                     TotalDisbursed = payroll.TotalDisbursed,
@@ -512,8 +513,8 @@ namespace Marilog.Application.Services.ApplicationServices
                 Amount = disbursement.Amount,
                 CancelReason = disbursement.CancelReason,
                 Id = disbursement.Id,
-                Status =(Marilog.Contracts.Enums.DisbursementStatus) disbursement .Status,
-                Method = (Marilog.Contracts.Enums.PaymentMethod)disbursement.Method,
+                Status =disbursement.Status,
+                Method = disbursement.Method,
                 OfficeId = disbursement.OfficeId,
                 SwiftTransferId = disbursement.SwiftTransferId,
                 Notes = disbursement.Notes,
@@ -540,8 +541,8 @@ namespace Marilog.Application.Services.ApplicationServices
                 Amount = disbursement.Amount,
                 CancelReason = disbursement.CancelReason,
                 Id = disbursement.Id,
-                Status = (Marilog.Contracts.Enums.DisbursementStatus)disbursement.Status,
-                Method = (Marilog.Contracts.Enums.PaymentMethod)disbursement.Method,
+                Status = disbursement.Status,
+                Method = disbursement.Method,
                 OfficeId = disbursement.OfficeId,
                 SwiftTransferId = disbursement.SwiftTransferId,
                 Notes = disbursement.Notes,
@@ -566,8 +567,8 @@ namespace Marilog.Application.Services.ApplicationServices
                 Amount = disbursement.Amount,
                 CancelReason = disbursement.CancelReason,
                 Id = disbursement.Id,
-                Status = (Marilog.Contracts.Enums.DisbursementStatus)disbursement.Status,
-                Method = (Marilog.Contracts.Enums.PaymentMethod)disbursement.Method,
+                Status = disbursement.Status,
+                Method = disbursement.Method,
                 OfficeId = disbursement.OfficeId,
                 SwiftTransferId = disbursement.SwiftTransferId,
                 Notes = disbursement.Notes,

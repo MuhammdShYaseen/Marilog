@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Marilog.Kernel\Marilog.Kernel.csproj" />
+  </ItemGroup>
+
  
 
 </Project>

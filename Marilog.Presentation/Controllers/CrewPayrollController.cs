@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Enums;
+using Marilog.Kernel.Enums;
 using Marilog.Contracts.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Contracts;

@@ -1,5 +1,6 @@
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Events;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.Interfaces.Services
 {

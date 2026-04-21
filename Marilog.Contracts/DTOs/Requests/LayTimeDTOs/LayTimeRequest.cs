@@ -1,4 +1,4 @@
-﻿using Marilog.Contracts.Enums;
+﻿using Marilog.Kernel.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;

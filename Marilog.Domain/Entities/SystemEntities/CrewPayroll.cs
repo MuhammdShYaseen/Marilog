@@ -1,10 +1,9 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
-    public enum PayrollStatus { Draft, Approved, PartiallyPaid, FullyPaid, Cancelled }
-
     /// <summary>
     /// Aggregate Root — Monthly payroll for a single crew member.
     /// One record per (ContractId + PayrollMonth). All amounts in USD.

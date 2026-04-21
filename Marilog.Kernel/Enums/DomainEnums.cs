@@ -1,7 +1,5 @@
-﻿
-namespace Marilog.Contracts.Enums
+﻿namespace Marilog.Kernel.Enums
 {
-    //LayTime Enums
     public enum OperationType
     {
         Loading = 1,

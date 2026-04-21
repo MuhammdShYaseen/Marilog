@@ -1,5 +1,6 @@
 ﻿
-using Marilog.Contracts.Enums;
+using Marilog.Kernel.Enums;
+
 
 namespace Marilog.Contracts.DTOs.Responses
 {

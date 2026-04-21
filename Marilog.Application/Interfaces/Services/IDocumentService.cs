@@ -3,6 +3,7 @@ using Marilog.Application.DTOs.Reports.DocumentReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Events;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.Interfaces.Services
 {

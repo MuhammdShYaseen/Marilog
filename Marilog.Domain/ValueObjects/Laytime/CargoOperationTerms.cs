@@ -1,5 +1,6 @@
 ﻿using Marilog.Domain.Entities.LaytimeEntities;
 using System.ComponentModel.DataAnnotations.Schema;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.ValueObjects.Laytime
 {

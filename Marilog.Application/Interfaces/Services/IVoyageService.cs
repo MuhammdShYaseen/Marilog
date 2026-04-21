@@ -2,6 +2,7 @@ using Marilog.Application.DTOs.Commands.Voyage;
 using Marilog.Application.DTOs.Reports.VoyageReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.Interfaces.Services
 {

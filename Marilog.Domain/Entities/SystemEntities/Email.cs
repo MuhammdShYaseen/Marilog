@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -6,10 +7,7 @@ using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
-    public enum EmailDirection { Outbound, Inbound }
-    public enum EmailStatus { Draft, Sent, Received, Failed }
-    public enum ParticipantRole { From, To, Cc }
-    public enum ParticipantType { Company, Vessel }
+   
 
     /// <summary>
     /// Standalone audit aggregate — logs every email exchanged during

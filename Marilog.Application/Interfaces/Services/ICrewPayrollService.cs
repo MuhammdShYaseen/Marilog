@@ -2,6 +2,8 @@ using Marilog.Application.DTOs.Commands.CrewPayroll;
 using Marilog.Application.DTOs.Reports.CrewPayrollReports;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
+
 namespace Marilog.Application.Interfaces.Services
 {
     public interface ICrewPayrollService

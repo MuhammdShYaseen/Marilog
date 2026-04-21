@@ -1,7 +1,8 @@
 using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
 using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Enums;
+using Marilog.Kernel.Enums;
+
 
 namespace Marilog.Contracts.Interfaces.Services
 {

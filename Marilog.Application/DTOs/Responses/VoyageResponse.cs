@@ -1,7 +1,4 @@
-﻿using Marilog.Domain.Entities.SystemEntities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.DTOs.Responses
 {

@@ -3,6 +3,7 @@ using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.Services.ApplicationServices
 {

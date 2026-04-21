@@ -1,19 +1,11 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
-    public enum PaymentMethod
-    {
-        CashOnBoard,   // نقداً على ظهر الباخرة   — VoyageId مطلوب
-        CashAtOffice,  // نقداً في مكتب الشركة    — City + Country + بيانات المستلم
-        BankTransfer   // حوالة بنكية              — SwiftTransferId مطلوب
-    }
-
-    public enum DisbursementStatus { Pending, Confirmed, Cancelled }
-
     /// <summary>
     /// Owned entity — single payment installment inside CrewPayroll.
     /// All amounts in USD.

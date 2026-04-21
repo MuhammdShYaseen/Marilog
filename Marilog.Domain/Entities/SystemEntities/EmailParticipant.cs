@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Marilog.Domain.Entities.SystemEntities

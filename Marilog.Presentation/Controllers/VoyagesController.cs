@@ -1,7 +1,7 @@
 ﻿using Marilog.Application.DTOs.Commands.Voyage;
 using Marilog.Application.DTOs.Responses;
 using Marilog.Application.Interfaces.Services;
-using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
 using Marilog.Presentation.Common;
 using Marilog.Presentation.DTOs.VoyageDTOs;
 using Microsoft.AspNetCore.Mvc;

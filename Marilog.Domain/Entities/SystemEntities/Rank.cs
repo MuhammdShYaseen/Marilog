@@ -1,8 +1,8 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
-    public enum Department { DECK, ENGINE, CATERING }
 
     public class Rank : Entity
     {
