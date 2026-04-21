@@ -1,6 +1,11 @@
-﻿namespace Marilog.Contracts.DTOs.Responses
+﻿using Marilog.Contracts.Enums;
+
+namespace Marilog.Contracts.DTOs.Responses
 {
-    public class EmailParticipantData
-    {
-    }
+    public sealed record EmailParticipantData(
+        ParticipantRole Role,
+        ParticipantType ParticipantType,
+        int ParticipantId,
+        string? DisplayName = null,
+        string? EmailAddress = null);
 }

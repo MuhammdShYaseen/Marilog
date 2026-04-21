@@ -1,13 +1,13 @@
-using Marilog.Application.DTOs;
-using Marilog.Application.DTOs.Commands.Document;
-using Marilog.Application.DTOs.Reports.DocumentReports;
-using Marilog.Application.DTOs.Responses;
-using Marilog.Application.Interfaces.Services;
+
+using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
-using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using System.Net.Mail;
 
 namespace Marilog.Application.Services.ApplicationServices
 {
@@ -147,7 +147,7 @@ namespace Marilog.Application.Services.ApplicationServices
             };
         }
         public async Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
-        IEnumerable<CreateDocumentCommand> commands,
+        IEnumerable<CreateDocumentRequest> commands,
         CancellationToken ct = default)
         {
             var documents = new List<Document>();
@@ -247,7 +247,7 @@ namespace Marilog.Application.Services.ApplicationServices
 
         // ── Items ─────────────────────────────────────────────────────────────────
 
-        public async Task<DocumentItem> AddItemAsync(int documentId, string productName,
+        public async Task<DocumentItemResponse> AddItemAsync(int documentId, string productName,
             decimal quantity, decimal unitPrice, string? unit = null,
             CancellationToken ct = default)
         {
@@ -255,12 +255,21 @@ namespace Marilog.Application.Services.ApplicationServices
             var item = document.AddItem(productName, quantity, unitPrice, unit);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
-            return item;
+            return new DocumentItemResponse
+            {
+                Id = item.Id,
+                LineTotal = item.LineTotal,
+                ProductName = item.ProductName,
+                UnitPrice = item.UnitPrice,
+                Quantity = item.Quantity,
+                Unit = item.Unit
+
+            };
         }
 
-        public async Task<IReadOnlyList<DocumentItem>> AddItemsRangeAsync(
+        public async Task<IReadOnlyList<DocumentItemResponse>> AddItemsRangeAsync(
         int documentId,
-        IEnumerable<AddDocumentItemCommand> commands,
+        IEnumerable<AddDocumentItemRequest> commands,
         CancellationToken ct = default)
         {
             var document = await GetWithItemsOrThrowAsync(documentId, ct);
@@ -272,7 +281,15 @@ namespace Marilog.Application.Services.ApplicationServices
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
 
-            return items;
+            return items.Select(i => new DocumentItemResponse 
+            {
+                Id = i.Id,
+                LineTotal = i.LineTotal,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                Unit = i.Unit,
+                UnitPrice = i.UnitPrice
+            }).ToList();
         }
 
         public async Task UpdateItemAsync(int documentId, int itemId, string productName,
@@ -295,7 +312,7 @@ namespace Marilog.Application.Services.ApplicationServices
 
         // ── Payments ──────────────────────────────────────────────────────────────
 
-        public async Task<Payment> AddPaymentAsync(int documentId, int swiftTransferId,
+        public async Task<PaymentResponse> AddPaymentAsync(int documentId, int swiftTransferId,
             decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
         {
             var document = await _repo.Query()
@@ -311,18 +328,35 @@ namespace Marilog.Application.Services.ApplicationServices
             var payment = document.AddPayment(swiftTransferId, paidAmount, paymentDate);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
-            return payment;
+            return new PaymentResponse
+            {
+                Id = payment.Id,
+                SwiftTransferId = payment.Id,
+                DocumentId = payment.Id,
+                PaidAmount = payment.PaidAmount,
+                PaymentDate = payment.PaymentDate
+            };
         }
 
         // ── Email ──────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,
             IReadOnlyList<EmailParticipantData> participants,
-            EmailDirection direction = EmailDirection.Outbound,
+            Marilog.Contracts.Enums.EmailDirection direction = Marilog.Contracts.Enums.EmailDirection.Outbound,
             CancellationToken ct = default)
         {
+
+            var dtoParticipants = participants
+                .Select(x => new Marilog.Domain.Events.EmailParticipantData(
+                     (Marilog.Domain.Entities.SystemEntities.ParticipantRole) x.Role,
+                     (Marilog.Domain.Entities.SystemEntities.ParticipantType)x.ParticipantType,
+                     x.ParticipantId,
+                     x.DisplayName,
+                     x.EmailAddress))
+                .ToList()
+                .AsReadOnly();
             var document = await GetOrThrowAsync(documentId, ct);
-            document.LogEmail(subject, body, participants, direction);
+            document.LogEmail(subject, body, dtoParticipants, (Domain.Entities.SystemEntities.EmailDirection)direction);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
         }
