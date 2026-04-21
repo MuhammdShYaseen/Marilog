@@ -16,8 +16,8 @@ namespace Marilog.Application
             services.AddScoped<Contracts.Interfaces.Services.ICurrencyService, CurrencyService>();
             services.AddScoped<Contracts.Interfaces.Services.IPortService, PortService>();
             services.AddScoped<Contracts.Interfaces.Services.IRankService, RankService>();
-            services.AddScoped<IDocumentTypeService, DocumentTypeService>();
-            services.AddScoped<IOfficeService, OfficeService>();
+            services.AddScoped<Contracts.Interfaces.Services.IDocumentTypeService, DocumentTypeService>();
+            services.AddScoped<Contracts.Interfaces.Services.IOfficeService, OfficeService>();
 
             // ── Core ──────────────────────────────────────────────────────────────
             services.AddScoped<Contracts.Interfaces.Services.ICompanyService, CompanyService>();
