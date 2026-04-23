@@ -3,6 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Marilog.Application.Services.ApplicationServices;
 using Marilog.Application.Services.FrontendServices;
 using Marilog.Application.Interfaces.Services;
+using Marilog.Application.Services.ApplicationServices.LaytimeServices;
+using Marilog.Contracts.Interfaces.FrontendServices;
+using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 
 namespace Marilog.Application
 {
@@ -11,32 +15,32 @@ namespace Marilog.Application
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             // ── Lookups ───────────────────────────────────────────────────────────
-            services.AddScoped<Contracts.Interfaces.Services.ICountryService, CountryService>();
-            services.AddScoped<Contracts.Interfaces.Services.ICurrencyService, CurrencyService>();
-            services.AddScoped<Contracts.Interfaces.Services.IPortService, PortService>();
-            services.AddScoped<Contracts.Interfaces.Services.IRankService, RankService>();
-            services.AddScoped<Contracts.Interfaces.Services.IDocumentTypeService, DocumentTypeService>();
-            services.AddScoped<Contracts.Interfaces.Services.IOfficeService, OfficeService>();
+            services.AddScoped<ICountryService, CountryService>();
+            services.AddScoped<ICurrencyService, CurrencyService>();
+            services.AddScoped<IPortService, PortService>();
+            services.AddScoped<IRankService, RankService>();
+            services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+            services.AddScoped<IOfficeService, OfficeService>();
 
             // ── Core ──────────────────────────────────────────────────────────────
-            services.AddScoped<Contracts.Interfaces.Services.ICompanyService, CompanyService>();
-            services.AddScoped<Contracts.Interfaces.Services.IPersonService, PersonService>();
-            services.AddScoped<Contracts.Interfaces.Services.IVesselService, VesselService>();
+            services.AddScoped<ICompanyService, CompanyService>();
+            services.AddScoped<IPersonService, PersonService>();
+            services.AddScoped<IVesselService, VesselService>();
 
             // ── Operations ────────────────────────────────────────────────────────
-            services.AddScoped<Contracts.Interfaces.Services.ICrewContractService, CrewContractService>();
-            services.AddScoped<Contracts.Interfaces.Services.IVoyageService, VoyageService>();
+            services.AddScoped<ICrewContractService, CrewContractService>();
+            services.AddScoped<IVoyageService, VoyageService>();
 
 
             // ── Financial ─────────────────────────────────────────────────────────
-            services.AddScoped<Contracts.Interfaces.Services.IDocumentService, DocumentService>();
-            services.AddScoped<Contracts.Interfaces.Services.ISwiftTransferService, SwiftTransferService>();
+            services.AddScoped<IDocumentService, DocumentService>();
+            services.AddScoped<ISwiftTransferService, SwiftTransferService>();
 
             // ── Payroll ───────────────────────────────────────────────────────────
-            services.AddScoped<Contracts.Interfaces.Services.ICrewPayrollService, CrewPayrollService>();
+            services.AddScoped<ICrewPayrollService, CrewPayrollService>();
 
             // ── Communication ─────────────────────────────────────────────────────
-            services.AddScoped<Contracts.Interfaces.Services.IEmailService, EmailService>();
+            services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<DocumentEmailRequestedEventHandler>();
 
 
@@ -45,11 +49,25 @@ namespace Marilog.Application
             services.AddScoped<IDocumentNumberService, DocumentNumberService>();
 
             //---Contracts-----------------------
-            services.AddScoped<Contracts.Interfaces.Services.IContractService, ContractService>();
+            services.AddScoped<IContractService, ContractService>();
 
             //----FrontendServices-------------------
-            services.AddScoped<Contracts.Interfaces.FrontendServices.INavigationService, NavigationService>();
+            services.AddScoped<INavigationService, NavigationService>();
 
+            //----Laytime Services---------------------------
+            services.AddScoped<ILaytimeCalculationService, LaytimeCalculationService>();
+            services.AddScoped<ILaytimeExceptionService, LaytimeExceptionService>();
+            services.AddScoped<ILaytimeQueryService, LaytimeQueryService>();
+            services.AddScoped<ILaytimeReportService, LaytimeReportService>();
+            services.AddScoped<ICharterTermsService, CharterTermsService>();
+            services.AddScoped<ISofEventService, SofEventService>();
+
+            //----Laytime Helpper----------------------------
+            services.AddScoped<ILaytimeHelpper,LaytimeHelpper>();
+            services.AddScoped<ILaytimeEngine,LaytimeEngine>();
+
+
+            //----------------------------------------------------------------------------------------
             string autoMapperKey = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ikx1Y2t5UGVubnlTb2Z0d2FyZUxpY2Vuc2VLZXkvYmJiMTNhY2I1OTkwNGQ4OWI0Y2IxYzg1ZjA4OGNjZjkiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2x1Y2t5cGVubnlzb2Z0d2FyZS5jb20iLCJhdWQiOiJMdWNreVBlbm55U29mdHdhcmUiLCJleHAiOiIxODA1NDE0NDAwIiwiaWF0IjoiMTc3MzkxNDI2NyIsImFjY291bnRfaWQiOiIwMTlkMDU4NmVlZmM3OWRkYjg0MzQ5NjI0MTA1NDU5NSIsImN1c3RvbWVyX2lkIjoiY3RtXzAxa20ycmY3YmN2bjNoc3g4a3ZoY3EweW03Iiwic3ViX2lkIjoiLSIsImVkaXRpb24iOiIwIiwidHlwZSI6IjIifQ.Pii8V4OkoaGgzQz0pPLlzMCyDKbZSvQAGJxssaFEK7OO-3HhYd1PD7iIcCZjNj0kQQEE_WLMXyacwpcW41sS4OkrVPbD2UCWmMz9cdwnE5aMNjckI4-EiRlo1i5iOcIcbJ3iO-KFwgnfQtyo0-qOBdNV7KTz3wOe_Nrak2_1UlZ0oQoJnKO4Bmp_Spoh9idNvSH1SjQLIb_HPiNnUK4PojiDk8QCw-wNecsKaxflls2VWa2qZGlcKi8nW6L6wDXX0YTcQM8WZWCGScxTedU0xT-ke-ag4AeuDWASvHKNyNvdJ_tXIG6QSna-LttHdeWiFA1LZ4oBeSmDWy6yejaTmQ";
             services.AddAutoMapper(cfg => cfg.LicenseKey = autoMapperKey, AppDomain.CurrentDomain.GetAssemblies());
 
