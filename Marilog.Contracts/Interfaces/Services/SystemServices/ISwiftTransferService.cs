@@ -2,7 +2,7 @@ using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
 using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs;
 using Marilog.Contracts.DTOs.Responses;
 
-namespace Marilog.Contracts.Interfaces.Services
+namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
     public interface ISwiftTransferService
     {

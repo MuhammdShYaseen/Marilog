@@ -1,7 +1,7 @@
 using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;

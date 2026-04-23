@@ -6,7 +6,7 @@ using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
 using Marilog.Contracts.DTOs.Reports.VoyageReports;
-using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers

@@ -1,12 +1,12 @@
 using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
 using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Marilog.Kernel.Enums;
 using Marilog.Application.Interfaces.Services.Domain;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {

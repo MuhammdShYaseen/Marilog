@@ -1,6 +1,6 @@
 ﻿using Marilog.Application.Interfaces.Services;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices

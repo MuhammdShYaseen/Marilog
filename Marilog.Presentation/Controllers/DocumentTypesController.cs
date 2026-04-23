@@ -2,7 +2,7 @@
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.DocumentTypeDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 

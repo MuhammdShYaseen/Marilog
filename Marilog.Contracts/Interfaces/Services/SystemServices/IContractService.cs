@@ -3,7 +3,7 @@ using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Primitives;
 
-namespace Marilog.Contracts.Interfaces.Services
+namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
     public interface IContractService
     {

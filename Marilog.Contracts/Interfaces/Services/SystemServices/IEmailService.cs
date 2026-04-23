@@ -2,7 +2,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
 
 
-namespace Marilog.Contracts.Interfaces.Services
+namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
     public interface IEmailService
     {

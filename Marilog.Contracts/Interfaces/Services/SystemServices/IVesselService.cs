@@ -1,7 +1,7 @@
 using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 
-namespace Marilog.Contracts.Interfaces.Services
+namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
     public interface IVesselService
     {

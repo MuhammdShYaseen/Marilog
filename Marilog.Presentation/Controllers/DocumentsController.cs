@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers

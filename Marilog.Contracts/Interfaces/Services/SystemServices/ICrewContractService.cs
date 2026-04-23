@@ -2,7 +2,7 @@ using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
 
-namespace Marilog.Contracts.Interfaces.Services
+namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
     public interface ICrewContractService
     {
