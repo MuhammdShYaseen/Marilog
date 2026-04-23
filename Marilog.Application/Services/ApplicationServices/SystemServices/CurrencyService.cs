@@ -1,5 +1,3 @@
-
-
 using Marilog.Contracts.DTOs.Requests.CurrencyDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services;
@@ -8,7 +6,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class CurrencyService : ICurrencyService
     {

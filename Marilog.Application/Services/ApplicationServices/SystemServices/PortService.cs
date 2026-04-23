@@ -1,4 +1,3 @@
-
 using Marilog.Contracts.DTOs.Requests.PortDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services;
@@ -7,7 +6,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class PortService : IPortService
     {

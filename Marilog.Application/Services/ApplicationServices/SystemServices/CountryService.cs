@@ -1,5 +1,3 @@
-
-
 using Marilog.Contracts.DTOs.Requests.CountryDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services;
@@ -7,7 +5,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class CountryService : ICountryService
     {

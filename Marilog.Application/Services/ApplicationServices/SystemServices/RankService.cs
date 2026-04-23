@@ -7,7 +7,7 @@ using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class RankService : IRankService
     {

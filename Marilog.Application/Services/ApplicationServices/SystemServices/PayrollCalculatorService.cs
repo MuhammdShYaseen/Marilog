@@ -1,7 +1,7 @@
 using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class PayrollCalculatorService : IPayrollCalculatorService
     {

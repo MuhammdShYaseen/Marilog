@@ -1,8 +1,5 @@
 ﻿using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices
 {
@@ -24,6 +21,11 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
         }
 
         public Task<byte[]> GenerateSummaryReportAsync(int calculationId, ReportFormat format, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<byte[]> GenerateTimeSheetExcelAsync(int calculationId, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

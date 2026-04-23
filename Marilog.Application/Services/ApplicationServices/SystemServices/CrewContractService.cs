@@ -1,5 +1,3 @@
-
-
 using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -8,7 +6,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class CrewContractService : ICrewContractService
     {

@@ -6,7 +6,7 @@ using Marilog.Kernel.Enums;
 using Marilog.Contracts.Interfaces.Services;
 using Marilog.Contracts.DTOs.Responses;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class EmailService : IEmailService
     {

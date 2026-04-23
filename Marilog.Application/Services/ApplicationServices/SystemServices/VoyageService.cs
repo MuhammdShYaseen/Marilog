@@ -1,4 +1,3 @@
-
 using Marilog.Contracts.DTOs.Reports.VoyageReports;
 using Marilog.Contracts.DTOs.Requests.VoyageDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -9,7 +8,7 @@ using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class VoyageService : IVoyageService
     {

@@ -3,7 +3,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services;
 
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class OperationsDashboardService : IOperationsDashboardService
     {

@@ -1,4 +1,3 @@
-
 using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
 using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -8,7 +7,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class SwiftTransferService : ISwiftTransferService
     {

@@ -12,7 +12,7 @@ using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class ContractService : IContractService
     {

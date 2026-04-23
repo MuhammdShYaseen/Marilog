@@ -1,4 +1,3 @@
-
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -10,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Net.Mail;
 
-namespace Marilog.Application.Services.ApplicationServices
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class DocumentService : IDocumentService
     {
@@ -347,7 +346,7 @@ namespace Marilog.Application.Services.ApplicationServices
         {
 
             var dtoParticipants = participants
-                .Select(x => new Marilog.Domain.Events.EmailParticipantData(
+                .Select(x => new Domain.Events.EmailParticipantData(
                      x.Role,
                      x.ParticipantType,
                      x.ParticipantId,
