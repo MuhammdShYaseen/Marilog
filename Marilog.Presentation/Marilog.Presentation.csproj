@@ -29,8 +29,4 @@
     <ProjectReference Include="..\Marilog.Infrastructure\Marilog.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\LaytimeControllers\" />
-  </ItemGroup>
-
 </Project>
