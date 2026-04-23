@@ -1,6 +1,4 @@
-﻿
-
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
@@ -9,7 +7,7 @@ using Marilog.Contracts.DTOs.Reports.VoyageReports;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/reports")]

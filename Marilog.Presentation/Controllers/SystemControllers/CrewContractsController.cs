@@ -1,12 +1,11 @@
-﻿
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/crew-contracts")]

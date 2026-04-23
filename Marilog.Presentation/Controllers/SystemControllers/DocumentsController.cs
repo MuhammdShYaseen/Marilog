@@ -4,7 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
 
 

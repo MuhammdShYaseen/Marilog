@@ -1,4 +1,4 @@
-﻿namespace Marilog.Presentation.Controllers
+﻿namespace Marilog.Presentation.Controllers.SystemControllers
 {
     using Marilog.Contracts.Common;
     using Marilog.Contracts.DTOs.Requests.CompanyDTOs;

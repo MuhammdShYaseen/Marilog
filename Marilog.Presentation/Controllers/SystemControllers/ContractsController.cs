@@ -6,7 +6,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Primitives;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/[controller]")]

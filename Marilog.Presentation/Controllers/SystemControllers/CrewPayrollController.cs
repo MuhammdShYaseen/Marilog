@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Contracts;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/crew-payrolls")]

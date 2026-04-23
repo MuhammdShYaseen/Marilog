@@ -1,12 +1,11 @@
-﻿
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.DocumentTypeDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/document-types")]

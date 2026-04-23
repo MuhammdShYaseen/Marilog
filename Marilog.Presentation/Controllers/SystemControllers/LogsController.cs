@@ -2,7 +2,7 @@
 using Marilog.Application.Interfaces.LogService;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/logs")]
