@@ -4,7 +4,7 @@ using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.ValueObjects.Laytime;
 using Marilog.Kernel.Enums;
 
-namespace Marilog.Application.Interfaces.Services
+namespace Marilog.Application.Interfaces.Services.Laytime
 {
     public interface ILaytimeHelpper
     {

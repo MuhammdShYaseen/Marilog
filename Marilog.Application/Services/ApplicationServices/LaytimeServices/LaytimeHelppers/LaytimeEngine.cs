@@ -1,4 +1,4 @@
-﻿using Marilog.Application.Interfaces.Services;
+﻿using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.ValueObjects.Laytime;
 

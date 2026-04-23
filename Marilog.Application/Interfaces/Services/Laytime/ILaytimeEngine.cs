@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Application.Interfaces.Services
+namespace Marilog.Application.Interfaces.Services.Laytime
 {
     public interface ILaytimeEngine
     {

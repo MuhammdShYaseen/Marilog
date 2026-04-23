@@ -1,7 +1,7 @@
 ﻿
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
-using Marilog.Application.Interfaces.Services;
+using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
 using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.ValueObjects.Laytime;
