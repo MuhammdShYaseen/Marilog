@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Application.Interfaces.Services;
 using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Application.Interfaces.Services.Domain;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {

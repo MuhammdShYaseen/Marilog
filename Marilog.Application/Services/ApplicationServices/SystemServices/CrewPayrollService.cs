@@ -6,6 +6,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Marilog.Kernel.Enums;
+using Marilog.Application.Interfaces.Services.Domain;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -16,14 +17,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<Voyage>        _voyageRepo;
         private readonly IRepository<SwiftTransfer> _swiftRepo;
         private readonly IRepository<Office>        _officeRepo;
-        private readonly Interfaces.Services.IPayrollCalculatorService _CalculatorService;
+        private readonly IPayrollCalculatorService _CalculatorService;
         public CrewPayrollService(
             IRepository<CrewPayroll>   repo,
             IRepository<CrewContract>  contractRepo,
             IRepository<Voyage>        voyageRepo,
             IRepository<SwiftTransfer> swiftRepo,
             IRepository<Office>        officeRepo,
-            Interfaces.Services.IPayrollCalculatorService payrollCalculator)
+            IPayrollCalculatorService payrollCalculator)
         {
             _repo         = repo;
             _contractRepo = contractRepo;

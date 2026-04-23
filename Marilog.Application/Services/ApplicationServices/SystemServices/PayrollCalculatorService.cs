@@ -1,4 +1,4 @@
-using Marilog.Application.Interfaces.Services;
+using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Domain.Entities.SystemEntities;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices

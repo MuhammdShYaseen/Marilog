@@ -1,7 +1,6 @@
 ﻿using Marilog.Application.EventHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using Marilog.Application.Services.FrontendServices;
-using Marilog.Application.Interfaces.Services;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.Services;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
@@ -9,6 +8,7 @@ using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeSe
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
 using Marilog.Application.Services.ApplicationServices.SystemServices;
 using Marilog.Application.Interfaces.Services.Laytime;
+using Marilog.Application.Interfaces.Services.Domain;
 
 namespace Marilog.Application
 {
