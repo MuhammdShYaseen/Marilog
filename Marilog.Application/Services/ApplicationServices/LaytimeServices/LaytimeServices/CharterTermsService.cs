@@ -8,7 +8,7 @@ using Marilog.Domain.ValueObjects.Laytime;
 using Microsoft.EntityFrameworkCore;
 
 
-namespace Marilog.Application.Services.ApplicationServices.LaytimeServices
+namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices
 {
     public class CharterTermsService : ICharterTermsService
     {

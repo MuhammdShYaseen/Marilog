@@ -7,7 +7,7 @@ using Marilog.Domain.ValueObjects.Laytime;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Application.Services.ApplicationServices.LaytimeServices
+namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers
 {
     public class LaytimeHelpper : ILaytimeHelpper
     {

@@ -2,7 +2,7 @@
 using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.ValueObjects.Laytime;
 
-namespace Marilog.Application.Services.ApplicationServices.LaytimeServices
+namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers
 {
     public sealed class LaytimeEngine : ILaytimeEngine
     {

@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Application.Services.ApplicationServices.LaytimeServices
+namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices
 {
     public class LaytimeQueryService : ILaytimeQueryService
     {

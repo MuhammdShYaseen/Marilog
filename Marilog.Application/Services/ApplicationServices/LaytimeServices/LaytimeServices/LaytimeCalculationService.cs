@@ -6,7 +6,7 @@ using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Application.Services.ApplicationServices.LaytimeServices
+namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices
 {
     public class LaytimeCalculationService : ILaytimeCalculationService
     {
