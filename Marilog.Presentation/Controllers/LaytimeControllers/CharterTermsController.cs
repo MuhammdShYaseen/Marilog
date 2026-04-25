@@ -1,4 +1,6 @@
-﻿using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
+using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,14 +19,14 @@ namespace Marilog.Presentation.Controllers.LaytimeControllers
         public async Task<IActionResult> Initialize([FromBody] InitializeCharterTermsRequest request, CancellationToken cancellationToken)
         {
             var result = await _service.InitializeCharterTermsAsync(request, cancellationToken);
-            return CreatedAtAction(nameof(Get), new { contractId = result.ContractId }, result);
+            return CreatedAtAction(nameof(Get), new { contractId = result.ContractId }, ApiResponse<CharterTermsResponse>.Ok(result));
         }
 
         [HttpGet("{contractId:int}")]
         public async Task<IActionResult> Get(int contractId, CancellationToken cancellationToken)
         {
             var result = await _service.GetCharterTermsAsync(contractId, cancellationToken);
-            return Ok(result);
+            return Ok(ApiResponse<CharterTermsResponse>.Ok(result));
         }
 
         [HttpPut("{contractId:int}/loading")]

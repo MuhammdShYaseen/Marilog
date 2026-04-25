@@ -72,7 +72,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             ArgumentNullException.ThrowIfNull(sofEvent);
             EnsureNotFinalized();
 
-            if (_sofEvents.Any(e => e.EventTime == sofEvent.EventTime))
+            if (_sofEvents.Any(e => e.EventTime == sofEvent.EventTime && e.EventType == sofEvent.EventType))
                 return Kernel.Primitives.Result.Fail(
                     $"A SOF event already exists at {sofEvent.EventTime:yyyy-MM-dd HH:mm}.");
 
