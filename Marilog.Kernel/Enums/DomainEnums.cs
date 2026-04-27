@@ -1,5 +1,21 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+
+    public enum JobStatus
+    {
+        Pending = 0,
+        Processing = 1,
+        Completed = 2,
+        Failed = 3
+    }
+    public enum AiProviderType
+    {
+        OpenAI = 1,
+        Anthropic = 2,
+        AzureOpenAI = 3,
+        GoogleGemini = 4,
+        Ollama = 5
+    }
     public enum OperationType
     {
         Loading = 1,
