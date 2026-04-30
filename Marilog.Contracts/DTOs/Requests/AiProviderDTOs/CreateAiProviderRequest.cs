@@ -6,7 +6,7 @@ namespace Marilog.Contracts.DTOs.Requests.AiProviderDTOs
     {
         public string Name { get; set; } = default!;
         public AiProviderType ProviderType { get; set; }
-
+        public string RequestTemplateJson { get; set; } = default!;
         public string BaseUrl { get; set; } = default!;
         public string ModelIdentifier { get; set; } = default!;
         public string? ApiVersion { get; set; }

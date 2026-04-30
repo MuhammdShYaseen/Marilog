@@ -7,7 +7,7 @@ namespace Marilog.Domain.Entities.AiEntities
     {
         public string Name { get; private set; } = default!;
         public AiProviderType ProviderType { get; private set; }
-
+        public string RequestTemplateJson { get; private set; } = default!;
         public string BaseUrl { get; private set; } = default!;
         public string ModelIdentifier { get; private set; } = default!;
         public string? ApiVersion { get; private set; }
@@ -30,6 +30,7 @@ namespace Marilog.Domain.Entities.AiEntities
             AiProviderType providerType,
             string baseUrl,
             string modelIdentifier,
+            string requestTemplateJson,
             int maxInputTokens = 8000,
             int maxOutputTokens = 2000,
             int chunkOverlapTokens = 200,
@@ -53,19 +54,25 @@ namespace Marilog.Domain.Entities.AiEntities
                 ApiKeyEncrypted = apiKeyEncrypted,
                 DefaultTemperature = defaultTemperature,
                 SupportsStreaming = supportsStreaming,
-                IsActive = true
+                IsActive = true,
+                RequestTemplateJson = requestTemplateJson,
             };
         }
 
         public void Update(
             string? name,
+            AiProviderType providerType,
             string? baseUrl,
             string? modelIdentifier,
+            string requestTemplateJson,
             int maxInputTokens,
             int maxOutputTokens,
             int chunkOverlapTokens,
             string? apiKeyName,
+            string? apiVersion,
             string? apiKeyEncrypted,
+            decimal defaultTemperature,
+            bool supportsStreaming,
             bool isActive)
         {
             Name = name ?? Name;
@@ -73,11 +80,14 @@ namespace Marilog.Domain.Entities.AiEntities
             ModelIdentifier = modelIdentifier ?? ModelIdentifier;
             ApiKeyName = apiKeyName ?? ApiKeyName;
             ApiKeyEncrypted = apiKeyEncrypted ?? ApiKeyEncrypted;
-
+            RequestTemplateJson = requestTemplateJson ?? RequestTemplateJson;
             MaxInputTokens = maxInputTokens;
             MaxOutputTokens = maxOutputTokens;
             ChunkOverlapTokens = chunkOverlapTokens;
-
+            ApiVersion = apiVersion ?? ApiVersion;
+            DefaultTemperature = defaultTemperature;
+            ProviderType = providerType;
+            SupportsStreaming = supportsStreaming;
             IsActive = isActive;
         }
     }

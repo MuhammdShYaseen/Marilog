@@ -44,6 +44,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 request.ProviderType,
                 request.BaseUrl,
                 request.ModelIdentifier,
+                request.RequestTemplateJson,
                 request.MaxInputTokens,
                 request.MaxOutputTokens,
                 request.ChunkOverlapTokens,
@@ -78,10 +79,20 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
         {
             var entity = await _repo.GetByIdAsync(id, ct);
             if (entity is null) return false;
-            entity.Update(request.Name, request.BaseUrl,
-                          request.ModelIdentifier, request.MaxInputTokens,
-                          request.MaxOutputTokens, request.ChunkOverlapTokens,
-                          request.ApiKeyName, request.ApiKeyEncrypted, true);
+            entity.Update(request.Name,
+                          request.ProviderType,
+                          request.BaseUrl,
+                          request.ModelIdentifier,
+                          request.RequestTemplateJson,
+                          request.MaxInputTokens,
+                          request.MaxOutputTokens,
+                          request.ChunkOverlapTokens,
+                          request.ApiKeyName,
+                          request.ApiVersion,
+                          request.ApiKeyEncrypted,
+                          request.DefaultTemperature,
+                          request.SupportsStreaming,
+                          true);
  
             _repo.Update(entity);
             await _repo.SaveChangesAsync(ct);
@@ -144,7 +155,8 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 ChunkOverlapTokens = e.ChunkOverlapTokens,
                 DefaultTemperature = e.DefaultTemperature,
                 ApiKeyName = e.ApiKeyName,
-                SupportsStreaming = e.SupportsStreaming
+                SupportsStreaming = e.SupportsStreaming,
+                RequestTemplateJson = e.RequestTemplateJson
             };
     }
 }

@@ -9,6 +9,8 @@ using Marilog.Application.Services.ApplicationServices.SystemServices;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.AiProviderServices;
+using Marilog.Application.Services.ApplicationServices.AiServices;
 
 namespace Marilog.Application
 {
@@ -63,6 +65,9 @@ namespace Marilog.Application
             services.AddScoped<ILaytimeReportService, LaytimeReportService>();
             services.AddScoped<ICharterTermsService, CharterTermsService>();
             services.AddScoped<ISofEventService, SofEventService>();
+
+            //---AiServices----------------------------------
+            services.AddScoped<IAiProviderService, AiProviderService>();
 
             //----Laytime Helpper----------------------------
             services.AddScoped<ILaytimeHelpper,LaytimeHelpper>();
