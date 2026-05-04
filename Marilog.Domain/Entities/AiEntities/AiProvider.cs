@@ -1,5 +1,6 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Kernel.Enums;
+using System.Globalization;
 
 namespace Marilog.Domain.Entities.AiEntities
 {
@@ -89,6 +90,15 @@ namespace Marilog.Domain.Entities.AiEntities
             ProviderType = providerType;
             SupportsStreaming = supportsStreaming;
             IsActive = isActive;
+        }
+
+        public string GenerateProviderPayloadJson()
+        {
+            return RequestTemplateJson
+                .Replace("{{model}}", ModelIdentifier)
+                .Replace("{{temperature}}", DefaultTemperature.ToString(CultureInfo.InvariantCulture))
+                .Replace("{{max_tokens}}", MaxOutputTokens.ToString())
+                .Replace("{{stream}}", SupportsStreaming.ToString().ToLower());
         }
     }
 }
