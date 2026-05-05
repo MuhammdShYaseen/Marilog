@@ -1,5 +1,5 @@
-﻿using Marilog.Client.Services;
-using Marilog.Client.Services.SystemServices;
+﻿using Marilog.Client.Services.SystemServices;
+using Marilog.Client.Services.UiServices;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.Extensions.DependencyInjection;

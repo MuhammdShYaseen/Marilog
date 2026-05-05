@@ -4,7 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using System.Net.Http.Json;
 
-namespace Marilog.Client.Services
+namespace Marilog.Client.Services.UiServices
 {
     internal class NavigationService : INavigationService
     {
