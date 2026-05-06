@@ -12,6 +12,13 @@ namespace Marilog.Client.Extensions
         {
             services.AddScoped<INavigationService, NavigationService>();
             services.AddScoped<ICompanyService, CompanyService>();
+            services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<ICountryService, CountryService>();
+            services.AddScoped<ICrewContractService, CrewContractService>();
+            services.AddScoped<ICrewPayrollService, CrewPayrollService>();
+            services.AddScoped<ICurrencyService, CurrencyService>();
+            services.AddScoped<IDocumentService, DocumentService>();
+            services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             //>>>Alot of service should be here
             return services;
         }
