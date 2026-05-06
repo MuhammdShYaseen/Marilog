@@ -26,7 +26,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<ActionResult<DocumentTypeResponse>> GetById(int id, CancellationToken ct)
         {
             var docType = await _service.GetByIdAsync(id, ct);
-            return docType is null ? NotFound() : Ok(docType);
+            return docType is null ? NotFound() : Ok(ApiResponse<DocumentTypeResponse>.Ok(docType));
         }
 
         [HttpGet("by-code/{code}")]
