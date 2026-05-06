@@ -121,14 +121,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
-        [HttpPost("{id}/activate")]
+        [HttpPatch("{id}/activate")]
         public async Task<IActionResult> Activate(int id, CancellationToken ct)
         {
             await _service.ActivateAsync(id, ct);
             return NoContent();
         }
 
-        [HttpPost("{id}/deactivate")]
+        [HttpPatch("{id}/deactivate")]
         public async Task<IActionResult> Deactivate(int id, CancellationToken ct)
         {
             await _service.DeactivateAsync(id, ct);

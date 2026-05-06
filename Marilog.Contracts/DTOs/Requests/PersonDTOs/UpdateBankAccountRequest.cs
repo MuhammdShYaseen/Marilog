@@ -2,8 +2,8 @@
 {
     public class UpdateBankAccountRequest
     {
-        public string? BankName { get; internal set; }
-        public string? IBAN { get; internal set; }
-        public string? BankSwiftCode { get; internal set; }
+        public string? BankName { get; init; }
+        public string? IBAN { get; init; }
+        public string? BankSwiftCode { get; init; }
     }
 }
