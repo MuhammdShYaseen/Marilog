@@ -24,7 +24,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<ActionResult<VoyageResponse>> GetById(int id, CancellationToken ct)
         {
             var result = await _service.GetByIdAsync(id, ct);
-            return result is null ? NotFound() : Ok(result);
+            return result is null ? NotFound() : Ok(ApiResponse<VoyageResponse>.Ok(result));
         }
 
         [HttpGet("{id:int}/with-stops")]
@@ -37,7 +37,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpGet("by-vessel/{vesselId:int}")]
         public async Task<ActionResult<IReadOnlyList<VoyageResponse>>> GetByVessel(int vesselId, CancellationToken ct)
         {
-            return Ok(await _service.GetByVesselAsync(vesselId, ct));
+            var result = await _service.GetByVesselAsync(vesselId, ct);
+            return result is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<VoyageResponse>>.Ok(result));
         }
 
         [HttpGet("by-month")]
@@ -57,6 +58,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             var result = await _service.GetCurrentVoyageAsync(vesselId, ct);
             return result is null ? NotFound() : Ok(ApiResponse<VoyageResponse>.Ok(result));
+        }
+
+        [HttpGet("active")]
+        public async Task<ActionResult<IReadOnlyList<VoyageResponse>>> GetActiveVoyages(CancellationToken ct)
+        {
+            var result = await _service.GetActiveVoyagesAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<VoyageResponse>>.Ok(result));
         }
 
         // ── Commands ────────────────────────────────────────────
