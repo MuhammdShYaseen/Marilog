@@ -1,4 +1,4 @@
-﻿using Marilog.Contracts.DTOs.Frontend;
+﻿using Marilog.Contracts.DTOs.Frontend.NavItem;
 using Marilog.Contracts.DTOs.Responses;
 
 namespace Marilog.Contracts.Interfaces.FrontendServices

@@ -1,5 +1,5 @@
 ﻿using Marilog.Contracts.Common;
-using Marilog.Contracts.DTOs.Frontend;
+using Marilog.Contracts.DTOs.Frontend.NavItem;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using System.Net.Http.Json;

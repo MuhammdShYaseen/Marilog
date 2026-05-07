@@ -1,6 +1,4 @@
-﻿
-
-namespace Marilog.Contracts.DTOs.Frontend
+﻿namespace Marilog.Contracts.DTOs.Frontend.NavItem
 {
     public class CreateNavItemRequest
     {
