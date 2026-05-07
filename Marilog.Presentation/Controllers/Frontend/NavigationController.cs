@@ -4,7 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers.SystemControllers
+namespace Marilog.Presentation.Controllers.Frontend
 {
     [ApiController]
     [Route("api/navigation")]
