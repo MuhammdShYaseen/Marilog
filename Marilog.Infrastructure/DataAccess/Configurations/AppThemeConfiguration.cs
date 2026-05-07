@@ -74,41 +74,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(t => t.BaseFontSize)
                 .IsRequired()
                 .HasMaxLength(10);
-
-            // ── Seed Data ─────────────────────────────────────────────────────────
-
-            builder.HasData(
-                AppTheme.Create(
-                    themeName: "Marilog Light",
-                    themeKey: "light",
-                    isDefault: true,
-                    primaryColor: "#1E88E5",
-                    secondaryColor: "#42A5F5",
-                    appBarColor: "#1565C0",
-                    backgroundColor: "#F5F5F5",
-                    surfaceColor: "#FFFFFF",
-                    errorColor: "#E53935",
-                    successColor: "#43A047",
-                    warningColor: "#FB8C00",
-                    fontFamily: "Roboto",
-                    baseFontSize: "14px",
-                    isDarkMode: false),
-
-                AppTheme.Create(
-                    themeName: "Marilog Dark",
-                    themeKey: "dark",
-                    isDefault: false,
-                    primaryColor: "#90CAF9",
-                    secondaryColor: "#42A5F5",
-                    appBarColor: "#0D47A1",
-                    backgroundColor: "#121212",
-                    surfaceColor: "#1E1E1E",
-                    errorColor: "#EF9A9A",
-                    successColor: "#A5D6A7",
-                    warningColor: "#FFE082",
-                    fontFamily: "Roboto",
-                    baseFontSize: "14px",
-                    isDarkMode: true));
         }
     }
 }
