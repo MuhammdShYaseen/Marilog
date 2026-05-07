@@ -1,4 +1,4 @@
-﻿using Marilog.Domain.Entities.SystemEntities;
+﻿using Marilog.Domain.Entities.Frontend;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;

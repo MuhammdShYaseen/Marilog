@@ -1,6 +1,6 @@
 ﻿using Marilog.Domain.Common;
 
-namespace Marilog.Domain.Entities.SystemEntities
+namespace Marilog.Domain.Entities.Frontend
 {
     public class NavItem : Entity
     {
