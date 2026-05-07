@@ -60,6 +60,7 @@ namespace Marilog.Application
 
             //----FrontendServices-------------------
             services.AddScoped<INavigationService, NavigationService>();
+            services.AddScoped<IAppThemeService, AppThemeService>();
 
             //----Laytime Services---------------------------
             services.AddScoped<ILaytimeCalculationService, LaytimeCalculationService>();
