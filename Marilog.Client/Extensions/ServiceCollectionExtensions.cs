@@ -11,7 +11,8 @@ namespace Marilog.Client.Extensions
     {
         public static IServiceCollection AddMarilogClientService(this IServiceCollection services)
         {
-            services.AddScoped<INavigationService, NavigationService>();
+           
+            //===system============================================================
             services.AddScoped<ICompanyService, CompanyService>();
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<ICountryService, CountryService>();
@@ -30,8 +31,11 @@ namespace Marilog.Client.Extensions
             services.AddScoped<ISwiftTransferService, SwiftTransferService>();
             services.AddScoped<IVesselService, IVesselService>();
             services.AddScoped<IVoyageService, IVoyageService>();
+
+            //=====frontend================================================================
+            services.AddScoped<INavigationService, NavigationService>();
             services.AddScoped<IAppThemeService, AppThemeService>();
-            //>>>Alot of service should be here
+
             return services;
         }
     }
