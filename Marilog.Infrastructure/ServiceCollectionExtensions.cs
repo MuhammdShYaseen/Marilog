@@ -1,4 +1,6 @@
-﻿using Marilog.Application.Interfaces.LogService;
+﻿using Marilog.Application.Interfaces.Encryption;
+using Marilog.Application.Interfaces.LogService;
+using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Repositories;
@@ -27,7 +29,23 @@ namespace Marilog.Infrastructure
             // ── Generic Repository — covers all Aggregate Roots ───────────────────
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             services.AddScoped<ILogReaderService, LogReaderService>();
+
+
+            //-------encrption------------------
+            services.AddScoped<ISecretEncryptionService>(_ =>
+            {
+                var key = configuration["Encryption:Key"]
+                    ?? throw new InvalidOperationException(
+                        "Encryption:Key is missing.");
+
+                return new SecretEncryptionService(key);
+            });
+
+
             return services;
+
+            
+
         }
     }
 }

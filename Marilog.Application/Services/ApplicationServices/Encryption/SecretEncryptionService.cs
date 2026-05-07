@@ -10,7 +10,9 @@ namespace Marilog.Application.Services.ApplicationServices.Encryption
 
         public SecretEncryptionService(string key)
         {
-            // المفتاح يجب أن يكون 16 أو 24 أو 32 بايت
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentException(nameof(key));
+
             _key = SHA256.HashData(Encoding.UTF8.GetBytes(key));
         }
 
