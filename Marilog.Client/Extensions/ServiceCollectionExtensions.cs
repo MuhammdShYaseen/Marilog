@@ -22,15 +22,15 @@ namespace Marilog.Client.Extensions
             services.AddScoped<IDocumentService, DocumentService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             services.AddScoped<IEmailService, EmailService>();
-            services.AddScoped<IOfficeService, IOfficeService>();
-            services.AddScoped<IOperationsDashboardService, IOperationsDashboardService>();
+            services.AddScoped<IOfficeService, OfficeService>();
+            services.AddScoped<IOperationsDashboardService, OperationsDashboardService>();
             services.AddScoped<IPersonService, PersonService>();
             services.AddScoped<IPortService, PortService>();
             services.AddScoped<IRankService, RankService>();
-            services.AddScoped<IReportsService, IReportsService>();
+            services.AddScoped<IReportsService, ReportsService>();
             services.AddScoped<ISwiftTransferService, SwiftTransferService>();
-            services.AddScoped<IVesselService, IVesselService>();
-            services.AddScoped<IVoyageService, IVoyageService>();
+            services.AddScoped<IVesselService, VesselService>();
+            services.AddScoped<IVoyageService, VoyageService>();
 
             //=====frontend================================================================
             services.AddScoped<INavigationService, NavigationService>();

@@ -1,10 +1,11 @@
-﻿@using Marilog.Contracts.DTOs.Responses
+﻿@using Marilog.Contracts.DTOs.Frontend.AppTheme
+@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Shared.UI.Components.Navigation
 @using MudBlazor
 @namespace Marilog.Shared.UI.Layout
 
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_mudTheme" IsDarkMode="_isDark" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -82,9 +83,51 @@
     [Parameter]
     public string AppSubtitle { get; set; }
         = "";
+    [Parameter]
+    public AppThemeResponse? Theme { get; set; }
 
+
+    private MudTheme _mudTheme = new();
+    private bool _isDark;
     private bool drawerOpen = true;
+    protected override void OnParametersSet()
+    {
+        if (Theme is null) return;
 
+        _isDark = Theme.IsDarkMode;
+
+        _mudTheme = new MudTheme
+        {
+            PaletteLight = new PaletteLight
+            {
+                Primary = Theme.PrimaryColor,
+                Secondary = Theme.SecondaryColor,
+                AppbarBackground = Theme.AppBarColor,
+                Background = Theme.BackgroundColor,
+                Surface = Theme.SurfaceColor,
+                Error = Theme.ErrorColor,
+                Success = Theme.SuccessColor,
+                Warning = Theme.WarningColor
+            },
+            PaletteDark = new PaletteDark
+            {
+                Primary = Theme.PrimaryColor,
+                Secondary = Theme.SecondaryColor,
+                AppbarBackground = Theme.AppBarColor,
+                Error = Theme.ErrorColor,
+                Success = Theme.SuccessColor,
+                Warning = Theme.WarningColor
+            },
+            Typography = new Typography
+            {
+                Default = new DefaultTypography
+                {
+                    FontFamily = [Theme.FontFamily],
+                    FontSize = Theme.BaseFontSize
+                }
+            }
+        };
+    }
     private void ToggleDrawer()
         => drawerOpen = !drawerOpen;
 }

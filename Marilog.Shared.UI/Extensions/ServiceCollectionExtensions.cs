@@ -9,7 +9,7 @@ namespace Marilog.Shared.UI.Extensions
         public static IServiceCollection AddMarilogUI(this IServiceCollection services)
         {
             services.AddMudServices();
-            services.AddSingleton<NavigationStateService>();
+            services.AddScoped<AppStateService>();
             return services;
         }
     }

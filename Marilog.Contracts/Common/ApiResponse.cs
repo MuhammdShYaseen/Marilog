@@ -15,5 +15,8 @@
 
         public static ApiResponse<T> Fail(string message, IEnumerable<string>? errors = null)
             => new() { Success = false, Message = message, Errors = errors?.ToList() };
+
+        public static ApiResponse<T> Fail(T data, string? message = null)
+            => new() { Success = false, Data = data, Message = message };
     }
 }

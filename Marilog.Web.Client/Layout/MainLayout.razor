@@ -1,22 +1,25 @@
 ﻿@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.FrontendServices
 @using Marilog.Shared.UI.Layout
+@using Marilog.Shared.UI.Services
+
+@inject INavigationService NavService
+@inject IAppThemeService ThemeService
+@inject AppStateService AppState
 
 @inherits LayoutComponentBase
 
-<SharedMainLayout Items="_items"
-                  AppTitle="Marilog"
-                  AppSubtitle="WKA Ocean Shipping">
 
-    @Body
+    <SharedMainLayout 
+        Items="AppState.NavItems"
+        Theme="AppState.Theme"
+        AppTitle="Marilog"
+        AppSubtitle="WKA Ocean Shipping">
 
-</SharedMainLayout>
+        @Body
 
+    </SharedMainLayout>
 @code {
-
-    [Inject]
-    public INavigationService NavService { get; set; }
-        = default!;
 
     private static List<NavItemResponse>? _items;  // Static cache here
     private static bool _isLoaded = false;
@@ -26,7 +29,10 @@
         {
             try
             {
-                _items = await NavService.GetAsync();
+                await AppState.InitializeAsync(
+                    loadNav: () => NavService.GetAsync(),
+                    loadTheme: () => ThemeService.GetDefaultThemeAsync());
+                _items = AppState.NavItems;
                 _isLoaded = true;
             }
             catch (Exception ex)
@@ -36,6 +42,6 @@
             }
         }
     }
-    
 
+    
 }

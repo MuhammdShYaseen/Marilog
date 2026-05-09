@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using MudBlazor.Services;
 using Marilog.Client.Extensions;
 using Marilog.Shared.UI.Extensions;
 namespace Marilog.Web.Client
@@ -15,9 +14,9 @@ namespace Marilog.Web.Client
             {
                 BaseAddress = new Uri("https://localhost:5001/")
             });
-            builder.Services.AddMudServices();
+            //builder.Services.AddMudServices();
             builder.Services.AddMarilogClientService();
-            //builder.Services.AddMarilogUI();
+            builder.Services.AddMarilogUI();
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
             await builder.Build().RunAsync();

@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.Frontend.AppTheme;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -25,8 +26,15 @@ namespace Marilog.Client.Services.UiServices
 
         public async Task<AppThemeResponse?> GetDefaultThemeAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<AppThemeResponse>>($"{Base}/default", ct);
-            return response?.Data;
+            try
+            {
+                var response = await _http.GetFromJsonAsync<ApiResponse<AppThemeResponse>>($"{Base}/default", ct);
+                return response?.Data;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async Task<IReadOnlyList<AppThemeResponse>> GetAllAsync(CancellationToken ct = default)
