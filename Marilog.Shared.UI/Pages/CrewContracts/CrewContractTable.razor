@@ -1,0 +1,55 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewContracts
+
+<MudTable Items="Items"
+          Dense="true"
+          Hover="true"
+          Striped="true"
+          SelectedItem="Selected"
+          SelectedItemChanged="OnRowSelected"
+          T="CrewContractResponse">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Vessel</MudTh>
+        <MudTh>Rank</MudTh>
+        <MudTh>Sign On</MudTh>
+        <MudTh>Sign Off</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.PersonFullName</MudTd>
+        <MudTd>@context.VesselName</MudTd>
+        <MudTd>@context.RankName</MudTd>
+        <MudTd>@context.SignOnDate.ToString("dd MMM yyyy")</MudTd>
+        <MudTd>@(context.SignOffDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd>
+            <MudChip T="string"
+                     Color="@(context.IsActive ? Color.Success : Color.Default)"
+                     Size="Size.Small">
+                @(context.IsActive ? "Active" : "Signed Off")
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           OnClick="() => OnEditClicked.InvokeAsync(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No contracts found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<CrewContractResponse> Items { get; set; } = [];
+    [Parameter] public CrewContractResponse? Selected { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnRowSelected { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnDeleteClicked { get; set; }
+}

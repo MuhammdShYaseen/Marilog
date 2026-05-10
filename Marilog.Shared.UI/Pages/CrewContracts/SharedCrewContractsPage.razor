@@ -1,0 +1,244 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewContracts
+
+<MudGrid>
+
+    @* ── List ─────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
+        <MudPaper Class="pa-4" Elevation="2">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Crew Contracts</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_search"
+                              Placeholder="Search..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mr-2"
+                              Style="max-width:220px" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OnAddClicked">
+                    New
+                </MudButton>
+            </MudStack>
+
+            @* ── Tabs ──────────────────────────────────────────── *@
+            <MudTabs @bind-ActivePanelIndex="_activeTab"
+                     Elevation="0"
+                     Rounded="true"
+                     Class="mb-3">
+
+                <MudTabPanel Text="All">
+                    <CrewContractTable Items="_filtered"
+                                       Selected="_selected"
+                                       OnRowSelected="OnRowSelected"
+                                       OnEditClicked="OnEditClicked"
+                                       OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Active">
+                    <CrewContractTable Items="_filteredActive"
+                                       Selected="_selected"
+                                       OnRowSelected="OnRowSelected"
+                                       OnEditClicked="OnEditClicked"
+                                       OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Expiring Soon">
+                    <CrewContractTable Items="_filteredExpiring"
+                                       Selected="_selected"
+                                       OnRowSelected="OnRowSelected"
+                                       OnEditClicked="OnEditClicked"
+                                       OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="By Vessel">
+                    <MudSelect T="int?"
+                               @bind-Value="_selectedVesselId"
+                               Label="Select Vessel"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Class="mb-3">
+                        <MudSelectItem T="int?" Value="null">All Vessels</MudSelectItem>
+                        @foreach (var vessel in Vessels)
+                        {
+                            <MudSelectItem T="int?" Value="vessel.Id">@vessel.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <CrewContractTable Items="_filteredByVessel"
+                                       Selected="_selected"
+                                       OnRowSelected="OnRowSelected"
+                                       OnEditClicked="OnEditClicked"
+                                       OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+            </MudTabs>
+
+        </MudPaper>
+    </MudItem>
+
+    @* ── Detail Panel ──────────────────────────────────────────── *@
+    @if (_selected is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">@_selected.PersonFullName</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="ClosePanel" />
+                </MudStack>
+
+                <MudDivider Class="mb-3" />
+
+                <MudGrid Spacing="2">
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Vessel</MudText>
+                        <MudText Typo="Typo.body2">@_selected.VesselName</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rank</MudText>
+                        <MudText Typo="Typo.body2">@_selected.RankName</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Department</MudText>
+                        <MudText Typo="Typo.body2">@_selected.RankDepartment</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Monthly Wage</MudText>
+                        <MudText Typo="Typo.body2">@_selected.MonthlyWage.ToString("N2")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign On</MudText>
+                        <MudText Typo="Typo.body2">@_selected.SignOnDate.ToString("dd MMM yyyy")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign Off</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.SignOffDate?.ToString("dd MMM yyyy") ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign On Port</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.SignOnPortName ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign Off Port</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.SignOffPortName ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Duration</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.ContractDurationDays?.ToString() ?? "—") days</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Wage Earned</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.TotalWageEarned?.ToString("N2") ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudChip T="string"
+                                 Color="@(_selected.IsActive ? Color.Success : Color.Default)"
+                                 Size="Size.Small">
+                            @(_selected.IsActive ? "Active" : "Signed Off")
+                        </MudChip>
+                    </MudItem>
+
+                    @if (!string.IsNullOrWhiteSpace(_selected.Notes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+                            <MudText Typo="Typo.body2">@_selected.Notes</MudText>
+                        </MudItem>
+                    }
+
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Edit
+                    </MudButton>
+                    @if (_selected.IsActive)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.ExitToApp"
+                                   OnClick="() => OnSignOffClicked.InvokeAsync(_selected)">
+                            Sign Off
+                        </MudButton>
+                    }
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
+                        Delete
+                    </MudButton>
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<CrewContractResponse> Contracts { get; set; } = [];
+    [Parameter] public IReadOnlyList<CrewContractResponse> ExpiringContracts { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnSignOffClicked { get; set; }
+
+    private CrewContractResponse? _selected;
+    private string _search = string.Empty;
+    private int _activeTab;
+    private int? _selectedVesselId;
+
+    private IEnumerable<CrewContractResponse> _filtered =>
+        Filter(Contracts);
+
+    private IEnumerable<CrewContractResponse> _filteredActive =>
+        Filter(Contracts.Where(c => c.IsActive));
+
+    private IEnumerable<CrewContractResponse> _filteredExpiring =>
+        Filter(ExpiringContracts);
+
+    private IEnumerable<CrewContractResponse> _filteredByVessel =>
+        _selectedVesselId is null
+            ? Filter(Contracts)
+            : Filter(Contracts.Where(c => c.VesselId == _selectedVesselId));
+
+    private IEnumerable<CrewContractResponse> Filter(IEnumerable<CrewContractResponse> source) =>
+        string.IsNullOrWhiteSpace(_search)
+            ? source
+            : source.Where(c =>
+                c.PersonFullName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                c.VesselName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                c.RankName.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private void OnRowSelected(CrewContractResponse contract) => _selected = contract;
+    private void ClosePanel() => _selected = null;
+}

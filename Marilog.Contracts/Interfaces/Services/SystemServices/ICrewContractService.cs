@@ -32,6 +32,6 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         //----Reports-----------------------------------------------------------------
         Task<CrewContractReport> GetCrewContractsReportAsync(CrewContractFilterOptions options, CancellationToken ct = default);
         Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct);
-        Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct);
+        Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct = default);
     }
 }

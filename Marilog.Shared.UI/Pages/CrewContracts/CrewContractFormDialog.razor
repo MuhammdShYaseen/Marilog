@@ -1,0 +1,74 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewContracts
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_monthlyWage"
+                                 Label="Monthly Wage"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_durationInMonth"
+                                 Label="Duration (Months)"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_signOnDate"
+                               Label="Sign On Date"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes"
+                              Label="Notes"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_monthlyWage <= 0 || _signOnDate is null)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CrewContractResponse? Contract { get; set; }
+
+    private decimal _monthlyWage;
+    private int _durationInMonth = 6;
+    private DateTime? _signOnDate;
+    private string? _notes;
+
+    protected override void OnParametersSet()
+    {
+        if (Contract is null) return;
+        _monthlyWage = Contract.MonthlyWage;
+        _notes = Contract.Notes;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    {
+        MonthlyWage = _monthlyWage,
+        DurationInMonth = _durationInMonth,
+        SignOnDate = DateOnly.FromDateTime(_signOnDate!.Value),
+        Notes = _notes
+    }));
+}

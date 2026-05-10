@@ -1,0 +1,106 @@
+﻿@page "/crew-contracts"
+@using Marilog.Contracts.DTOs.Requests.CrewDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.CrewContracts
+@using MudBlazor
+
+@inject ICrewContractService CrewContractService
+@inject IVesselService VesselService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedCrewContractsPage Contracts="_contracts"
+                             ExpiringContracts="_expiring"
+                             Vessels="_vessels"
+                             OnAddClicked="OpenAddDialog"
+                             OnEditClicked="OpenEditDialog"
+                             OnDeleteClicked="ConfirmDelete"
+                             OnSignOffClicked="OpenSignOffDialog" />
+}
+
+@code {
+    private IReadOnlyList<CrewContractResponse> _contracts = [];
+    private IReadOnlyList<CrewContractResponse> _expiring = [];
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var t1 = CrewContractService.GetActiveOnDateAsync(DateOnly.FromDateTime(DateTime.Today));
+            var t2 = CrewContractService.GetAboutExpireAsync();
+            var t3 = VesselService.GetActiveAsync();
+
+            await Task.WhenAll(t1, t2, t3);
+
+            _contracts = t1.Result;
+            _expiring = t2.Result;
+            _vessels = t3.Result;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Crew Contract");
+        var result = await dialog.Result;
+        if(result != null)
+             if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(CrewContractResponse contract)
+    {
+        var parameters = new DialogParameters { ["Contract"] = contract };
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("Edit Crew Contract", parameters);
+        var result = await dialog.Result;
+        if(result != null)
+            if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenSignOffDialog(CrewContractResponse contract)
+    {
+        var parameters = new DialogParameters { ["Contract"] = contract };
+        var dialog = await DialogService.ShowAsync<SignOffDialog>("Sign Off", parameters);
+        var result = await dialog.Result;
+        if (result != null)
+        if (result.Canceled) return;
+
+        var (signOffDate, signOffPort) = ((DateOnly, int?))result!.Data!;
+        await CrewContractService.SignOffAsync(contract.ContractId, signOffDate, signOffPort);
+        Snackbar.Add("Signed off successfully.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task ConfirmDelete(CrewContractResponse contract)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Contract",
+            $"Delete contract for '{contract.PersonFullName}'?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        await CrewContractService.DeleteAsync(contract.ContractId);
+        Snackbar.Add("Contract deleted.", Severity.Success);
+        await LoadAsync();
+    }
+}
