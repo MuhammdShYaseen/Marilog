@@ -1,0 +1,259 @@
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Reports.Contract
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts
+
+<MudGrid>
+
+    @* ── List ─────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
+        <MudPaper Class="pa-4" Elevation="2">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Contracts</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OnAddClicked">
+                    New
+                </MudButton>
+            </MudStack>
+
+            <MudTable Items="@(Paged?.Items ?? [])"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      SelectedItem="_selected"
+                      SelectedItemChanged="OnRowSelected"
+                      T="ContractSummary">
+                <HeaderContent>
+                    <MudTh>Contract No.</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Effective</MudTh>
+                    <MudTh>Expiry</MudTh>
+                    <MudTh>Parties</MudTh>
+                    <MudTh>Amendments</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ContractNumber</MudTd>
+                    <MudTd>@context.Type</MudTd>
+                    <MudTd>
+                        <MudChip T="string"
+                                 Color="@StatusColor(context.Status)"
+                                 Size="Size.Small">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>@context.EffectiveDate.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd>@(context.ExpiryDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+                    <MudTd>@context.PartiesCount</MudTd>
+                    <MudTd>@context.AmendmentsCount</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       OnClick="() => OnEditClicked.InvokeAsync(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No contracts found.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+            @* ── Pagination ────────────────────────────────────── *@
+            @if (Paged is not null && Paged.TotalPages > 1)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="mt-3">
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                   Disabled="!Paged.HasPrev"
+                                   OnClick="PrevPage" />
+                    <MudText Typo="Typo.body2">
+                        Page @Paged.Page of @Paged.TotalPages
+                    </MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                   Disabled="!Paged.HasNext"
+                                   OnClick="NextPage" />
+                </MudStack>
+            }
+
+        </MudPaper>
+    </MudItem>
+
+    @* ── Detail Panel ──────────────────────────────────────────── *@
+    @if (_selected is not null && Detail is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">@Detail.ContractNumber</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="ClosePanel" />
+                </MudStack>
+
+                <MudDivider Class="mb-3" />
+
+                @* Info *@
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Type</MudText>
+                        <MudText Typo="Typo.body2">@Detail.Type</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudChip T="string" Color="@StatusColor(Detail.Status)" Size="Size.Small">
+                            @Detail.Status
+                        </MudChip>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Effective Date</MudText>
+                        <MudText Typo="Typo.body2">@Detail.EffectiveDate.ToString("dd MMM yyyy")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Expiry Date</MudText>
+                        <MudText Typo="Typo.body2">@(Detail.ExpiryDate?.ToString("dd MMM yyyy") ?? "—")</MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrWhiteSpace(Detail.Notes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+                            <MudText Typo="Typo.body2">@Detail.Notes</MudText>
+                        </MudItem>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Detail.ContractFileName))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">File</MudText>
+                            <MudLink Href="@Detail.ContractFileUrl" Target="_blank">
+                                @Detail.ContractFileName
+                            </MudLink>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+                @* Parties *@
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Parties</MudText>
+                @if (Detail.Parties.Any())
+                {
+                    foreach (var party in Detail.Parties)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                            <MudText Typo="Typo.body2">@party.CompanyName</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@party.Role</MudChip>
+                        </MudStack>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No parties.</MudText>
+                }
+
+                <MudDivider Class="my-3" />
+
+                @* Amendments *@
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Amendments</MudText>
+                @if (Detail.Amendments.Any())
+                {
+                    foreach (var amendment in Detail.Amendments)
+                    {
+                        <MudPaper Class="pa-2 mb-2" Outlined="true">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @amendment.EffectiveDate.ToString("dd MMM yyyy") — @amendment.ChangedBy
+                            </MudText>
+                            <MudText Typo="Typo.body2">@amendment.Description</MudText>
+                        </MudPaper>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No amendments.</MudText>
+                }
+
+                <MudDivider Class="my-3" />
+
+                @* Actions *@
+                <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                    @if (Detail.Status == "Draft")
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.CheckCircle"
+                                   OnClick="() => OnActivateClicked.InvokeAsync(Detail.Id)">
+                            Activate
+                        </MudButton>
+                    }
+                    @if (Detail.Status == "Active")
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.PauseCircle"
+                                   OnClick="() => OnSuspendClicked.InvokeAsync(Detail.Id)">
+                            Suspend
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                   OnClick="() => OnTerminateClicked.InvokeAsync(Detail.Id)">
+                            Terminate
+                        </MudButton>
+                    }
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Edit
+                    </MudButton>
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    }
+    else if (_selected is not null && Detail is null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            </MudPaper>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter] public PagedResponse<ContractSummary>? Paged { get; set; }
+    [Parameter] public ContractDetailResponse? Detail { get; set; }
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<ContractSummary> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<int> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<int> OnSuspendClicked { get; set; }
+    [Parameter] public EventCallback<int> OnTerminateClicked { get; set; }
+    [Parameter] public EventCallback<int> OnContractSelected { get; set; }
+    [Parameter] public EventCallback OnPrevPage { get; set; }
+    [Parameter] public EventCallback OnNextPage { get; set; }
+
+    private ContractSummary? _selected;
+
+    private void OnRowSelected(ContractSummary contract)
+    {
+        _selected = contract;
+        OnContractSelected.InvokeAsync(contract.Id);
+    }
+
+    private void ClosePanel() => _selected = null;
+    private void PrevPage() => OnPrevPage.InvokeAsync();
+    private void NextPage() => OnNextPage.InvokeAsync();
+
+    private static Color StatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Draft" => Color.Default,
+        "Suspended" => Color.Warning,
+        "Terminated" => Color.Error,
+        "Expired" => Color.Dark,
+        _ => Color.Default
+    };
+}

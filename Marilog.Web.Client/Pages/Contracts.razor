@@ -1,0 +1,126 @@
+﻿@page "/contracts"
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Reports.Contract
+@using Marilog.Contracts.DTOs.Requests.ContractDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Contracts
+@using MudBlazor
+
+@inject IContractService ContractService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedContractsPage Paged="_paged"
+                         Detail="_detail"
+                         OnAddClicked="OpenAddDialog"
+                         OnEditClicked="OpenEditDialog"
+                         OnActivateClicked="Activate"
+                         OnSuspendClicked="Suspend"
+                         OnTerminateClicked="Terminate"
+                         OnContractSelected="LoadDetail"
+                         OnPrevPage="PrevPage"
+                         OnNextPage="NextPage" />
+}
+
+@code {
+    private PagedResponse<ContractSummary>? _paged;
+    private ContractDetailResponse? _detail;
+    private bool _loading = true;
+    private int _page = 1;
+    private const int PageSize = 15;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _paged = await ContractService.GetPagedAsync(new ContractFilter
+        {
+            Page = _page,
+            PageSize = PageSize
+        });
+        _loading = false;
+    }
+
+    private async Task LoadDetail(int id)
+    {
+        _detail = null;
+        _detail = await ContractService.GetByIdAsync(id);
+    }
+
+    private async Task PrevPage()
+    {
+        if (_page > 1) { _page--; await LoadAsync(); }
+    }
+
+    private async Task NextPage()
+    {
+        if (_paged?.HasNext == true) { _page++; await LoadAsync(); }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<ContractFormDialog>("New Contract");
+        var result = await dialog.Result;
+        if(result != null)
+            if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(ContractSummary contract)
+    {
+        var parameters = new DialogParameters { ["ContractId"] = contract.Id };
+        var dialog = await DialogService.ShowAsync<ContractFormDialog>("Edit Contract", parameters);
+        var result = await dialog.Result;
+        if (result != null)
+            if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task Activate(int id)
+    {
+        var result = await ContractService.ActivateAsync(id);
+        if (result != null)
+        {
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Contract activated.", Severity.Success);
+                await LoadAsync();
+                await LoadDetail(id);
+            }
+            else 
+
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+        
+    }
+
+    private async Task Suspend(int id)
+    {
+        var result = await ContractService.SuspendAsync(id, "Suspended by user");
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Contract suspended.", Severity.Warning);
+            await LoadAsync();
+            await LoadDetail(id);
+        }
+        else Snackbar.Add(result.Error!, Severity.Error);
+    }
+
+    private async Task Terminate(int id)
+    {
+        var result = await ContractService.TerminateAsync(id, "Terminated by user");
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Contract terminated.", Severity.Error);
+            await LoadAsync();
+            await LoadDetail(id);
+        }
+        else Snackbar.Add(result.Error!, Severity.Error);
+    }
+}
