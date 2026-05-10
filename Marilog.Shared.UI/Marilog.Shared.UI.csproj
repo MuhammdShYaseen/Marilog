@@ -23,6 +23,7 @@
     <Folder Include="Pages\Dashboard\" />
     <Folder Include="Pages\Companies\" />
     <Folder Include="Pages\Contracts\" />
+    <Folder Include="Pages\Countries\" />
     <Folder Include="Styles\" />
   </ItemGroup>
 

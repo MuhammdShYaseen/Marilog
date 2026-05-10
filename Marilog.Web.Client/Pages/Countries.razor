@@ -1,0 +1,104 @@
+﻿@page "/admin/countries"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Countries
+@using MudBlazor
+
+@inject ICountryService CountryService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedCountriesPage Countries="_countries"
+                         OnAddClicked="OpenAddDialog"
+                         OnEditClicked="OpenEditDialog"
+                         OnDeleteClicked="ConfirmDelete"
+                         OnActivateClicked="Activate"
+                         OnDeactivateClicked="Deactivate" />
+}
+
+@code {
+    private IReadOnlyList<CountryResponse> _countries = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _countries = await CountryService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CountryFormDialog>("New Country");
+        var result = await dialog.Result;
+            if(result != null)
+                if (result.Canceled) return;
+
+        var (code, name) = ((string, string))result!.Data!;
+
+        await CountryService.CreateAsync(code, name);
+        Snackbar.Add("Country created.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(CountryResponse country)
+    {
+        var parameters = new DialogParameters { ["Country"] = country };
+        var dialog = await DialogService.ShowAsync<CountryFormDialog>("Edit Country", parameters);
+        var result = await dialog.Result;
+        if(result !=null)
+            if (result.Canceled) return;
+
+        var (code, name) = ((string, string))result!.Data!;
+        await CountryService.UpdateAsync(country.Id, code, name);
+        Snackbar.Add("Country updated.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task ConfirmDelete(CountryResponse country)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Country",
+            $"Are you sure you want to delete '{country.Name}'?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        await CountryService.DeleteAsync(country.Id);
+        Snackbar.Add("Country deleted.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task Activate(CountryResponse country)
+    {
+        await CountryService.ActivateAsync(country.Id);
+        Snackbar.Add($"{country.Name} activated.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task Deactivate(CountryResponse country)
+    {
+        await CountryService.DeactivateAsync(country.Id);
+        Snackbar.Add($"{country.Name} deactivated.", Severity.Warning);
+        await LoadAsync();
+    }
+}

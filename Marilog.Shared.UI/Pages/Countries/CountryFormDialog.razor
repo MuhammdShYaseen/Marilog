@@ -1,0 +1,53 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Countries
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="4">
+                <MudTextField @bind-Value="_code"
+                              Label="Code"
+                              Required="true"
+                              MaxLength="3"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="8">
+                <MudTextField @bind-Value="_name"
+                              Label="Country Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name))">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CountryResponse? Country { get; set; }
+
+    private string _code = string.Empty;
+    private string _name = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (Country is null) return;
+        _code = Country.Code;
+        _name = Country.Name;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok((_code, _name)));
+}
