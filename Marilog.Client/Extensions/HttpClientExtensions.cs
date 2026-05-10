@@ -56,24 +56,16 @@ namespace Marilog.Client.Extensions
         // ─────────────────────────────────────────────
         public static async Task<T?> GetApiAsync<T>(this HttpClient http, string url, CancellationToken ct = default)
         {
-            var response = await ExecuteAsync(
-                () => http.GetAsync(url, ct),
-                ct);
-
+            var response = await ExecuteAsync(() => http.GetAsync(url, ct), ct);
             return await HandleAsync<T>(response, ct);
         }
 
         // ─────────────────────────────────────────────
         // GET (list)
         // ─────────────────────────────────────────────
-        public static async Task<IReadOnlyList<T>> GetApiListAsync<T>(
-            this HttpClient http,
-            string url,
-            CancellationToken ct = default)
+        public static async Task<IReadOnlyList<T>> GetApiListAsync<T>(this HttpClient http, string url, CancellationToken ct = default)
         {
-            var response = await ExecuteAsync(
-                () => http.GetAsync(url, ct),
-                ct);
+            var response = await ExecuteAsync(() => http.GetAsync(url, ct), ct);
 
             var result = await HandleAsync<IReadOnlyList<T>>(response, ct);
 

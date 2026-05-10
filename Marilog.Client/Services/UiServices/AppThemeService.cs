@@ -1,4 +1,6 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Client.ErrorUniform;
+using Marilog.Client.Extensions;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Frontend.AppTheme;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using System;
@@ -18,75 +20,46 @@ namespace Marilog.Client.Services.UiServices
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<AppThemeResponse?> GetByIdAsync(int id, CancellationToken ct = default)
-        {
-            var response = await _http.GetFromJsonAsync<ApiResponse<AppThemeResponse>>($"{Base}/{id}", ct);
-            return response?.Data;
-        }
+        public Task<AppThemeResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        => _http.GetApiAsync<AppThemeResponse>($"{Base}/{id}", ct);
 
-        public async Task<AppThemeResponse?> GetDefaultThemeAsync(CancellationToken ct = default)
-        {
-            try
-            {
-                var response = await _http.GetFromJsonAsync<ApiResponse<AppThemeResponse>>($"{Base}/default", ct);
-                return response?.Data;
-            }
-            catch
-            {
-                return null;
-            }
-        }
 
-        public async Task<IReadOnlyList<AppThemeResponse>> GetAllAsync(CancellationToken ct = default)
-        {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<AppThemeResponse>>>(Base, ct);
-            return response?.Data ?? [];
-        }
 
-        public async Task<IReadOnlyList<AppThemeResponse>> GetActiveAsync(CancellationToken ct = default)
-        {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<AppThemeResponse>>>($"{Base}/active", ct);
-            return response?.Data ?? [];
-        }
+        public Task<AppThemeResponse?> GetDefaultThemeAsync(CancellationToken ct = default)
+        => _http.GetApiAsync<AppThemeResponse>($"{Base}/default", ct);
+
+        public Task<IReadOnlyList<AppThemeResponse>> GetAllAsync(CancellationToken ct = default)
+        => _http.GetApiListAsync<AppThemeResponse>(Base, ct);
+
+
+        public Task<IReadOnlyList<AppThemeResponse>> GetActiveAsync(CancellationToken ct = default)
+        => _http.GetApiListAsync<AppThemeResponse>($"{Base}/active", ct);
+
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<AppThemeResponse> CreateAsync(CreateAppThemeRequest request, CancellationToken ct = default)
         {
-            var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<AppThemeResponse>>(ct);
-            return response!.Data!;
-        }
+            var response = await _http.PostApiAsync<AppThemeResponse>(Base, request, ct);
+            if (response != null) 
+                return response;
 
-        public async Task UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct = default)
-        {
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
-        }
+            return new AppThemeResponse();
+        } 
 
-        public async Task SetAsDefaultAsync(int id, CancellationToken ct = default)
-        {
-            var http = await _http.PatchAsync($"{Base}/{id}/set-default", null, ct);
-            http.EnsureSuccessStatusCode();
-        }
+        public Task UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct = default)
+            => _http.PutApiAsync($"{Base}/{id}", request, ct);
 
-        public async Task ActivateAsync(int id, CancellationToken ct = default)
-        {
-            var http = await _http.PatchAsync($"{Base}/{id}/activate", null, ct);
-            http.EnsureSuccessStatusCode();
-        }
+        public Task SetAsDefaultAsync(int id, CancellationToken ct = default)
+            => _http.PatchApiAsync($"{Base}/{id}/set-default", ct);
 
-        public async Task DeactivateAsync(int id, CancellationToken ct = default)
-        {
-            var http = await _http.PatchAsync($"{Base}/{id}/deactivate", null, ct);
-            http.EnsureSuccessStatusCode();
-        }
+        public Task ActivateAsync(int id, CancellationToken ct = default)
+            => _http.PatchApiAsync($"{Base}/{id}/activate", ct);
 
-        public async Task DeleteAsync(int id, CancellationToken ct = default)
-        {
-            var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
-        }
+        public Task DeactivateAsync(int id, CancellationToken ct = default)
+            => _http.PatchApiAsync($"{Base}/{id}/deactivate", ct);
+
+        public Task DeleteAsync(int id, CancellationToken ct = default)
+            => _http.DeleteApiAsync($"{Base}/{id}", ct);
     }
 }

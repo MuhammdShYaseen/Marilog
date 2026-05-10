@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using System.Net.Http.Json;
+using Marilog.Client.Extensions;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -17,32 +18,28 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<CompanyResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CompanyResponse>>($"{Base}/{id}", ct);
-            return response?.Data;
+            return await _http.GetApiAsync<CompanyResponse>($"{Base}/{id}", ct);
         }
 
         public async Task<CompanyResponse?> GetWithVesselsAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CompanyResponse>>($"{Base}/{id}/with-vessels", ct);
-            return response?.Data;
+            return await _http.GetApiAsync<CompanyResponse>($"{Base}/{id}/with-vessels", ct);
         }
 
         public async Task<IReadOnlyList<CompanyResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CompanyResponse>>>(Base, ct);
-            return response?.Data ?? [];
+            return await _http.GetApiListAsync<CompanyResponse>(Base, ct);
+          
         }
 
         public async Task<IReadOnlyList<CompanyResponse>> GetActiveAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CompanyResponse>>>($"{Base}/active", ct);
-            return response?.Data ?? [];
+            return await _http.GetApiListAsync<CompanyResponse>($"{Base}/active", ct);
         }
 
         public async Task<IReadOnlyList<CompanyResponse>> SearchByNameAsync(string name, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CompanyResponse>>>($"{Base}/search?name={Uri.EscapeDataString(name)}", ct);
-            return response?.Data ?? [];
+            return await _http.GetApiListAsync<CompanyResponse>($"{Base}/search?name={Uri.EscapeDataString(name)}", ct);
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────

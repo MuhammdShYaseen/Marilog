@@ -49,7 +49,7 @@ namespace Marilog.Presentation.Controllers.Frontend
         // ── Commands ─────────────────────────────────────────────────────────────
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<AppThemeResponse>>> Create(
+        public async Task<ActionResult<ApiResponse<AppThemeResponse?>>> Create(
             [FromBody] CreateAppThemeRequest request, CancellationToken ct)
         {
             var result = await _service.CreateAsync(request, ct);
