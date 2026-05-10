@@ -1,0 +1,92 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Companies
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_name"
+                              Label="Company Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_registrationNumber"
+                              Label="Registration Number"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_contactName"
+                              Label="Contact Name"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_phone"
+                              Label="Phone"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_email"
+                              Label="Email"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_address"
+                              Label="Address"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="string.IsNullOrWhiteSpace(_name)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CompanyResponse? Company { get; set; }
+
+    private string _name = string.Empty;
+    private string? _registrationNumber;
+    private string? _contactName;
+    private string? _phone;
+    private string? _email;
+    private string? _address;
+
+    protected override void OnParametersSet()
+    {
+        if (Company is null) return;
+        _name = Company.Name;
+        _registrationNumber = Company.RegistrationNumber;
+        _contactName = Company.ContactName;
+        _phone = Company.Phone;
+        _email = Company.Email;
+        _address = Company.Address;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    {
+        Name = _name,
+        RegistrationNumber = _registrationNumber,
+        ContactName = _contactName,
+        Phone = _phone,
+        Email = _email,
+        Address = _address
+    }));
+}

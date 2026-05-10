@@ -1,3 +1,51 @@
 ﻿@page "/dashboard"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Dashboard
 
-<DashboardContent />
+@inject IVesselService VesselService
+@inject IVoyageService VoyageService
+@inject ICrewContractService CrewService
+@inject IDocumentService DocumentService
+@inject NavigationManager Nav
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedDashboardPage Vessels="_vessels"
+                         ActiveVoyages="_voyages"
+                         CrewContracts="_crew"
+                         UnpaidDocuments="_documents"
+                         OnVesselClick="OnVesselClicked"
+                         OnDocumentClick="OnDocumentClicked" />
+}
+
+@code {
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<VoyageResponse> _voyages = [];
+    private IReadOnlyList<CrewContractResponse> _crew = [];
+    private IReadOnlyList<DocumentResponse> _documents = [];
+    private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
+    private void OnDocumentClicked(int id) => Nav.NavigateTo($"/documents/{id}");
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = VesselService.GetActiveAsync();
+        var t2 = VoyageService.GetActiveVoyagesAsync();
+        var t3 = CrewService.GetActiveByVesselAsync(0);
+        var t4 = DocumentService.GetUnpaidAsync();
+
+        await Task.WhenAll(t1, t2, t3, t4);
+
+        _vessels = t1.Result;
+        _voyages = t2.Result;
+        _crew = t3.Result;
+        _documents = t4.Result;
+
+        _loading = false;
+    }
+}

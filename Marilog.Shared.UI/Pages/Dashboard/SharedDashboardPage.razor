@@ -1,0 +1,140 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Dashboard
+
+<MudText Typo="Typo.h5" Class="mb-4">Dashboard</MudText>
+
+@* ── KPI Cards ─────────────────────────────────────────────── *@
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 cursor-pointer" Elevation="2" @onclick="() => Navigate(VesselsRoute)">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Vessels</MudText>
+                    <MudText Typo="Typo.h4">@Vessels.Count</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Active</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 cursor-pointer" Elevation="2" @onclick="() => Navigate(VoyagesRoute)">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.Map" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Voyages</MudText>
+                    <MudText Typo="Typo.h4">@ActiveVoyages.Count</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Active</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 cursor-pointer" Elevation="2" @onclick="() => Navigate(CrewRoute)">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Crew</MudText>
+                    <MudText Typo="Typo.h4">@CrewContracts.Count</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">On Board</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 cursor-pointer" Elevation="2" @onclick="() => Navigate(DocumentsRoute)">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.Folder" Color="Color.Warning" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Unpaid Documents</MudText>
+                    <MudText Typo="Typo.h4">@UnpaidDocuments.Count</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Warning">Pending</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@* ── Vessels + Unpaid Documents ───────────────────────────── *@
+<MudGrid>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Vessels</MudText>
+            <MudTable Items="Vessels" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>IMO</MudTh>
+                    <MudTh>Flag</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudLink @onclick="() => OnVesselClick.InvokeAsync(context.Id)"
+                                 Class="cursor-pointer">
+                            @context.Name
+                        </MudLink>
+                    </MudTd>
+                    <MudTd>@context.IMONumber</MudTd>
+                    <MudTd>@context.FlagCountryName</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No vessels found.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Unpaid Documents</MudText>
+            <MudTable Items="UnpaidDocuments" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Doc No.</MudTh>
+                    <MudTh>Supplier</MudTh>
+                    <MudTh>Amount</MudTh>
+                    <MudTh>Date</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudLink @onclick="() => OnDocumentClick.InvokeAsync(context.Id)"
+                                 Class="cursor-pointer">
+                            @context.DocNumber
+                        </MudLink>
+                    </MudTd>
+                    <MudTd>@context.SupplierName</MudTd>
+                    <MudTd>@context.TotalAmount.ToString("N2")</MudTd>
+                    <MudTd>@context.DocDate.ToString("dd MMM yyyy")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No unpaid documents.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<VoyageResponse> ActiveVoyages { get; set; } = [];
+    [Parameter] public IReadOnlyList<CrewContractResponse> CrewContracts { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentResponse> UnpaidDocuments { get; set; } = [];
+
+    [Parameter] public EventCallback<int> OnVesselClick { get; set; }
+    [Parameter] public EventCallback<int> OnDocumentClick { get; set; }
+
+    [Parameter] public string VesselsRoute { get; set; } = "/vessels";
+    [Parameter] public string VoyagesRoute { get; set; } = "/voyages";
+    [Parameter] public string CrewRoute { get; set; } = "/crew-contracts";
+    [Parameter] public string DocumentsRoute { get; set; } = "/documents";
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private void Navigate(string route) => Nav.NavigateTo(route);
+}

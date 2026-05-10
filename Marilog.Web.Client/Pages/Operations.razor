@@ -1,0 +1,42 @@
+﻿@page "/operations"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Dashboard
+
+@inject IOperationsDashboardService DashboardService
+@inject NavigationManager Nav
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedOperationsDashboardPage Data="_data"
+                                   OnVoyageClick="OnVoyageClicked"
+                                   OnDocumentClick="OnDocumentClicked" />
+}
+
+@code {
+    private OperationsDashboardResponse? _data;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _data = await DashboardService.GetAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Operations dashboard load failed: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnVoyageClicked(int id) => Nav.NavigateTo($"/voyages/{id}");
+    private void OnDocumentClicked(int id) => Nav.NavigateTo($"/documents/{id}");
+}

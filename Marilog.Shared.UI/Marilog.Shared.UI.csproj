@@ -20,6 +20,8 @@
   <ItemGroup>
     <Folder Include="Components\Navigation\" />
     <Folder Include="Base\" />
+    <Folder Include="Pages\Dashboard\" />
+    <Folder Include="Pages\Companies\" />
     <Folder Include="Styles\" />
   </ItemGroup>
 

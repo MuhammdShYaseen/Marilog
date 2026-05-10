@@ -1,0 +1,94 @@
+﻿@page "/companies"
+@using Marilog.Contracts.DTOs.Requests.CompanyDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Companies
+@using MudBlazor
+
+@inject ICompanyService CompanyService
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedCompaniesPage Companies="_companies"
+                         OnAddClicked="OpenAddDialog"
+                         OnEditClicked="OpenEditDialog"
+                         OnDeleteClicked="ConfirmDelete"
+                         OnActivateClicked="Activate"
+                         OnDeactivateClicked="Deactivate"
+                         OnVesselClick="OnVesselClicked" />
+}
+
+@code {
+    private IReadOnlyList<CompanyResponse> _companies = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _companies = await CompanyService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CompanyFormDialog>("New Company");
+        var result = await dialog.Result;
+        if(result !=null)
+            if (!result.Canceled)
+                await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(CompanyResponse company)
+    {
+        var parameters = new DialogParameters { ["Company"] = company };
+        var dialog = await DialogService.ShowAsync<CompanyFormDialog>("Edit Company", parameters);
+        var result = await dialog.Result;
+        if (result != null)
+            if (!result.Canceled)
+                await LoadAsync();
+    }
+
+    private async Task ConfirmDelete(CompanyResponse company)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Company",
+            $"Are you sure you want to delete '{company.Name}'?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            await CompanyService.DeleteAsync(company.Id);
+            Snackbar.Add("Company deleted.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task Activate(CompanyResponse company)
+    {
+        await CompanyService.ActivateAsync(company.Id);
+        Snackbar.Add($"{company.Name} activated.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task Deactivate(CompanyResponse company)
+    {
+        await CompanyService.DeactivateAsync(company.Id);
+        Snackbar.Add($"{company.Name} deactivated.", Severity.Warning);
+        await LoadAsync();
+    }
+
+    private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
+}

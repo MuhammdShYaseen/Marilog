@@ -1,0 +1,225 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Dashboard
+
+<MudText Typo="Typo.h5" Class="mb-4">Operations Dashboard</MudText>
+
+@* ── Alerts ────────────────────────────────────────────────── *@
+@if (Data?.Alerts.Any() == true)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        @foreach (var alert in Data.Alerts)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-1" Dense="true">@alert</MudAlert>
+        }
+    </MudPaper>
+}
+
+@* ── KPI Cards ─────────────────────────────────────────────── *@
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.Map" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Active Voyages</MudText>
+                    <MudText Typo="Typo.h4">@Data?.ActiveVoyages.Count</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.Anchor" Color="Color.Info" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Upcoming Arrivals</MudText>
+                    <MudText Typo="Typo.h4">@Data?.UpcomingArrivals.Count</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Cash on Board</MudText>
+                    <MudText Typo="Typo.h4">@Data?.TotalCashOnBoard.ToString("N2")</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Secondary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Total Cargo (MT)</MudText>
+                    <MudText Typo="Typo.h4">@Data?.TotalCargoMT.ToString("N2")</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@* ── Active Voyages ────────────────────────────────────────── *@
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Active Voyages</MudText>
+    <MudTable Items="Data?.ActiveVoyages" Dense="true" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Voyage No.</MudTh>
+            <MudTh>Vessel</MudTh>
+            <MudTh>Departure</MudTh>
+            <MudTh>Arrival</MudTh>
+            <MudTh>Cargo (MT)</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudLink @onclick="() => OnVoyageClick.InvokeAsync(context.VoyageId)"
+                         Class="cursor-pointer">
+                    @context.VoyageNumber
+                </MudLink>
+            </MudTd>
+            <MudTd>@context.VesselName</MudTd>
+            <MudTd>@context.DepartureDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>@context.ArrivalDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>@context.CargoQuantityMT?.ToString("N2")</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">@context.Status</MudChip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No active voyages.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@* ── Upcoming Arrivals ─────────────────────────────────────── *@
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Upcoming Arrivals</MudText>
+    <MudTable Items="Data?.UpcomingArrivals" Dense="true" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Voyage No.</MudTh>
+            <MudTh>Vessel</MudTh>
+            <MudTh>Arrival Port</MudTh>
+            <MudTh>ETA</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudLink @onclick="() => OnVoyageClick.InvokeAsync(context.VoyageId)"
+                         Class="cursor-pointer">
+                    @context.VoyageNumber
+                </MudLink>
+            </MudTd>
+            <MudTd>@context.VesselName</MudTd>
+            <MudTd>@context.ArrivalPortName</MudTd>
+            <MudTd>@context.ArrivalDate?.ToString("dd MMM yyyy HH:mm")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No upcoming arrivals.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@* ── Crew Contracts ────────────────────────────────────────── *@
+<MudGrid Class="mb-4">
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudText Typo="Typo.h6">Expiring Contracts</MudText>
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small">
+                    @Data?.ExpiringCrewContracts.Count
+                </MudChip>
+            </MudStack>
+            <MudTable Items="Data?.ExpiringCrewContracts" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Rank</MudTh>
+                    <MudTh>Vessel</MudTh>
+                    <MudTh>Sign On</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.PersonFullName</MudTd>
+                    <MudTd>@context.RankName</MudTd>
+                    <MudTd>@context.VesselName</MudTd>
+                    <MudTd>@context.SignOnDate.ToString("dd MMM yyyy")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No expiring contracts.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudText Typo="Typo.h6">Expired Contracts</MudText>
+                <MudChip T="string" Color="Color.Error" Size="Size.Small">
+                    @Data?.ExpiredCrewContracts.Count
+                </MudChip>
+            </MudStack>
+            <MudTable Items="Data?.ExpiredCrewContracts" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Rank</MudTh>
+                    <MudTh>Vessel</MudTh>
+                    <MudTh>Sign On</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.PersonFullName</MudTd>
+                    <MudTd>@context.RankName</MudTd>
+                    <MudTd>@context.VesselName</MudTd>
+                    <MudTd>@context.SignOnDate.ToString("dd MMM yyyy")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No expired contracts.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@* ── Documents ─────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Documents</MudText>
+    <MudTable Items="Data?.Documents" Dense="true" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Doc No.</MudTh>
+            <MudTh>Supplier</MudTh>
+            <MudTh>Vessel</MudTh>
+            <MudTh>Amount</MudTh>
+            <MudTh>Date</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudLink @onclick="() => OnDocumentClick.InvokeAsync(context.Id)"
+                         Class="cursor-pointer">
+                    @context.DocNumber
+                </MudLink>
+            </MudTd>
+            <MudTd>@context.SupplierName</MudTd>
+            <MudTd>@context.VesselName</MudTd>
+            <MudTd>@context.TotalAmount.ToString("N2")</MudTd>
+            <MudTd>@context.DocDate.ToString("dd MMM yyyy")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No documents.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter] public OperationsDashboardResponse? Data { get; set; }
+    [Parameter] public EventCallback<int> OnVoyageClick { get; set; }
+    [Parameter] public EventCallback<int> OnDocumentClick { get; set; }
+}
