@@ -1,0 +1,135 @@
+﻿@page "/admin/currencies"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Currencies
+@using MudBlazor
+
+@inject ICurrencyService CurrencyService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedCurrenciesPage Currencies="_currencies"
+                          OnAddClicked="OpenAddDialog"
+                          OnEditClicked="OpenEditDialog"
+                          OnDeleteClicked="ConfirmDelete"
+                          OnActivateClicked="Activate"
+                          OnDeactivateClicked="Deactivate"
+                          OnSetBaseClicked="SetBase"
+                          OnUpdateRateClicked="OpenUpdateRateDialog" />
+}
+
+@code {
+    private IReadOnlyList<CurrencyResponse> _currencies = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _currencies = await CurrencyService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CurrencyFormDialog>("New Currency");
+        var result = await dialog.Result;
+        if (result != null)
+            if (result.Canceled) return;
+        if (result != null)
+        {
+            var (code, name, rate, symbol) = ((string, string, decimal, string?))result.Data!;
+            await CurrencyService.CreateAsync(code, name, rate, symbol);
+            Snackbar.Add("Currency created.", Severity.Success);
+            await LoadAsync();
+        }
+
+    }
+
+    private async Task OpenEditDialog(CurrencyResponse currency)
+    {
+        var parameters = new DialogParameters { ["Currency"] = currency };
+        var dialog = await DialogService.ShowAsync<CurrencyFormDialog>("Edit Currency", parameters);
+        var result = await dialog.Result;
+        if (result != null)
+        {
+            if (result.Canceled) return;
+            var (_, name, rate, symbol) = ((string, string, decimal, string?))result.Data!;
+            await CurrencyService.UpdateAsync(currency.Id, name, rate, symbol);
+            Snackbar.Add("Currency updated.", Severity.Success);
+            await LoadAsync();
+        }
+
+    }
+
+    private async Task OpenUpdateRateDialog(CurrencyResponse currency)
+    {
+        var parameters = new DialogParameters { ["Currency"] = currency };
+        var dialog = await DialogService.ShowAsync<UpdateRateDialog>("Update Rate", parameters);
+
+        var result = await dialog.Result;
+        
+        if(result != null)
+        {
+            if (result.Canceled) return;
+            var newRate = (decimal)result.Data!;
+            await CurrencyService.UpdateRateAsync(currency.Id, newRate);
+            Snackbar.Add("Rate updated.", Severity.Success);
+            await LoadAsync();
+        }
+        
+    }
+
+    private async Task SetBase(CurrencyResponse currency)
+    {
+        await CurrencyService.SetAsBaseAsync(currency.Id);
+        Snackbar.Add($"{currency.Name} set as base currency.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task Activate(CurrencyResponse currency)
+    {
+        await CurrencyService.ActivateAsync(currency.Id);
+        Snackbar.Add($"{currency.Name} activated.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task Deactivate(CurrencyResponse currency)
+    {
+        await CurrencyService.DeactivateAsync(currency.Id);
+        Snackbar.Add($"{currency.Name} deactivated.", Severity.Warning);
+        await LoadAsync();
+    }
+
+    private async Task ConfirmDelete(CurrencyResponse currency)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Currency",
+            $"Are you sure you want to delete '{currency.Name}'?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        await CurrencyService.DeleteAsync(currency.Id);
+        Snackbar.Add("Currency deleted.", Severity.Success);
+        await LoadAsync();
+    }
+}

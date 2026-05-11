@@ -1,0 +1,72 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Currencies
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="4">
+                <MudTextField @bind-Value="_code"
+                              Label="Code"
+                              Required="true"
+                              MaxLength="3"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="8">
+                <MudTextField @bind-Value="_name"
+                              Label="Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_symbol"
+                              Label="Symbol"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="_exchangeRate"
+                                 Label="Exchange Rate"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name) || _exchangeRate <= 0)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CurrencyResponse? Currency { get; set; }
+
+    private string _code = string.Empty;
+    private string _name = string.Empty;
+    private string? _symbol;
+    private decimal _exchangeRate;
+
+    protected override void OnParametersSet()
+    {
+        if (Currency is null) return;
+        _code = Currency.Code;
+        _name = Currency.Name;
+        _symbol = Currency.Symbol;
+        _exchangeRate = Currency.ExchangeRate;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        (_code, _name, _exchangeRate, _symbol)
+    ));
+}

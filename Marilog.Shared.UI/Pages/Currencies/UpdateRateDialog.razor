@@ -1,0 +1,38 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Currencies
+
+<MudDialog>
+    <DialogContent>
+        <MudNumericField @bind-Value="_newRate"
+                         Label="New Exchange Rate"
+                         Required="true"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_newRate <= 0)">
+            Update
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CurrencyResponse? Currency { get; set; }
+
+    private decimal _newRate;
+
+    protected override void OnParametersSet()
+    {
+        if (Currency is not null)
+            _newRate = Currency.ExchangeRate;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_newRate));
+}

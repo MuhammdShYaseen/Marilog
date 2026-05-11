@@ -1,0 +1,206 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Currencies
+
+<MudGrid>
+
+    @* ── List ─────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
+        <MudPaper Class="pa-4" Elevation="2">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Currencies</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_search"
+                              Placeholder="Search..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mr-2"
+                              Style="max-width:220px" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OnAddClicked">
+                    New
+                </MudButton>
+            </MudStack>
+
+            <MudTable Items="_filtered"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      SelectedItem="_selected"
+                      SelectedItemChanged="OnRowSelected"
+                      T="CurrencyResponse">
+                <HeaderContent>
+                    <MudTh>Code</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Symbol</MudTh>
+                    <MudTh>Rate</MudTh>
+                    <MudTh>Base</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Code</MudTd>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@(context.Symbol ?? "—")</MudTd>
+                    <MudTd>@context.ExchangeRate.ToString("N4")</MudTd>
+                    <MudTd>
+                        @if (context.IsBaseCurrency)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Star"
+                                     Color="Color.Warning"
+                                     Size="Size.Small" />
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string"
+                                 Color="@(context.IsActive ? Color.Success : Color.Default)"
+                                 Size="Size.Small">
+                            @(context.IsActive ? "Active" : "Inactive")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       OnClick="() => OnEditClicked.InvokeAsync(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No currencies found.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+        </MudPaper>
+    </MudItem>
+
+    @* ── Detail Panel ──────────────────────────────────────────── *@
+    @if (_selected is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">@_selected.Name</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="ClosePanel" />
+                </MudStack>
+
+                <MudDivider Class="mb-3" />
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Code</MudText>
+                        <MudText Typo="Typo.body2">@_selected.Code</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Symbol</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.Symbol ?? "—")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Exchange Rate</MudText>
+                        <MudText Typo="Typo.body2">@_selected.ExchangeRate.ToString("N4")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Base Currency</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.IsBaseCurrency ? "Yes" : "No")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudChip T="string"
+                                 Color="@(_selected.IsActive ? Color.Success : Color.Default)"
+                                 Size="Size.Small">
+                            @(_selected.IsActive ? "Active" : "Inactive")
+                        </MudChip>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+                <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Edit
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Info"
+                               StartIcon="@Icons.Material.Filled.CurrencyExchange"
+                               OnClick="() => OnUpdateRateClicked.InvokeAsync(_selected)">
+                        Update Rate
+                    </MudButton>
+                    @if (!_selected.IsBaseCurrency)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.Star"
+                                   OnClick="() => OnSetBaseClicked.InvokeAsync(_selected)">
+                            Set as Base
+                        </MudButton>
+                    }
+                    @if (_selected.IsActive)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.PauseCircle"
+                                   OnClick="() => OnDeactivateClicked.InvokeAsync(_selected)">
+                            Deactivate
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.PlayCircle"
+                                   OnClick="() => OnActivateClicked.InvokeAsync(_selected)">
+                            Activate
+                        </MudButton>
+                    }
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
+                        Delete
+                    </MudButton>
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<CurrencyResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CurrencyResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<CurrencyResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<CurrencyResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<CurrencyResponse> OnSetBaseClicked { get; set; }
+    [Parameter] public EventCallback<CurrencyResponse> OnUpdateRateClicked { get; set; }
+
+    private CurrencyResponse? _selected;
+    private string _search = string.Empty;
+
+    private IEnumerable<CurrencyResponse> _filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? Currencies
+            : Currencies.Where(c =>
+                c.Name.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                c.Code.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private void OnRowSelected(CurrencyResponse currency) => _selected = currency;
+    private void ClosePanel() => _selected = null;
+}
