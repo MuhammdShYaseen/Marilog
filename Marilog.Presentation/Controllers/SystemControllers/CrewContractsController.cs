@@ -66,6 +66,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(contracts);
         }
 
+        [HttpGet("about-expire")]
+        public async Task<ActionResult<IReadOnlyList<CrewContractResponse>>> GetAboutExpire(CancellationToken ct)
+        {
+            var contracts = await _service.GetAboutExpireAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(contracts));
+        }
+
         // ─────────────────────────────────────────────
         // Commands
         // ─────────────────────────────────────────────

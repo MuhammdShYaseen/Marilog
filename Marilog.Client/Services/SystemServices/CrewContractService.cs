@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Client.Extensions;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -113,7 +114,7 @@ namespace Marilog.Client.Services.SystemServices
         public Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct)
             => throw new NotImplementedException("Endpoint not yet defined on the backend.");
 
-        public Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct)
-            => throw new NotImplementedException("Endpoint not yet defined on the backend.");
+        public Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct = default)
+        => _http.GetApiListAsync<CrewContractResponse>($"{Base}/about-expire", ct);
     }
 }

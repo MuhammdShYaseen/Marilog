@@ -12,8 +12,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Interfaces.Ai;
-using Marilog.Application.Interfaces.Encryption;
-using Marilog.Application.Services.ApplicationServices.Encryption;
+
 
 namespace Marilog.Application
 {
@@ -21,6 +20,9 @@ namespace Marilog.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
+            //----OperatorDashBoard--------------------------------------------------
+            services.AddScoped<IOperationsDashboardService, OperationsDashboardService>();
+
             // ── Lookups ───────────────────────────────────────────────────────────
             services.AddScoped<ICountryService, CountryService>();
             services.AddScoped<ICurrencyService, CurrencyService>();
