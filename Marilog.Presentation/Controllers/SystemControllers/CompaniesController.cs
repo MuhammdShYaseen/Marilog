@@ -110,6 +110,7 @@
 
             await  _service.UpdateAsync(
                 id,
+                request.RegistrationNumber,
                 request.CompanyName,
                 request.CountryId,
                 request.ContactName,

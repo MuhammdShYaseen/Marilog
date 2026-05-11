@@ -183,13 +183,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, string companyName, int? countryId = null,
+        public async Task UpdateAsync(int id, string? registrationNumber, string companyName, int? countryId = null,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null,
             CancellationToken ct = default)
         {
             var company = await GetOrThrowAsync(id, ct);
-            company.Update(companyName, countryId, contactName, email, phone, address);
+            company.Update(registrationNumber, companyName, countryId, contactName, email, phone, address);
             _repo.Update(company);
             await _repo.SaveChangesAsync(ct);
         }

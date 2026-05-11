@@ -37,7 +37,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             };
         }
 
-        public void Update(string companyName, int? countryId,
+        public void Update(string? registrationNumber, string companyName, int? countryId,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null)
         {
@@ -49,6 +49,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             Email = email;
             Phone = phone;
             Address = address;
+            RegistrationNumber = registrationNumber;
             Touch();
         }
     }

@@ -75,7 +75,7 @@ namespace Marilog.Client.Services.SystemServices
             return response ?? [];
         }
 
-        public async Task UpdateAsync(int id, string companyName, int? countryId = null,
+        public async Task UpdateAsync(int id, string? registerationNumber, string companyName, int? countryId = null,
             string? contactName = null, string? email = null, string? phone = null, string? address = null,
             CancellationToken ct = default)
         {
@@ -86,7 +86,9 @@ namespace Marilog.Client.Services.SystemServices
                 ContactName = contactName,
                 Email = email,
                 Phone = phone,
-                Address = address
+                Address = address,
+                RegistrationNumber = registerationNumber
+                
             };
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);

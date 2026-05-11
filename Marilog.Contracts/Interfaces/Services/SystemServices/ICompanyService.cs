@@ -19,8 +19,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                   CancellationToken ct = default);
 
         Task<IReadOnlyList<CompanyResponse>> CreateRangeAsync(IEnumerable<CreateCompanyRequest> commands, CancellationToken ct = default);
-        Task          UpdateAsync(int id, string companyName, int? countryId = null,
-                                  string? contactName = null, string? email = null,
+        Task          UpdateAsync(int id,string? registrationNumber, string companyName, int? countryId = null,
+                                  string? contactName = null, string? email = null, 
                                   string? phone = null, string? address = null,
                                   CancellationToken ct = default);
         Task          ActivateAsync(int id, CancellationToken ct = default);

@@ -45,9 +45,13 @@ else
     {
         var dialog = await DialogService.ShowAsync<CompanyFormDialog>("New Company");
         var result = await dialog.Result;
-        if(result !=null)
+        if (result != null)
             if (!result.Canceled)
-                await LoadAsync();
+                return;
+
+        var data = (CreateCompanyRequest)result!.Data!;
+        await CompanyService.CreateAsync(data.RegistrationNumber, data.CompanyName, data.CountryId, data.ContactName, data.Email, data.Phone, data.Address);
+        await LoadAsync();
     }
 
     private async Task OpenEditDialog(CompanyResponse company)
@@ -57,7 +61,11 @@ else
         var result = await dialog.Result;
         if (result != null)
             if (!result.Canceled)
-                await LoadAsync();
+                return;
+
+        var data = (CreateCompanyRequest)result!.Data!;
+        await CompanyService.UpdateAsync(company.Id, data.RegistrationNumber, data.CompanyName, data.CountryId, data.ContactName, data.Email, data.Phone, data.Address);
+        await LoadAsync();
     }
 
     private async Task ConfirmDelete(CompanyResponse company)

@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Requests.CompanyDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Companies
@@ -43,6 +44,22 @@
                               Margin="Margin.Dense"
                               Lines="2" />
             </MudItem>
+            <MudItem xs="12">
+
+                <MudSelect @bind-Value="_countryId"
+                              Label="Address"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Required ="true"
+                              Lines="2" >
+                    @foreach (var country in countries)
+                    {
+                        <MudSelectItem Value="@country.Id">
+                            @country.Name (@country.Code)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -59,14 +76,14 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public CompanyResponse? Company { get; set; }
-
+    [Parameter] public IReadOnlyList<CountryResponse> countries { get; set; } = [];
     private string _name = string.Empty;
     private string? _registrationNumber;
     private string? _contactName;
     private string? _phone;
     private string? _email;
     private string? _address;
-
+    private int? _countryId;
     protected override void OnParametersSet()
     {
         if (Company is null) return;
@@ -80,13 +97,15 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+    new CreateCompanyRequest
     {
-        Name = _name,
+        CompanyName = _name,
         RegistrationNumber = _registrationNumber,
         ContactName = _contactName,
         Phone = _phone,
         Email = _email,
-        Address = _address
+        Address = _address,
+        CountryId = _countryId
     }));
 }
