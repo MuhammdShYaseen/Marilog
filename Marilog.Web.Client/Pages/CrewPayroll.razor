@@ -1,0 +1,133 @@
+﻿@page "/payroll"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.CrewPayroll
+@using MudBlazor
+
+@inject ICrewPayrollService PayrollService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <SharedCrewPayrollPage PayrollByMonth="_byMonth"
+                           PayrollByStatus="_byStatus"
+                           Outstanding="_outstanding"
+                           OnAddClicked="OpenAddDialog"
+                           OnEditClicked="OpenEditDialog"
+                           OnDeleteClicked="ConfirmDelete"
+                           OnApproveClicked="Approve"
+                           OnCancelClicked="Cancel"
+                           OnPayClicked="OpenPayDialog"
+                           OnMonthSelected="LoadByMonth"
+                           OnStatusChanged="LoadByStatus" />
+}
+
+@code {
+    private IReadOnlyList<CrewPayrollResponse> _byMonth = [];
+    private IReadOnlyList<CrewPayrollResponse> _byStatus = [];
+    private IReadOnlyList<CrewPayrollResponse> _outstanding = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var t1 = PayrollService.GetByMonthAsync(today);
+            var t2 = PayrollService.GetByStatusAsync(PayrollStatus.Draft);
+            var t3 = PayrollService.GetOutstandingAsync();
+
+            await Task.WhenAll(t1, t2, t3);
+
+            _byMonth = t1.Result;
+            _byStatus = t2.Result;
+            _outstanding = t3.Result;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadByMonth(DateOnly month)
+    {
+        _byMonth = await PayrollService.GetByMonthAsync(month);
+        StateHasChanged();
+    }
+
+    private async Task LoadByStatus(PayrollStatus? status)
+    {
+        _byStatus = status is null
+            ? await PayrollService.GetByStatusAsync(PayrollStatus.Draft)
+            : await PayrollService.GetByStatusAsync(status.Value);
+        StateHasChanged();
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("New Payroll");
+        var result = await dialog.Result;
+        if (result != null)
+        if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(CrewPayrollResponse payroll)
+    {
+        var parameters = new DialogParameters { ["Payroll"] = payroll };
+        var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("Edit Payroll", parameters);
+        var result = await dialog.Result;
+        if(result != null)
+        if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task Approve(CrewPayrollResponse payroll)
+    {
+        await PayrollService.ApproveAsync(payroll.Id);
+        Snackbar.Add("Payroll approved.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task Cancel(CrewPayrollResponse payroll)
+    {
+        await PayrollService.CancelAsync(payroll.Id, "Cancelled by user");
+        Snackbar.Add("Payroll cancelled.", Severity.Warning);
+        await LoadAsync();
+    }
+
+    private async Task OpenPayDialog(CrewPayrollResponse payroll)
+    {
+        var parameters = new DialogParameters { ["Payroll"] = payroll };
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Record Payment", parameters);
+        var result = await dialog.Result;
+        if (result != null)
+        if (!result.Canceled) await LoadAsync();
+    }
+
+    private async Task ConfirmDelete(CrewPayrollResponse payroll)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Payroll",
+            $"Delete payroll for '{payroll.PersonFullName}' — {payroll.PayrollMonth:MMM yyyy}?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        await PayrollService.DeleteAsync(payroll.Id);
+        Snackbar.Add("Payroll deleted.", Severity.Success);
+        await LoadAsync();
+    }
+}

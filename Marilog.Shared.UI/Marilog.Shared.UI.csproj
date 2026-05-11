@@ -25,6 +25,7 @@
     <Folder Include="Pages\Contracts\" />
     <Folder Include="Pages\Countries\" />
     <Folder Include="Pages\CrewContracts\" />
+    <Folder Include="Pages\CrewPayroll\" />
     <Folder Include="Styles\" />
   </ItemGroup>
 

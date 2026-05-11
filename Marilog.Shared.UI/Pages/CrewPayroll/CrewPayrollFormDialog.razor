@@ -1,0 +1,84 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewPayroll
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_workingDays"
+                                 Label="Working Days"
+                                 Min="0" Max="31"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_basicWage"
+                                 Label="Basic Wage"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_allowances"
+                                 Label="Allowances"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_deductions"
+                                 Label="Deductions"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes"
+                              Label="Notes"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_basicWage <= 0)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CrewPayrollResponse? Payroll { get; set; }
+
+    private int _workingDays;
+    private decimal _basicWage;
+    private decimal _allowances;
+    private decimal _deductions;
+    private string? _notes;
+
+    protected override void OnParametersSet()
+    {
+        if (Payroll is null) return;
+        _workingDays = Payroll.WorkingDays;
+        _basicWage = Payroll.BasicWage;
+        _allowances = Payroll.Allowances;
+        _deductions = Payroll.Deductions;
+        _notes = Payroll.Notes;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    {
+        WorkingDays = _workingDays,
+        BasicWage = _basicWage,
+        Allowances = _allowances,
+        Deductions = _deductions,
+        Notes = _notes
+    }));
+}

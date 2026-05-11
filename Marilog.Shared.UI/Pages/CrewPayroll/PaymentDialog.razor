@@ -1,0 +1,71 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewPayroll
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="string"
+                           @bind-Value="_paymentType"
+                           Label="Payment Type"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem Value="@("Cash")">Cash</MudSelectItem>
+                    <MudSelectItem Value="@("Office")">At Office</MudSelectItem>
+                    <MudSelectItem Value="@("BankTransfer")">Bank Transfer</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_amount"
+                                 Label="Amount"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_paidOn"
+                               Label="Paid On"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes"
+                              Label="Notes"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_amount <= 0 || _paidOn is null || string.IsNullOrWhiteSpace(_paymentType))">
+            Pay
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CrewPayrollResponse? Payroll { get; set; }
+
+    private string _paymentType = string.Empty;
+    private decimal _amount;
+    private DateTime? _paidOn = DateTime.Today;
+    private string? _notes;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    {
+        PaymentType = _paymentType,
+        Amount = _amount,
+        PaidOn = DateOnly.FromDateTime(_paidOn!.Value),
+        Notes = _notes
+    }));
+}

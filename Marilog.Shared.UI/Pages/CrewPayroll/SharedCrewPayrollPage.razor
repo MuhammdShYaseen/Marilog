@@ -1,0 +1,295 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewPayroll
+
+<MudGrid>
+
+    @* ── List ─────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
+        <MudPaper Class="pa-4" Elevation="2">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Crew Payroll</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_search"
+                              Placeholder="Search..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mr-2"
+                              Style="max-width:220px" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OnAddClicked">
+                    New
+                </MudButton>
+            </MudStack>
+
+            <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0" Rounded="true" Class="mb-3">
+
+                @* ── By Month ──────────────────────────────────── *@
+                <MudTabPanel Text="By Month">
+                    <MudDatePicker Date="_selectedMonth"
+                                   Label="Month"
+                                   OpenTo="OpenTo.Month"
+                                   FixDay="1"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="mb-3"
+                                   Style="max-width:200px"
+                                   DateChanged="HandleMonthChanged" />
+                    <PayrollTable Items="_filteredByMonth"
+                                  Selected="_selected"
+                                  OnRowSelected="OnRowSelected"
+                                  OnEditClicked="OnEditClicked"
+                                  OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+                @* ── By Status ─────────────────────────────────── *@
+                <MudTabPanel Text="By Status">
+                    <MudSelect T="PayrollStatus?"
+                               @bind-Value="_selectedStatus"
+                               Label="Status"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Class="mb-3"
+                               Style="max-width:200px">
+                        <MudSelectItem T="PayrollStatus?" Value="null">All</MudSelectItem>
+                        @foreach (PayrollStatus s in Enum.GetValues(typeof(PayrollStatus)))
+                        {
+                            <MudSelectItem T="PayrollStatus?" Value="s">@s</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <PayrollTable Items="_filteredByStatus"
+                                  Selected="_selected"
+                                  OnRowSelected="OnRowSelected"
+                                  OnEditClicked="OnEditClicked"
+                                  OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+                @* ── Outstanding ───────────────────────────────── *@
+                <MudTabPanel Text="Outstanding">
+                    <PayrollTable Items="_filteredOutstanding"
+                                  Selected="_selected"
+                                  OnRowSelected="OnRowSelected"
+                                  OnEditClicked="OnEditClicked"
+                                  OnDeleteClicked="OnDeleteClicked" />
+                </MudTabPanel>
+
+            </MudTabs>
+
+        </MudPaper>
+    </MudItem>
+
+    @* ── Detail Panel ──────────────────────────────────────────── *@
+    @if (_selected is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">@_selected.PersonFullName</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="ClosePanel" />
+                </MudStack>
+
+                <MudDivider Class="mb-3" />
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Vessel</MudText>
+                        <MudText Typo="Typo.body2">@_selected.VesselName</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Month</MudText>
+                        <MudText Typo="Typo.body2">@_selected.PayrollMonth.ToString("MMM yyyy")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Working Days</MudText>
+                        <MudText Typo="Typo.body2">@_selected.WorkingDays</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudChip T="string" Color="@StatusColor(_selected.Status)" Size="Size.Small">
+                            @_selected.Status
+                        </MudChip>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Basic Wage</MudText>
+                        <MudText Typo="Typo.body2">@_selected.BasicWage.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Allowances</MudText>
+                        <MudText Typo="Typo.body2">@_selected.Allowances.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Deductions</MudText>
+                        <MudText Typo="Typo.body2">@_selected.Deductions.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Gross Amount</MudText>
+                        <MudText Typo="Typo.body2" Style="font-weight:600">@_selected.GrossAmount.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Disbursed</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Success">@_selected.TotalDisbursed.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Remaining Balance</MudText>
+                        <MudText Typo="Typo.body2" Color="@(_selected.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+                            @_selected.RemainingBalance.ToString("N2")
+                        </MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrWhiteSpace(_selected.Notes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+                            <MudText Typo="Typo.body2">@_selected.Notes</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Disbursements</MudText>
+                @if (_selected.Disbursements?.Any() == true)
+                {
+                    foreach (var d in _selected.Disbursements)
+                    {
+                        <MudPaper Class="pa-2 mb-2" Outlined="true">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                <MudText Typo="Typo.body2" Style="font-weight:600">@d.Amount.ToString("N2")</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">@d.Method</MudChip>
+                                <MudSpacer />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@d.PaidOn.ToString("dd MMM yyyy")</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="@DisbursementStatusColor(d.Status)">
+                                    @d.Status
+                                </MudChip>
+                            </MudStack>
+                            @if (!string.IsNullOrWhiteSpace(d.Notes))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">@d.Notes</MudText>
+                            }
+                        </MudPaper>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No disbursements.</MudText>
+                }
+
+                <MudDivider Class="my-3" />
+
+                <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Edit
+                    </MudButton>
+                    @if (_selected.Status == PayrollStatus.Draft)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.CheckCircle"
+                                   OnClick="() => OnApproveClicked.InvokeAsync(_selected)">
+                            Approve
+                        </MudButton>
+                    }
+                    @if (!_selected.IsFullyPaid)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Payment"
+                                   OnClick="() => OnPayClicked.InvokeAsync(_selected)">
+                            Pay
+                        </MudButton>
+                    }
+                    @if (_selected.Status != PayrollStatus.Cancelled)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                   OnClick="() => OnCancelClicked.InvokeAsync(_selected)">
+                            Cancel
+                        </MudButton>
+                    }
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<CrewPayrollResponse> PayrollByMonth { get; set; } = [];
+    [Parameter] public IReadOnlyList<CrewPayrollResponse> PayrollByStatus { get; set; } = [];
+    [Parameter] public IReadOnlyList<CrewPayrollResponse> Outstanding { get; set; } = [];
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnApproveClicked { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnCancelClicked { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnPayClicked { get; set; }
+    [Parameter] public EventCallback<PayrollStatus?> OnStatusChanged { get; set; }
+    [Parameter] public EventCallback<DateOnly> OnMonthSelected { get; set; }
+
+    private CrewPayrollResponse? _selected;
+    private string _search = string.Empty;
+    private int _activeTab;
+    private DateTime? _selectedMonth = DateTime.Today;
+    private PayrollStatus? _selectedStatus;
+
+    private IEnumerable<CrewPayrollResponse> _filteredByMonth =>
+        Filter(PayrollByMonth);
+
+    private IEnumerable<CrewPayrollResponse> _filteredByStatus =>
+        _selectedStatus is null
+            ? Filter(PayrollByStatus)
+            : Filter(PayrollByStatus.Where(p => p.Status == _selectedStatus));
+
+    private IEnumerable<CrewPayrollResponse> _filteredOutstanding =>
+        Filter(Outstanding);
+
+    private IEnumerable<CrewPayrollResponse> Filter(IEnumerable<CrewPayrollResponse> source) =>
+        string.IsNullOrWhiteSpace(_search)
+            ? source
+            : source.Where(p =>
+                (p.PersonFullName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.VesselName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private void OnRowSelected(CrewPayrollResponse payroll) => _selected = payroll;
+    private void ClosePanel() => _selected = null;
+
+    private async Task HandleMonthChanged(DateTime? date)
+    {
+        _selectedMonth = date;
+        if (date.HasValue)
+            await OnMonthSelected.InvokeAsync(DateOnly.FromDateTime(date.Value));
+    }
+
+    private static Color StatusColor(PayrollStatus status) => status switch
+    {
+        PayrollStatus.Draft => Color.Default,
+        PayrollStatus.Approved => Color.Success,
+        PayrollStatus.PartiallyPaid => Color.Warning,
+        PayrollStatus.FullyPaid => Color.Info,
+        PayrollStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color DisbursementStatusColor(DisbursementStatus? status) => status switch
+    {
+        DisbursementStatus.Confirmed => Color.Success,
+        DisbursementStatus.Pending => Color.Warning,
+        DisbursementStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+}

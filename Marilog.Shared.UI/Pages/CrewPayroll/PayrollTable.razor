@@ -1,0 +1,70 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewPayroll
+
+<MudTable Items="Items"
+          Dense="true"
+          Hover="true"
+          Striped="true"
+          SelectedItem="Selected"
+          SelectedItemChanged="OnRowSelected"
+          T="CrewPayrollResponse">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Vessel</MudTh>
+        <MudTh>Month</MudTh>
+        <MudTh>Gross</MudTh>
+        <MudTh>Balance</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.PersonFullName</MudTd>
+        <MudTd>@context.VesselName</MudTd>
+        <MudTd>@context.PayrollMonth.ToString("MMM yyyy")</MudTd>
+        <MudTd>@context.GrossAmount.ToString("N2")</MudTd>
+        <MudTd>
+            <MudText Color="@(context.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+                @context.RemainingBalance.ToString("N2")
+            </MudText>
+        </MudTd>
+        <MudTd>
+            <MudChip T="string"
+                     Color="@StatusColor(context.Status)"
+                     Size="Size.Small">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           OnClick="() => OnEditClicked.InvokeAsync(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No payroll records found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<CrewPayrollResponse> Items { get; set; } = [];
+    [Parameter] public CrewPayrollResponse? Selected { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnRowSelected { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CrewPayrollResponse> OnDeleteClicked { get; set; }
+
+    private static Color StatusColor(PayrollStatus status) => status switch
+    {
+        PayrollStatus.Draft => Color.Default,
+        PayrollStatus.Approved => Color.Success,
+        PayrollStatus.PartiallyPaid => Color.Warning,
+        PayrollStatus.FullyPaid => Color.Info,
+        PayrollStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+}
