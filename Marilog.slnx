@@ -9,10 +9,13 @@
     <Project Path="Marilog.Contracts/Marilog.Contracts.csproj" Id="1520916c-cbb4-4f8b-bad0-983184d3f6d1" />
     <Project Path="Marilog.Kernel/Marilog.Kernel.csproj" Id="746e637b-33d4-48f1-9ab4-632b7dfa3da0" />
   </Folder>
-  <Folder Name="/Frontend/">
+  <Folder Name="/Frontend/" />
+  <Folder Name="/Frontend/Platforms/">
+    <Project Path="Marilog.Web.Client/Marilog.Web.Client.csproj" Id="cfc408ad-9641-4452-b0e3-773071597a8f" />
+  </Folder>
+  <Folder Name="/Frontend/Shared/">
     <Project Path="Marilog.Client/Marilog.Client.csproj" Id="db06763d-0566-4374-9534-9ab6a438113c" />
     <Project Path="Marilog.Shared.UI/Marilog.Shared.UI.csproj" Id="e9fd1d37-b6fd-4e7e-bf5b-7e3062c551bd" />
-    <Project Path="Marilog.Web.Client/Marilog.Web.Client.csproj" Id="cfc408ad-9641-4452-b0e3-773071597a8f" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Marilog.Test/Marilog.Test.csproj" Id="138159ff-144d-42ec-935f-76cc505c4a6a" />
