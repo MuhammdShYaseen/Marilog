@@ -3,6 +3,7 @@
     public class UpdateDocumentRequest
     {
         public int DocTypeId { get; set; }
+        public string DocNumber { get; set; } = null!;
         public DateOnly DocDate { get; set; }
         public int CurrencyId { get; set; }
         public decimal TotalAmount { get; set; }

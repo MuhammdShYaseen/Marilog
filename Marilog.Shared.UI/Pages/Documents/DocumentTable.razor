@@ -1,0 +1,69 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+<MudTable Items="Items"
+          Dense="true"
+          Hover="true"
+          Striped="true"
+          T="DocumentResponse">
+    <HeaderContent>
+        <MudTh>Doc No.</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Date</MudTh>
+        <MudTh>Supplier</MudTh>
+        <MudTh>Vessel</MudTh>
+        <MudTh>Currency</MudTh>
+        <MudTh>Total</MudTh>
+        <MudTh>Paid</MudTh>
+        <MudTh>Balance</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            <MudLink OnClick="() => OnRowClick.InvokeAsync(context)"
+                     Style="cursor:pointer">
+                @context.DocNumber
+            </MudLink>
+        </MudTd>
+        <MudTd>@(context.DocTypeName ?? "—")</MudTd>
+        <MudTd>@context.DocDate.ToString("dd MMM yyyy")</MudTd>
+        <MudTd>@(context.SupplierName ?? "—")</MudTd>
+        <MudTd>@(context.VesselName ?? "—")</MudTd>
+        <MudTd>@context.CurrencyCode</MudTd>
+        <MudTd>@context.TotalAmount.ToString("N2")</MudTd>
+        <MudTd>@context.TotalPaid.ToString("N2")</MudTd>
+        <MudTd>
+            <MudText Color="@(context.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+                @context.RemainingBalance.ToString("N2")
+            </MudText>
+        </MudTd>
+        <MudTd>
+            <MudChip T="string"
+                     Color="@(context.IsFullyPaid ? Color.Success : Color.Warning)"
+                     Size="Size.Small">
+                @(context.IsFullyPaid ? "Paid" : "Unpaid")
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           OnClick="() => OnEditClicked.InvokeAsync(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No documents found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<DocumentResponse> Items { get; set; } = [];
+    [Parameter] public EventCallback<DocumentResponse> OnRowClick { get; set; }
+    [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+}

@@ -1,0 +1,222 @@
+﻿@page "/documents"
+@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Documents
+@using MudBlazor
+
+@inject IDocumentService DocumentService
+@inject IVesselService VesselService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_detail is not null)
+{
+    <SharedDocumentDetailPage Document="_detail"
+                              OnBackClicked="CloseDetail"
+                              OnEditClicked="OpenEditDialog"
+                              OnDeleteClicked="ConfirmDelete"
+                              OnAddPaymentClicked="OpenAddPaymentDialog"
+                              OnAddItemClicked="OpenAddItemDialog"
+                              OnEditItemClicked="OpenEditItemDialog"
+                              OnRemoveItemClicked="ConfirmRemoveItem" />
+}
+else
+{
+    <SharedDocumentsPage Unpaid="_unpaid"
+                         AllDocuments="_all"
+                         Vessels="_vessels"
+                         OnAddClicked="OpenAddDialog"
+                         OnEditClicked="OpenEditDialog"
+                         OnDeleteClicked="ConfirmDelete"
+                         OnDocumentSelected="LoadDetail" />
+}
+
+@code {
+    private IReadOnlyList<DocumentResponse> _unpaid = [];
+    private IReadOnlyList<DocumentResponse> _all = [];
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private DocumentResponse? _detail;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var t1 = DocumentService.GetUnpaidAsync();
+            var t2 = VesselService.GetActiveAsync();
+            await Task.WhenAll(t1, t2);
+            _unpaid = t1.Result;
+            _vessels = t2.Result;
+            _all = _unpaid; // default — expand later
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadDetail(int id)
+    {
+        _detail = await DocumentService.GetFullAsync(id);
+    }
+
+    private void CloseDetail()
+    {
+        _detail = null;
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = "CreateDocumentRequest",
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentFormDialog>(
+            "New Document");
+
+        var result = await dialog.Result;
+        if(result != null)
+        if (result.Canceled || result.Data is null)
+            return;
+
+        var model = (CreateDocumentRequest)result!.Data!;
+
+        await DocumentService.CreateAsync(
+            model.DocNumber,
+            model.DocTypeId,
+            model.DocDate,
+            model.CurrencyId,
+            model.TotalAmount,
+            model.SupplierId,
+            model.BuyerId,
+            model.VesselId,
+            model.PortId,
+            model.ParentDocumentId,
+            model.Reference,
+            model.FilePath);
+
+        Snackbar.Add("Document created.", Severity.Success);
+
+        await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(DocumentResponse doc)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = "UpdateDocumentRequest",
+            ["Document"] = doc
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentFormDialog>(
+            "Edit Document",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (result!.Canceled || result.Data is null)
+            return;
+
+        var model = (CreateDocumentRequest)result.Data;
+
+        await DocumentService.UpdateAsync(
+            doc.Id,
+            model.DocTypeId,
+            model.DocDate,
+            model.CurrencyId,
+            model.TotalAmount,
+            model.SupplierId,
+            model.BuyerId,
+            model.VesselId,
+            model.PortId,
+            model.Reference,
+            model.FilePath);
+
+        Snackbar.Add("Document updated.", Severity.Success);
+
+        await LoadAsync();
+
+        if (_detail?.Id == doc.Id)
+        {
+            await LoadDetail(doc.Id);
+        }
+    }
+
+    private async Task ConfirmDelete(DocumentResponse doc)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Document",
+            $"Delete document '{doc.DocNumber}'?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+        await DocumentService.DeleteAsync(doc.Id);
+        Snackbar.Add("Document deleted.", Severity.Success);
+        _detail = null;
+        await LoadAsync();
+    }
+
+    private async Task OpenAddPaymentDialog(DocumentResponse doc)
+    {
+        var parameters = new DialogParameters { ["Document"] = doc };
+        var dialog = await DialogService.ShowAsync<AddPaymentDialog>("Add Payment", parameters);
+        var result = await dialog.Result;
+        if (result!.Canceled) return;
+
+        var (swiftId, amount, date) = ((int, decimal, DateOnly))result.Data!;
+        await DocumentService.AddPaymentAsync(doc.Id, swiftId, amount, date);
+        Snackbar.Add("Payment recorded.", Severity.Success);
+        await LoadDetail(doc.Id);
+    }
+
+    private async Task OpenAddItemDialog(DocumentResponse doc)
+    {
+        var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Add Item");
+        var result = await dialog.Result;
+        if (result!.Canceled) return;
+
+        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data!;
+        await DocumentService.AddItemAsync(doc.Id, name, qty, price, unit);
+        Snackbar.Add("Item added.", Severity.Success);
+        await LoadDetail(doc.Id);
+    }
+
+    private async Task OpenEditItemDialog((int DocumentId, DocumentItemResponse Item) args)
+    {
+        var parameters = new DialogParameters { ["Item"] = args.Item };
+        var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Edit Item", parameters);
+        var result = await dialog.Result;
+        if (result!.Canceled) return;
+
+        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data!;
+        await DocumentService.UpdateItemAsync(args.DocumentId, args.Item.Id, name, qty, price, unit);
+        Snackbar.Add("Item updated.", Severity.Success);
+        await LoadDetail(args.DocumentId);
+    }
+
+    private async Task ConfirmRemoveItem((int DocumentId, int ItemId) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Item", "Remove this item?",
+            yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+        await DocumentService.RemoveItemAsync(args.DocumentId, args.ItemId);
+        Snackbar.Add("Item removed.", Severity.Success);
+        await LoadDetail(args.DocumentId);
+    }
+}

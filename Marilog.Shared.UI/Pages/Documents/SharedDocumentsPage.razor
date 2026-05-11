@@ -1,0 +1,117 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+<MudPaper Class="pa-4" Elevation="2">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h6">Documents</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_search"
+                      Placeholder="Search..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Class="mr-2"
+                      Style="max-width:220px" />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OnAddClicked">
+            New
+        </MudButton>
+    </MudStack>
+
+    <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0" Rounded="true" Class="mb-3">
+
+        @* ── Unpaid ────────────────────────────────────────────── *@
+        <MudTabPanel Text="Unpaid">
+            <DocumentTable Items="_filteredUnpaid"
+                           OnRowClick="OnDocumentClick"
+                           OnEditClicked="OnEditClicked"
+                           OnDeleteClicked="OnDeleteClicked" />
+        </MudTabPanel>
+
+        @* ── By Vessel ─────────────────────────────────────────── *@
+        <MudTabPanel Text="By Vessel">
+            <MudSelect T="int?"
+                       @bind-Value="_selectedVesselId"
+                       Label="Select Vessel"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Class="mb-3"
+                       Style="max-width:250px">
+                <MudSelectItem T="int?" Value="null">All Vessels</MudSelectItem>
+                @foreach (var vessel in Vessels)
+                {
+                    <MudSelectItem T="int?" Value="vessel.Id">@vessel.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <DocumentTable Items="_filteredByVessel"
+                           OnRowClick="OnDocumentClick"
+                           OnEditClicked="OnEditClicked"
+                           OnDeleteClicked="OnDeleteClicked" />
+        </MudTabPanel>
+
+        @* ── By Supplier ───────────────────────────────────────── *@
+        <MudTabPanel Text="By Supplier">
+            <MudTextField @bind-Value="_supplierSearch"
+                          Placeholder="Search supplier..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-3"
+                          Style="max-width:250px" />
+            <DocumentTable Items="_filteredBySupplier"
+                           OnRowClick="OnDocumentClick"
+                           OnEditClicked="OnEditClicked"
+                           OnDeleteClicked="OnDeleteClicked" />
+        </MudTabPanel>
+
+    </MudTabs>
+
+</MudPaper>
+
+@code {
+    [Parameter] public IReadOnlyList<DocumentResponse> Unpaid { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentResponse> AllDocuments { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<int> OnDocumentSelected { get; set; }
+
+    private string _search = string.Empty;
+    private string _supplierSearch = string.Empty;
+    private int _activeTab;
+    private int? _selectedVesselId;
+
+    private IEnumerable<DocumentResponse> _filteredUnpaid =>
+        Filter(Unpaid, _search);
+
+    private IEnumerable<DocumentResponse> _filteredByVessel =>
+        _selectedVesselId is null
+            ? Filter(AllDocuments, _search)
+            : Filter(AllDocuments.Where(d => d.VesselId == _selectedVesselId), _search);
+
+    private IEnumerable<DocumentResponse> _filteredBySupplier =>
+        string.IsNullOrWhiteSpace(_supplierSearch)
+            ? AllDocuments
+            : AllDocuments.Where(d =>
+                d.SupplierName?.Contains(_supplierSearch, StringComparison.OrdinalIgnoreCase) ?? false);
+
+    private static IEnumerable<DocumentResponse> Filter(IEnumerable<DocumentResponse> source, string search) =>
+        string.IsNullOrWhiteSpace(search)
+            ? source
+            : source.Where(d =>
+                d.DocNumber.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                (d.SupplierName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (d.VesselName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private void OnDocumentClick(DocumentResponse doc) =>
+        OnDocumentSelected.InvokeAsync(doc.Id);
+}
