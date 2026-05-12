@@ -327,11 +327,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, decimal monthlyWage,
-            string? notes = null, CancellationToken ct = default)
+        public async Task UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
+                                       decimal monthlyWage, DateOnly signOnDate,
+                                       int? signOnPort = null, string? notes = null,
+                                       CancellationToken ct = default)
         {
             var contract = await GetOrThrowAsync(id, ct);
-            contract.Update(monthlyWage, notes);
+            contract.Update(durationInMonth, personId, vesselId, rankId,
+                                       monthlyWage, signOnDate,
+                                       signOnPort, notes);
             _repo.Update(contract);
             await _repo.SaveChangesAsync(ct);
         }

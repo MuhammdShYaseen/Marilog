@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Requests.CrewDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewContracts
@@ -64,7 +65,7 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateCrewContractRequest
     {
         MonthlyWage = _monthlyWage,
         DurationInMonth = _durationInMonth,

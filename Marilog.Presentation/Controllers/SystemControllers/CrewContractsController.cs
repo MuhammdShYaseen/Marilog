@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.Contracts;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
@@ -118,12 +119,24 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(
-            int id,
-            [FromBody] UpdateCrewContractRequest request,
-            CancellationToken ct)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateCrewContractRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(id, request.MonthlyWage, request.Notes, ct);
+            if (id != request.Id)
+                throw new BadHttpRequestException("ContractId incorrect");
+
+            await _service.UpdateAsync
+            (
+                request.Id,
+                request.DurationInMonth,
+                request.PersonId,
+                request.VesselId, 
+                request.RankId,
+                request.MonthlyWage,
+                request.SignOnDate,
+                request.SignOnPort,
+                request.Notes,
+                ct
+            );
             return NoContent();
         }
 

@@ -23,7 +23,9 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<CrewContractResponse>> CreateRangeAsync(
                                                 IEnumerable<CreateCrewContractRequest> commands,
                                                 CancellationToken ct = default);
-        Task               UpdateAsync(int id, decimal monthlyWage, string? notes = null,
+        Task               UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
+                                       decimal monthlyWage, DateOnly signOnDate,
+                                       int? signOnPort = null, string? notes = null,
                                        CancellationToken ct = default);
         Task               SignOffAsync(int id, DateOnly signOffDate, int? signOffPort = null,
                                         CancellationToken ct = default);

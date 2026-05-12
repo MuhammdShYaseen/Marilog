@@ -62,8 +62,26 @@ else
     {
         var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Crew Contract");
         var result = await dialog.Result;
-        if(result != null)
-             if (!result.Canceled) await LoadAsync();
+        if (result == null)
+            return;
+        if (!result.Canceled) 
+            await LoadAsync();
+
+        if (result == null || result.Data == null)
+            return;
+        var data = (CreateCrewContractRequest)result.Data!;
+        await CrewContractService.CreateAsync
+        (
+            data.DurationInMonth, 
+            data.PersonId, 
+            data.VesselId, data.RankId, 
+            data.MonthlyWage, 
+            data.SignOnDate, 
+            data.SignOnPort, 
+            data.Notes
+        );
+        Snackbar.Add("Created successfully.", Severity.Success);
+        await LoadAsync();
     }
 
     private async Task OpenEditDialog(CrewContractResponse contract)
@@ -71,8 +89,27 @@ else
         var parameters = new DialogParameters { ["Contract"] = contract };
         var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("Edit Crew Contract", parameters);
         var result = await dialog.Result;
-        if(result != null)
-            if (!result.Canceled) await LoadAsync();
+        if (result == null)
+            return;
+        if (!result.Canceled) 
+            await LoadAsync();
+        if (result == null || result.Data == null)
+            return;
+        var data = (CreateCrewContractRequest)result.Data!;
+        await CrewContractService.UpdateAsync
+        (
+            contract.ContractId,
+            data.DurationInMonth,
+            data.PersonId,
+            data.VesselId, data.RankId,
+            data.MonthlyWage,
+            data.SignOnDate,
+            data.SignOnPort,
+            data.Notes
+        );
+        Snackbar.Add("Updated successfully.", Severity.Success);
+        await LoadAsync();
+
     }
 
     private async Task OpenSignOffDialog(CrewContractResponse contract)

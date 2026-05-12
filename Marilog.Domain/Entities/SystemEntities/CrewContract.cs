@@ -44,11 +44,20 @@ namespace Marilog.Domain.Entities.SystemEntities
             };
         }
 
-        public void Update(decimal monthlyWage, string? notes = null)
+        public void Update(int durationInMonth, int personId, int vesselId, int rankId,
+                                       decimal monthlyWage, DateOnly signOnDate,
+                                       int? signOnPort = null, string? notes = null)
         {
             if (monthlyWage < 0) throw new ArgumentException("Wage cannot be negative.");
+            DurationInMonth = durationInMonth;
+            PersonID = personId;
+            VesselID = vesselId;
+            RankID = rankId;
             MonthlyWage = monthlyWage;
+            SignOnDate = signOnDate;
+            SignOnPort = signOnPort;
             Notes = notes;
+
             Touch();
         }
 

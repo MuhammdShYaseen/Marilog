@@ -85,9 +85,23 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, decimal monthlyWage, string? notes = null, CancellationToken ct = default)
+        public async Task UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
+                                       decimal monthlyWage, DateOnly signOnDate,
+                                       int? signOnPort = null, string? notes = null,
+                                       CancellationToken ct = default)
         {
-            var request = new UpdateCrewContractRequest { MonthlyWage = monthlyWage, Notes = notes };
+            var request = new UpdateCrewContractRequest 
+            {
+                MonthlyWage = monthlyWage,
+                Notes = notes,
+                DurationInMonth = durationInMonth,
+                PersonId = personId,
+                VesselId = vesselId,
+                RankId = rankId,
+                SignOnDate = signOnDate,
+                SignOnPort = signOnPort,
+                Id = id
+            };
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             http.EnsureSuccessStatusCode();
         }
