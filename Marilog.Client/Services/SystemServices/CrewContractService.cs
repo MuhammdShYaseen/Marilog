@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Kernel.Primitives;
 using System.Net.Http.Json;
 
 namespace Marilog.Client.Services.SystemServices
@@ -85,7 +86,7 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
+        public async Task<Result> UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
                                        decimal monthlyWage, DateOnly signOnDate,
                                        int? signOnPort = null, string? notes = null,
                                        CancellationToken ct = default)
@@ -104,19 +105,22 @@ namespace Marilog.Client.Services.SystemServices
             };
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             http.EnsureSuccessStatusCode();
+            return Result.Ok();
         }
 
-        public async Task SignOffAsync(int id, DateOnly signOffDate, int? signOffPort = null, CancellationToken ct = default)
+        public async Task<Result> SignOffAsync(int id, DateOnly signOffDate, int? signOffPort = null, CancellationToken ct = default)
         {
             var request = new SignOffCrewContractRequest { SignOffDate = signOffDate, SignOffPort = signOffPort };
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/sign-off", request, ct);
             http.EnsureSuccessStatusCode();
+            return Result.Ok();
         }
 
-        public async Task DeleteAsync(int id, CancellationToken ct = default)
+        public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
             http.EnsureSuccessStatusCode();
+            return Result.Ok();
         }
 
         // ── Reports ───────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Kernel.Primitives;
 
 namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
@@ -23,13 +24,13 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<CrewContractResponse>> CreateRangeAsync(
                                                 IEnumerable<CreateCrewContractRequest> commands,
                                                 CancellationToken ct = default);
-        Task               UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
+        Task <Result>   UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
                                        decimal monthlyWage, DateOnly signOnDate,
                                        int? signOnPort = null, string? notes = null,
                                        CancellationToken ct = default);
-        Task               SignOffAsync(int id, DateOnly signOffDate, int? signOffPort = null,
+        Task<Result> SignOffAsync(int id, DateOnly signOffDate, int? signOffPort = null,
                                         CancellationToken ct = default);
-        Task               DeleteAsync(int id, CancellationToken ct = default);
+        Task<Result> DeleteAsync(int id, CancellationToken ct = default);
 
         //----Reports-----------------------------------------------------------------
         Task<CrewContractReport> GetCrewContractsReportAsync(CrewContractFilterOptions options, CancellationToken ct = default);

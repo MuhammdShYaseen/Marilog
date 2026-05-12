@@ -33,6 +33,8 @@ else
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
+    // ─── Load ──────────────────────────────────────────────────────────────
+
     private async Task LoadAsync()
     {
         _loading = true;
@@ -58,30 +60,33 @@ else
         }
     }
 
+    // ─── Dialogs ───────────────────────────────────────────────────────────
+
     private async Task OpenAddDialog()
     {
         var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Crew Contract");
         var result = await dialog.Result;
-        if (result == null)
-            return;
-        if (!result.Canceled) 
-            await LoadAsync();
+        if (result is null || result.Canceled) return;
 
-        if (result == null || result.Data == null)
-            return;
         var data = (CreateCrewContractRequest)result.Data!;
-        await CrewContractService.CreateAsync
-        (
-            data.DurationInMonth, 
-            data.PersonId, 
-            data.VesselId, data.RankId, 
-            data.MonthlyWage, 
-            data.SignOnDate, 
-            data.SignOnPort, 
+        var outcome = await CrewContractService.CreateAsync(
+            data.DurationInMonth,
+            data.PersonId,
+            data.VesselId,
+            data.RankId,
+            data.MonthlyWage,
+            data.SignOnDate,
+            data.SignOnPort,
             data.Notes
         );
-        Snackbar.Add("Created successfully.", Severity.Success);
-        await LoadAsync();
+
+        if (outcome != null)
+        {
+            Snackbar.Add("Contract created.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add("Contract create unsucceed", Severity.Error);
     }
 
     private async Task OpenEditDialog(CrewContractResponse contract)
@@ -89,27 +94,29 @@ else
         var parameters = new DialogParameters { ["Contract"] = contract };
         var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("Edit Crew Contract", parameters);
         var result = await dialog.Result;
-        if (result == null)
-            return;
-        if (!result.Canceled) 
-            await LoadAsync();
-        if (result == null || result.Data == null)
-            return;
+        if (result is null || result.Canceled) return;
+
         var data = (CreateCrewContractRequest)result.Data!;
-        await CrewContractService.UpdateAsync
+        var outcome = await CrewContractService.UpdateAsync
         (
             contract.ContractId,
             data.DurationInMonth,
             data.PersonId,
-            data.VesselId, data.RankId,
+            data.VesselId,
+            data.RankId,
             data.MonthlyWage,
             data.SignOnDate,
             data.SignOnPort,
             data.Notes
         );
-        Snackbar.Add("Updated successfully.", Severity.Success);
-        await LoadAsync();
 
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Contract updated.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
     private async Task OpenSignOffDialog(CrewContractResponse contract)
@@ -117,14 +124,21 @@ else
         var parameters = new DialogParameters { ["Contract"] = contract };
         var dialog = await DialogService.ShowAsync<SignOffDialog>("Sign Off", parameters);
         var result = await dialog.Result;
-        if (result != null)
-        if (result.Canceled) return;
+        if (result is null || result.Canceled) return;
 
-        var (signOffDate, signOffPort) = ((DateOnly, int?))result!.Data!;
-        await CrewContractService.SignOffAsync(contract.ContractId, signOffDate, signOffPort);
-        Snackbar.Add("Signed off successfully.", Severity.Success);
-        await LoadAsync();
+        var (signOffDate, signOffPort) = ((DateOnly, int?))result.Data!;
+        var outcome = await CrewContractService.SignOffAsync(contract.ContractId, signOffDate, signOffPort);
+
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Signed off successfully.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
     }
+
+    // ─── Actions ───────────────────────────────────────────────────────────
 
     private async Task ConfirmDelete(CrewContractResponse contract)
     {
@@ -136,8 +150,13 @@ else
 
         if (confirmed != true) return;
 
-        await CrewContractService.DeleteAsync(contract.ContractId);
-        Snackbar.Add("Contract deleted.", Severity.Success);
-        await LoadAsync();
+        var outcome = await CrewContractService.DeleteAsync(contract.ContractId);
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Contract deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
     }
 }

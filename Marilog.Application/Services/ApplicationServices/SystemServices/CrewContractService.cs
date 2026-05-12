@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
@@ -327,7 +328,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
+        public async Task <Result> UpdateAsync(int id, int durationInMonth, int personId, int vesselId, int rankId,
                                        decimal monthlyWage, DateOnly signOnDate,
                                        int? signOnPort = null, string? notes = null,
                                        CancellationToken ct = default)
@@ -338,18 +339,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                        signOnPort, notes);
             _repo.Update(contract);
             await _repo.SaveChangesAsync(ct);
+            return Result.Ok();
         }
 
-        public async Task SignOffAsync(int id, DateOnly signOffDate,
+        public async Task<Result> SignOffAsync(int id, DateOnly signOffDate,
             int? signOffPort = null, CancellationToken ct = default)
         {
             var contract = await GetOrThrowAsync(id, ct);
             contract.SignOff(signOffDate, signOffPort);
             _repo.Update(contract);
             await _repo.SaveChangesAsync(ct);
+            return Result.Ok();
         }
 
-        public async Task DeleteAsync(int id, CancellationToken ct = default)
+        public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
         {
             var contract = await GetOrThrowAsync(id, ct);
             if (!contract.SignOffDate.HasValue)
@@ -357,6 +360,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     "Cannot delete an active contract. Sign off the crew member first.");
             _repo.HardDelete(contract);
             await _repo.SaveChangesAsync(ct);
+            return Result.Ok();
         }
 
         //----Reports----------------------------------------------------------------
