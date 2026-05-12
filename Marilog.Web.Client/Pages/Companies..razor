@@ -6,6 +6,7 @@
 @using MudBlazor
 
 @inject ICompanyService CompanyService
+@inject ICountryService CountryService
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -41,30 +42,62 @@ else
         _loading = false;
     }
 
+    private async Task<IReadOnlyList<CountryResponse>>CountriesList()
+    {
+        var response = await CountryService.GetActiveAsync();
+        return response.Select(s => new CountryResponse
+            {
+                Code = s.Code,
+                IsActive = s.IsActive,
+                Id = s.Id,
+                Name = s.Name
+            }).ToList().AsReadOnly();
+
+    }
     private async Task OpenAddDialog()
     {
-        var dialog = await DialogService.ShowAsync<CompanyFormDialog>("New Company");
+        var dialog = await DialogService.ShowAsync<CompanyFormDialog>("New Company",
+            new DialogParameters { ["Countries"] = await CountriesList() });
         var result = await dialog.Result;
-        if (result != null)
-            if (!result.Canceled)
-                return;
+        if (result is null || result.Canceled) return;  // ← check null first
 
-        var data = (CreateCompanyRequest)result!.Data!;
-        await CompanyService.CreateAsync(data.RegistrationNumber, data.CompanyName, data.CountryId, data.ContactName, data.Email, data.Phone, data.Address);
+        var request = (CreateCompanyRequest)result.Data!;
+        await CompanyService.CreateAsync(
+            request.RegistrationNumber,
+            request.CompanyName,
+            request.CountryId,
+            request.ContactName,
+            request.Email,
+            request.Phone,
+            request.Address);
+
+        Snackbar.Add("Company created.", Severity.Success);
         await LoadAsync();
     }
 
     private async Task OpenEditDialog(CompanyResponse company)
     {
-        var parameters = new DialogParameters { ["Company"] = company };
+        var parameters = new DialogParameters
+        {
+            ["Company"] = company,
+            ["Countries"] = await CountriesList()  // ← pass countries here too
+        };
         var dialog = await DialogService.ShowAsync<CompanyFormDialog>("Edit Company", parameters);
         var result = await dialog.Result;
-        if (result != null)
-            if (!result.Canceled)
-                return;
+        if (result is null || result.Canceled) return;  // ← check null first
 
-        var data = (CreateCompanyRequest)result!.Data!;
-        await CompanyService.UpdateAsync(company.Id, data.RegistrationNumber, data.CompanyName, data.CountryId, data.ContactName, data.Email, data.Phone, data.Address);
+        var request = (CreateCompanyRequest)result.Data!;
+        await CompanyService.UpdateAsync(
+            company.Id,
+            request.RegistrationNumber,
+            request.CompanyName,
+            request.CountryId,
+            request.ContactName,
+            request.Email,
+            request.Phone,
+            request.Address);
+
+        Snackbar.Add("Company updated.", Severity.Success);
         await LoadAsync();
     }
 

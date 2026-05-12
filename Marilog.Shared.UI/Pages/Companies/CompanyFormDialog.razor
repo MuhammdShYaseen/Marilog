@@ -46,18 +46,20 @@
             </MudItem>
             <MudItem xs="12">
 
-                <MudSelect @bind-Value="_countryId"
-                              Label="Address"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              Required ="true"
-                              Lines="2" >
-                    @foreach (var country in countries)
+                <MudSelect T="int?"
+                           @bind-Value="_countryId"
+                           Label="Country"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var country in Countries)
                     {
-                        <MudSelectItem Value="@country.Id">
-                            @country.Name (@country.Code)
+                        <MudSelectItem T="int?" Value="@((int?)country.Id)">
+                            @country.Name
                         </MudSelectItem>
                     }
+
                 </MudSelect>
             </MudItem>
         </MudGrid>
@@ -76,7 +78,7 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public CompanyResponse? Company { get; set; }
-    [Parameter] public IReadOnlyList<CountryResponse> countries { get; set; } = [];
+    [Parameter] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
     private string _name = string.Empty;
     private string? _registrationNumber;
     private string? _contactName;
@@ -93,6 +95,7 @@
         _phone = Company.Phone;
         _email = Company.Email;
         _address = Company.Address;
+        _countryId = Company.CountryId;  // أضف هذا السطر
     }
 
     private void Cancel() => MudDialog.Cancel();

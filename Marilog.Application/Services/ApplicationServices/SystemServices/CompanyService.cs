@@ -28,7 +28,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                    Phone = x.Phone,
                    ContactName = x.ContactName,
                    RegistrationNumber = x.RegistrationNumber,
-                   Name = x.CompanyName
+                   Name = x.CompanyName,
+                   CountryId = x.CountryId,
                }).FirstOrDefaultAsync(c => c.Id == id, ct);
             return companyDto;
         }

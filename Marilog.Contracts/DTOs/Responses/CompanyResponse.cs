@@ -10,6 +10,7 @@
         public string? Phone { get; set; } = null!;
         public string? Address { get; set; } = null!;
         public bool IsActive { get; set; }
+        public int? CountryId { get; set; }
         public List<VesselResponse> Vessels { get; set; } = new List<VesselResponse>();
     }
 }
