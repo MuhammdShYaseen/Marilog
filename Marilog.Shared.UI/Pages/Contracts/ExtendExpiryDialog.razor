@@ -1,0 +1,41 @@
+@using Marilog.Contracts.DTOs.Requests.ContractDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudDatePicker @bind-Date="_newExpiryDate"
+                               Label="New Expiry Date"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_newExpiryDate is null)">
+            Extend
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int AmendmentNumber { get; set; }
+
+    private DateTime? _newExpiryDate;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        new ExtendExpiryRequest(
+            DateOnly.FromDateTime(_newExpiryDate!.Value),
+            AmendmentNumber
+        )));
+}

@@ -1,0 +1,45 @@
+@using Marilog.Contracts.DTOs.Requests.ContractDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_fileUrl"
+                              Label="File URL"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_fileName"
+                              Label="File Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(string.IsNullOrWhiteSpace(_fileUrl) || string.IsNullOrWhiteSpace(_fileName))">
+            Attach
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _fileUrl = string.Empty;
+    private string _fileName = string.Empty;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        new AttachFileRequest(_fileUrl, _fileName)));
+}

@@ -68,6 +68,22 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
+        public async Task<Result> UpdateAsync(int id, string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default)
+        {
+            var request = new UpdateContractRequest
+            (
+                id,
+                contractNumber,
+                type,
+                effectiveDate,
+                expiryDate,
+                notes
+            );
+            var http = await _http.PutAsJsonAsync($"{Base}/{id}/update",request, ct);
+            http.EnsureSuccessStatusCode();
+            var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
+            return response!.Data!;
+        }
         public async Task<Result> ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/activate", null, ct);

@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Contracts.DTOs.Requests.ContractDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -79,6 +80,32 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<Result>.Ok(result));
         }
 
+        [HttpPut("{id:int}/update")]
+        public async Task<ActionResult<ApiResponse<Result>>> UpdateAsync(int id, [FromBody] UpdateContractRequest request, CancellationToken ct)
+        {
+            if (id != request.Id)
+                return BadRequest(new ApiResponse<Result>
+                {
+                    Success = false,
+                    Message = "Route id does not match request id."
+                });
+
+            var result = await _service.UpdateAsync(
+                request.Id,
+                request.ContractNumber,
+                request.Type,
+                request.EffectiveDate,
+                request.ExpiryDate,
+                request.Notes,
+                ct);
+
+            return Ok(new ApiResponse<Result>
+            {
+                Success = true,
+                Data = result,
+                Message = "Contract updated successfully."
+            });
+        }
         [HttpPost("{id}/activate")]
         public async Task<ActionResult<ApiResponse<Result>>> Activate(int id, CancellationToken ct)
         {

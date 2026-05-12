@@ -48,7 +48,18 @@ else
         });
         _loading = false;
     }
-
+    private async Task MarkExpired(int id)
+    {
+        var result = await ContractService.MarkExpiredAsync(id);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Contract marked as expired.", Severity.Info);
+            await LoadAsync();
+            await LoadDetail(id);
+        }
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
+    }
     private async Task LoadDetail(int id)
     {
         _detail = null;
@@ -69,8 +80,24 @@ else
     {
         var dialog = await DialogService.ShowAsync<ContractFormDialog>("New Contract");
         var result = await dialog.Result;
-        if(result != null)
-            if (!result.Canceled) await LoadAsync();
+        if (result is null || result.Canceled) return;
+
+        var data = (CreateContractRequest)result.Data!;
+        var outcome = await ContractService.CreateAsync(
+            data.ContractNumber,
+            data.Type,
+            data.EffectiveDate,
+            data.ExpiryDate,
+            data.Notes
+        );
+
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Contract created.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
     private async Task OpenEditDialog(ContractSummary contract)
@@ -78,26 +105,40 @@ else
         var parameters = new DialogParameters { ["ContractId"] = contract.Id };
         var dialog = await DialogService.ShowAsync<ContractFormDialog>("Edit Contract", parameters);
         var result = await dialog.Result;
-        if (result != null)
-            if (!result.Canceled) await LoadAsync();
+        if (result is null || result.Canceled) return;
+
+        var data = (CreateContractRequest)result.Data!;
+        var outcome = await ContractService.UpdateAsync(
+            contract.Id,
+            data.ContractNumber,
+            data.Type,
+            data.EffectiveDate,
+            data.ExpiryDate,
+            data.Notes
+        );
+
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Contract updated.", Severity.Success);
+            await LoadAsync();
+            if (_detail?.Id == contract.Id)
+                await LoadDetail(contract.Id);
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
     private async Task Activate(int id)
     {
         var result = await ContractService.ActivateAsync(id);
-        if (result != null)
+        if (result.IsSuccess)
         {
-            if (result.IsSuccess)
-            {
-                Snackbar.Add("Contract activated.", Severity.Success);
-                await LoadAsync();
-                await LoadDetail(id);
-            }
-            else 
-
-            Snackbar.Add(result.Error!, Severity.Error);
+            Snackbar.Add("Contract activated.", Severity.Success);
+            await LoadAsync();
+            await LoadDetail(id);
         }
-        
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
     }
 
     private async Task Suspend(int id)
@@ -109,7 +150,8 @@ else
             await LoadAsync();
             await LoadDetail(id);
         }
-        else Snackbar.Add(result.Error!, Severity.Error);
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
     }
 
     private async Task Terminate(int id)
@@ -121,6 +163,7 @@ else
             await LoadAsync();
             await LoadDetail(id);
         }
-        else Snackbar.Add(result.Error!, Severity.Error);
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
     }
 }

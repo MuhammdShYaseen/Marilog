@@ -202,6 +202,14 @@
                             Terminate
                         </MudButton>
                     }
+                    @if (Detail.Status is not "Terminated" and not "Expired")
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Dark"
+                                   StartIcon="@Icons.Material.Filled.EventBusy"
+                                   OnClick="() => OnMarkExpiredClicked.InvokeAsync(Detail.Id)">
+                            Mark Expired
+                        </MudButton>
+                    }
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Edit"
                                OnClick="() => OnEditClicked.InvokeAsync(_selected)">
@@ -234,6 +242,7 @@
     [Parameter] public EventCallback<int> OnContractSelected { get; set; }
     [Parameter] public EventCallback OnPrevPage { get; set; }
     [Parameter] public EventCallback OnNextPage { get; set; }
+    [Parameter] public EventCallback<int> OnMarkExpiredClicked { get; set; }
 
     private ContractSummary? _selected;
 
@@ -242,6 +251,7 @@
         _selected = contract;
         OnContractSelected.InvokeAsync(contract.Id);
     }
+
 
     private void ClosePanel() => _selected = null;
     private void PrevPage() => OnPrevPage.InvokeAsync();
@@ -256,4 +266,5 @@
         "Expired" => Color.Dark,
         _ => Color.Default
     };
+
 }

@@ -16,6 +16,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         // ─── Write ────────────────────────────────────────────────────────
         Task<Result> CreateAsync(string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default);
+        Task<Result> UpdateAsync(int id, string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default);
         Task<Result> ActivateAsync(int id, CancellationToken ct = default);
         Task<Result> SuspendAsync(int id, string reason, CancellationToken ct = default);
         Task<Result> TerminateAsync(int id, string reason, CancellationToken ct = default);

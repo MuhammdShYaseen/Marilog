@@ -3,7 +3,6 @@ using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Enumerations;
 using Marilog.Domain.Events;
 using Marilog.Domain.ValueObjects.Contract;
-using Marilog.Domain.ValueObjects.Laytime;
 using Marilog.Kernel.Primitives;
 
 namespace Marilog.Domain.Entities.SystemEntities
@@ -81,6 +80,27 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             return contract;
 
+
+        }
+
+        public Result Update(string contractNumber, ContractType type, DateOnly effectiveDate,
+                                  DateOnly? expiryDate, string? notes)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(contractNumber);
+
+            if (!Enum.IsDefined(typeof(ContractType), type))
+                throw new ArgumentException("Invalid contract type.");
+
+            if (expiryDate.HasValue && expiryDate.Value <= effectiveDate)
+                throw new ArgumentException("ExpiryDate must be after EffectiveDate.");
+
+                ContractNumber = contractNumber;
+                Type = type;
+                EffectiveDate = effectiveDate;
+                ExpiryDate = expiryDate;
+                Notes = notes ?? "";
+
+            return Result.Ok();
 
         }
 

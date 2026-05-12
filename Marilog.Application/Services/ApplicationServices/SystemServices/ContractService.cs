@@ -170,7 +170,25 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             return Result.Ok();
         }
+        public async Task<Result> UpdateAsync(int id, string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default)
+        {
+            if (!ContractType.TryFromName(type, out var contractType))
+                return Result.Fail($"Invalid contract type '{type}'.");
 
+            if (contractType == null)
+                return Result.Fail($"Invalid contract type '{type}'.");
+
+            var contract = await _repository.GetByIdAsync(id, ct);
+            if(contract == null)
+                throw new ArgumentNullException(nameof(contract));
+
+            contract.Update(contractNumber, contractType, effectiveDate, expiryDate, notes);
+
+            _repository.Update(contract);
+            await _repository.SaveChangesAsync(ct);
+            return Result.Ok();
+            
+        }
         public async Task<Result> ActivateAsync(int id, CancellationToken ct = default)
         {
             var result = await ExecuteOnContractAsync(id, c => c.Activate(DateOnly.FromDateTime(DateTime.Today)), ct);

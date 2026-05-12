@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Contracts
@@ -64,12 +65,13 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new
-    {
-        ContractNumber = _contractNumber,
-        Type = _type,
-        EffectiveDate = DateOnly.FromDateTime(_effectiveDate!.Value),
-        ExpiryDate = _expiryDate.HasValue ? DateOnly.FromDateTime(_expiryDate.Value) : (DateOnly?)null,
-        Notes = _notes
-    }));
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new 
+        CreateContractRequest
+        (
+            _contractNumber,
+            _type,
+            DateOnly.FromDateTime(_effectiveDate!.Value),
+            _expiryDate.HasValue ? DateOnly.FromDateTime(_expiryDate.Value) : null,
+            _notes
+        )));
 }

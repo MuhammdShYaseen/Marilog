@@ -1,0 +1,23 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
+
+<MudDialog>
+    <DialogContent>
+        <MudText>
+            Are you sure you want to remove <strong>@CompanyName</strong> (@Role) from this contract?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">Remove</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string? CompanyName { get; set; }
+    [Parameter] public string Role { get; set; } = string.Empty;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(true));
+}
