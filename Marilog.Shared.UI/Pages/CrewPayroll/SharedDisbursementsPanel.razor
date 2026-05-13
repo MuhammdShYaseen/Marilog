@@ -1,0 +1,128 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewPayroll
+
+<MudStack Spacing="3">
+
+    @* ── Header ──────────────────────────────────────────────── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.subtitle1">Disbursements</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OnAddClicked">
+            Add
+        </MudButton>
+    </MudStack>
+
+    @* ── List ────────────────────────────────────────────────── *@
+    @if (!Disbursements.Any())
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">No disbursements recorded.</MudText>
+    }
+    else
+    {
+        @foreach (var d in Disbursements)
+        {
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudStack Spacing="1">
+
+                    @* Row 1: Method + Amount + Status *@
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@MethodIcon(d.Method)" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2"><strong>@d.Method.ToString()</strong></MudText>
+                        <MudSpacer />
+                        <MudText Typo="Typo.body2">@d.Amount.ToString("N2")</MudText>
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@StatusColor(d.Status)">
+                            @(d.Status?.ToString() ?? "—")
+                        </MudChip>
+                    </MudStack>
+
+                    @* Row 2: Details *@
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @d.PaidOn.ToString("dd MMM yyyy")
+                        @if (!string.IsNullOrWhiteSpace(d.VoyageNumber))
+                        { <span> · Voyage: @d.VoyageNumber</span> }
+                        @if (!string.IsNullOrWhiteSpace(d.OfficeName))
+                        { <span> · @d.OfficeName</span> }
+                        @if (!string.IsNullOrWhiteSpace(d.SwiftReference))
+                        { <span> · @d.SwiftReference</span> }
+                    </MudText>
+
+                    @* Row 3: Recipient (office only) *@
+                    @if (!string.IsNullOrWhiteSpace(d.RecipientName))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Recipient: @d.RecipientName (@d.RecipientIdNumber)
+                        </MudText>
+                    }
+
+                    @* Row 4: Notes *@
+                    @if (!string.IsNullOrWhiteSpace(d.Notes))
+                    {
+                        <MudText Typo="Typo.caption">@d.Notes</MudText>
+                    }
+
+                    @* Row 5: Cancel reason *@
+                    @if (!string.IsNullOrWhiteSpace(d.CancelReason))
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                            @d.CancelReason
+                        </MudAlert>
+                    }
+
+                    @* Row 6: Actions *@
+                    @if (d.Status == DisbursementStatus.Pending)
+                    {
+                        <MudStack Row="true" Spacing="1" Class="mt-1">
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                                       OnClick="() => OnConfirmClicked.InvokeAsync(d)">
+                                Confirm
+                            </MudButton>
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Cancel"
+                                       OnClick="() => OnCancelClicked.InvokeAsync(d)">
+                                Cancel
+                            </MudButton>
+                        </MudStack>
+                    }
+
+                </MudStack>
+            </MudPaper>
+        }
+    }
+
+</MudStack>
+
+@code {
+    [Parameter] public IReadOnlyList<DisbursementResponse> Disbursements  { get; set; } = [];
+    [Parameter] public EventCallback                        OnAddClicked   { get; set; }
+    [Parameter] public EventCallback<DisbursementResponse> OnConfirmClicked { get; set; }
+    [Parameter] public EventCallback<DisbursementResponse> OnCancelClicked  { get; set; }
+
+    private static string MethodIcon(PaymentMethod method) => method switch
+    {
+        PaymentMethod.CashOnBoard         => Icons.Material.Filled.Money,
+        PaymentMethod.CashAtOffice => Icons.Material.Filled.AccountBalance,
+        PaymentMethod.BankTransfer  => Icons.Material.Filled.SwapHoriz,
+        _                           => Icons.Material.Filled.Payment
+    };
+
+    private static Color StatusColor(DisbursementStatus? status) => status switch
+    {
+        DisbursementStatus.Pending   => Color.Warning,
+        DisbursementStatus.Confirmed => Color.Success,
+        DisbursementStatus.Cancelled => Color.Error,
+        _                            => Color.Default
+    };
+}

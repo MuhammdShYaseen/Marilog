@@ -38,6 +38,9 @@ else
     private IReadOnlyList<CrewPayrollResponse> _byStatus = [];
     private IReadOnlyList<CrewPayrollResponse> _outstanding = [];
     private IReadOnlyList<CrewContractResponse> _contracts = [];
+    private IReadOnlyList<VoyageResponse> _voyages = [];
+    private IReadOnlyList<OfficeResponse> _offices = [];
+    private IReadOnlyList<SwiftTransferResponse> _swifts = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -55,12 +58,15 @@ else
             var t5 = VoyageService.GetActiveVoyagesAsync();
             var t6 = OfficeService.GetActiveAsync();
             var t7 = SwiftTransferService.GetUnallocatedAsync();
-            await Task.WhenAll(t1, t2, t3, t4);
+            await Task.WhenAll(t1, t2, t3, t4, t5, t6, t7);
 
             _byMonth = t1.Result;
             _byStatus = t2.Result;
             _outstanding = t3.Result;
             _contracts = t4.Result;
+            _voyages = t5.Result;
+            _offices = t6.Result;
+            _swifts = t7.Result;
         }
         catch (Exception ex)
         {
@@ -85,6 +91,9 @@ else
             : await PayrollService.GetByStatusAsync(status.Value);
         StateHasChanged();
     }
+
+
+    //----PAYROLL DIALOGS--------------------------------------------------
 
     private async Task OpenAddDialog()
     {
@@ -143,6 +152,7 @@ else
         }
     }
 
+    // ─── Payroll Actions ───────────────────────────────────────────────────
     private async Task Approve(CrewPayrollResponse payroll)
     {
         await PayrollService.ApproveAsync(payroll.Id);
@@ -157,15 +167,6 @@ else
         await LoadAsync();
     }
 
-    private async Task OpenPayDialog(CrewPayrollResponse payroll)
-    {
-        var parameters = new DialogParameters { ["Payroll"] = payroll };
-        var dialog = await DialogService.ShowAsync<PaymentDialog>("Record Payment", parameters);
-        var result = await dialog.Result;
-        if (result != null)
-        if (!result.Canceled) await LoadAsync();
-    }
-
     private async Task ConfirmDelete(CrewPayrollResponse payroll)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
@@ -178,6 +179,77 @@ else
 
         await PayrollService.DeleteAsync(payroll.Id);
         Snackbar.Add("Payroll deleted.", Severity.Success);
+        await LoadAsync();
+    }
+
+    // ─── Disbursement ──────────────────────────────────────────────────────
+
+    private async Task OpenPayDialog(CrewPayrollResponse payroll)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Voyages"] = _voyages,
+            ["Offices"] = _offices,
+            ["SwiftTransfers"] = _swifts
+        };
+
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Record Payment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var (method, data) = ((PaymentMethod, object))result.Data!;
+
+        var outcome = method switch
+        {
+            PaymentMethod.CashOnBoard => await HandlePayCash(payroll.Id, (PayCashRequest)data),
+            PaymentMethod.CashAtOffice => await HandlePayAtOffice(payroll.Id, (PayAtOfficeRequest)data),
+            PaymentMethod.BankTransfer => await HandlePayByBankTransfer(payroll.Id, (PayByBankTransferRequest)data),
+            _ => throw new InvalidOperationException()
+        };
+
+        if (outcome.Id > 0)
+        {
+            Snackbar.Add("Payment recorded.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private Task<DisbursementResponse> HandlePayCash(int payrollId, PayCashRequest r) =>
+        PayrollService.PayCashAsync(payrollId, r.VoyageId, r.Amount, r.PaidOn, r.Notes);
+
+    private Task<DisbursementResponse> HandlePayAtOffice(int payrollId, PayAtOfficeRequest r) =>
+        PayrollService.PayAtOfficeAsync(payrollId, r.OfficeId, r.Amount, r.PaidOn,
+                                        r.RecipientName, r.RecipientIdNumber, r.Notes);
+
+    private Task<DisbursementResponse> HandlePayByBankTransfer(int payrollId, PayByBankTransferRequest r) =>
+        PayrollService.PayByBankTransferAsync(payrollId, r.SwiftTransferId, r.Amount, r.PaidOn, r.Notes);
+
+    // ─── Disbursement Actions ──────────────────────────────────────────────
+
+    public async Task ConfirmDisbursement(int payrollId, DisbursementResponse disbursement)
+    {
+        await PayrollService.ConfirmDisbursementAsync(payrollId, disbursement.Id);
+        Snackbar.Add("Disbursement confirmed.", Severity.Success);
+        await LoadAsync();
+    }
+
+    public async Task CancelDisbursement(int payrollId, DisbursementResponse disbursement)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Message"] = $"Cancel disbursement of {disbursement.Amount:N2} via {disbursement.Method}?"
+        };
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Cancel Disbursement",
+            $"Cancel disbursement of {disbursement.Amount:N2} via {disbursement.Method}?",
+            yesText: "Cancel Disbursement",
+            cancelText: "Back");
+
+        if (confirmed != true) return;
+
+        await PayrollService.CancelDisbursementAsync(payrollId, disbursement.Id, "Cancelled by user");
+        Snackbar.Add("Disbursement cancelled.", Severity.Warning);
         await LoadAsync();
     }
 }
