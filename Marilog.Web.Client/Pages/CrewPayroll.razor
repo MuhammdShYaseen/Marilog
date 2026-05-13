@@ -7,9 +7,13 @@
 @using MudBlazor
 
 @inject ICrewPayrollService PayrollService
+@inject ICrewContractService CrewContractService
+@inject IVoyageService VoyageService
+@inject IOfficeService OfficeService
+@inject ISwiftTransferService SwiftTransferService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject ICrewContractService CrewContractService
+
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -48,6 +52,9 @@ else
             var t2 = PayrollService.GetByStatusAsync(PayrollStatus.Draft);
             var t3 = PayrollService.GetOutstandingAsync();
             var t4 = CrewContractService.GetAllAsync();
+            var t5 = VoyageService.GetActiveVoyagesAsync();
+            var t6 = OfficeService.GetActiveAsync();
+            var t7 = SwiftTransferService.GetUnallocatedAsync();
             await Task.WhenAll(t1, t2, t3, t4);
 
             _byMonth = t1.Result;
@@ -101,6 +108,7 @@ else
                 request.Deductions,
                 request.Notes
             );
+            Snackbar.Add("Payroll Added.", Severity.Success);
             await LoadAsync();
         }
     }
@@ -130,7 +138,7 @@ else
                 request.Deductions,
                 request.Notes
             );
-
+            Snackbar.Add("Payroll Updated.", Severity.Success);
             await LoadAsync();
         }
     }
