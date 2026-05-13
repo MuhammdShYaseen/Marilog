@@ -456,13 +456,42 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, int workingDays, decimal basicWage,
-            decimal allowances = 0m, decimal deductions = 0m,
-            string? notes = null, CancellationToken ct = default)
+        public async Task UpdateAsync(int id, int contractId, decimal allowances = 0m, decimal deductions = 0m, string? notes = null, CancellationToken ct = default)
         {
             var payroll = await GetOrThrowAsync(id, ct);
-            payroll.Update(workingDays, basicWage, allowances, deductions, notes);
+
+            if (payroll.TotalDisbursed > 0)
+                throw new InvalidOperationException(
+                    "Cannot modify payroll after payments have been recorded.");
+
+            var contract = await _contractRepo.GetByIdAsync(
+                payroll.ContractId,
+                ct)
+                ?? throw new KeyNotFoundException("Contract not found.");
+
+            var workingDays = _CalculatorService.GetWorkingDays(
+                contract,
+                payroll.PayrollMonth);
+
+            var totalDays = DateTime.DaysInMonth(
+                payroll.PayrollMonth.Year,
+                payroll.PayrollMonth.Month);
+
+            var basicWage = _CalculatorService.CalculateBasicWage(
+                contract.MonthlyWage,
+                workingDays,
+                totalDays);
+
+            payroll.Update(
+                contractId,
+                workingDays,
+                basicWage,
+                allowances,
+                deductions,
+                notes);
+
             _repo.Update(payroll);
+
             await _repo.SaveChangesAsync(ct);
         }
 

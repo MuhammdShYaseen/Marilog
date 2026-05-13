@@ -88,14 +88,13 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, int workingDays, decimal basicWage,
-            decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
-            CancellationToken ct = default)
+        public async Task UpdateAsync(int id, int contractId, decimal allowances = 0m,
+                                       decimal deductions = 0m, string? notes = null,
+                                       CancellationToken ct = default)
         {
             var request = new UpdateCrewPayrollRequest
             {
-                WorkingDays = workingDays,
-                BasicWage = basicWage,
+                ContractId = contractId,
                 Allowances = allowances,
                 Deductions = deductions,
                 Notes = notes

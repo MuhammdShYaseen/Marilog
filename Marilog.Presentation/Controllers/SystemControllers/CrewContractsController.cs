@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.CrewDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -71,6 +72,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<ActionResult<IReadOnlyList<CrewContractResponse>>> GetAboutExpire(CancellationToken ct)
         {
             var contracts = await _service.GetAboutExpireAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(contracts));
+        }
+
+        [HttpGet("all")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<CrewContractResponse>>>> GetAll(CancellationToken ct)
+        {
+            var contracts = await _service.GetAllAsync(ct);
+
             return Ok(ApiResponse<IReadOnlyList<CrewContractResponse>>.Ok(contracts));
         }
 

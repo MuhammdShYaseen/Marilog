@@ -6,6 +6,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Primitives;
 using System.Net.Http.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -52,6 +53,12 @@ namespace Marilog.Client.Services.SystemServices
         {
             var response = await _http.GetFromJsonAsync<IReadOnlyList<CrewContractResponse>>($"{Base}/active-on-date?date={date:yyyy-MM-dd}", ct);
             return response ?? [];
+        }
+
+        public async Task<IReadOnlyList<CrewContractResponse>> GetAllAsync(CancellationToken ct)
+        {
+            var response = await _http.GetFromJsonAsync <ApiResponse<IReadOnlyList <CrewContractResponse>>>($"{Base}/all", ct);
+            return response?.Data ?? [];
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────

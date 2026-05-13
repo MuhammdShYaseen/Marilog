@@ -257,6 +257,32 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<CrewContractResponse>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                              .AsNoTracking()
+                              .Select(x => new CrewContractResponse
+            {
+                ContractId = x.Id,
+                PersonId = x.PersonID,
+                PersonFullName = x.Person.FullName,
+                VesselId = x.VesselID,
+                VesselName = x.Vessel.VesselName,
+                RankId = x.RankID,
+                RankName = x.Rank.RankName,
+                RankDepartment = x.Rank.Department,
+                MonthlyWage = x.MonthlyWage,
+                SignOnDate = x.SignOnDate,
+                SignOffDate = x.SignOffDate,
+                SignOnPort = x.SignOnPort,
+                SignOnPortName = x.SignOnPortNav!.PortName,
+                SignOffPort = x.SignOffPort,
+                SignOffPortName = x.SignOffPortNav!.PortName,
+                IsActive = x.IsActive
+            })
+                .ToListAsync(ct);
+        }
+
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<CrewContractResponse> CreateAsync(int durationInMonth, int personId, int vesselId, int rankId,

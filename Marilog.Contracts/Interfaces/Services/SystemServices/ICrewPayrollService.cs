@@ -23,9 +23,9 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                       string? notes = null, CancellationToken ct = default);
         Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(IEnumerable<CreateCrewPayrollRequest> commands,
                                                  CancellationToken ct = default);
-        Task              UpdateAsync(int id, int workingDays, decimal basicWage,
-                                      decimal allowances = 0m, decimal deductions = 0m,
-                                      string? notes = null, CancellationToken ct = default);
+        Task               UpdateAsync(int id, int contractId, decimal allowances = 0m, 
+                                       decimal deductions = 0m, string? notes = null,
+                                       CancellationToken ct = default);
         Task              ApproveAsync(int id, CancellationToken ct = default);
         Task              CancelAsync(int id, string reason, CancellationToken ct = default);
         Task              DeleteAsync(int id, CancellationToken ct = default);

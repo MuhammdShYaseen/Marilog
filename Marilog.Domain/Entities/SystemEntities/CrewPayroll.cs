@@ -1,6 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
+using System.Diagnostics.Contracts;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -83,6 +84,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         // ── Update (Draft only) ───────────────────────────────────────────────────
         public void Update(
+            int contractId,
             int workingDays,
             decimal basicWage,
             decimal allowances = 0m,
@@ -94,6 +96,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (basicWage < 0) throw new ArgumentException("BasicWage cannot be negative.");
             if (allowances < 0) throw new ArgumentException("Allowances cannot be negative.");
             if (deductions < 0) throw new ArgumentException("Deductions cannot be negative.");
+            if (contractId <= 0) throw new ArgumentException("Invalid ContractId.");
 
             var gross = basicWage + allowances - deductions;
             if (gross < 0)

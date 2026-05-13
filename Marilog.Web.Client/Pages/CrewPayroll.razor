@@ -1,4 +1,5 @@
 ﻿@page "/payroll"
+@using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Kernel.Enums
@@ -8,7 +9,7 @@
 @inject ICrewPayrollService PayrollService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-
+@inject ICrewContractService CrewContractService
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -32,6 +33,7 @@ else
     private IReadOnlyList<CrewPayrollResponse> _byMonth = [];
     private IReadOnlyList<CrewPayrollResponse> _byStatus = [];
     private IReadOnlyList<CrewPayrollResponse> _outstanding = [];
+    private IReadOnlyList<CrewContractResponse> _contracts = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -45,12 +47,13 @@ else
             var t1 = PayrollService.GetByMonthAsync(today);
             var t2 = PayrollService.GetByStatusAsync(PayrollStatus.Draft);
             var t3 = PayrollService.GetOutstandingAsync();
-
-            await Task.WhenAll(t1, t2, t3);
+            var t4 = CrewContractService.GetAllAsync();
+            await Task.WhenAll(t1, t2, t3, t4);
 
             _byMonth = t1.Result;
             _byStatus = t2.Result;
             _outstanding = t3.Result;
+            _contracts = t4.Result;
         }
         catch (Exception ex)
         {
@@ -78,19 +81,58 @@ else
 
     private async Task OpenAddDialog()
     {
-        var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("New Payroll");
+        var parameters = new DialogParameters
+        {
+            ["Contracts"] = _contracts
+        };
+        var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("New Payroll", parameters);
         var result = await dialog.Result;
-        if (result != null)
-        if (!result.Canceled) await LoadAsync();
+
+        if (result is null || result.Canceled)
+            return;
+
+        if (result.Data is CreateCrewPayrollRequest request)
+        {
+            await PayrollService.CreateAsync
+            (
+                request.ContractId,
+                request.PayrollMonth,
+                request.Allowances,
+                request.Deductions,
+                request.Notes
+            );
+            await LoadAsync();
+        }
     }
 
     private async Task OpenEditDialog(CrewPayrollResponse payroll)
     {
-        var parameters = new DialogParameters { ["Payroll"] = payroll };
+        var parameters = new DialogParameters
+        {
+            ["Payroll"] = payroll,
+            ["Contracts"] = _contracts
+        };
+
         var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("Edit Payroll", parameters);
+
         var result = await dialog.Result;
-        if(result != null)
-        if (!result.Canceled) await LoadAsync();
+
+        if (result is null || result.Canceled)
+            return;
+
+        if (result.Data is UpdateCrewPayrollRequest request)
+        {
+            await PayrollService.UpdateAsync
+            (
+                payroll.Id,
+                request.ContractId,
+                request.Allowances,
+                request.Deductions,
+                request.Notes
+            );
+
+            await LoadAsync();
+        }
     }
 
     private async Task Approve(CrewPayrollResponse payroll)

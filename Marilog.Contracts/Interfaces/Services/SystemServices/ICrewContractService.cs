@@ -15,6 +15,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<CrewContractResponse?>              GetActiveMasterAsync(int vesselId, CancellationToken ct = default);
         Task<IReadOnlyList<CrewContractResponse>> GetActiveOnDateAsync(DateOnly date, CancellationToken ct = default);
 
+        Task<IReadOnlyList<CrewContractResponse>> GetAllAsync(CancellationToken ct = default);
+
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<CrewContractResponse> CreateAsync(int durationInMonth, int personId, int vesselId, int rankId,
                                        decimal monthlyWage, DateOnly signOnDate,

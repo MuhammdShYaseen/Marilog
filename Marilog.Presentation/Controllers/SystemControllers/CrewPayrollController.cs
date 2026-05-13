@@ -111,9 +111,15 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCrewPayrollRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(id, request.WorkingDays, request.BasicWage,
-                                       request.Allowances, request.Deductions,
-                                       request.Notes, ct);
+            await _service.UpdateAsync
+                (
+                    id,
+                    request.ContractId,
+                    request.Allowances,
+                    request.Deductions,
+                    request.Notes,
+                    ct
+                );
             return NoContent();
         }
 

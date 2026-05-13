@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewPayroll
@@ -10,14 +11,16 @@
                                  Label="Working Days"
                                  Min="0" Max="31"
                                  Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                                 Margin="Margin.Dense" 
+                                 Disabled ="true"/>
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="_basicWage"
                                  Label="Basic Wage"
                                  Required="true"
                                  Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                                 Margin="Margin.Dense"
+                                 Disabled="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="_allowances"
@@ -38,6 +41,37 @@
                               Margin="Margin.Dense"
                               Lines="2" />
             </MudItem>
+
+            <MudItem>
+                <MudDatePicker @bind-Value="_payrollMonth"
+                               Label="Payroll Month"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" 
+                               Disabled="@IsEdit" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int"
+                           @bind-Value="_contractId"
+                           Label="Contract"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Required="true"
+                           ToStringFunc="@(id => Contracts.FirstOrDefault(c => c.ContractId == id)
+                                                                                ?.PersonFullName ?? id.ToString())">
+                    @foreach (var contract in Contracts)
+                    {
+                        <MudSelectItem Value="@contract.ContractId">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2">@contract.PersonFullName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @contract.Rank · @contract.VesselName
+                                </MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -54,13 +88,15 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public CrewPayrollResponse? Payroll { get; set; }
-
+    [Parameter] public IReadOnlyList<CrewContractResponse> Contracts { get; set; } = [];
     private int _workingDays;
     private decimal _basicWage;
     private decimal _allowances;
     private decimal _deductions;
     private string? _notes;
-
+    private DateOnly _payrollMonth;
+    private int _contractId;
+    private bool IsEdit => Payroll is not null;
     protected override void OnParametersSet()
     {
         if (Payroll is null) return;
@@ -69,16 +105,39 @@
         _allowances = Payroll.Allowances;
         _deductions = Payroll.Deductions;
         _notes = Payroll.Notes;
+
+        _payrollMonth = Payroll.PayrollMonth;
+        _contractId = Payroll.ContractId;
     }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new
+    private void Submit()
     {
-        WorkingDays = _workingDays,
-        BasicWage = _basicWage,
-        Allowances = _allowances,
-        Deductions = _deductions,
-        Notes = _notes
-    }));
+        if (Payroll is null)
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new CreateCrewPayrollRequest
+                {
+                    WorkingDays = _workingDays,
+                    BasicWage = _basicWage,
+                    Allowances = _allowances,
+                    Deductions = _deductions,
+                    Notes = _notes,
+                    ContractId = _contractId,
+                    PayrollMonth = _payrollMonth
+                }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new UpdateCrewPayrollRequest
+                {
+                    Allowances = _allowances,
+                    Deductions = _deductions,
+                    Notes = _notes,
+                    ContractId = _contractId
+                }));
+        }
+    }
 }
