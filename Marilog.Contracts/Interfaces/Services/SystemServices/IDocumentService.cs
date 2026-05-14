@@ -36,7 +36,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task           UpdateAsync(int id, int docTypeId, DateOnly docDate,
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
-                                   int? vesselId = null, int? portId = null,
+                                   int? vesselId = null, int? portId = null, int? parentDocumentId = null,
                                    string? reference = null, string? filePath = null,
                                    CancellationToken ct = default);
         Task           LinkToParentAsync(int id, int parentDocumentId, CancellationToken ct = default);

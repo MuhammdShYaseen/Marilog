@@ -81,6 +81,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             DateOnly docDate,
             int currencyId,
             decimal totalAmount,
+            int? parentDocumentId,
             int? supplierId = null,
             int? buyerId = null,
             int? vesselId = null,
@@ -102,6 +103,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             PortId = portId;
             Reference = reference;
             FilePath = filePath;
+            ParentDocumentId = ParentDocumentId;
             Touch();
         }
 

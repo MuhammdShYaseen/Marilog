@@ -16,7 +16,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
-                              @bind-Value="_model.DocNumber"
+                              @bind-Value="_DocNumber"
                               Label="Document Number"
                               Required="true"
                               Variant="Variant.Outlined"
@@ -24,7 +24,7 @@
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_docDate"
+                <MudDatePicker @bind-Date="_docDateTime"
                                Label="Document Date"
                                Editable="true"
                                Required="true"
@@ -34,7 +34,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="decimal"
-                                 @bind-Value="_model.TotalAmount"
+                                 @bind-Value="_TotalAmount"
                                  Label="Total Amount"
                                  Required="true"
                                  Min="0"
@@ -44,7 +44,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int"
-                           @bind-Value="_model.DocTypeId"
+                           @bind-Value="_DocTypeId"
                            Label="Document Type"
                            Required="true"
                            Variant="Variant.Outlined"
@@ -59,7 +59,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int"
-                           @bind-Value="_model.CurrencyId"
+                           @bind-Value="_CurrencyId"
                            Label="Currency"
                            Required="true"
                            Variant="Variant.Outlined"
@@ -74,7 +74,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="int?"
-                                 @bind-Value="_model.SupplierId"
+                                 @bind-Value="_SupplierId"
                                  Label="Supplier Id"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
@@ -82,7 +82,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="int?"
-                                 @bind-Value="_model.BuyerId"
+                                 @bind-Value="_BuyerId"
                                  Label="Buyer Id"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
@@ -90,7 +90,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="int?"
-                                 @bind-Value="_model.VesselId"
+                                 @bind-Value="_VesselId"
                                  Label="Vessel Id"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
@@ -98,7 +98,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="int?"
-                                 @bind-Value="_model.PortId"
+                                 @bind-Value="_PortId"
                                  Label="Port Id"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
@@ -106,7 +106,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="int?"
-                                 @bind-Value="_model.ParentDocumentId"
+                                 @bind-Value="_ParentDocumentId"
                                  Label="Parent Document Id"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
@@ -114,7 +114,7 @@
 
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
-                              @bind-Value="_model.FilePath"
+                              @bind-Value="_FilePath"
                               Label="File Path"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
@@ -122,7 +122,7 @@
 
             <MudItem xs="12">
                 <MudTextField T="string"
-                              @bind-Value="_model.Reference"
+                              @bind-Value="_Reference"
                               Label="Reference"
                               Lines="3"
                               Variant="Variant.Outlined"
@@ -158,16 +158,49 @@
     [Parameter]
     public DocumentResponse? Document { get; set; }
 
-    private readonly CreateDocumentRequest _model = new();
+    [Parameter]
+    public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
 
-    private DateTime? _docDate = DateTime.Today;
+    [Parameter]
+    public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
+
+    private string?   _DocNumber;
+    private decimal   _TotalAmount;
+    private string?   _Reference;
+    private DateOnly? _docDate;
+
+    private DateTime? _docDateTime
+    {
+        get => _docDate?.ToDateTime(TimeOnly.MinValue);
+        set => _docDate = value.HasValue
+            ? DateOnly.FromDateTime(value.Value)
+            : null;
+    }
+    private int _DocTypeId;
+    private int _CurrencyId;
+
+    private int? _SupplierId;
+    private int? _BuyerId;
+    private int? _VesselId;
+    private int? _PortId;
+    private int? _ParentDocumentId;
+    private string? _FilePath;
 
     private bool IsValid =>
-        !string.IsNullOrWhiteSpace(_model.DocNumber)
+       !string.IsNullOrWhiteSpace(_DocNumber)
         && _docDate is not null
-        && _model.DocTypeId > 0
-        && _model.CurrencyId > 0
-        && _model.TotalAmount > 0;
+        && _DocTypeId > 0
+        && _CurrencyId > 0
+        && _TotalAmount > 0;
 
     protected override void OnParametersSet()
     {
@@ -175,21 +208,20 @@
             return;
 
         // تعبئة جميع الحقول
-        _model.DocNumber = Document.DocNumber;
-        _model.TotalAmount = Document.TotalAmount;
-        _model.Reference = Document.Reference;
-        _model.DocTypeId = Document.DocTypeId;      // أضف هذا
-        _model.CurrencyId = Document.CurrencyId;    // أضف هذا
-        _model.SupplierId = Document.SupplierId;
-        _model.BuyerId = Document.BuyerId;
-        _model.VesselId = Document.VesselId;
-        _model.PortId = Document.PortId;
-        _model.ParentDocumentId = Document.ParentDocumentId;
-        _model.FilePath = Document.FilePath;
-
+        _DocNumber = Document.DocNumber;
+        _TotalAmount = Document.TotalAmount;
+        _Reference = Document.Reference;
+        _DocTypeId = Document.DocTypeId;      
+        _CurrencyId = Document.CurrencyId;    
+        _SupplierId = Document.SupplierId;
+        _BuyerId = Document.BuyerId;
+        _VesselId = Document.VesselId;
+        _PortId = Document.PortId;
+        _ParentDocumentId = Document.ParentDocumentId;
+        _FilePath = Document.FilePath;
         if (Document == null)
             return;
-        _docDate = Document?.DocDate != default ? Document!.DocDate.ToDateTime(TimeOnly.MinValue) : DateTime.Today;
+        _docDate = Document.DocDate;
     }
 
     private void Cancel()
@@ -197,10 +229,44 @@
         MudDialog.Cancel();
     }
 
+    
     private void Submit()
     {
-        _model.DocDate = DateOnly.FromDateTime(_docDate!.Value);
-
-        MudDialog.Close(DialogResult.Ok(_model));
+        if (Document is null)
+        {
+            MudDialog.Close(DialogResult.Ok(new CreateDocumentRequest
+            {
+                 DocDate = _docDate!.Value,
+                 SupplierId = _SupplierId,
+                 VesselId = _VesselId,
+                 CurrencyId = _CurrencyId,
+                 BuyerId = _BuyerId,
+                 DocNumber = _DocNumber ?? "NON",
+                 DocTypeId = _DocTypeId,
+                 FilePath = _FilePath,
+                 ParentDocumentId = _ParentDocumentId,
+                 PortId = _PortId,
+                 Reference = _Reference,
+                 TotalAmount = _TotalAmount,
+            }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new UpdateDocumentRequest
+            {
+                DocDate = _docDate!.Value,
+                SupplierId = _SupplierId,
+                VesselId = _VesselId,
+                CurrencyId = _CurrencyId,
+                BuyerId = _BuyerId,
+                DocNumber = _DocNumber ?? "NON",
+                DocTypeId = _DocTypeId,
+                FilePath = _FilePath,
+                ParentDocumentId = _ParentDocumentId,
+                PortId = _PortId,
+                Reference = _Reference,
+                TotalAmount = _TotalAmount,
+            }));
+        }
     }
 }

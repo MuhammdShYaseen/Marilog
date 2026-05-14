@@ -156,7 +156,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(id,
+            await _service.UpdateAsync(
+                id,
                 request.DocTypeId,
                 request.DocDate,
                 request.CurrencyId,
@@ -165,6 +166,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.BuyerId,
                 request.VesselId,
                 request.PortId,
+                request.ParentDocumentId,
                 request.Reference,
                 request.FilePath,
                 ct);

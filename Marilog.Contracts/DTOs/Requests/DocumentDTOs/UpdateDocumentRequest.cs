@@ -3,7 +3,7 @@
     public class UpdateDocumentRequest
     {
         public int DocTypeId { get; set; }
-        public string DocNumber { get; set; } = null!;
+        public string DocNumber { get; set; } = "NON";
         public DateOnly DocDate { get; set; }
         public int CurrencyId { get; set; }
         public decimal TotalAmount { get; set; }
@@ -13,5 +13,6 @@
         public int? PortId { get; set; }
         public string? Reference { get; set; }
         public string? FilePath { get; set; }
+        public int? ParentDocumentId { get; set; }
     }
 }

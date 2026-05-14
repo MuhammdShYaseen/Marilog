@@ -122,7 +122,7 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
-            int? vesselId = null, int? portId = null, string? reference = null,
+            int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null,
             string? filePath = null, CancellationToken ct = default)
         {
             var request = new UpdateDocumentRequest
@@ -136,7 +136,8 @@ namespace Marilog.Client.Services.SystemServices
                 VesselId = vesselId,
                 PortId = portId,
                 Reference = reference,
-                FilePath = filePath
+                FilePath = filePath,
+                ParentDocumentId = parentDocumentId,
             };
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);

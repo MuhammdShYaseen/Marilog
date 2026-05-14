@@ -182,12 +182,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
         public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
-            int? vesselId = null, int? portId = null, string? reference = null,
+            int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null,
             string? filePath = null, CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            document.Update(docTypeId, docDate, currencyId, totalAmount, supplierId,
-                            buyerId, vesselId, portId, reference, filePath);
+            document.Update(docTypeId, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference, filePath);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
         }
