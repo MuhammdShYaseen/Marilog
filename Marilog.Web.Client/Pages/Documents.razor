@@ -63,7 +63,7 @@ else
             var t3 = DocTypeService.GetActiveAsync();
             var t4 = CompanyService.GetActiveAsync();
             var t5 = CurrencyService.GetActiveAsync();
-            await Task.WhenAll(t1, t2, t3, t4);
+            await Task.WhenAll(t1, t2, t3, t4, t5);
 
             _unpaidDocs = t1.Result;
             _vessels    = t2.Result;
@@ -107,9 +107,8 @@ else
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
         
         var result = await dialog.Result;
-        if(result != null)
-            if (result.Canceled || result.Data is null)
-                return;
+        if (result is null || result.Canceled || result.Data is null)
+            return;
 
         var model = (CreateDocumentRequest)result!.Data!;
 
