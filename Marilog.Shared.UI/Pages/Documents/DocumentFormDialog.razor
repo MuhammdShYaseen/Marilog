@@ -50,9 +50,12 @@
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
 
-                    <MudSelectItem Value="1">Invoice</MudSelectItem>
-                    <MudSelectItem Value="2">Receipt</MudSelectItem>
-                    <MudSelectItem Value="3">Debit Note</MudSelectItem>
+                    @foreach (var type in DocTypes)
+                    {
+                        <MudSelectItem Value="@type.Id">
+                            @type.Name
+                        </MudSelectItem>
+                    }
 
                 </MudSelect>
             </MudItem>
@@ -65,51 +68,104 @@
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
 
-                    <MudSelectItem Value="1">USD</MudSelectItem>
-                    <MudSelectItem Value="2">EUR</MudSelectItem>
-                    <MudSelectItem Value="3">LKR</MudSelectItem>
+                    @foreach (var currency in Currencies)
+                    {
+                        <MudSelectItem Value="@currency.Id">
+                            @currency.Code
+                        </MudSelectItem>
+                    }
 
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudNumericField T="int?"
-                                 @bind-Value="_SupplierId"
-                                 Label="Supplier Id"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                <MudSelect T="int?"
+                           @bind-Value="_SupplierId"
+                           Label="Supplier"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var company in Companies)
+                    {
+                        <MudSelectItem Value="@((int?)company.Id)">
+                            @company.Name
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudNumericField T="int?"
-                                 @bind-Value="_BuyerId"
-                                 Label="Buyer Id"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                <MudSelect T="int?"
+                           @bind-Value="_BuyerId"
+                           Label="Buyer"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var company in Companies)
+                    {
+                        <MudSelectItem Value="@((int?)company.Id)">
+                            @company.Name
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudNumericField T="int?"
-                                 @bind-Value="_VesselId"
-                                 Label="Vessel Id"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                <MudSelect T="int?"
+                           @bind-Value="_VesselId"
+                           Label="Vessel"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var vessel in Vessels)
+                    {
+                        <MudSelectItem Value="@((int?)vessel.Id)">
+                            @vessel.Name
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudNumericField T="int?"
-                                 @bind-Value="_PortId"
-                                 Label="Port Id"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                <MudSelect T="int?"
+                           @bind-Value="_PortId"
+                           Label="Port"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var port in Ports)
+                    {
+                        <MudSelectItem Value="@((int?)port.Id)">
+                            @port.Name
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudNumericField T="int?"
-                                 @bind-Value="_ParentDocumentId"
-                                 Label="Parent Document Id"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                <MudSelect T="int?"
+                           @bind-Value="_ParentDocumentId"
+                           Label="Parent Document"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var doc in AllDocs.Where(x => x.Id != Document?.Id))
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)doc.Id)">
+                            @doc.DocNumber
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
@@ -159,19 +215,22 @@
     public DocumentResponse? Document { get; set; }
 
     [Parameter]
-    public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    public IReadOnlyList<CurrencyResponse> Currencies { get; set; }   = [];
 
     [Parameter]
-    public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    public IReadOnlyList<VesselResponse> Vessels { get; set; }        = [];
 
     [Parameter]
     public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
 
     [Parameter]
-    public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+    public IReadOnlyList<CompanyResponse> Companies { get; set; }     = [];
 
     [Parameter]
-    public IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
+    public IReadOnlyList<DocumentResponse> AllDocs { get; set; }      = [];
+
+    [Parameter]
+    public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
 
     private string?   _DocNumber;
     private decimal   _TotalAmount;
@@ -219,8 +278,6 @@
         _PortId = Document.PortId;
         _ParentDocumentId = Document.ParentDocumentId;
         _FilePath = Document.FilePath;
-        if (Document == null)
-            return;
         _docDate = Document.DocDate;
     }
 

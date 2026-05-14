@@ -12,6 +12,7 @@
 @inject IDocumentTypeService DocTypeService
 @inject ICompanyService CompanyService
 @inject ICurrencyService CurrencyService
+@inject IPortService PortService
 @inject NavigationManager Nav
 
 @if (_loading)
@@ -42,12 +43,12 @@ else
 
 @code {
     private IReadOnlyList<DocumentResponse>     _unpaidDocs = [];
-    private IReadOnlyList<DocumentResponse>     _allDocs = [];
-    private IReadOnlyList<VesselResponse>       _vessels = [];
-    private IReadOnlyList<DocumentTypeResponse> _DocTypes = [];
-    private IReadOnlyList<CompanyResponse>      _companies = [];
+    private IReadOnlyList<DocumentResponse>     _allDocs    = [];
+    private IReadOnlyList<VesselResponse>       _vessels    = [];
+    private IReadOnlyList<DocumentTypeResponse> _DocTypes   = [];
+    private IReadOnlyList<CompanyResponse>      _companies  = [];
     private IReadOnlyList<CurrencyResponse>     _currencies = [];
-
+    private IReadOnlyList<PortResponse>         _ports      = [];
     private DocumentResponse? _detail;
     private bool _loading = true;
 
@@ -63,13 +64,16 @@ else
             var t3 = DocTypeService.GetActiveAsync();
             var t4 = CompanyService.GetActiveAsync();
             var t5 = CurrencyService.GetActiveAsync();
-            await Task.WhenAll(t1, t2, t3, t4, t5);
+            var t6 = PortService.GetActiveAsync();
+
+            await Task.WhenAll(t1, t2, t3, t4, t5, t6);
 
             _unpaidDocs = t1.Result;
             _vessels    = t2.Result;
             _DocTypes   = t3.Result;
             _companies  = t4.Result;
             _currencies = t5.Result;
+            _ports      = t6.Result;
             _allDocs    = _unpaidDocs; // default — expand later
 
         }
@@ -97,11 +101,12 @@ else
     {
         var parameters = new DialogParameters
         {
-            ["Companies"] = _companies,
-            ["DocTypes"] = _DocTypes,
+            ["Companies"]  = _companies,
+            ["DocTypes"]   = _DocTypes,
             ["Currencies"] = _currencies,
-            ["Vessels"] = _vessels,
-            ["AllDocs"] = _allDocs
+            ["Vessels"]    = _vessels,
+            ["AllDocs"]    = _allDocs,
+            ["Ports"]      = _ports
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
@@ -142,7 +147,8 @@ else
             ["DocTypes"]   = _DocTypes,
             ["Currencies"] = _currencies,
             ["Vessels"]    = _vessels,
-            ["AllDocs"]    = _allDocs
+            ["AllDocs"]    = _allDocs,
+            ["Ports"]      = _ports
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("Edit Document", parameters);
