@@ -7,15 +7,6 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
         <MudText Typo="Typo.h6">Documents</MudText>
         <MudSpacer />
-        <MudTextField @bind-Value="_search"
-                      Placeholder="Search..."
-                      Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      Immediate="true"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Class="mr-2"
-                      Style="max-width:220px" />
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
@@ -24,11 +15,11 @@
         </MudButton>
     </MudStack>
 
-    <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0" Rounded="true" Class="mb-3">
+    <MudTabs ActivePanelIndexChanged="OnTabChanged" Elevation="0" Rounded="true" Class="mb-3">
 
         @* ── Unpaid ────────────────────────────────────────────── *@
         <MudTabPanel Text="Unpaid">
-            <DocumentTable Items="_filteredUnpaid"
+            <DocumentTable Items="Unpaid"
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
                            OnDeleteClicked="OnDeleteClicked" />
@@ -37,7 +28,8 @@
         @* ── By Vessel ─────────────────────────────────────────── *@
         <MudTabPanel Text="By Vessel">
             <MudSelect T="int?"
-                       @bind-Value="_selectedVesselId"
+                       Value="_selectedVesselId"
+                       ValueChanged="OnVesselChanged"
                        Label="Select Vessel"
                        Variant="Variant.Outlined"
                        Margin="Margin.Dense"
@@ -46,10 +38,10 @@
                 <MudSelectItem T="int?" Value="null">All Vessels</MudSelectItem>
                 @foreach (var vessel in Vessels)
                 {
-                    <MudSelectItem T="int?" Value="vessel.Id">@vessel.Name</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)vessel.Id)">@vessel.Name</MudSelectItem>
                 }
             </MudSelect>
-            <DocumentTable Items="_filteredByVessel"
+            <DocumentTable Items="ByVessel"
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
                            OnDeleteClicked="OnDeleteClicked" />
@@ -57,16 +49,21 @@
 
         @* ── By Supplier ───────────────────────────────────────── *@
         <MudTabPanel Text="By Supplier">
-            <MudTextField @bind-Value="_supplierSearch"
-                          Placeholder="Search supplier..."
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Immediate="true"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          Class="mb-3"
-                          Style="max-width:250px" />
-            <DocumentTable Items="_filteredBySupplier"
+            <MudSelect T="int?"
+                       Value="_selectedSupplierId"
+                       ValueChanged="OnSupplierChanged"
+                       Label="Select Supplier"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Class="mb-3"
+                       Style="max-width:250px">
+                <MudSelectItem T="int?" Value="null">All Suppliers</MudSelectItem>
+                @foreach (var company in Suppliers)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)company.Id)">@company.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <DocumentTable Items="BySupplier"
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
                            OnDeleteClicked="OnDeleteClicked" />
@@ -78,40 +75,39 @@
 
 @code {
     [Parameter] public IReadOnlyList<DocumentResponse> Unpaid { get; set; } = [];
-    [Parameter] public IReadOnlyList<DocumentResponse> AllDocuments { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentResponse> ByVessel { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentResponse> BySupplier { get; set; } = [];
     [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<CompanyResponse> Suppliers { get; set; } = [];
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<int> OnDocumentSelected { get; set; }
+    [Parameter] public EventCallback<int?> OnVesselSelected { get; set; }
+    [Parameter] public EventCallback<int?> OnSupplierSelected { get; set; }
 
-    private string _search = string.Empty;
-    private string _supplierSearch = string.Empty;
-    private int _activeTab;
     private int? _selectedVesselId;
-
-    private IEnumerable<DocumentResponse> _filteredUnpaid =>
-        Filter(Unpaid, _search);
-
-    private IEnumerable<DocumentResponse> _filteredByVessel =>
-        _selectedVesselId is null
-            ? Filter(AllDocuments, _search)
-            : Filter(AllDocuments.Where(d => d.VesselId == _selectedVesselId), _search);
-
-    private IEnumerable<DocumentResponse> _filteredBySupplier =>
-        string.IsNullOrWhiteSpace(_supplierSearch)
-            ? AllDocuments
-            : AllDocuments.Where(d =>
-                d.SupplierName?.Contains(_supplierSearch, StringComparison.OrdinalIgnoreCase) ?? false);
-
-    private static IEnumerable<DocumentResponse> Filter(IEnumerable<DocumentResponse> source, string search) =>
-        string.IsNullOrWhiteSpace(search)
-            ? source
-            : source.Where(d =>
-                d.DocNumber.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                (d.SupplierName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (d.VesselName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
+    private int? _selectedSupplierId;
 
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
+
+    private void OnVesselChanged(int? vesselId)
+    {
+        _selectedVesselId = vesselId;
+        OnVesselSelected.InvokeAsync(vesselId);
+    }
+
+    private void OnSupplierChanged(int? supplierId)
+    {
+        _selectedSupplierId = supplierId;
+        OnSupplierSelected.InvokeAsync(supplierId);
+    }
+
+    private void OnTabChanged(int index)
+    {
+        // reset selections when switching tabs
+        _selectedVesselId = null;
+        _selectedSupplierId = null;
+    }
 }

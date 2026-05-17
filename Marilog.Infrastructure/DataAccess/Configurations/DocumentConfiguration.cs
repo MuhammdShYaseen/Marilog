@@ -73,6 +73,11 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasForeignKey(x => x.DocumentId)
                    .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasMany(d => d.Tags)
+                   .WithOne()
+                   .HasForeignKey(t => t.DocumentId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
             // ── Indexes ───────────────────────────────────────────────────────────
             builder.HasIndex(x => x.DocNumber).IsUnique();
             builder.HasIndex(x => x.DocTypeId);

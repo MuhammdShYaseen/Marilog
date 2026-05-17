@@ -84,9 +84,9 @@ namespace Marilog.Client.Extensions
         // ─────────────────────────────────────────────
         // POST (no response body)
         // ─────────────────────────────────────────────
-        public static async Task PostApiAsync(this HttpClient http, string url, CancellationToken ct = default)
+        public static async Task PostApiAsync(this HttpClient http, string url, object body, CancellationToken ct = default)
         {
-            var response = await ExecuteAsync(() => http.PostAsync(url, null, ct), ct);
+            var response = await ExecuteAsync(() => http.PostAsJsonAsync(url, body, ct), ct);
             await HandleAsync<object>(response, ct);
         }
 

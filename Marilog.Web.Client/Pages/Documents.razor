@@ -7,13 +7,12 @@
 
 @inject IDocumentService DocumentService
 @inject IVesselService VesselService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
-@inject IDocumentTypeService DocTypeService
 @inject ICompanyService CompanyService
+@inject IDocumentTypeService DocTypeService
 @inject ICurrencyService CurrencyService
 @inject IPortService PortService
-@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 @if (_loading)
 {
@@ -32,23 +31,28 @@ else if (_detail is not null)
 }
 else
 {
-    <SharedDocumentsPage Unpaid="_unpaidDocs"
-                         AllDocuments="_allDocs"
+    <SharedDocumentsPage Unpaid="_unpaid"
+                         ByVessel="_byVessel"
+                         BySupplier="_bySupplier"
                          Vessels="_vessels"
+                         Suppliers="_suppliers"
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnDeleteClicked="ConfirmDelete"
-                         OnDocumentSelected="LoadDetail" />
+                         OnDocumentSelected="LoadDetail"
+                         OnVesselSelected="LoadByVessel"
+                         OnSupplierSelected="LoadBySupplier" />
 }
 
 @code {
-    private IReadOnlyList<DocumentResponse>     _unpaidDocs = [];
-    private IReadOnlyList<DocumentResponse>     _allDocs    = [];
-    private IReadOnlyList<VesselResponse>       _vessels    = [];
-    private IReadOnlyList<DocumentTypeResponse> _DocTypes   = [];
-    private IReadOnlyList<CompanyResponse>      _companies  = [];
-    private IReadOnlyList<CurrencyResponse>     _currencies = [];
-    private IReadOnlyList<PortResponse>         _ports      = [];
+    private IReadOnlyList<DocumentResponse> _unpaid = [];
+    private IReadOnlyList<DocumentResponse> _byVessel = [];
+    private IReadOnlyList<DocumentResponse> _bySupplier = [];
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<CompanyResponse> _suppliers = [];
+    private IReadOnlyList<DocumentTypeResponse> _docTypes = [];
+    private IReadOnlyList<CurrencyResponse> _currencies = [];
+    private IReadOnlyList<PortResponse> _ports = [];
     private DocumentResponse? _detail;
     private bool _loading = true;
 
@@ -61,21 +65,19 @@ else
         {
             var t1 = DocumentService.GetUnpaidAsync();
             var t2 = VesselService.GetActiveAsync();
-            var t3 = DocTypeService.GetActiveAsync();
-            var t4 = CompanyService.GetActiveAsync();
+            var t3 = CompanyService.GetActiveAsync();
+            var t4 = DocTypeService.GetActiveAsync();
             var t5 = CurrencyService.GetActiveAsync();
             var t6 = PortService.GetActiveAsync();
 
             await Task.WhenAll(t1, t2, t3, t4, t5, t6);
 
-            _unpaidDocs = t1.Result;
-            _vessels    = t2.Result;
-            _DocTypes   = t3.Result;
-            _companies  = t4.Result;
+            _unpaid = t1.Result;
+            _vessels = t2.Result;
+            _suppliers = t3.Result;
+            _docTypes = t4.Result;
             _currencies = t5.Result;
-            _ports      = t6.Result;
-            _allDocs    = _unpaidDocs; // default — expand later
-
+            _ports = t6.Result;
         }
         catch (Exception ex)
         {
@@ -87,36 +89,49 @@ else
         }
     }
 
+    private async Task LoadByVessel(int? vesselId)
+    {
+        if (vesselId is null)
+        {
+            _byVessel = [];
+            return;
+        }
+        _byVessel = await DocumentService.GetByVesselAsync(vesselId.Value);
+    }
+
+    private async Task LoadBySupplier(int? supplierId)
+    {
+        if (supplierId is null)
+        {
+            _bySupplier = [];
+            return;
+        }
+        _bySupplier = await DocumentService.GetBySupplierAsync(supplierId.Value);
+    }
+
     private async Task LoadDetail(int id)
     {
         _detail = await DocumentService.GetFullAsync(id);
     }
 
-    private void CloseDetail()
-    {
-        _detail = null;
-    }
+    private void CloseDetail() => _detail = null;
 
     private async Task OpenAddDialog()
     {
         var parameters = new DialogParameters
         {
-            ["Companies"]  = _companies,
-            ["DocTypes"]   = _DocTypes,
+            ["DocTypes"] = _docTypes,
+            ["Companies"] = _suppliers,
             ["Currencies"] = _currencies,
-            ["Vessels"]    = _vessels,
-            ["AllDocs"]    = _allDocs,
-            ["Ports"]      = _ports
+            ["Vessels"] = _vessels,
+            ["Ports"] = _ports
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
-        
         var result = await dialog.Result;
-        if (result is null || result.Canceled || result.Data is null)
-            return;
+        if (result is null || result.Canceled || result.Data is null) return;
 
-        var model = (CreateDocumentRequest)result!.Data!;
-
+        var model = (CreateDocumentRequest)result.Data;
         await DocumentService.CreateAsync
         (
             model.DocNumber,
@@ -134,7 +149,6 @@ else
         );
 
         Snackbar.Add("Document created.", Severity.Success);
-
         await LoadAsync();
     }
 
@@ -142,59 +156,51 @@ else
     {
         var parameters = new DialogParameters
         {
-            ["Document"]   = doc,
-            ["Companies"]  = _companies,
-            ["DocTypes"]   = _DocTypes,
+            ["Document"] = doc,
+            ["DocTypes"] = _docTypes,
+            ["Companies"] = _suppliers,
             ["Currencies"] = _currencies,
-            ["Vessels"]    = _vessels,
-            ["AllDocs"]    = _allDocs,
-            ["Ports"]      = _ports
+            ["Vessels"] = _vessels,
+            ["Ports"] = _ports
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("Edit Document", parameters);
-
         var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
 
-        if (result!.Canceled || result.Data is null)
-            return;
+        var model = (UpdateDocumentRequest)result.Data;
+        await DocumentService.UpdateAsync
+        (
+            doc.Id,
+            model.DocTypeId,
+            model.DocDate,
+            model.CurrencyId,
+            model.TotalAmount,
+            model.SupplierId,
+            model.BuyerId,
+            model.VesselId,
+            model.PortId,
+            model.ParentDocumentId,
+            model.Reference,
+            model.FilePath
+        );
 
-        if (result.Data is UpdateDocumentRequest)
-        {
+        Snackbar.Add("Document updated.", Severity.Success);
+        await LoadAsync();
 
-            var model = (UpdateDocumentRequest)result.Data;
-
-            await DocumentService.UpdateAsync
-            (
-                doc.Id,
-                model.DocTypeId,
-                model.DocDate,
-                model.CurrencyId,
-                model.TotalAmount,
-                model.SupplierId,
-                model.BuyerId,
-                model.VesselId,
-                model.PortId,
-                model.ParentDocumentId,
-                model.Reference,
-                model.FilePath
-            );
-
-            Snackbar.Add("Document updated.", Severity.Success);
-
-            await LoadAsync();
-        }
         if (_detail?.Id == doc.Id)
-        {
             await LoadDetail(doc.Id);
-        }
     }
 
     private async Task ConfirmDelete(DocumentResponse doc)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
+        var confirmed = await DialogService.ShowMessageBoxAsync
+        (
             "Delete Document",
             $"Delete document '{doc.DocNumber}'?",
-            yesText: "Delete", cancelText: "Cancel");
+            yesText: "Delete", 
+            cancelText: "Cancel"
+        );
 
         if (confirmed != true) return;
         await DocumentService.DeleteAsync(doc.Id);
@@ -208,9 +214,9 @@ else
         var parameters = new DialogParameters { ["Document"] = doc };
         var dialog = await DialogService.ShowAsync<AddPaymentDialog>("Add Payment", parameters);
         var result = await dialog.Result;
-        if (result!.Canceled) return;
+        if (result is null || result.Canceled || result.Data is null) return;
 
-        var (swiftId, amount, date) = ((int, decimal, DateOnly))result.Data!;
+        var (swiftId, amount, date) = ((int, decimal, DateOnly))result.Data;
         await DocumentService.AddPaymentAsync(doc.Id, swiftId, amount, date);
         Snackbar.Add("Payment recorded.", Severity.Success);
         await LoadDetail(doc.Id);
@@ -220,9 +226,9 @@ else
     {
         var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Add Item");
         var result = await dialog.Result;
-        if (result!.Canceled) return;
+        if (result is null || result.Canceled || result.Data is null) return;
 
-        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data!;
+        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data;
         await DocumentService.AddItemAsync(doc.Id, name, qty, price, unit);
         Snackbar.Add("Item added.", Severity.Success);
         await LoadDetail(doc.Id);
@@ -233,9 +239,9 @@ else
         var parameters = new DialogParameters { ["Item"] = args.Item };
         var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Edit Item", parameters);
         var result = await dialog.Result;
-        if (result!.Canceled) return;
+        if (result is null || result.Canceled || result.Data is null) return;
 
-        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data!;
+        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data;
         await DocumentService.UpdateItemAsync(args.DocumentId, args.Item.Id, name, qty, price, unit);
         Snackbar.Add("Item updated.", Severity.Success);
         await LoadDetail(args.DocumentId);

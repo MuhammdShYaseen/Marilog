@@ -515,6 +515,33 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
+        //---Tags--------------------------------------------------------------------
+        public async Task<IReadOnlyList<DocumentResponse>> GetByTagsAsync(List<string> tags, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .Where(d => d.Tags.Any(t => tags.Contains(t.Name)))
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
+
+        public async Task AddTagAsync(int documentId, string name, string color, CancellationToken ct = default)
+        {
+            var document = await _repo.GetByIdAsync(documentId, ct)
+                ?? throw new KeyNotFoundException("Document not found");
+
+            document.AddTag(name, color);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemoveTagAsync(int documentId, int tagId, CancellationToken ct = default)
+        {
+            var document = await _repo.GetByIdAsync(documentId, ct)
+                ?? throw new KeyNotFoundException("Document not found");
+
+            document.RemoveTag(tagId);
+            await _repo.SaveChangesAsync(ct);
+        }
+
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<Document> GetOrThrowAsync(int id, CancellationToken ct)
@@ -567,7 +594,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             Reference = x.Reference,
             FilePath = x.FilePath,
             ParentDocumentId = x.ParentDocumentId,
-            IsActive = x.IsActive
+            IsActive = x.IsActive,
+            Tags = x.Tags.Select( t => new TagResponse 
+            { 
+                Color = t.Color,
+                Id = t.Id ,
+                Name = t.Name 
+            })
+            .ToList()
         };
 
         private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithItems =
@@ -600,7 +634,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             FilePath = x.FilePath,
             ParentDocumentId = x.ParentDocumentId,
             IsActive = x.IsActive,
-
+            Tags = x.Tags.Select(t => new TagResponse
+            {
+                Color = t.Color,
+                Id = t.Id,
+                Name = t.Name
+            })
+            .ToList(),
             Items = x.Items.Select(i => new DocumentItemResponse
             {
                 Id = i.Id,
@@ -642,6 +682,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             FilePath = x.FilePath,
             ParentDocumentId = x.ParentDocumentId,
             IsActive = x.IsActive,
+            Tags = x.Tags.Select(t => new TagResponse
+            {
+                Color = t.Color,
+                Id = t.Id,
+                Name = t.Name
+            })
+            .ToList(),
             Payments = x.Payments.Select(p => new PaymentResponse
             {
                 Id = p.Id,
@@ -682,7 +729,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
            DocTypeId = x.DocTypeId,
            DocTypeName = x.DocType.Name,
            DocDate = x.DocDate,
-
+            Tags = x.Tags.Select(t => new TagResponse
+            {
+                Color = t.Color,
+                Id = t.Id,
+                Name = t.Name
+            })
+            .ToList(),
            SupplierId = x.SupplierId,
            SupplierName = x.Supplier!.CompanyName,
            BuyerId = x.BuyerId,

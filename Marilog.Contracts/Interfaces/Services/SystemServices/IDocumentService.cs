@@ -69,5 +69,10 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                            CancellationToken ct = default);
         //---Reports------------------------------------------------------------------
         Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default);
+
+        //--Tags-----------------------------------------------------------------------
+        Task<IReadOnlyList<DocumentResponse>> GetByTagsAsync(List<string> tags, CancellationToken ct = default);
+        Task AddTagAsync(int documentId, string name, string color, CancellationToken ct = default);
+        Task RemoveTagAsync(int documentId, int tagId, CancellationToken ct = default);
     }
 }
