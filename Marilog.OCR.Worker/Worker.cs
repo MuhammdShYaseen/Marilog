@@ -1,43 +1,32 @@
+
 using Marilog.OCR.Worker.Abstractions;
 using Marilog.OCR.Worker.Domain;
-using System.Threading.Channels;
 
 namespace Marilog.OCR.Worker;
 
 public sealed class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
+    private readonly OcrQueue _queue;
     private readonly ISearchablePdfService _pdfService;
-
-    // ── Channel داخلي يستقبل الطلبات ──
-    // لاحقاً: سيُملأ من Domain Event Handler
-    private readonly Channel<OcrRequest> _channel =
-        Channel.CreateUnbounded<OcrRequest>(new UnboundedChannelOptions
-        {
-            SingleReader = true,
-            SingleWriter = false
-        });
 
     public Worker(
         ILogger<Worker> logger,
+        OcrQueue queue,
         ISearchablePdfService pdfService)
     {
         _logger = logger;
+        _queue = queue;
         _pdfService = pdfService;
     }
 
-    // ── الواجهة العامة التي سيستدعيها الهاندلير لاحقاً ──
-    public ValueTask EnqueueAsync(OcrRequest request, CancellationToken ct = default)
-        => _channel.Writer.WriteAsync(request, ct);
-
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        _logger.LogInformation("Marilog OCR Worker started | MaxParallel: {Max}",
-            Environment.ProcessorCount - 1);
+        _logger.LogInformation("Marilog OCR Worker ready");
 
-        await foreach (var request in _channel.Reader.ReadAllAsync(ct))
+        await foreach (var request in _queue.Reader.ReadAllAsync(ct))
         {
-            // لا ننتظر — نعالج في الخلفية حتى لا نوقف الـ channel
+            // لا ننتظر — نعالج في الخلفية
             _ = ProcessAsync(request, ct);
         }
     }
@@ -52,27 +41,16 @@ public sealed class Worker : BackgroundService
 
         try
         {
-            if (!File.Exists(request.FilePath))
-            {
-                _logger.LogWarning(
-                    "File not found: {Path} | DocumentId: {Id}",
-                    request.FilePath, request.DocumentId);
-                return;
-            }
-
-            var options = new OcrOptions
-            {
-                Languages = "eng+ara",
-                RenderDpi = 300,
-                MinConfidence = 35f,
-                KeepOriginalBackup = true
-            };
-
-            // output = overwrite على نفس الملف
             var result = await _pdfService.ProcessAsync(
                 inputPdfPath: request.FilePath,
                 outputPdfPath: request.FilePath,
-                options: options,
+                options: new OcrOptions
+                {
+                    Languages = "eng+ara",
+                    RenderDpi = 300,
+                    MinConfidence = 35f,
+                    KeepOriginalBackup = true
+                },
                 ct: ct
             );
 
@@ -84,8 +62,8 @@ public sealed class Worker : BackgroundService
                 result.Duration.TotalSeconds
             );
 
-            // ── لاحقاً هنا: إرسال النتيجة لـ Marilog.Presentation ──
-            // عبر HTTP أو Domain Event أو SignalR
+            // ── لاحقاً: إخبار Marilog.Presentation بالنتيجة ──
+            // await _callbackService.NotifyCompletedAsync(request.DocumentId, result);
         }
         catch (Exception ex)
         {
@@ -94,5 +72,3 @@ public sealed class Worker : BackgroundService
         }
     }
 }
-
-// ── الطلب الذي سيرسله الهاندلير لاحقاً ──
