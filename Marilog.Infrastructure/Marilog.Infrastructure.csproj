@@ -25,5 +25,8 @@
 	  <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />
 	  <ProjectReference Include="..\Marilog.Domain\Marilog.Domain.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Queues\" />
+	</ItemGroup>
 
 </Project>

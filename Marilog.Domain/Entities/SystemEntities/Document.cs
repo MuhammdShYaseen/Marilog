@@ -1,6 +1,8 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -59,7 +61,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (currencyId <= 0) throw new ArgumentException("Invalid CurrencyId.");
             if (totalAmount < 0) throw new ArgumentException("TotalAmount cannot be negative.");
 
-            return new Document
+            var document = new Document
             {
                 DocNumber = docNumber,
                 DocTypeId = docTypeId,
@@ -74,6 +76,13 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Reference = reference,
                 FilePath = filePath
             };
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                //document.OcrStatus = OcrStatus.Pending;
+                document.AddDomainEvent(new DocumentOcrRequestedEvent(document.Id, filePath));
+            }
+
+            return document;
         }
 
         // ── Update ───────────────────────────────────────────────────────────────
@@ -106,6 +115,11 @@ namespace Marilog.Domain.Entities.SystemEntities
             FilePath = filePath;
             ParentDocumentId = ParentDocumentId;
             Touch();
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                //document.OcrStatus = OcrStatus.Pending;
+                AddDomainEvent(new DocumentOcrRequestedEvent(Id, filePath));
+            }
         }
 
         // ── Parent linking ────────────────────────────────────────────────────────

@@ -1,8 +1,13 @@
-﻿using Marilog.Application.Interfaces.Encryption;
+﻿using Marilog.Application.EventHandlers;
+using Marilog.Application.Interfaces.Encryption;
+using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
+using Marilog.Contracts.Interfaces.OCR;
+using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
+using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +45,18 @@ namespace Marilog.Infrastructure
 
                 return new SecretEncryptionService(key);
             });
+            // Event Dispatcher
+            services.AddSingleton<InMemoryEventDispatcher>();
 
+            services.AddSingleton<IEventDispatcher>(sp => sp.GetRequiredService<InMemoryEventDispatcher>());
+
+            // Event Handlers
+            services.AddScoped<IEventHandler<DocumentOcrRequestedEvent>, DocumentOcrRequestedEventHandler>();
+
+            // OCR Queue
+            services.AddSingleton<OcrQueue>();
+
+            services.AddSingleton<IOcrQueue>(sp =>sp.GetRequiredService<OcrQueue>());
 
             return services;
 
