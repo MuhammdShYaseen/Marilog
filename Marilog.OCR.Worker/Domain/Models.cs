@@ -59,17 +59,25 @@ public sealed class OcrOptions
     public bool KeepOriginalBackup { get; init; } = false;
 }
 
+public sealed record OcrRequest(
+    Guid DocumentId,
+    string FilePath
+);
+
 /// <summary>
 /// نتيجة عملية OCR الكاملة للمستند
 /// </summary>
-public sealed record OcrDocumentResult(
-    string InputPath,
-    string OutputPath,
-    int TotalPages,
-    int ProcessedPages,
-    IReadOnlyList<OcrPageResult> Pages,
-    TimeSpan Duration
-)
+public sealed record OcrDocumentResult
+    (
+        string InputPath,
+        string OutputPath,
+        int TotalPages,
+        int ProcessedPages,
+        IReadOnlyList<OcrPageResult> Pages,
+        TimeSpan Duration
+    )
+
+
 {
     public bool IsSuccess => ProcessedPages == TotalPages;
 
