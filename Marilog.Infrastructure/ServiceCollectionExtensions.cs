@@ -25,11 +25,11 @@ namespace Marilog.Infrastructure
         {
             // ── DbContext ─────────────────────────────────────────────────────────
             services.AddDbContext<MarilogContext>(options =>       // ← اسم الـ Context الفعلي
-    options.UseSqlServer(
-        configuration.GetConnectionString("DefaultConnection"),
-        sql => sql
-            .MigrationsAssembly("Marilog.Infrastructure")  // ← اسم المشروع الفعلي
-            .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                         sql => sql
+                    .MigrationsAssembly("Marilog.Infrastructure")  // ← اسم المشروع الفعلي
+                    .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
 
             // ── Generic Repository — covers all Aggregate Roots ───────────────────
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -52,11 +52,6 @@ namespace Marilog.Infrastructure
 
             // Event Handlers
             services.AddScoped<IEventHandler<DocumentOcrRequestedEvent>, DocumentOcrRequestedEventHandler>();
-
-            // OCR Queue
-            services.AddSingleton<OcrQueue>();
-
-            services.AddSingleton<IOcrQueue>(sp =>sp.GetRequiredService<OcrQueue>());
 
             return services;
 
