@@ -1,5 +1,6 @@
 <Solution>
-  <Folder Name="/Backend/">
+  <Folder Name="/Backend/" />
+  <Folder Name="/Backend/Main/">
     <Project Path="Marilog.Application/Marilog.Application.csproj" Id="f7997582-78b7-4a34-b6d5-8ea0c65a0432" />
     <Project Path="Marilog.Domain/Marilog.Domain.csproj" />
     <Project Path="Marilog.Infrastructure/Marilog.Infrastructure.csproj" Id="7719a59c-9531-4022-b645-44f3cd120aa0" />
