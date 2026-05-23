@@ -10,12 +10,10 @@ namespace Marilog.Application.EventHandlers;
 
 public sealed class DocumentOcrRequestedEventHandler : IEventHandler<DocumentOcrRequestedEvent>
 {
-    private readonly IOcrQueue _ocrQueue;
     private readonly ILogger<DocumentOcrRequestedEventHandler> _logger;
 
-    public DocumentOcrRequestedEventHandler(IOcrQueue ocrQueue, ILogger<DocumentOcrRequestedEventHandler> logger)
+    public DocumentOcrRequestedEventHandler(ILogger<DocumentOcrRequestedEventHandler> logger)
     {
-        _ocrQueue = ocrQueue;
         _logger = logger;
     }
 
