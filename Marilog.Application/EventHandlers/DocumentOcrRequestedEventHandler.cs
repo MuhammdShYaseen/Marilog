@@ -21,6 +21,6 @@ public sealed class DocumentOcrRequestedEventHandler : IEventHandler<DocumentOcr
     {
         _logger.LogInformation("OCR requested | DocumentId: {Id} | File: {File}",  @event.DocumentId, Path.GetFileName(@event.FilePath));
 
-        await _ocrQueue.EnqueueAsync(new OcrRequest(@event.DocumentId, @event.FilePath), ct);
+        //await _ocrQueue.EnqueueAsync(new OcrRequest(@event.DocumentId, @event.FilePath), ct);
     }
 }
