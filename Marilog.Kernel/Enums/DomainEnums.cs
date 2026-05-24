@@ -1,6 +1,16 @@
 ﻿namespace Marilog.Kernel.Enums
 {
-
+    public enum EntityType
+    {
+        AContract = 0,
+        CrewContract = 1,
+        CrewPayroll = 2,
+        Document = 3,
+        EmailAttachment = 4,
+        SwiftTransfer = 5,
+        Person = 6,
+        Vessel = 7
+    }
     public enum JobStatus
     {
         Pending = 0,
