@@ -14,11 +14,11 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string StoredFileName { get; private set; } = null!;
         public string RelativePath { get; private set; } = null!;
         public string ContentType { get; private set; } = null!;
+        public string? Content {  get; private set; } = null;
         public long Size { get; private set; }
 
         public string Checksum { get; private set; } = null!; // optional but useful
 
-        public DateTime CreatedAtUtc { get; private set; }
 
         private StoredFile() { }
 
@@ -40,7 +40,6 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ContentType = contentType,
                 Size = size,
                 Checksum = checksum,
-                CreatedAtUtc = DateTime.UtcNow,
                 EntityId = entityId,
                 EntityType = entityType
             };
@@ -55,6 +54,16 @@ namespace Marilog.Domain.Entities.SystemEntities
             // تحديث الربط فقط (تصحيح خطأ المستخدم)
             EntityType = entityType;
             EntityId = entityId;
+            Touch();
         }
+
+        public void UpdateContaintFromOCR(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                return;
+            Content = content;
+            Touch();
+        }
+
     }
 }
