@@ -8,16 +8,16 @@ namespace Marilog.Domain.Entities.SystemEntities
 {
     public class StoredFile : Entity
     {
-        public EntityType? EntityType { get; private set; }  // "Document" | "SwiftTransfer" | "Voyage"
+        public EntityType? EntityType { get; private set; }
         public int? EntityId { get; private set; }
-        public string OriginalFileName { get; private set; } = null!;
-        public string StoredFileName { get; private set; } = null!;
-        public string RelativePath { get; private set; } = null!;
+        public string OriginalFileName { get; private set; } = null!;// from user machine
+        public string StoredFileName { get; private set; } = null!; //saved as GUID
+        public string RelativePath { get; private set; } = null!; 
         public string ContentType { get; private set; } = null!;
         public string? Content {  get; private set; } = null;
         public long Size { get; private set; }
 
-        public string Checksum { get; private set; } = null!; // optional but useful
+        public string Checksum { get; private set; } = null!; // optional but useful is the file exist or not
 
 
         private StoredFile() { }
@@ -57,7 +57,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
-        public void UpdateContaintFromOCR(string content)
+        public void UpdateContentFromOCR(string content)
         {
             if (string.IsNullOrWhiteSpace(content))
                 return;

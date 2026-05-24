@@ -51,7 +51,7 @@ namespace Marilog.Infrastructure
             services.AddSingleton<IEventDispatcher>(sp => sp.GetRequiredService<InMemoryEventDispatcher>());
 
             // Event Handlers
-            services.AddScoped<IEventHandler<DocumentOcrRequestedEvent>, DocumentOcrRequestedEventHandler>();
+            services.AddScoped<IEventHandler<StoredFileOcrRequestedEvent>, StoredFileOcrRequestedEventHandler>();
 
             return services;
 
