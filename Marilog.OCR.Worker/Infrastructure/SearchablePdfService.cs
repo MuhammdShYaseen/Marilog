@@ -25,7 +25,7 @@ public sealed class SearchablePdfService : ISearchablePdfService
     }
 
     public async Task<OcrDocumentResult> ProcessAsync(string inputPdfPath, string outputPdfPath, OcrOptions? options = null,
-                                                      IProgress<OcrProgress>? progress = null, CancellationToken ct = default)
+                                                  IProgress<OcrProgress>? progress = null, CancellationToken ct = default)
     {
         options ??= new OcrOptions();
 
@@ -44,41 +44,76 @@ public sealed class SearchablePdfService : ISearchablePdfService
             }
         }
 
-        int totalPages = _renderer.GetPageCount(inputPdfPath);
+        // ── تحليل الملف أولاً ──
+        var pageAnalysis = _pageAnalyzer.Analyze(inputPdfPath);
+
+        var pagesNeedingOcr = pageAnalysis.Where(p => p.NeedsOcr).ToList();
+        var pagesTextOnly = pageAnalysis.Where(p => !p.NeedsOcr).ToList();
+
+        int totalPages = pageAnalysis.Count;
 
         _logger.LogInformation(
-            "Processing: {File} ({Pages} pages) | Lang: {Lang} | DPI: {Dpi}",
+            "Processing: {File} ({Pages} pages) | Lang: {Lang} | DPI: {Dpi} | NeedsOcr: {Ocr} | TextOnly: {Text}",
             Path.GetFileName(inputPdfPath),
             totalPages,
             options.Languages,
-            options.RenderDpi
+            options.RenderDpi,
+            pagesNeedingOcr.Count,
+            pagesTextOnly.Count
         );
+
+        // ── إذا كل الصفحات نصية → لا حاجة لـ OCR ──
+        if (pagesNeedingOcr.Count == 0)
+        {
+            _logger.LogInformation("All pages are text-based — OCR skipped");
+
+            stopwatch.Stop();
+
+            return new OcrDocumentResult(
+                InputPath: inputPdfPath,
+                OutputPath: inputPdfPath,
+                TotalPages: totalPages,
+                ProcessedPages: 0,
+                Pages: [],
+                Duration: stopwatch.Elapsed
+            );
+        }
+
+        progress?.Report(new OcrProgress(0, pagesNeedingOcr.Count, "Starting..."));
 
         using var ocrEngine = _ocrFactory.Create(options);
 
-        var ocrPages = new List<OcrPageResult>(totalPages);
-        var pageData = new List<(OcrPageResult, byte[])>(totalPages);
+        var ocrPages = new List<OcrPageResult>(pagesNeedingOcr.Count);
+        var pageData = new List<(OcrPageResult, byte[])>(pagesNeedingOcr.Count);
         int processed = 0;
 
-        for (int i = 0; i < totalPages; i++)
+        // ── معالجة الصفحات التي تحتاج OCR فقط ──
+        foreach (var analysis in pagesNeedingOcr)
         {
             ct.ThrowIfCancellationRequested();
 
-            progress?.Report(new OcrProgress(i, totalPages, $"Processing page {i + 1}/{totalPages}"));
+            // pageIndex = pageNumber - 1
+            int pageIndex = analysis.PageNumber - 1;
+
+            progress?.Report(new OcrProgress(
+                processed,
+                pagesNeedingOcr.Count,
+                $"Processing page {analysis.PageNumber}/{totalPages} ({analysis.PageType})"
+            ));
 
             // ── خطوة 1: PDF → PNG bytes ──
             var imageBytes = await _renderer.RenderPageToImageAsync(
-                inputPdfPath, i, options.RenderDpi, ct
+                inputPdfPath, pageIndex, options.RenderDpi, ct
             );
 
-            // ── خطوة 2: أبعاد الصورة عبر SkiaSharp ──
+            // ── خطوة 2: أبعاد الصورة ──
             var (widthPx, heightPx) = GetImageDimensions(imageBytes);
 
             // ── خطوة 3: OCR ──
             var words = await ocrEngine.RecognizeAsync(imageBytes, ct);
 
             var ocrPage = new OcrPageResult(
-                PageNumber: i + 1,
+                PageNumber: analysis.PageNumber,
                 Words: words,
                 PageWidthPx: widthPx,
                 PageHeightPx: heightPx
@@ -89,12 +124,12 @@ public sealed class SearchablePdfService : ISearchablePdfService
             processed++;
 
             _logger.LogDebug(
-                "Page {Page}/{Total}: {Words} words recognized",
-                i + 1, totalPages, words.Count
+                "Page {Page}/{Total}: {Words} words | Type: {Type}",
+                analysis.PageNumber, totalPages, words.Count, analysis.PageType
             );
         }
 
-        progress?.Report(new OcrProgress(totalPages, totalPages, "Building searchable PDF..."));
+        progress?.Report(new OcrProgress(pagesNeedingOcr.Count, pagesNeedingOcr.Count, "Building searchable PDF..."));
 
         await _builder.BuildWithImagesAsync(
             outputPdfPath,
@@ -115,14 +150,16 @@ public sealed class SearchablePdfService : ISearchablePdfService
         );
 
         _logger.LogInformation(
-            "✓ Done in {Duration:F1}s | {Pages} pages | {Words} total words | Output: {Output}",
+            "✓ Done in {Duration:F1}s | {Total} pages | {Ocr} OCR'd | {Skipped} skipped | {Words} words | Output: {Output}",
             stopwatch.Elapsed.TotalSeconds,
+            totalPages,
             processed,
+            pagesTextOnly.Count,
             ocrPages.Sum(p => p.Words.Count),
             Path.GetFileName(outputPdfPath)
         );
 
-        progress?.Report(new OcrProgress(totalPages, totalPages, "Complete"));
+        progress?.Report(new OcrProgress(pagesNeedingOcr.Count, pagesNeedingOcr.Count, "Complete"));
 
         return result;
     }
@@ -133,6 +170,7 @@ public sealed class SearchablePdfService : ISearchablePdfService
         using var bitmap = SKBitmap.Decode(imageBytes);
         return (bitmap.Width, bitmap.Height);
     }
+
 }
 
 // ═══════════════════════════════════════════════════════
