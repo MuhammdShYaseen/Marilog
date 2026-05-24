@@ -76,11 +76,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Reference = reference,
                 FilePath = filePath
             };
-            if (!string.IsNullOrWhiteSpace(filePath))
-            {
-                //document.OcrStatus = OcrStatus.Pending;
-                document.AddDomainEvent(new DocumentOcrRequestedEvent(document.Id, filePath));
-            }
+            
 
             return document;
         }
@@ -118,7 +114,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (!string.IsNullOrWhiteSpace(filePath))
             {
                 //document.OcrStatus = OcrStatus.Pending;
-                AddDomainEvent(new DocumentOcrRequestedEvent(Id, filePath));
+                AddDomainEvent(new StoredFileOcrRequestedEvent(Id, filePath));
             }
         }
 

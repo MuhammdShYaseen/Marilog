@@ -6,22 +6,22 @@ using System.Net.Http.Json;
 
 namespace Marilog.Application.EventHandlers;
 
-public sealed class DocumentOcrRequestedEventHandler : IEventHandler<DocumentOcrRequestedEvent>
+public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFileOcrRequestedEvent>
 {
-    private readonly ILogger<DocumentOcrRequestedEventHandler> _logger;
+    private readonly ILogger<StoredFileOcrRequestedEventHandler> _logger;
     private readonly HttpClient _httpClient;
-    public DocumentOcrRequestedEventHandler(ILogger<DocumentOcrRequestedEventHandler> logger, HttpClient httpClient)
+    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient)
     {
         _logger = logger;
         _httpClient = httpClient;
     }
 
-    public async Task HandleAsync(DocumentOcrRequestedEvent @event, CancellationToken ct = default)
+    public async Task HandleAsync(StoredFileOcrRequestedEvent @event, CancellationToken ct = default)
     {
-        _logger.LogInformation("OCR requested | DocumentId: {Id} | File: {File}", @event.DocumentId, Path.GetFileName(@event.FilePath));
+        _logger.LogInformation("OCR requested | DocumentId: {Id} | File: {File}", @event.StoredFileId, Path.GetFileName(@event.FilePath));
 
         var request = new OcrRequest(
-            @event.DocumentId,
+            @event.StoredFileId,
             @event.FilePath);
 
         var response = await _httpClient.PostAsJsonAsync("/api/ocr/process", request, ct);
@@ -38,6 +38,6 @@ public sealed class DocumentOcrRequestedEventHandler : IEventHandler<DocumentOcr
             response.EnsureSuccessStatusCode();
         }
 
-        _logger.LogInformation("OCR worker accepted request | DocumentId: {Id}", @event.DocumentId);
+        _logger.LogInformation("OCR worker accepted request | DocumentId: {Id}", @event.StoredFileId);
     }
 }
