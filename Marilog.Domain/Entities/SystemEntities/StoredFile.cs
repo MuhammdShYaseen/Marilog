@@ -8,7 +8,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 {
     public class StoredFile : Entity
     {
-        public EntityType? EntityType { get; private set; } = null!;  // "Document" | "SwiftTransfer" | "Voyage"
+        public EntityType? EntityType { get; private set; }  // "Document" | "SwiftTransfer" | "Voyage"
         public int? EntityId { get; private set; }
         public string OriginalFileName { get; private set; } = null!;
         public string StoredFileName { get; private set; } = null!;
