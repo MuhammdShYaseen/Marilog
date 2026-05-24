@@ -78,6 +78,8 @@ public sealed record OcrDocumentResult
     )
 
 
+
+
 {
     public bool IsSuccess => ProcessedPages == TotalPages;
 
@@ -86,4 +88,20 @@ public sealed record OcrDocumentResult
         Environment.NewLine,
         Pages.Select(p => string.Join(" ", p.Words.Select(w => w.Text)))
     );
+}
+
+public sealed record PageAnalysisResult(
+    int PageNumber,
+    PageType PageType,
+    bool NeedsOcr,
+    int TextLength,
+    int ImageCount
+);
+
+public enum PageType
+{
+    TextOnly,   // نص موجود → لا OCR
+    ImageOnly,  // صورة فقط → OCR
+    Mixed,      // نص + صورة → OCR للصور
+    Empty       // فارغة
 }

@@ -13,25 +13,19 @@ public sealed class SearchablePdfService : ISearchablePdfService
     private readonly IPdfRenderer _renderer;
     private readonly IOcrEngineFactory _ocrFactory;
     private readonly IText7PdfBuilder _builder;  // ✅ اسم جديد
-
-    public SearchablePdfService(
-        ILogger<SearchablePdfService> logger,
-        IPdfRenderer renderer,
-        IOcrEngineFactory ocrFactory,
-        IText7PdfBuilder builder)
+    private readonly IPageAnalyzer _pageAnalyzer;
+    public SearchablePdfService(ILogger<SearchablePdfService> logger, IPdfRenderer renderer, 
+                                IOcrEngineFactory ocrFactory, IText7PdfBuilder builder, IPageAnalyzer pageAnalyzer)
     {
         _logger = logger;
         _renderer = renderer;
         _ocrFactory = ocrFactory;
         _builder = builder;
+        _pageAnalyzer = pageAnalyzer;
     }
 
-    public async Task<OcrDocumentResult> ProcessAsync(
-        string inputPdfPath,
-        string outputPdfPath,
-        OcrOptions? options = null,
-        IProgress<OcrProgress>? progress = null,
-        CancellationToken ct = default)
+    public async Task<OcrDocumentResult> ProcessAsync(string inputPdfPath, string outputPdfPath, OcrOptions? options = null,
+                                                      IProgress<OcrProgress>? progress = null, CancellationToken ct = default)
     {
         options ??= new OcrOptions();
 

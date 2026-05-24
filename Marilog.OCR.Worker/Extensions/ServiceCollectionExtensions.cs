@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         );
 
         services.AddSingleton<IText7PdfBuilder>();
+        services.AddSingleton<IPageAnalyzer, PageAnalyzer>();
         services.AddSingleton<ISearchablePdfService, SearchablePdfService>();
         services.AddSingleton<PageOrientationDetector>(sp =>
         {

@@ -74,6 +74,10 @@ public interface ISearchablePdfService
     );
 }
 
+public interface IPageAnalyzer
+{
+    List<PageAnalysisResult> Analyze(string pdfPath);
+}
 
 
 /// <summary>تقدم العملية — للـ UI أو logging</summary>
