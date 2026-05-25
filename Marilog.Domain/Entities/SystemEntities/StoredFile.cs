@@ -1,8 +1,5 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Kernel.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -11,7 +8,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public EntityType? EntityType { get; private set; }
         public int? EntityId { get; private set; }
         public string OriginalFileName { get; private set; } = null!;// from user machine
-        public string StoredFileName { get; private set; } = null!; //saved as GUID
+        public string StoredFileName { get; private set; } = null!; //saved as GUID this GUID Come from File its self couse of it has GUID property inheret from Entity;
         public string RelativePath { get; private set; } = null!; 
         public string ContentType { get; private set; } = null!;
         public string? Content {  get; private set; } = null;
