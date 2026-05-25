@@ -16,7 +16,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             // ── Entity Polymorphic Link ─────────────────────────
             builder.Property(x => x.EntityType)
                 .HasConversion<int>() // Enum stored as int
-                .IsRequired(false);
+                .IsRequired(true);
 
             builder.Property(x => x.EntityId)
                 .IsRequired(false);
