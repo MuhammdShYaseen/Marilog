@@ -1,8 +1,6 @@
-﻿using Marilog.Client.Extensions;
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
-using Marilog.Contracts.DTOs.Requests.TagDtos;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Enums;
@@ -239,16 +237,6 @@ namespace Marilog.Client.Services.SystemServices
         public Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
             => throw new NotImplementedException("Endpoint not yet defined on the backend.");
 
-        //--Tags----------------------------------------------------------------------
-        public Task<IReadOnlyList<DocumentResponse>> GetByTagsAsync(List<string> tags, CancellationToken ct = default)
-         => _http.PostApiAsync<IReadOnlyList<DocumentResponse>>($"{Base}/by-tags", tags, ct)
-        .ContinueWith(t => t.Result ?? (IReadOnlyList<DocumentResponse>)[], ct);
-
-        public Task AddTagAsync(int documentId, string name, string color, CancellationToken ct = default)
-        => _http.PostApiAsync($"{Base}/{documentId}/tags", new AddTagRequest { Name = name, Color = color }, ct);
-
-        public Task RemoveTagAsync(int documentId, int tagId, CancellationToken ct = default)
-            => _http.DeleteApiAsync($"{Base}/{documentId}/tags/{tagId}", ct);
 
     }
 }

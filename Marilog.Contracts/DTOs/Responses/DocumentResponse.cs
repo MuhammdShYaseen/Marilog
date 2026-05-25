@@ -31,7 +31,6 @@
 
         public List<DocumentItemResponse> Items { get; set; } = new List<DocumentItemResponse>();
         public List<PaymentResponse> Payments { get; set; } = new List<PaymentResponse>();
-        public List<TagResponse>? Tags { get; set; }
         public decimal? PaidAmount { get;  set; }
         public decimal Remaining { get;  set; }
     }

@@ -3,7 +3,6 @@ using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
-using Marilog.Contracts.Interfaces.OCR;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
@@ -13,9 +12,7 @@ using Marilog.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
+
 
 namespace Marilog.Infrastructure
 {
