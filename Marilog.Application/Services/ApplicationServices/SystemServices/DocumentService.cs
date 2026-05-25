@@ -7,7 +7,6 @@ using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using System.Net.Mail;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
