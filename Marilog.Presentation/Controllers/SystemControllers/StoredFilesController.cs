@@ -4,7 +4,6 @@ using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Kernel.Enums;
 using Marilog.Presentation.Controllers.Attributes;
 using Microsoft.AspNetCore.Mvc;
