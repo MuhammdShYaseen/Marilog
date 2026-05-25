@@ -4,7 +4,7 @@ using Marilog.Kernel.Enums;
 
 namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
-    public interface IStoredFileQueryService
+    public interface IStoredFileService
     {
         Task<StoredFileResponse?> GetByIdAsync(int id);
         Task<IReadOnlyList<StoredFileResponse>> GetByEntityIdAsync(int entityId, EntityType entityType);
