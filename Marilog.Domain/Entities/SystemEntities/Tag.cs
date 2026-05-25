@@ -7,17 +7,17 @@ namespace Marilog.Domain.Entities.SystemEntities
     {
         public string Name { get; private set; } = default!;
         public string Color { get; private set; } = "#1E88E5";
-        public int DocumentId { get; private set; }
+        public int StoredFileId { get; private set; }
 
         private Tag() { }
 
-        public static Tag Create (string name, string color, int documentId)
+        public static Tag Create (string name, string color, int storedFileId)
         {
           return  new() 
           { 
               Name = name,
-              Color = color, 
-              DocumentId = documentId 
+              Color = color,
+              StoredFileId = storedFileId
           };
         }
             

@@ -44,6 +44,13 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Size)
                 .IsRequired();
 
+
+            builder.HasMany(d => d.Tags)
+                   .WithOne()
+                   .HasForeignKey(t => t.StoredFileId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+
             // ── OCR Content (optional large text) ───────────────
             builder.Property(x => x.Content)
                 .HasColumnType("nvarchar(max)");

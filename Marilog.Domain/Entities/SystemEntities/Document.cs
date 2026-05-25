@@ -1,8 +1,6 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
-using System.Reflection.Metadata;
-using System.Xml.Linq;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -34,8 +32,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private readonly List<DocumentItem> _items = new();
         private readonly List<Payment> _payments = new();
-        private readonly List<Tag> _tags = [];
-        public IReadOnlyList<Tag> Tags => _tags.AsReadOnly();
+        
         public IReadOnlyCollection<DocumentItem> Items => _items.AsReadOnly();
         public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
 
@@ -211,17 +208,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Participants: participants));
         }
 
-        //---Tags-------------------------------------------------------------------
-        public void AddTag(string name, string color)
-        {
-            _tags.Add(Tag.Create(name, color, Id));
-        } 
-
-        public void RemoveTag(int tagId)
-        {
-            var tag = _tags.FirstOrDefault(t => t.Id == tagId);
-            if (tag is not null) _tags.Remove(tag);
-        }
+        
 
         // ── Computed ─────────────────────────────────────────────────────────────
         public decimal TotalPaid => _payments.Sum(p => p.PaidAmount);

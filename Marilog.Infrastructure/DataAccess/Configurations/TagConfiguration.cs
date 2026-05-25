@@ -24,10 +24,12 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                 .HasMaxLength(7)
                 .HasDefaultValue("#1E88E5");
 
-            builder.Property(t => t.DocumentId)
+
+
+            builder.Property(t => t.StoredFileId)
                 .IsRequired();
 
-            builder.HasIndex(t => new { t.DocumentId, t.Name })
+            builder.HasIndex(t => new { t.StoredFileId, t.Name })
                 .IsUnique();
         }
     }

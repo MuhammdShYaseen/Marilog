@@ -16,7 +16,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string ContentType { get; private set; } = null!;
         public string? Content {  get; private set; } = null;
         public long Size { get; private set; }
-
+        private readonly List<Tag> _tags = [];
+        public IReadOnlyList<Tag> Tags => _tags.AsReadOnly();
         public string Checksum { get; private set; } = null!; // optional but useful is the file exist or not
 
 
@@ -63,6 +64,19 @@ namespace Marilog.Domain.Entities.SystemEntities
                 return;
             Content = content;
             Touch();
+        }
+
+
+        //---Tags-------------------------------------------------------------------
+        public void AddTag(string name, string color)
+        {
+            _tags.Add(Tag.Create(name, color, Id));
+        }
+
+        public void RemoveTag(int tagId)
+        {
+            var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+            if (tag is not null) _tags.Remove(tag);
         }
 
     }
