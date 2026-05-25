@@ -123,14 +123,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null,
-            string? reference = null, string? filePath = null,
+            string? reference = null,
             CancellationToken ct = default)
         {
             await EnsureUniqueDocNumberAsync(docNumber, excludeId: null, ct);
 
             var document = Document.Create(docNumber, docTypeId, docDate, currencyId,
                                            totalAmount, supplierId, buyerId, vesselId,
-                                           portId, parentDocumentId, reference, filePath);
+                                           portId, parentDocumentId, reference);
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
             return new DocumentResponse
@@ -142,8 +142,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VesselId = vesselId,
                 PortId = portId,
                 ParentDocumentId = parentDocumentId,
-                Reference = reference,
-                FilePath = filePath
+                Reference = reference
             };
         }
         public async Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
@@ -158,7 +157,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 var document = Document.Create(c.DocNumber, c.DocTypeId, c.DocDate, c.CurrencyId,
                                                c.TotalAmount, c.SupplierId, c.BuyerId, c.VesselId,
-                                               c.PortId, c.ParentDocumentId, c.Reference, c.FilePath);
+                                               c.PortId, c.ParentDocumentId, c.Reference);
                 documents.Add(document);
             }
 
@@ -175,18 +174,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VesselId = doc.VesselId,
                     PortId = doc.PortId,
                     ParentDocumentId = doc.ParentDocumentId,
-                    Reference = doc.Reference,
-                    FilePath = doc.FilePath
+                    Reference = doc.Reference
                 })
                 .ToList();
         }
         public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null,
-            string? filePath = null, CancellationToken ct = default)
+            CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            document.Update(docTypeId, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference, filePath);
+            document.Update(docTypeId, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
         }
@@ -567,7 +565,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
 
             Reference = x.Reference,
-            FilePath = x.FilePath,
             ParentDocumentId = x.ParentDocumentId,
             IsActive = x.IsActive,
             
@@ -600,7 +597,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
 
             Reference = x.Reference,
-            FilePath = x.FilePath,
             ParentDocumentId = x.ParentDocumentId,
             IsActive = x.IsActive,
             Items = x.Items.Select(i => new DocumentItemResponse
@@ -641,7 +637,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
 
             Reference = x.Reference,
-            FilePath = x.FilePath,
             ParentDocumentId = x.ParentDocumentId,
             IsActive = x.IsActive,
             
@@ -704,7 +699,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
 
            Reference = x.Reference,
-           FilePath = x.FilePath,
            ParentDocumentId = x.ParentDocumentId,
            IsActive = x.IsActive,
            Payments = x.Payments.Select(p => new PaymentResponse

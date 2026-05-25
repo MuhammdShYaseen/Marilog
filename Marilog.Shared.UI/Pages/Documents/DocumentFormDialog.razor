@@ -168,13 +168,7 @@
                 </MudSelect>
             </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudTextField T="string"
-                              @bind-Value="_FilePath"
-                              Label="File Path"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
+            
 
             <MudItem xs="12">
                 <MudTextField T="string"
@@ -252,7 +246,6 @@
     private int? _VesselId;
     private int? _PortId;
     private int? _ParentDocumentId;
-    private string? _FilePath;
 
     private bool IsValid =>
        !string.IsNullOrWhiteSpace(_DocNumber)
@@ -277,7 +270,6 @@
         _VesselId = Document.VesselId;
         _PortId = Document.PortId;
         _ParentDocumentId = Document.ParentDocumentId;
-        _FilePath = Document.FilePath;
         _docDate = Document.DocDate;
     }
 
@@ -300,7 +292,6 @@
                  BuyerId = _BuyerId,
                  DocNumber = _DocNumber ?? "NON",
                  DocTypeId = _DocTypeId,
-                 FilePath = _FilePath,
                  ParentDocumentId = _ParentDocumentId,
                  PortId = _PortId,
                  Reference = _Reference,
@@ -318,7 +309,6 @@
                 BuyerId = _BuyerId,
                 DocNumber = _DocNumber ?? "NON",
                 DocTypeId = _DocTypeId,
-                FilePath = _FilePath,
                 ParentDocumentId = _ParentDocumentId,
                 PortId = _PortId,
                 Reference = _Reference,

@@ -123,7 +123,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.PortId,
                 request.ParentDocumentId,
                 request.Reference,
-                request.FilePath,
                 ct);
 
             return CreatedAtAction(nameof(GetById), new { id = doc.Id }, ApiResponse<DocumentResponse>.Ok(doc));
@@ -146,8 +145,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 VesselId = r.VesselId,
                 PortId = r.PortId,
                 ParentDocumentId = r.ParentDocumentId,
-                Reference = r.Reference,
-                FilePath = r.FilePath
+                Reference = r.Reference
             });
 
             var result = await _service.CreateRangeAsync(commands, ct);
@@ -169,7 +167,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.PortId,
                 request.ParentDocumentId,
                 request.Reference,
-                request.FilePath,
                 ct);
 
             return NoContent();

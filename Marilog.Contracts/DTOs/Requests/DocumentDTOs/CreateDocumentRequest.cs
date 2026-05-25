@@ -13,6 +13,5 @@
         public int? PortId { get; set; }
         public int? ParentDocumentId { get; set; }
         public string? Reference { get; set; }
-        public string? FilePath { get; set; }
     }
 }

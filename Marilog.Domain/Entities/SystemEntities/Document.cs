@@ -25,7 +25,6 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         public decimal TotalAmount { get; private set; }
         public string? Reference { get; private set; }
-        public string? FilePath { get; private set; }
 
         // ── Parent reference only — no navigation ownership ──────────────────────
         public int? ParentDocumentId { get; private set; }
@@ -50,8 +49,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             int? vesselId = null,
             int? portId = null,
             int? parentDocumentId = null,
-            string? reference = null,
-            string? filePath = null)
+            string? reference = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(docNumber);
             if (docTypeId <= 0) throw new ArgumentException("Invalid DocTypeId.");
@@ -70,8 +68,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 VesselId = vesselId,
                 PortId = portId,
                 ParentDocumentId = parentDocumentId,
-                Reference = reference,
-                FilePath = filePath
+                Reference = reference
             };
             
 
@@ -89,8 +86,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             int? buyerId = null,
             int? vesselId = null,
             int? portId = null,
-            string? reference = null,
-            string? filePath = null)
+            string? reference = null)
         {
             if (docTypeId <= 0) throw new ArgumentException("Invalid DocTypeId.");
             if (currencyId <= 0) throw new ArgumentException("Invalid CurrencyId.");
@@ -105,14 +101,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             VesselId = vesselId;
             PortId = portId;
             Reference = reference;
-            FilePath = filePath;
             ParentDocumentId = ParentDocumentId;
             Touch();
-            if (!string.IsNullOrWhiteSpace(filePath))
-            {
-                //document.OcrStatus = OcrStatus.Pending;
-                AddDomainEvent(new StoredFileOcrRequestedEvent(Id, filePath));
-            }
+           
         }
 
         // ── Parent linking ────────────────────────────────────────────────────────

@@ -63,13 +63,6 @@ else
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Port</MudText>
                         <MudText Typo="Typo.body2">@(Document.PortName ?? "—")</MudText>
                     </MudItem>
-                    @if (!string.IsNullOrWhiteSpace(Document.FilePath))
-                    {
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">File</MudText>
-                            <MudLink Href="@Document.FilePath" Target="_blank">View File</MudLink>
-                        </MudItem>
-                    }
                 </MudGrid>
             </MudPaper>
         </MudItem>

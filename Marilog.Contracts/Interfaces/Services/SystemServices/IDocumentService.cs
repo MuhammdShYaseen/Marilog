@@ -27,7 +27,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                    int? supplierId = null, int? buyerId = null,
                                    int? vesselId = null, int? portId = null,
                                    int? parentDocumentId = null,
-                                   string? reference = null, string? filePath = null,
+                                   string? reference = null,
                                    CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
                                                 IEnumerable<CreateDocumentRequest> commands,
@@ -37,7 +37,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
                                    int? vesselId = null, int? portId = null, int? parentDocumentId = null,
-                                   string? reference = null, string? filePath = null,
+                                   string? reference = null,
                                    CancellationToken ct = default);
         Task           LinkToParentAsync(int id, int parentDocumentId, CancellationToken ct = default);
         Task           UnlinkFromParentAsync(int id, CancellationToken ct = default);

@@ -18,7 +18,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.CurrencyId).IsRequired();
             builder.Property(x => x.TotalAmount).IsRequired().HasColumnType("decimal(18,2)");
             builder.Property(x => x.Reference).HasMaxLength(200);
-            builder.Property(x => x.FilePath).HasMaxLength(500);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
 
