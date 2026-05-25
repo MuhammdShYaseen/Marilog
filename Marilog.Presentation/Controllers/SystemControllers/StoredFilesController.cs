@@ -1,7 +1,10 @@
 ﻿
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
+using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Kernel.Enums;
 using Marilog.Presentation.Controllers.Attributes;
 using Microsoft.AspNetCore.Mvc;
@@ -25,14 +28,16 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<IActionResult> GetById(int id, CancellationToken ct)
         {
             var result = await _service.GetByIdAsync(id, ct);
-            return result is null ? NotFound() : Ok(result);
+            return result is null ? 
+                throw new KeyNotFoundException("object not found") : 
+                Ok(ApiResponse<StoredFileResponse>.Ok(result));
         }
 
         [HttpGet("entity/{entityType:int}/{entityId:int}")]
         public async Task<IActionResult> GetByEntity(int entityType, int entityId, CancellationToken ct)
         {
             var result = await _service.GetByEntityIdAsync(entityId, (EntityType)entityType, ct);
-            return Ok(result);
+            return Ok(ApiResponse<IReadOnlyList<StoredFileResponse>>.Ok(result));
         }
 
         [HttpGet("search")]
@@ -44,14 +49,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             CancellationToken ct)
         {
             var result = await _service.FullTextSearchAsync(query, page, pageSize, entityType, ct);
-            return Ok(result);
+            return Ok(ApiResponse<PagedResponse<StoredFileResponse>>.Ok(result));
         }
 
         [HttpGet("by-tags")]
         public async Task<IActionResult> GetByTags([FromQuery] List<string> tags, CancellationToken ct)
         {
             var result = await _service.GetByTagsAsync(tags, ct);
-            return Ok(result);
+            return Ok(ApiResponse<IReadOnlyList<StoredFileResponse>>.Ok(result));
         }
 
         [HttpGet("{id:int}/stream")]
