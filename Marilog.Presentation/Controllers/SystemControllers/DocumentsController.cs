@@ -274,29 +274,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.LogEmailAsync(id, request.Subject, request.Body, request.Participants, request.Direction, ct);
             return NoContent();
         }
-        //---------------------------------------
-        //Tags
-        //---------------------------------------
-        [HttpPost("by-tags")]
-        public async Task<ActionResult<ApiResponse<IReadOnlyList<DocumentResponse>>>> GetByTags(
-        [FromBody] List<string> tags, CancellationToken ct)
-        {
-            var result = await _service.GetByTagsAsync(tags, ct);
-            return Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(result));
-        }
-
-        [HttpPost("{id:int}/tags")]
-        public async Task<IActionResult> AddTag(int id, [FromBody] AddTagRequest request, CancellationToken ct)
-        {
-            await _service.AddTagAsync(id, request.Name, request.Color, ct);
-            return NoContent();
-        }
-
-        [HttpDelete("{id:int}/tags/{tagId:int}")]
-        public async Task<IActionResult> RemoveTag(int id, int tagId, CancellationToken ct)
-        {
-            await _service.RemoveTagAsync(id, tagId, ct);
-            return NoContent();
-        }
+        
     }
 }
