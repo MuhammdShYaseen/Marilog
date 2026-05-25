@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
-    [Route("api/files")]
+    [Route("api/StoredFiles")]
     public class StoredFilesController : ControllerBase
     {
         private readonly IStoredFileService _service;
