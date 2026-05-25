@@ -91,6 +91,9 @@ namespace Marilog.Application
             //----HttpClient-----------------------------------------------------
             services.AddScoped<HttpClient>();
 
+
+            //---StorgService----------------------------------------------------
+            services.AddScoped<IStoredFileService, StoredFileService>();
             return services;
         }
     }

@@ -8,7 +8,7 @@ namespace Marilog.Contracts.DTOs.Requests.StoregFileDTOs
         public string FileName { get; init; } = null!;
         public string ContentType { get; init; } = null!;
         public long Size { get; init; }
-        public EntityType? EntityType { get; init; }
+        public EntityType EntityType { get; init; }
         public int? EntityId { get; init; }
     }
 }

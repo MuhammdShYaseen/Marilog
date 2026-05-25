@@ -10,14 +10,14 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         // Queries
         Task<StoredFileResponse?> GetByIdAsync(int id, CancellationToken ct = default);
         Task<IReadOnlyList<StoredFileResponse>> GetByEntityIdAsync(int entityId, EntityType entityType, CancellationToken ct = default);
-        Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType? entityType = null, CancellationToken ct = default);
+        Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType entityType, CancellationToken ct = default);
         Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct = default);
         Task<Stream> GetFileStreamAsync(int id, CancellationToken ct = default);
 
         // Commands
         Task<StoredFileResponse> UploadAsync(UploadFileRequest request, CancellationToken ct = default);
         Task DeleteAsync(int id, CancellationToken ct = default);
-        Task UpdateEntityLinkAsync(int id, EntityType? entityType, int? entityId, CancellationToken ct = default);
+        Task UpdateEntityLinkAsync(int id, EntityType entityType, int? entityId, CancellationToken ct = default);
         Task UpdateContentFromOCRAsync(int id, string content, CancellationToken ct = default);
 
         // Tags

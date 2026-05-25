@@ -9,7 +9,8 @@
         EmailAttachment = 4,
         SwiftTransfer = 5,
         Person = 6,
-        Vessel = 7
+        Vessel = 7,
+        NON = 8
     }
     public enum JobStatus
     {

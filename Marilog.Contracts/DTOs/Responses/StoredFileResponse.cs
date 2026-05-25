@@ -23,7 +23,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public string Checksum { get; set; } = null!;
 
         public DateTime CreatedAt { get; set; }
-
-
+        public IReadOnlyList<TagResponse>? Tags { get; set; }
     }
 }

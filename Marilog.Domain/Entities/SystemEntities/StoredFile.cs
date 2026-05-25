@@ -5,7 +5,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 {
     public class StoredFile : Entity
     {
-        public EntityType? EntityType { get; private set; }
+        public EntityType EntityType { get; private set; } = EntityType.NON;
         public int? EntityId { get; private set; }
         public string OriginalFileName { get; private set; } = null!;// from user machine
         public string StoredFileName { get; private set; } = null!; //saved as GUID this GUID Come from File its self couse of it has GUID property inheret from Entity;
@@ -27,7 +27,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             string contentType,
             long size,
             string checksum,
-            EntityType? entityType,
+            EntityType entityType,
             int? entityId)
         {
             return new StoredFile
@@ -43,7 +43,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             };
         }
 
-        public void UpdateEntityLink(EntityType? entityType, int? entityId)
+        public void UpdateEntityLink(EntityType entityType, int? entityId)
         {
             // إذا كان نفس الرابط → لا شيء يتغير
             if (EntityType == entityType && EntityId == entityId)
