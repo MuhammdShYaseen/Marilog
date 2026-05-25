@@ -65,11 +65,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // ── Commands ─────────────────────────────────────────────────────────
 
         [HttpPost]
-        public async Task<IActionResult> Upload(
-            [FromForm] IFormFile file,
-            [FromForm] EntityType entityType,
-            [FromForm] int? entityId,
-            CancellationToken ct)
+        public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] EntityType entityType, [FromForm] int? entityId, CancellationToken ct)
         {
             var request = new UploadFileRequest
             {
@@ -103,10 +99,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         [HttpPut("{id:int}/ocr-content")]
-        public async Task<IActionResult> UpdateOcrContent(
-            int id,
-            [FromBody] UpdateOcrContentRequest request,
-            CancellationToken ct)
+        public async Task<IActionResult> UpdateOcrContent(int id, [FromBody] UpdateOcrContentRequest request, CancellationToken ct)
         {
             await _service.UpdateContentFromOCRAsync(id, request.Content, ct);
             return NoContent();
