@@ -6,6 +6,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Enums;
 using Marilog.Presentation.Controllers.Attributes;
+using Marilog.Presentation.PresentationDTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -71,16 +72,16 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
         [HttpPost]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] EntityType entityType, [FromForm] int? entityId, CancellationToken ct)
+        public async Task<IActionResult> Upload([FromForm] FileUploadDto uploadDto, CancellationToken ct)
         {
             var request = new UploadFileRequest
             {
-                FileStream = file.OpenReadStream(),
-                FileName = file.FileName,
-                ContentType = file.ContentType,
-                Size = file.Length,
-                EntityType = entityType,
-                EntityId = entityId
+                FileStream = uploadDto.File.OpenReadStream(),
+                FileName = uploadDto.File.FileName,
+                ContentType = uploadDto.File.ContentType,
+                Size = uploadDto.File.Length,
+                EntityType = uploadDto.EntityType,
+                EntityId = uploadDto.EntityId
             };
 
             var result = await _service.UploadAsync(request, ct);
