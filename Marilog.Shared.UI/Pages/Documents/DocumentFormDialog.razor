@@ -1,5 +1,7 @@
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
+@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Upload
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
 
@@ -179,6 +181,18 @@
                               Margin="Margin.Dense" />
             </MudItem>
 
+            <MudItem xs="12">
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+        Attachment
+    </MudText>
+    <FileUpload FileName="@_attachment.FileName"
+                ContentType="@_attachment.ContentType"
+                Size="@_attachment.Size"
+                FileStream="@_attachment.FileStream"
+                OnSelectRequested="OnSelectFileRequested"
+                OnFileChanged="OnFileChanged" />
+</MudItem>
+
         </MudGrid>
 
     </DialogContent>
@@ -201,7 +215,9 @@
 </MudDialog>
 
 @code {
+    private UploadFileRequest _attachment = new();
 
+    [Parameter] public EventCallback OnSelectFileRequested { get; set; }
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -315,5 +331,10 @@
                 TotalAmount = _TotalAmount,
             }));
         }
+    }
+
+    private async Task OnFileChanged(UploadFileRequest result)
+    {
+        _attachment = result;
     }
 }

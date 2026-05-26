@@ -70,6 +70,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // ── Commands ─────────────────────────────────────────────────────────
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] EntityType entityType, [FromForm] int? entityId, CancellationToken ct)
         {
             var request = new UploadFileRequest

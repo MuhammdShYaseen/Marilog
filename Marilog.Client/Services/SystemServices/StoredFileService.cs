@@ -109,7 +109,7 @@ namespace Marilog.Client.Services.SystemServices
             string content,
             CancellationToken ct = default)
         {
-
+            throw new NotSupportedException("This operation is reserved for the OCR Worker and cannot be called from the frontend.");
         }
 
         // ── Tags ─────────────────────────────────────────────────────────────
