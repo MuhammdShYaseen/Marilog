@@ -31,7 +31,7 @@ namespace Marilog.Client.Extensions
             services.AddScoped<ISwiftTransferService, SwiftTransferService>();
             services.AddScoped<IVesselService, VesselService>();
             services.AddScoped<IVoyageService, VoyageService>();
-
+            services.AddScoped<IStoredFileService, StoredFileService>();
             //=====frontend================================================================
             services.AddScoped<INavigationService, NavigationService>();
             services.AddScoped<IAppThemeService, AppThemeService>();
