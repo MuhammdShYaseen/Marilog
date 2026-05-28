@@ -28,6 +28,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             return new Company
             {
+                RegistrationNumber = registrationNumber,
                 CompanyName = companyName,
                 CountryId = countryId,
                 ContactName = contactName,

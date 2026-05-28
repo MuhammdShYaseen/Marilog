@@ -224,10 +224,10 @@ else
     {
         var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Add Item");
         var result = await dialog.Result;
-        if (result is null || result.Canceled || result.Data is null) return;
+        if (result is null || result.Canceled || result.Data is null || result.Data is not AddDocumentItemRequest) return;
 
-        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data;
-        await DocumentService.AddItemAsync(doc.Id, name, qty, price, unit);
+        var data = (AddDocumentItemRequest)result.Data;
+        await DocumentService.AddItemAsync(doc.Id, data.ProductName, data.Quantity, data.UnitPrice, data.Unit);
         Snackbar.Add("Item added.", Severity.Success);
         await LoadDetail(doc.Id);
     }
@@ -237,10 +237,10 @@ else
         var parameters = new DialogParameters { ["Item"] = args.Item };
         var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Edit Item", parameters);
         var result = await dialog.Result;
-        if (result is null || result.Canceled || result.Data is null) return;
+        if (result is null || result.Canceled || result.Data is null || result.Data is not UpdateDocumentItemRequest) return;
 
-        var (name, qty, price, unit) = ((string, decimal, decimal, string?))result.Data;
-        await DocumentService.UpdateItemAsync(args.DocumentId, args.Item.Id, name, qty, price, unit);
+        var data = (UpdateDocumentItemRequest)result.Data;
+        await DocumentService.UpdateItemAsync(args.DocumentId, args.Item.Id, data.ProductName, data.Quantity, data.UnitPrice, data.Unit);
         Snackbar.Add("Item updated.", Severity.Success);
         await LoadDetail(args.DocumentId);
     }

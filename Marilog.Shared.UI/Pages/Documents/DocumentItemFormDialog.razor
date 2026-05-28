@@ -67,11 +67,31 @@
     private void Cancel() => MudDialog.Cancel();
 
     // Option 2: Create a dedicated DTO(best practice)
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new AddDocumentItemRequest
+    private void Submit()
     {
-        ProductName = _productName,
-        Quantity = _quantity,
-        UnitPrice = _unitPrice,
-        Unit = _unit
-    }));
+        if (Item == null)
+        {
+            MudDialog.Close(DialogResult.Ok(new AddDocumentItemRequest
+            {
+                ProductName = _productName,
+                Quantity = _quantity,
+                UnitPrice = _unitPrice,
+                Unit = _unit
+            }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new UpdateDocumentItemRequest
+            {
+                ProductName = _productName,
+                Quantity = _quantity,
+                UnitPrice = _unitPrice,
+                Unit = _unit
+            }));
+        }
+
+
+
+    }
+    
 }

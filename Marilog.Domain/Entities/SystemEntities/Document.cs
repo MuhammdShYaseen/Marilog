@@ -127,7 +127,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             var item = DocumentItem.Create(Id, productName, quantity, unitPrice, unit);
             _items.Add(item);
-            RecalculateTotal();
+            //RecalculateTotal();
             Touch();
             return item;
         }
@@ -138,7 +138,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             item.Update(productName, quantity, unitPrice, unit);
-            RecalculateTotal();
+            //RecalculateTotal();
             Touch();
         }
 
@@ -147,7 +147,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             _items.Remove(item);
-            RecalculateTotal();
+            //RecalculateTotal();
             Touch();
         }
 
