@@ -1,6 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -24,6 +25,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public Currency Currency { get; private set; } = null!;
 
         public decimal TotalAmount { get; private set; }
+        [NotMapped]
+        public decimal TotalItemsAmount { get; private set; }
         public string? Reference { get; private set; }
 
         // ── Parent reference only — no navigation ownership ──────────────────────
@@ -101,7 +104,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             VesselId = vesselId;
             PortId = portId;
             Reference = reference;
-            ParentDocumentId = ParentDocumentId;
+            ParentDocumentId = parentDocumentId;
             Touch();
            
         }
@@ -127,7 +130,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             var item = DocumentItem.Create(Id, productName, quantity, unitPrice, unit);
             _items.Add(item);
-            //RecalculateTotal();
+            CalculateItemsTotalAmount();
             Touch();
             return item;
         }
@@ -138,7 +141,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             item.Update(productName, quantity, unitPrice, unit);
-            //RecalculateTotal();
+            CalculateItemsTotalAmount();
             Touch();
         }
 
@@ -147,7 +150,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             _items.Remove(item);
-            //RecalculateTotal();
+            CalculateItemsTotalAmount();
             Touch();
         }
 
@@ -206,6 +209,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public decimal RemainingBalance => TotalAmount - TotalPaid;
         public bool IsFullyPaid => RemainingBalance <= 0;
 
-        private void RecalculateTotal() => TotalAmount = _items.Sum(i => i.LineTotal);
+        public decimal CalculateItemsTotalAmount() => TotalItemsAmount = _items.Sum(i => i.LineTotal);
+        public bool Is_TotalAmount_Equel_TotalItemsAmount() => TotalAmount == CalculateItemsTotalAmount();
+        public decimal TotalAmount_Minus_TotalItemsAmount() => TotalAmount - CalculateItemsTotalAmount();
     }
 }
