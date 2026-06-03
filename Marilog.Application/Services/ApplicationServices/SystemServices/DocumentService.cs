@@ -567,6 +567,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             ParentDocumentId = x.ParentDocumentId,
             IsActive = x.IsActive,
             
+            
         };
 
         private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithItems =
@@ -606,7 +607,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 UnitPrice = i.UnitPrice,
                 LineTotal = i.LineTotal,
                 Unit = i.Unit,
-            }).ToList()
+            }).ToList(),
+
+            Is_TotalAmount_Equal_TotalItemsAmount = x.Is_TotalAmount_Equal_TotalItemsAmount,
+            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount_Minus_TotalItemsAmount,
+            TotalItemsAmount = x.TotalItemsAmount
         };
 
         private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithPayments =
@@ -737,7 +742,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 UnitPrice = i.UnitPrice,
                 LineTotal = i.LineTotal,
                 Unit = i.Unit,
-            }).ToList()
+            }).ToList(),
+            Is_TotalAmount_Equal_TotalItemsAmount = x.Is_TotalAmount_Equal_TotalItemsAmount,
+            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount_Minus_TotalItemsAmount,
+            TotalItemsAmount = x.TotalItemsAmount
 
         };
     }

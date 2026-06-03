@@ -32,5 +32,9 @@
         public List<PaymentResponse> Payments { get; set; } = new List<PaymentResponse>();
         public decimal? PaidAmount { get;  set; }
         public decimal Remaining { get;  set; }
+        public decimal TotalItemsAmount {  get; set; }
+        public bool Is_TotalAmount_Equal_TotalItemsAmount {  get; set; }
+        public decimal TotalAmount_Minus_TotalItemsAmount { get; set; }
+
     }
 }

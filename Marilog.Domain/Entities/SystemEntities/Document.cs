@@ -25,8 +25,16 @@ namespace Marilog.Domain.Entities.SystemEntities
         public Currency Currency { get; private set; } = null!;
 
         public decimal TotalAmount { get; private set; }
+
         [NotMapped]
-        public decimal TotalItemsAmount { get; private set; }
+        public decimal TotalItemsAmount => _items.Sum(i => i.LineTotal);
+
+        [NotMapped]
+        public bool Is_TotalAmount_Equal_TotalItemsAmount  => TotalAmount == TotalItemsAmount;
+
+        [NotMapped]
+        public decimal TotalAmount_Minus_TotalItemsAmount => TotalAmount - TotalItemsAmount;
+
         public string? Reference { get; private set; }
 
         // ── Parent reference only — no navigation ownership ──────────────────────
@@ -130,7 +138,6 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             var item = DocumentItem.Create(Id, productName, quantity, unitPrice, unit);
             _items.Add(item);
-            CalculateItemsTotalAmount();
             Touch();
             return item;
         }
@@ -141,7 +148,6 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             item.Update(productName, quantity, unitPrice, unit);
-            CalculateItemsTotalAmount();
             Touch();
         }
 
@@ -150,7 +156,6 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             _items.Remove(item);
-            CalculateItemsTotalAmount();
             Touch();
         }
 
@@ -209,8 +214,11 @@ namespace Marilog.Domain.Entities.SystemEntities
         public decimal RemainingBalance => TotalAmount - TotalPaid;
         public bool IsFullyPaid => RemainingBalance <= 0;
 
-        public decimal CalculateItemsTotalAmount() => TotalItemsAmount = _items.Sum(i => i.LineTotal);
-        public bool Is_TotalAmount_Equel_TotalItemsAmount() => TotalAmount == CalculateItemsTotalAmount();
-        public decimal TotalAmount_Minus_TotalItemsAmount() => TotalAmount - CalculateItemsTotalAmount();
+        
+       
+
+
+
+
     }
 }
