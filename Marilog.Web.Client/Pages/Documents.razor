@@ -55,6 +55,8 @@ else
     private IReadOnlyList<PortResponse> _ports = [];
     private DocumentResponse? _detail;
     private bool _loading = true;
+    private int? _selectedVesselId;
+    private int? _selectedSupplierId;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -91,21 +93,27 @@ else
 
     private async Task LoadByVessel(int? vesselId)
     {
+        _selectedVesselId = vesselId;
+
         if (vesselId is null)
         {
             _byVessel = [];
             return;
         }
+
         _byVessel = await DocumentService.GetByVesselAsync(vesselId.Value);
     }
 
     private async Task LoadBySupplier(int? supplierId)
     {
+        _selectedSupplierId = supplierId;
+
         if (supplierId is null)
         {
             _bySupplier = [];
             return;
         }
+
         _bySupplier = await DocumentService.GetBySupplierAsync(supplierId.Value);
     }
 
@@ -205,6 +213,17 @@ else
         Snackbar.Add("Document deleted.", Severity.Success);
         _detail = null;
         await LoadAsync();
+        if (_selectedVesselId.HasValue)
+        {
+            _byVessel = await DocumentService
+                .GetByVesselAsync(_selectedVesselId.Value);
+        }
+
+        if (_selectedSupplierId.HasValue)
+        {
+            _bySupplier = await DocumentService
+                .GetBySupplierAsync(_selectedSupplierId.Value);
+        }
     }
 
     private async Task OpenAddPaymentDialog(DocumentResponse doc)
