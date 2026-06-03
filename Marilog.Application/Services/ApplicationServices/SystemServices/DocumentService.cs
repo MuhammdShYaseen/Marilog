@@ -609,9 +609,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Unit = i.Unit,
             }).ToList(),
 
-            Is_TotalAmount_Equal_TotalItemsAmount = x.Is_TotalAmount_Equal_TotalItemsAmount,
-            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount_Minus_TotalItemsAmount,
-            TotalItemsAmount = x.TotalItemsAmount
+            TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+
+            Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+
+            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
         };
 
         private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithPayments =
@@ -743,9 +745,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 LineTotal = i.LineTotal,
                 Unit = i.Unit,
             }).ToList(),
-            Is_TotalAmount_Equal_TotalItemsAmount = x.Is_TotalAmount_Equal_TotalItemsAmount,
-            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount_Minus_TotalItemsAmount,
-            TotalItemsAmount = x.TotalItemsAmount
+            TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+
+            Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+
+            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
 
         };
     }

@@ -26,15 +26,6 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         public decimal TotalAmount { get; private set; }
 
-        [NotMapped]
-        public decimal TotalItemsAmount => _items.Sum(i => i.LineTotal);
-
-        [NotMapped]
-        public bool Is_TotalAmount_Equal_TotalItemsAmount  => TotalAmount == TotalItemsAmount;
-
-        [NotMapped]
-        public decimal TotalAmount_Minus_TotalItemsAmount => TotalAmount - TotalItemsAmount;
-
         public string? Reference { get; private set; }
 
         // ── Parent reference only — no navigation ownership ──────────────────────

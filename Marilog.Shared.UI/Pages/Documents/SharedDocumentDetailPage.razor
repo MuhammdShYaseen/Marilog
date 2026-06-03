@@ -99,6 +99,63 @@ else
                 </MudStack>
 
                 <MudDivider Class="my-3" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    Items Validation
+                </MudText>
+
+                <MudStack Spacing="2">
+
+                    <MudStack Row="true">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Items Total
+                        </MudText>
+                        <MudSpacer />
+                        <MudText Typo="Typo.body2" Style="font-weight:600">
+                            @Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode
+                        </MudText>
+                    </MudStack>
+
+                    <MudStack Row="true">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Difference
+                        </MudText>
+                        <MudSpacer />
+                        <MudText Typo="Typo.body2"
+                                 Color="@(Document.TotalAmount_Minus_TotalItemsAmount == 0 ? Color.Success : Color.Warning)"
+                                 Style="font-weight:600">
+                            @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode
+                        </MudText>
+                    </MudStack>
+
+                    <MudStack Row="true">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Validation
+                        </MudText>
+                        <MudSpacer />
+
+                        @if (Document.Is_TotalAmount_Equal_TotalItemsAmount)
+                        {
+                            <MudChip T="string"
+                                     Color="Color.Success"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small">
+                                Matched
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string"
+                                     Color="Color.Error"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small">
+                                Mismatch
+                            </MudChip>
+                        }
+                    </MudStack>
+
+                </MudStack>
+
+                <MudDivider Class="my-3" />
 
                 <MudStack Spacing="1">
                     <MudButton Variant="Variant.Filled"
