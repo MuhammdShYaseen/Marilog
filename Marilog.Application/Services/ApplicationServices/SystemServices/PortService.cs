@@ -86,7 +86,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Code = portCode,
                 CountryId = countryId,
                 IsActive = true,
-                CountryName = port.Country!.CountryName ?? "",
+                CountryName = port.Country?.CountryName ?? port.CountryID.ToString(),
                 Name = portName
             };
         }
