@@ -13,6 +13,7 @@
 @inject IPortService PortService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ISwiftTransferService SwiftTransferService
 
 @if (_loading)
 {
@@ -53,6 +54,7 @@ else
     private IReadOnlyList<DocumentTypeResponse> _docTypes = [];
     private IReadOnlyList<CurrencyResponse> _currencies = [];
     private IReadOnlyList<PortResponse> _ports = [];
+    private IReadOnlyList<SwiftTransferResponse> _swifts = [];
     private DocumentResponse? _detail;
     private bool _loading = true;
     private int? _selectedVesselId;
@@ -228,7 +230,12 @@ else
 
     private async Task OpenAddPaymentDialog(DocumentResponse doc)
     {
-        var parameters = new DialogParameters { ["Document"] = doc };
+        var swifts = await SwiftTransferService.GetBySenderAsync(doc.BuyerId!.Value); 
+        var parameters = new DialogParameters 
+        { 
+            ["Document"] = doc,
+            ["SwiftTransfers"] = swifts
+        };
         var dialog = await DialogService.ShowAsync<AddPaymentDialog>("Add Payment", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled || result.Data is null) return;

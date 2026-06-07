@@ -1,0 +1,69 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="int"
+                           @bind-Value="_swiftTransferId"
+                           Label="SWIFT Transfer"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @if (SwiftTransfers is not null)
+                    {
+                        @foreach (var swift in SwiftTransfers)
+                        {
+                            <MudSelectItem Value="@swift.Id">
+                                @($"{swift.SwiftReference} | {swift.Amount:N2} | {swift.TransactionDate:dd/MM/yyyy}")
+                            </MudSelectItem>
+                        }
+                    }
+
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="_amount"
+                                 Label="Amount"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_paymentDate"
+                               Label="Payment Date"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_swiftTransferId <= 0 || _amount <= 0 || _paymentDate is null)">
+            Record
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DocumentResponse? Document { get; set; }
+    [Parameter] public IReadOnlyList<SwiftTransferResponse>?  SwiftTransfers { get; set; }
+
+    private int _swiftTransferId;
+    private decimal _amount;
+    private DateTime? _paymentDate = DateTime.Today;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        (_swiftTransferId, _amount, DateOnly.FromDateTime(_paymentDate!.Value))
+    ));
+}
