@@ -1,3 +1,4 @@
+
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
@@ -255,7 +256,17 @@ else
                     <RowTemplate>
                         <MudTd>@context.SwiftTransfer?.SwiftReference</MudTd>
                         <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
-                        <MudTd Style="font-weight:600">@context.PaidAmount.ToString("N2")</MudTd>
+                        <MudTd Style="font-weight:600">@context.PaidAmount.ToString("N2")
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           OnClick="() => OnEditPaymentClicked.InvokeAsync((Document.Id, context))" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
+                        </MudTd>
+
                     </RowTemplate>
                     <NoRecordsContent>
                         <MudText>No payments recorded.</MudText>
@@ -278,6 +289,8 @@ else
 }
 
 @code {
+    [Parameter] public EventCallback<(int DocumentId, PaymentResponse Payment)> OnEditPaymentClicked { get; set; }
+    [Parameter] public EventCallback<(int DocumentId, int PaymentId)> OnRemovePaymentClicked { get; set; }
     [Parameter] public DocumentResponse? Document { get; set; }
     [Parameter] public EventCallback OnBackClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }

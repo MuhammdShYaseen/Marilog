@@ -219,9 +219,22 @@ namespace Marilog.Client.Services.SystemServices
             return response!;
         }
 
-        public Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            var request = new UpdatePaymentRequest
+            {
+                SwiftTransferId = swiftTransferId,
+                PaidAmount = paidAmount,
+                PaymentDate = paymentDate
+            };
+
+            var http = await _http.PutAsJsonAsync( $"{Base}/{documentId}/payments/{paymentId}",  request, ct);
+
+            http.EnsureSuccessStatusCode();
+
+            var response = await http.Content.ReadFromJsonAsync<PaymentResponse>(ct);
+
+            return response!;
         }
 
         // ── Emails ────────────────────────────────────────────────────────────────
