@@ -261,6 +261,20 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(payment);
         }
 
+        [HttpPut("{id:int}/payments/{paymentId:int}")]
+        public async Task<ActionResult<PaymentResponse>> UpdatePayment(int id, int paymentId, [FromBody] UpdatePaymentRequest request, CancellationToken ct)
+        {
+            var payment = await _service.UpdatePaymentAsync(
+                id,
+                paymentId,
+                request.SwiftTransferId,
+                request.PaidAmount,
+                request.PaymentDate,
+                ct);
+
+            return Ok(payment);
+        }
+
         // ─────────────────────────────────────────────
         // Email
         // ─────────────────────────────────────────────

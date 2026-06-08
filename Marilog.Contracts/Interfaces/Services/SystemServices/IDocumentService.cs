@@ -61,6 +61,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<PaymentResponse> AddPaymentAsync(int documentId, int swiftTransferId,
                                       decimal paidAmount, DateOnly paymentDate,
                                       CancellationToken ct = default);
+        Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId,
+                                        decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default);
 
         // ── Emails ────────────────────────────────────────────────────────────────
         Task LogEmailAsync(int documentId, string subject, string body,

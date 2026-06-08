@@ -327,8 +327,42 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return new PaymentResponse
             {
                 Id = payment.Id,
-                SwiftTransferId = payment.Id,
-                DocumentId = payment.Id,
+                SwiftTransferId = payment.SwiftTransferId,
+                DocumentId = payment.DocumentId,
+                PaidAmount = payment.PaidAmount,
+                PaymentDate = payment.PaymentDate
+            };
+        }
+
+        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        {
+            var document = await _repo.Query()
+                .Include(x => x.Payments)
+                .FirstOrDefaultAsync(x => x.Id == documentId, ct)
+                ?? throw new KeyNotFoundException(
+                    $"Document {documentId} not found.");
+
+            var swiftExists = await _swiftRepo.Query()
+                .AnyAsync(x => x.Id == swiftTransferId && x.IsActive, ct);
+
+            if (!swiftExists)
+                throw new KeyNotFoundException(
+                    $"SwiftTransfer {swiftTransferId} not found or inactive.");
+
+            document.UpdatePayment(paymentId, swiftTransferId, paidAmount, paymentDate);
+
+            _repo.Update(document);
+
+            await _repo.SaveChangesAsync(ct);
+
+            var payment = document.Payments
+                .First(x => x.Id == paymentId);
+
+            return new PaymentResponse
+            {
+                Id = payment.Id,
+                SwiftTransferId = payment.SwiftTransferId,
+                DocumentId = payment.DocumentId,
                 PaidAmount = payment.PaidAmount,
                 PaymentDate = payment.PaymentDate
             };

@@ -168,6 +168,34 @@ namespace Marilog.Domain.Entities.SystemEntities
             return payment;
         }
 
+        public void UpdatePayment(int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate)
+        {
+            var payment = _payments
+                .FirstOrDefault(x => x.Id == paymentId)
+                ?? throw new InvalidOperationException($"Payment '{paymentId}' not found.");
+
+            if (paidAmount <= 0)
+                throw new ArgumentException("PaidAmount must be positive.");
+
+            var otherPaymentsTotal = _payments
+                .Where(x => x.Id != paymentId)
+                .Sum(x => x.PaidAmount);
+
+            if (otherPaymentsTotal + paidAmount > TotalAmount)
+                throw new InvalidOperationException(
+                    "PaidAmount exceeds remaining balance.");
+
+            payment.Update(
+                swiftTransferId,
+                paidAmount,
+                paymentDate);
+
+            Touch();
+
+            if (IsFullyPaid)
+                AddDomainEvent(new DocumentFullyPaidEvent(Id));
+        }
+
         // ── Email — raises Domain Event; handler persists Email aggregate ─────────
         /// <summary>
         /// Logs an email exchange as part of the procurement audit trail.

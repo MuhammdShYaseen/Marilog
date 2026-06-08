@@ -1,8 +1,10 @@
-﻿namespace Marilog.Domain.Entities.SystemEntities
+﻿using Marilog.Domain.Common;
+
+namespace Marilog.Domain.Entities.SystemEntities
 {
-    public class Payment
+    public class Payment : Entity
     {
-        public int Id { get; private set; }
+        //public int Id { get; private set; }
         public int DocumentId { get; private set; }
         public int SwiftTransferId { get; private set; }
         public SwiftTransfer SwiftTransfer { get; private set; } = null!;
@@ -24,5 +26,20 @@
                 PaymentDate = paymentDate
             };
         }
+
+        internal void Update(int swiftTransferId, decimal paidAmount, DateOnly paymentDate)
+        {
+            if (swiftTransferId <= 0)
+                throw new ArgumentException("Invalid SwiftTransferID.");
+
+            if (paidAmount <= 0)
+                throw new ArgumentException("PaidAmount must be positive.");
+
+            SwiftTransferId = swiftTransferId;
+            PaidAmount = paidAmount;
+            PaymentDate = paymentDate;
+        }
+
+
     }
 }
