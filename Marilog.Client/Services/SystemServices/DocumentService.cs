@@ -219,6 +219,11 @@ namespace Marilog.Client.Services.SystemServices
             return response!;
         }
 
+        public Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
         // ── Emails ────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,
@@ -235,6 +240,6 @@ namespace Marilog.Client.Services.SystemServices
         public Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
             => throw new NotImplementedException("Endpoint not yet defined on the backend.");
 
-
+        
     }
 }
