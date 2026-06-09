@@ -1,5 +1,25 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+
+    public enum BlType
+    {
+        Straight,      // Non-negotiable, named consignee
+        OrderBl,       // Negotiable, transferable by endorsement
+        BearerBl       // Negotiable, no named consignee
+    }
+
+    public enum BlIssuanceType
+    {
+        Master,        // MBL - issued by the actual carrier/vessel owner
+        House          // HBL - issued by freight forwarder / NVOCC / agent
+    }
+
+    public enum FreightTerms
+    {
+        Prepaid,       // Shipper pays freight
+        Collect,       // Consignee pays at destination
+        ThirdParty     // Third party pays
+    }
     public enum EntityType
     {
         AContract = 0,

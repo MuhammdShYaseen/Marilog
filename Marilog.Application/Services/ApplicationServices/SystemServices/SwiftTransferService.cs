@@ -57,6 +57,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<SwiftTransferResponse>> GetBySenderAndReceverAsync(int senderId, int receverId, CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.SenderCompanyId == senderId && x.IsActive && x.ReceiverCompanyId == receverId)
+                .OrderByDescending(x => x.TransactionDate)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+        }
+
         public async Task<IReadOnlyList<SwiftTransferResponse>> GetByReceiverAsync(int companyId,
             CancellationToken ct = default)
         {

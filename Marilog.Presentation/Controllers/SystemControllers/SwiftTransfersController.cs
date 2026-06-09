@@ -47,6 +47,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));
         }
 
+        [HttpGet("by-sender-receiver")]
+        public async Task<ActionResult<IReadOnlyList<SwiftTransferResponse>>> GetBySenderAndReceiver([FromQuery] int senderId, [FromQuery] int receiverId, CancellationToken ct)
+        {
+            var result = await _service.GetBySenderAndReceverAsync(senderId, receiverId, ct);
+
+            return Ok(ApiResponse<IReadOnlyList<SwiftTransferResponse>>.Ok(result));
+        }
+
         [HttpGet("unallocated")]
         public async Task<ActionResult<IReadOnlyList<SwiftTransferResponse>>> GetUnallocated(CancellationToken ct)
         {

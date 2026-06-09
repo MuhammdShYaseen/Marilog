@@ -12,6 +12,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<SwiftTransferResponse?>              GetWithPaymentsAsync(int id, CancellationToken ct = default);
         Task<IReadOnlyList<SwiftTransferResponse>> GetBySenderAsync(int companyId, CancellationToken ct = default);
         Task<IReadOnlyList<SwiftTransferResponse>> GetByReceiverAsync(int companyId, CancellationToken ct = default);
+        Task<IReadOnlyList<SwiftTransferResponse>> GetBySenderAndReceverAsync(int senderId, int receverId, CancellationToken ct = default);
         Task<IReadOnlyList<SwiftTransferResponse>> GetUnallocatedAsync(CancellationToken ct = default);
         Task<IReadOnlyList<SwiftTransferResponse>> GetByDateRangeAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
         //--Reports-----------------------------------------------------------------

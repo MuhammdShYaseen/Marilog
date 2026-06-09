@@ -312,23 +312,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
         {
             var document = await _repo.Query()
-                .Include(x => x.Payments)
-                .FirstOrDefaultAsync(x => x.Id == documentId, ct)
-                ?? throw new KeyNotFoundException($"Document {documentId} not found.");
+                .Include(p => p.Payments)
+                .FirstOrDefaultAsync(x => x.Id == documentId, ct) ?? throw new KeyNotFoundException($"Document {documentId} not found.");
 
             var swiftExists = await _swiftRepo.Query()
-                .AnyAsync(x => x.Id == swiftTransferId && x.IsActive, ct);
+                .AnyAsync(x =>
+                    x.Id == swiftTransferId &&
+                    x.IsActive &&
+                    (x.SenderCompanyId == document.BuyerId ||
+                     x.ReceiverCompanyId == document.SupplierId),
+                    ct);
+
             if (!swiftExists)
-                throw new KeyNotFoundException($"SwiftTransfer {swiftTransferId} not found or inactive.");
+                throw new KeyNotFoundException("SwiftTransfer not found or not allowed for this document.");
 
             var payment = document.AddPayment(swiftTransferId, paidAmount, paymentDate);
+
             _repo.Update(document);
+
             await _repo.SaveChangesAsync(ct);
+
             return new PaymentResponse
             {
                 Id = payment.Id,
-                SwiftTransferId = payment.SwiftTransferId,
                 DocumentId = payment.DocumentId,
+                SwiftTransferId = payment.SwiftTransferId,
                 PaidAmount = payment.PaidAmount,
                 PaymentDate = payment.PaymentDate
             };

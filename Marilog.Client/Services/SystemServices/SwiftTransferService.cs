@@ -43,7 +43,14 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<SwiftTransferResponse>>>($"{Base}/by-receiver/{companyId}", ct);
             return response?.Data ?? [];
         }
+        public async Task<IReadOnlyList<SwiftTransferResponse>> GetBySenderAndReceverAsync(int senderId, int receiverId, CancellationToken ct = default)
+        {
+            var response =
+                await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<SwiftTransferResponse>>>(
+                    $"{Base}/by-sender-receiver?senderId={senderId}&receiverId={receiverId}", ct);
 
+            return response?.Data ?? [];
+        }
         public async Task<IReadOnlyList<SwiftTransferResponse>> GetUnallocatedAsync(CancellationToken ct = default)
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<SwiftTransferResponse>>>($"{Base}/unallocated", ct);

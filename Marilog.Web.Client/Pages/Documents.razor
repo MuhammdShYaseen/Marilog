@@ -230,7 +230,7 @@ else
 
     private async Task OpenAddPaymentDialog(DocumentResponse doc)
     {
-        var swifts = await SwiftTransferService.GetBySenderAsync(doc.BuyerId!.Value); 
+        var swifts = await SwiftTransferService.GetBySenderAndReceverAsync(doc.BuyerId!.Value, doc.SupplierId!.Value);
         var parameters = new DialogParameters 
         { 
             ["Document"] = doc,
