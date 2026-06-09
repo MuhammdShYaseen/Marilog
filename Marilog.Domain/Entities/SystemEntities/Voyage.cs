@@ -30,6 +30,10 @@ namespace Marilog.Domain.Entities.SystemEntities
         public decimal CashOnBoard { get; private set; }
         public decimal CigarettesOnBoard { get; private set; }
         public string? Notes { get; private set; }
+        private readonly List<BillOfLading> _billsOfLading = new();
+
+        public IReadOnlyCollection<BillOfLading> BillsOfLading =>
+            _billsOfLading.AsReadOnly();
 
         private readonly List<VoyageStop> _stops = new();
         public IReadOnlyCollection<VoyageStop> Stops => _stops.AsReadOnly();
