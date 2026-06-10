@@ -7,6 +7,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -14,108 +15,133 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     {
         private readonly IRepository<Document>      _repo;
         private readonly IRepository<SwiftTransfer> _swiftRepo;
+        private readonly IRepository<Currency> _currencyRepo;
 
-        public DocumentService(
-            IRepository<Document>      repo,
-            IRepository<SwiftTransfer> swiftRepo)
+        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo)
         {
             _repo      = repo;
             _swiftRepo = swiftRepo;
+            _currencyRepo = currencyRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
         public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToResponse)
+                .Select(ToResponse(rate))
                 .FirstOrDefaultAsync(ct);
         }
 
         public async Task<DocumentResponse?> GetWithItemsAsync(int id, CancellationToken ct = default)
         {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToResponseWithItems)
+                .Select(ToResponseWithItems(rate))
                 .FirstOrDefaultAsync(ct);
         }
 
         public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
         {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToResponseWithPayments)
+                .Select(ToResponseWithPayments(rate))
                 .FirstOrDefaultAsync(ct);
         }
         public async Task<DocumentResponse?> GetFullAsync(int id, CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where (x => x.Id == id)
-                          .Select(ToResponseFully)
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
+                          .Where(x => x.Id == id)
+                          .Select(ToResponseFully(rate))
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
+        } 
 
         public async Task<DocumentResponse?> GetByNumberAsync(string docNumber,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.DocNumber == docNumber)
-                          .Select(ToResponse)
-                          .FirstOrDefaultAsync(x => x.DocNumber == docNumber, ct);
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
+                              .Where(x => x.DocNumber == docNumber)
+                              .Select(ToResponse(rate))
+                              .FirstOrDefaultAsync(x => x.DocNumber == docNumber, ct);
+        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
                           .Where(x => x.SupplierId == supplierId && x.IsActive)
-                          .Select (ToResponse)
+                          .Select(ToResponse(rate))
                           .OrderByDescending(x => x.DocDate)
                           .ToListAsync(ct);
+        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId,
             CancellationToken ct = default)
-            => await _repo.Query()
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query()
                           .AsNoTracking()
                           .Where(x => x.BuyerId == buyerId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse)
+                          .Select(ToResponse(rate))
                           .ToListAsync(ct);
+        } 
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselId == vesselId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse)
+                          .Select(ToResponse(rate))
                           .ToListAsync(ct);
+        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
                           .Where(x => x.DocTypeId == docTypeId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse)
+                          .Select(ToResponse(rate))
                           .ToListAsync(ct);
-
+        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive &&
-                                      x.TotalAmount > x.Payments
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
+                          .Where(x => x.IsActive && x.TotalAmount > x.Payments
                                           .Where(p => p.DocumentId == x.Id)
                                           .Sum(p => p.PaidAmount))
                           .OrderBy(x => x.DocDate)
-                          .Select(ToResponse)
+                          .Select(ToResponse(rate))
                           .ToListAsync(ct);
+        }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId,
             CancellationToken ct = default)
-            => await _repo.Query().AsNoTracking()
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+            return await _repo.Query().AsNoTracking()
                           .Where(x => x.ParentDocumentId == parentDocumentId)
                           .OrderBy(x => x.DocDate)
-                          .Select(ToResponse)
+                          .Select(ToResponse(rate))
                           .ToListAsync(ct);
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
@@ -404,6 +430,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         DocumentFilterOptions options,
         CancellationToken ct = default)
         {
+            var baseRate = await GetBaseCurrencyExchangeRate(ct);
             var query = _repo.Query().AsNoTracking()
                              .Where(x => x.IsActive);
 
@@ -502,9 +529,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CurrencyId = x.CurrencyId,
                 //CurrencySymbol = x.CurrencySymbol,
                 // المبالغ بالعملة الأساسية للمقارنة
-                TotalAmountBase = x.TotalAmount * x.ExchangeRate,
-                PaidAmountBase = x.Paid * x.ExchangeRate,
-                RemainingBase = (x.TotalAmount - x.Paid) * x.ExchangeRate,
+                TotalAmountBase = x.TotalAmount * x.ExchangeRate / baseRate,
+                PaidAmountBase = x.Paid * x.ExchangeRate / baseRate,
+                RemainingBase = (x.TotalAmount - x.Paid) * x.ExchangeRate / baseRate,
                 SupplierName = x.SupplierName,
                 BuyerName = x.BuyerName,
                 VesselName = x.VesselName,
@@ -601,220 +628,259 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     $"Document number '{docNumber}' already exists.");
         }
 
-        private static readonly Expression<Func<Document, DocumentResponse>> ToResponse =
-        x => new DocumentResponse
+        private async Task<decimal> GetBaseCurrencyExchangeRate(CancellationToken ct = default)
         {
-            Id = x.Id,
-            DocNumber = x.DocNumber,
-            DocTypeId = x.DocTypeId,
-            DocTypeName = x.DocType.Name,
-            DocDate = x.DocDate,
+            return await _currencyRepo.Query()
+                                      .AsNoTracking()
+                                      .Where(c => c.IsBaseCurrency == true)
+                                      .Select(r => r.ExchangeRate)
+                                      .FirstOrDefaultAsync(ct);
+        }
 
-            SupplierId = x.SupplierId,
-            SupplierName = x.Supplier!.CompanyName,
-            BuyerId = x.BuyerId,
-            BuyerName = x.Buyer!.CompanyName,
-            VesselId = x.VesselId,
-            VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-            PortId = x.PortId,
-            PortName = x.Port != null ? x.Port.PortName : null,
-
-            CurrencyId = x.CurrencyId,
-            CurrencyCode = x.Currency.CurrencyCode,
-
-            TotalAmount = x.TotalAmount,
-            TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-            RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
-            Reference = x.Reference,
-            ParentDocumentId = x.ParentDocumentId,
-            IsActive = x.IsActive,
-            
-            
-        };
-
-        private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithItems =
-        x => new DocumentResponse
+        private static Expression<Func<Document, DocumentResponse>> ToResponse(decimal baseRate)
         {
-            Id = x.Id,
-            DocNumber = x.DocNumber,
-            DocTypeId = x.DocTypeId,
-            DocTypeName = x.DocType.Name,
-            DocDate = x.DocDate,
-
-            SupplierId = x.SupplierId,
-            SupplierName = x.Supplier!.CompanyName,
-            BuyerId = x.BuyerId,
-            BuyerName = x.Buyer!.CompanyName,
-            VesselId = x.VesselId,
-            VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-            PortId = x.PortId,
-            PortName = x.Port != null ? x.Port.PortName : null,
-
-            CurrencyId = x.CurrencyId,
-            CurrencyCode = x.Currency.CurrencyCode,
-
-            TotalAmount = x.TotalAmount,
-            TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-            RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
-            Reference = x.Reference,
-            ParentDocumentId = x.ParentDocumentId,
-            IsActive = x.IsActive,
-            Items = x.Items.Select(i => new DocumentItemResponse
+            return x => new DocumentResponse
             {
-                Id = i.Id,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice,
-                LineTotal = i.LineTotal,
-                Unit = i.Unit,
-            }).ToList(),
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
 
-            TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
 
-            Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
 
-            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
-        };
+                TotalAmount = x.TotalAmount,
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
 
-        private static readonly Expression<Func<Document, DocumentResponse>> ToResponseWithPayments =
-        x => new DocumentResponse
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate / baseRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate / baseRate,
+
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate / baseRate
+
+            };
+        }
+
+        private static Expression<Func<Document, DocumentResponse>> ToResponseWithItems(decimal baseRate)
         {
-            Id = x.Id,
-            DocNumber = x.DocNumber,
-            DocTypeId = x.DocTypeId,
-            DocTypeName = x.DocType.Name,
-            DocDate = x.DocDate,
-
-            SupplierId = x.SupplierId,
-            SupplierName = x.Supplier!.CompanyName,
-            BuyerId = x.BuyerId,
-            BuyerName = x.Buyer!.CompanyName,
-            VesselId = x.VesselId,
-            VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-            PortId = x.PortId,
-            PortName = x.Port != null ? x.Port.PortName : null,
-
-            CurrencyId = x.CurrencyId,
-            CurrencyCode = x.Currency.CurrencyCode,
-
-            TotalAmount = x.TotalAmount,
-            TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-            RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-            IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
-            Reference = x.Reference,
-            ParentDocumentId = x.ParentDocumentId,
-            IsActive = x.IsActive,
-            
-            Payments = x.Payments.Select(p => new PaymentResponse
+            return x => new DocumentResponse
             {
-                Id = p.Id,
-                SwiftTransferId = p.SwiftTransferId,
-                DocumentId = p.DocumentId,
-                PaidAmount = p.PaidAmount,
-                PaymentDate = p.PaymentDate,
-                SwiftTransfer = new SwiftTransferResponse
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
+
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
+
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+
+                TotalAmount = x.TotalAmount,
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+                Items = x.Items.Select(i => new DocumentItemResponse
                 {
-                    AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
-                    SenderBank = p.SwiftTransfer.SenderBank,
-                    SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
-                    SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
-                    SwiftReference = p.SwiftTransfer.SwiftReference,
-                    Amount = p.SwiftTransfer.Amount,
-                    CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
-                    Id = p.SwiftTransferId,
-                    CurrencyId = p.SwiftTransfer.CurrencyId,
-                    IsActive = p.SwiftTransfer.IsActive,
-                    IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
-                    PaymentReference = p.SwiftTransfer.PaymentReference,
-                    ReceiverBank = p.SwiftTransfer.ReceiverBank,
-                    ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
-                    ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
-                    TransactionDate = p.SwiftTransfer.TransactionDate,
-                    UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
-                }
+                    Id = i.Id,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    LineTotal = i.LineTotal,
+                    Unit = i.Unit,
+                }).ToList(),
 
-            }).ToList()
-            
-        };
+                TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
 
-        private static readonly Expression<Func<Document, DocumentResponse>> ToResponseFully =
-        x => new DocumentResponse
+                Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+
+                TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate / baseRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate / baseRate,
+
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate / baseRate
+            };
+        }
+
+        private static Expression<Func<Document, DocumentResponse>> ToResponseWithPayments(decimal baseRate)
         {
-           Id = x.Id,
-           DocNumber = x.DocNumber,
-           DocTypeId = x.DocTypeId,
-           DocTypeName = x.DocType.Name,
-           DocDate = x.DocDate,
-            
-           SupplierId = x.SupplierId,
-           SupplierName = x.Supplier!.CompanyName,
-           BuyerId = x.BuyerId,
-           BuyerName = x.Buyer!.CompanyName,
-           VesselId = x.VesselId,
-           VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-           PortId = x.PortId,
-           PortName = x.Port != null ? x.Port.PortName : null,
-
-           CurrencyId = x.CurrencyId,
-           CurrencyCode = x.Currency.CurrencyCode,
-
-           TotalAmount = x.TotalAmount,
-           TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-           RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-           IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
-           Reference = x.Reference,
-           ParentDocumentId = x.ParentDocumentId,
-           IsActive = x.IsActive,
-           Payments = x.Payments.Select(p => new PaymentResponse
-           {
-               Id = p.Id,
-               SwiftTransferId = p.SwiftTransferId,
-               DocumentId = p.DocumentId,
-               PaidAmount = p.PaidAmount,
-               PaymentDate = p.PaymentDate,
-               SwiftTransfer = new SwiftTransferResponse
-               {
-                   AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
-                   SenderBank = p.SwiftTransfer.SenderBank,
-                   SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
-                   SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
-                   SwiftReference = p.SwiftTransfer.SwiftReference,
-                   Amount = p.SwiftTransfer.Amount,
-                   CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
-                   Id = p.SwiftTransferId,
-                   CurrencyId = p.SwiftTransfer.CurrencyId,
-                   IsActive = p.SwiftTransfer.IsActive,
-                   IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
-                   PaymentReference = p.SwiftTransfer.PaymentReference,
-                   ReceiverBank = p.SwiftTransfer.ReceiverBank,
-                   ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
-                   ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
-                   TransactionDate = p.SwiftTransfer.TransactionDate,
-                   UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
-               },
-
-           }).ToList(),
-            Items = x.Items.Select(i => new DocumentItemResponse
+            return x => new DocumentResponse
             {
-                Id = i.Id,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice,
-                LineTotal = i.LineTotal,
-                Unit = i.Unit,
-            }).ToList(),
-            TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
 
-            Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
 
-            TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
 
-        };
+                TotalAmount = x.TotalAmount,
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+
+                Payments = x.Payments.Select(p => new PaymentResponse
+                {
+                    Id = p.Id,
+                    SwiftTransferId = p.SwiftTransferId,
+                    DocumentId = p.DocumentId,
+                    PaidAmount = p.PaidAmount,
+                    PaymentDate = p.PaymentDate,
+                    SwiftTransfer = new SwiftTransferResponse
+                    {
+                        AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                        SenderBank = p.SwiftTransfer.SenderBank,
+                        SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
+                        SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
+                        SwiftReference = p.SwiftTransfer.SwiftReference,
+                        Amount = p.SwiftTransfer.Amount,
+                        CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
+                        Id = p.SwiftTransferId,
+                        CurrencyId = p.SwiftTransfer.CurrencyId,
+                        IsActive = p.SwiftTransfer.IsActive,
+                        IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
+                        PaymentReference = p.SwiftTransfer.PaymentReference,
+                        ReceiverBank = p.SwiftTransfer.ReceiverBank,
+                        ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
+                        ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
+                        TransactionDate = p.SwiftTransfer.TransactionDate,
+                        UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
+                    }
+
+                }).ToList(),
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate / baseRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate / baseRate,
+
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate / baseRate
+
+            };
+        }
+
+        private static Expression<Func<Document, DocumentResponse>> ToResponseFully(decimal baseRate)
+        {
+            return x => new DocumentResponse
+            {
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
+
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
+
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+
+                TotalAmount = x.TotalAmount,
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+                Payments = x.Payments.Select(p => new PaymentResponse
+                {
+                    Id = p.Id,
+                    SwiftTransferId = p.SwiftTransferId,
+                    DocumentId = p.DocumentId,
+                    PaidAmount = p.PaidAmount,
+                    PaymentDate = p.PaymentDate,
+                    SwiftTransfer = new SwiftTransferResponse
+                    {
+                        AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                        SenderBank = p.SwiftTransfer.SenderBank,
+                        SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
+                        SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
+                        SwiftReference = p.SwiftTransfer.SwiftReference,
+                        Amount = p.SwiftTransfer.Amount,
+                        CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
+                        Id = p.SwiftTransferId,
+                        CurrencyId = p.SwiftTransfer.CurrencyId,
+                        IsActive = p.SwiftTransfer.IsActive,
+                        IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
+                        PaymentReference = p.SwiftTransfer.PaymentReference,
+                        ReceiverBank = p.SwiftTransfer.ReceiverBank,
+                        ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
+                        ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
+                        TransactionDate = p.SwiftTransfer.TransactionDate,
+                        UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
+                    },
+
+                }).ToList(),
+                Items = x.Items.Select(i => new DocumentItemResponse
+                {
+                    Id = i.Id,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    LineTotal = i.LineTotal,
+                    Unit = i.Unit,
+                }).ToList(),
+                TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+
+                Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+
+                TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate / baseRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate / baseRate,
+
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate / baseRate
+
+            };
+        }
     }
 }
