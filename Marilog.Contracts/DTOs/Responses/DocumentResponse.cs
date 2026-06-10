@@ -35,6 +35,8 @@
         public decimal TotalItemsAmount {  get; set; }
         public bool Is_TotalAmount_Equal_TotalItemsAmount {  get; set; }
         public decimal TotalAmount_Minus_TotalItemsAmount { get; set; }
-
+        public decimal TotalAmountBase { get; set; }
+        public decimal PaidAmountBase { get; set; }
+        public decimal RemainingBase { get; set; }
     }
 }

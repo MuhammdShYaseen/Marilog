@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Client.Extensions;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -248,11 +249,36 @@ namespace Marilog.Client.Services.SystemServices
             http.EnsureSuccessStatusCode();
         }
 
-        // ── Reports ───────────────────────────────────────────────────────────────
+        public async Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
+        {
+            var query = BuildQueryString(options);
+            return await _http.GetApiAsync<DocumentReport>($"api/reports/documents{query}", ct) ?? new DocumentReport();
+        }
 
-        public Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
-            => throw new NotImplementedException("Endpoint not yet defined on the backend.");
+        private static string BuildQueryString(DocumentFilterOptions options)
+        {
+            var parts = new List<string>();
 
-        
+            if (options.SupplierId.HasValue)
+                parts.Add($"supplierId={options.SupplierId.Value}");
+            if (options.BuyerId.HasValue)
+                parts.Add($"buyerId={options.BuyerId.Value}");
+            if (options.VesselId.HasValue)
+                parts.Add($"vesselId={options.VesselId.Value}");
+            if (options.DocTypeId.HasValue)
+                parts.Add($"docTypeId={options.DocTypeId.Value}");
+            if (options.UnpaidOnly)
+                parts.Add("unpaidOnly=true");
+            if (options.LastDays.HasValue)
+                parts.Add($"lastDays={options.LastDays.Value}");
+            if (options.Year.HasValue)
+                parts.Add($"year={options.Year.Value}");
+            if (options.Month.HasValue)
+                parts.Add($"month={options.Month.Value}");
+
+            return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
+        }
+
+
     }
 }

@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
@@ -68,7 +69,209 @@
                            OnEditClicked="OnEditClicked"
                            OnDeleteClicked="OnDeleteClicked" />
         </MudTabPanel>
+        @* ── Filter / Report ──────────────────────────────────────────── *@
+        <MudTabPanel Text="Report">
 
+            @* ── Filter Bar ─────────────────────────────────────────────── *@
+            <MudPaper Class="pa-3 mb-3" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2">
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?"
+                                   @bind-Value="_filter.SupplierId"
+                                   Label="Supplier"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var c in Suppliers)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?"
+                                   @bind-Value="_filter.VesselId"
+                                   Label="Vessel"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var v in Vessels)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="int?"
+                                         @bind-Value="_filter.Year"
+                                         Label="Year"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="int?"
+                                         @bind-Value="_filter.Month"
+                                         Label="Month"
+                                         Min="1" Max="12"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="int?"
+                                         @bind-Value="_filter.LastDays"
+                                         Label="Last N Days"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudCheckBox T="bool"
+                                     Value="_filter.UnpaidOnly"
+                                     ValueChanged="@((bool v) => { _filter.UnpaidOnly = v; StateHasChanged(); })"
+                                     Label="Unpaid Only"
+                                     Color="Color.Primary" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   OnClick="RunReportAsync">
+                            Run Report
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   OnClick="ClearFilter">
+                            Clear
+                        </MudButton>
+                    </MudItem>
+
+                </MudGrid>
+            </MudPaper>
+
+            @if (_loadingReport)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+            }
+            else if (_report is not null)
+            {
+                @* ── KPI Cards ───────────────────────────────────────────── *@
+                <MudGrid Spacing="2" Class="mb-4">
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Docs</MudText>
+                            <MudText Typo="Typo.h5">@_report.Count</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Value</MudText>
+                            <MudText Typo="Typo.h5">@_report.TotalValue.ToString("N2")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Paid</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@_report.TotalPaid.ToString("N2")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Remaining</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Error">@_report.TotalRemaining.ToString("N2")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                @* ── Monthly Summary ─────────────────────────────────────── *@
+                @if (_report.MonthlySummary.Any())
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Monthly Breakdown</MudText>
+                    <MudTable Items="_report.MonthlySummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Year</MudTh>
+                            <MudTh>Month</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Value</MudTh>
+                            <MudTh Style="text-align:right">Paid</MudTh>
+                            <MudTh Style="text-align:right">Remaining</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Year</MudTd>
+                            <MudTd>@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(context.Month)</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right">@($"{context.TotalValue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.TotalPaid:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.TotalRemain:F2}")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* ── Supplier Summary ────────────────────────────────────── *@
+                @if (_report.SupplierSummary.Any())
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Supplier</MudText>
+                    <MudTable Items="_report.SupplierSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Supplier</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Value</MudTh>
+                            <MudTh Style="text-align:right">Paid</MudTh>
+                            <MudTh Style="text-align:right">Remaining</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.SupplierName</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right">@($"{context.TotalValue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.TotalPaid:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.TotalRemain:F2}")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* ── Vessel Summary ──────────────────────────────────────── *@
+                @if (_report.VesselSummary.Any())
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Vessel</MudText>
+                    <MudTable Items="_report.VesselSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Vessel</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Value</MudTh>
+                            <MudTh Style="text-align:right">Paid</MudTh>
+                            <MudTh Style="text-align:right">Remaining</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.VesselName</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right">@($"{context.TotalValue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.TotalPaid:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.TotalRemain:F2}")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* ── Documents Table ─────────────────────────────────────── *@
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Documents (@_report.Count)</MudText>
+                <DocumentTable Items="_report.Documents"
+                               OnRowClick="OnDocumentClick"
+                               OnEditClicked="OnEditClicked"
+                               OnDeleteClicked="OnDeleteClicked" />
+            }
+
+        </MudTabPanel>
     </MudTabs>
 
 </MudPaper>
@@ -109,5 +312,35 @@
         // reset selections when switching tabs
         _selectedVesselId = null;
         _selectedSupplierId = null;
+    }
+
+    // ── Report state ─────────────────────────────────────────────────────────
+    [Parameter] public EventCallback<DocumentFilterOptions> OnReportRequested { get; set; }
+
+    private DocumentFilterOptions _filter = new();
+    private DocumentReport? _report;
+    private bool _loadingReport;
+
+    private async Task RunReportAsync()
+    {
+        _loadingReport = true;
+        StateHasChanged();  // ← أضف هذا
+        await OnReportRequested.InvokeAsync(_filter);
+        _loadingReport = false;
+    }
+
+    private void ClearFilter()
+    {
+        _filter = new();
+        _report = null;
+        StateHasChanged();  // ← أضف هذا
+    }
+
+    // يستدعيه الـ parent لتمرير النتيجة للـ component
+    public void SetReport(DocumentReport report)
+    {
+        _report = report;
+        _loadingReport = false;
+        StateHasChanged();
     }
 }

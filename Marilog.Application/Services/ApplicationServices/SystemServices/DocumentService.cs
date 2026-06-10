@@ -420,9 +420,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.DocTypeId.HasValue)
                 query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
 
-            if (options.UnpaidOnly)
+            if (options.UnpaidOnly == true)
                 query = query.Where(x =>
                     (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount);
+            else
+            {
+                query = query.Where(x =>
+                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) > x.TotalAmount);
+            }
+
+
 
             if (options.LastDays.HasValue)
             {
@@ -455,26 +462,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .FirstOrDefaultAsync(ct);
 
-            // ─── جلب البيانات — intermediate projection لتجنب تكرار الـ subquery ─
             var docs = await query
-                .Select(x => new
-                {
-                    Paid = x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m,  // ✅ مرة واحدة
-                    Id = x.Id,
-                    SupplierId = x.SupplierId,
-                    BuyerId = x.BuyerId,
-                    VesselId = x.VesselId,
-                    DocTypeId = x.DocTypeId,
-                    DocDate = x.DocDate,
-                    TotalAmount = x.TotalAmount,
-                    SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
-                    BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
-                    VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-                    DocTypeName = x.DocType != null ? x.DocType.Name : null,
-                })
-                .ToListAsync(ct);
+            .Select(x => new
+            {
+                Paid = x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m,
+                Id = x.Id,
+                SupplierId = x.SupplierId,
+                BuyerId = x.BuyerId,
+                VesselId = x.VesselId,
+                DocTypeId = x.DocTypeId,
+                DocDate = x.DocDate,
+                TotalAmount = x.TotalAmount,
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+                //CurrencySymbol = x.Currency.Symbol,
+                ExchangeRate = x.Currency.ExchangeRate,         // ← أضف هذا
+                IsBaseCurrency = x.Currency.IsBaseCurrency,     // ← أضف هذا
+                SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
+                BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                DocTypeName = x.DocType != null ? x.DocType.Name : null,
+                DocNumber = x.DocNumber
+            })
+        .ToListAsync(ct);
 
-            // ─── تحويل إلى DTO بعد الجلب (In-Memory — بدون subquery مكررة) ───────
+            // ─── تحويل إلى DTO مع المبالغ بالعملة الأصلية والمبالغ بالعملة الأساسية ──
             var documents = docs.Select(x => new DocumentResponse
             {
                 Id = x.Id,
@@ -484,31 +496,42 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocDate = x.DocDate,
                 TotalAmount = x.TotalAmount,
-                PaidAmount = x.Paid,                    // ✅ من الـ intermediate
-                Remaining = x.TotalAmount - x.Paid,    // ✅ من الـ intermediate
+                PaidAmount = x.Paid,
+                Remaining = x.TotalAmount - x.Paid,
+                CurrencyCode = x.CurrencyCode,
+                CurrencyId = x.CurrencyId,
+                //CurrencySymbol = x.CurrencySymbol,
+                // المبالغ بالعملة الأساسية للمقارنة
+                TotalAmountBase = x.TotalAmount * x.ExchangeRate,
+                PaidAmountBase = x.Paid * x.ExchangeRate,
+                RemainingBase = (x.TotalAmount - x.Paid) * x.ExchangeRate,
                 SupplierName = x.SupplierName,
                 BuyerName = x.BuyerName,
                 VesselName = x.VesselName,
                 DocTypeName = x.DocTypeName,
+                DocNumber = x.DocNumber
             }).ToList();
 
-            // ─── التجميع الشهري ───────────────────────────────────────────────────
+            var totalValueBase = documents.Sum(d => d.TotalAmountBase);
+            var totalPaidBase = documents.Sum(d => d.PaidAmountBase);
+            var totalRemainingBase = documents.Sum(d => d.RemainingBase);
+
+            // Monthly
             var monthlySummary = documents
                 .GroupBy(d => new { d.DocDate.Year, d.DocDate.Month })
                 .Select(g => new MonthlyDocumentSummary
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
-                    TotalValue = g.Sum(d => d.TotalAmount),
-                    TotalPaid = g.Sum(d => d.PaidAmount),
-                    TotalRemain = g.Sum(d => d.Remaining),
+                    TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
+                    TotalPaid = g.Sum(d => d.PaidAmountBase),
+                    TotalRemain = g.Sum(d => d.RemainingBase),
                     Count = g.Count()
                 })
-                .OrderBy(m => m.Year)
-                .ThenBy(m => m.Month)
+                .OrderBy(m => m.Year).ThenBy(m => m.Month)
                 .ToList();
 
-            // ─── التجميع حسب المورد ──────────────────────────────────────────────
+            // Supplier
             var supplierSummary = documents
                 .Where(d => d.SupplierId.HasValue)
                 .GroupBy(d => d.SupplierId!.Value)
@@ -516,15 +539,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     SupplierId = g.Key,
                     SupplierName = g.First().SupplierName ?? string.Empty,
-                    TotalValue = g.Sum(d => d.TotalAmount),
-                    TotalPaid = g.Sum(d => d.PaidAmount) ,
-                    TotalRemain = g.Sum(d => d.Remaining),
+                    TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
+                    TotalPaid = g.Sum(d => d.PaidAmountBase),
+                    TotalRemain = g.Sum(d => d.RemainingBase),
                     Count = g.Count()
                 })
                 .OrderBy(s => s.SupplierName)
                 .ToList();
 
-            // ─── التجميع حسب السفينة ─────────────────────────────────────────────
+            // Vessel
             var vesselSummary = documents
                 .Where(d => d.VesselId.HasValue)
                 .GroupBy(d => d.VesselId!.Value)
@@ -532,22 +555,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     VesselId = g.Key,
                     VesselName = g.First().VesselName ?? string.Empty,
-                    TotalValue = g.Sum(d => d.TotalAmount),
-                    TotalPaid = g.Sum(d => d.PaidAmount),
-                    TotalRemain = g.Sum(d => d.Remaining),
+                    TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
+                    TotalPaid = g.Sum(d => d.PaidAmountBase),
+                    TotalRemain = g.Sum(d => d.RemainingBase),
                     Count = g.Count()
                 })
                 .OrderBy(v => v.VesselName)
                 .ToList();
 
-            // ─── النتيجة النهائية ─────────────────────────────────────────────────
             return new DocumentReport
             {
                 Documents = documents,
-                TotalValue = dbSummary?.TotalValue ?? 0m,
-                TotalPaid = dbSummary?.TotalPaid ?? 0m,
-                TotalRemaining = dbSummary?.TotalRemaining ?? 0m,
-                Count = dbSummary?.Count ?? 0,
+                TotalValue = totalValueBase,
+                TotalPaid = totalPaidBase,
+                TotalRemaining = totalRemainingBase,
+                Count = documents.Count,
                 MonthlySummary = monthlySummary,
                 SupplierSummary = supplierSummary,
                 VesselSummary = vesselSummary,

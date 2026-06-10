@@ -42,7 +42,9 @@ else
                          OnDeleteClicked="ConfirmDelete"
                          OnDocumentSelected="LoadDetail"
                          OnVesselSelected="LoadByVessel"
-                         OnSupplierSelected="LoadBySupplier" />
+                         OnSupplierSelected="LoadBySupplier" 
+                         OnReportRequested="HandleReportRequestedAsync"
+                         @ref="_documentsPage" />
 }
 
 @code {
@@ -281,5 +283,13 @@ else
         await DocumentService.RemoveItemAsync(args.DocumentId, args.ItemId);
         Snackbar.Add("Item removed.", Severity.Success);
         await LoadDetail(args.DocumentId);
+    }
+
+    private SharedDocumentsPage? _documentsPage;
+
+    private async Task HandleReportRequestedAsync(Marilog.Contracts.DTOs.Reports.DocumentReports.DocumentFilterOptions filter)
+    {
+        var report = await DocumentService.GetFilteredDocsReportAsync(filter);
+        _documentsPage?.SetReport(report);
     }
 }
