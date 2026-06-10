@@ -28,7 +28,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
@@ -38,7 +38,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<DocumentResponse?> GetWithItemsAsync(int id, CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
@@ -48,7 +48,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
@@ -57,7 +57,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
         public async Task<DocumentResponse?> GetFullAsync(int id, CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.Id == id)
                           .Select(ToResponseFully(rate))
@@ -67,7 +67,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<DocumentResponse?> GetByNumberAsync(string docNumber,
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                               .Where(x => x.DocNumber == docNumber)
                               .Select(ToResponse(rate))
@@ -77,7 +77,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId,
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.SupplierId == supplierId && x.IsActive)
                           .Select(ToResponse(rate))
@@ -88,7 +88,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId,
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query()
                           .AsNoTracking()
                           .Where(x => x.BuyerId == buyerId && x.IsActive)
@@ -100,18 +100,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselId == vesselId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
                           .Select(ToResponse(rate))
                           .ToListAsync(ct);
+
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId,
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.DocTypeId == docTypeId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
@@ -122,7 +123,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive && x.TotalAmount > x.Payments
                                           .Where(p => p.DocumentId == x.Id)
@@ -135,7 +136,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId,
             CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.ParentDocumentId == parentDocumentId)
                           .OrderBy(x => x.DocDate)
@@ -430,7 +431,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         DocumentFilterOptions options,
         CancellationToken ct = default)
         {
-            var baseRate = await GetBaseCurrencyExchangeRate(ct);
+            var baseRate = await GetBaseCurrencyExchangeRate(ct) * 1m;
             var query = _repo.Query().AsNoTracking()
                              .Where(x => x.IsActive);
 

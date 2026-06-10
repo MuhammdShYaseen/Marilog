@@ -50,7 +50,12 @@ namespace Marilog.Domain.Entities.SystemEntities
         public void SetAsBase()
         {
             IsBaseCurrency = true;
-            ExchangeRate = 1m;
+            Touch();
+        }
+
+        public void UnSetBase() 
+        {  
+            IsBaseCurrency = false;
             Touch();
         }
     }

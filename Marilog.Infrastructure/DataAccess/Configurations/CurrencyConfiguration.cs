@@ -17,7 +17,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.CurrencyCode).IsRequired().HasMaxLength(3);
             builder.Property(x => x.CurrencyName).IsRequired().HasMaxLength(100);
             builder.Property(x => x.Symbol).HasMaxLength(5);
-            builder.Property(x => x.ExchangeRate).IsRequired().HasColumnType("decimal(18,6)");
+            builder.Property(x => x.ExchangeRate).IsRequired().HasColumnType("decimal(18,8)").HasPrecision(18, 8);
             builder.Property(x => x.IsBaseCurrency).IsRequired().HasDefaultValue(false);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");

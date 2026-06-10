@@ -147,17 +147,27 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var currentBase = await _repo.Query()
                                          .Where(c => c.IsBaseCurrency)
                                          .FirstOrDefaultAsync(ct);
+            if (currentBase == null)
+                throw new ArgumentNullException(nameof(currentBase));
+            currentBase.UnSetBase();
+            _repo.Update(currentBase);
+            await _repo.SaveChangesAsync(ct);
 
-            if (currentBase is not null && currentBase.Id != id)
-            {
-                currentBase.Update(currentBase.CurrencyName, currentBase.ExchangeRate, currentBase.Symbol);
-                _repo.Update(currentBase);
-            }
 
-            var currency = await GetOrThrowAsync(id, ct);
+            // set base currency
+
+            var currency = await _repo.GetByIdAsync(id, ct);
+            if(currency == null)
+                throw new ArgumentNullException(nameof(currency));
+
             currency.SetAsBase();
             _repo.Update(currency);
             await _repo.SaveChangesAsync(ct);
+
+
+
+
+
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
