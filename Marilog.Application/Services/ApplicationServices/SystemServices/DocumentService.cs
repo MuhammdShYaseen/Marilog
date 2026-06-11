@@ -667,26 +667,24 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                       .FirstOrDefaultAsync(ct);
         }
 
-        private async Task ApplyBaseRateAsync(object source,  CancellationToken ct = default)
+        private async Task ApplyBaseRateAsync(DocumentResponse document, CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct);
 
-            switch (source)
-            {
-                case DocumentResponse document:
-                    document.TotalAmountBase /= rate;
-                    document.PaidAmountBase /= rate;
-                    document.RemainingBase /= rate;
-                    break;
+            document.TotalAmountBase /= rate;
+            document.PaidAmountBase /= rate;
+            document.RemainingBase /= rate;
+        }
 
-                case IEnumerable<DocumentResponse> documents:
-                    foreach (var documentItem in documents)
-                    {
-                        documentItem.TotalAmountBase /= rate;
-                        documentItem.PaidAmountBase /= rate;
-                        documentItem.RemainingBase /= rate;
-                    }
-                    break;
+        private async Task ApplyBaseRateAsync(IEnumerable<DocumentResponse> documents, CancellationToken ct = default)
+        {
+            var rate = await GetBaseCurrencyExchangeRate(ct);
+
+            foreach (var document in documents)
+            {
+                document.TotalAmountBase /= rate;
+                document.PaidAmountBase /= rate;
+                document.RemainingBase /= rate;
             }
         }
 
