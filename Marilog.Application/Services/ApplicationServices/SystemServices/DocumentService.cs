@@ -5,9 +5,9 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -29,108 +29,181 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query()
+            var result = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToResponse(rate))
+                .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
+            if (result != null)
+            {
+                result.TotalAmountBase /= rate;
+                result.PaidAmountBase /= rate;
+                result.RemainingBase /= rate;
+            }
+            return result;
         }
 
         public async Task<DocumentResponse?> GetWithItemsAsync(int id, CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query()
+            var result = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
                 .Select(ToResponseWithItems(rate))
                 .FirstOrDefaultAsync(ct);
+
+            if (result != null)
+            {
+                result.TotalAmountBase /= rate;
+                result.PaidAmountBase /= rate;
+                result.RemainingBase /= rate;
+            }
+            return result;
         }
 
         public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query()
+            var result = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
                 .Select(ToResponseWithPayments(rate))
                 .FirstOrDefaultAsync(ct);
+
+            if (result != null)
+            {
+                result.TotalAmountBase /= rate;
+                result.PaidAmountBase /= rate;
+                result.RemainingBase /= rate;
+            }
+            return result;
         }
         public async Task<DocumentResponse?> GetFullAsync(int id, CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query().AsNoTracking()
+            var result = await _repo.Query().AsNoTracking()
                           .Where(x => x.Id == id)
-                          .Select(ToResponseFully(rate))
+                          .Select(ToResponseFully())
                           .FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (result != null)
+            {
+                result.TotalAmountBase /= rate;
+                result.PaidAmountBase /= rate;
+                result.RemainingBase /= rate;
+            }
+            return result;
         } 
 
         public async Task<DocumentResponse?> GetByNumberAsync(string docNumber,
             CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query().AsNoTracking()
+            var result = await _repo.Query().AsNoTracking()
                               .Where(x => x.DocNumber == docNumber)
-                              .Select(ToResponse(rate))
+                              .Select(ToResponse())
                               .FirstOrDefaultAsync(x => x.DocNumber == docNumber, ct);
+            if (result != null)
+            {
+                result.TotalAmountBase /= rate;
+                result.PaidAmountBase /= rate;
+                result.RemainingBase /= rate;
+            }
+            return result;
+
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId,
             CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query().AsNoTracking()
+            var result =  await _repo.Query().AsNoTracking()
                           .Where(x => x.SupplierId == supplierId && x.IsActive)
-                          .Select(ToResponse(rate))
+                          .Select(ToResponse())
                           .OrderByDescending(x => x.DocDate)
                           .ToListAsync(ct);
+            return result.Select(x =>
+            {
+                x.TotalAmountBase /= rate;
+                x.PaidAmountBase /= rate;
+                x.RemainingBase /= rate;
+                return x;
+            }).ToList();
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId,
             CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query()
+            var result = await _repo.Query()
                           .AsNoTracking()
                           .Where(x => x.BuyerId == buyerId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse(rate))
+                          .Select(ToResponse())
                           .ToListAsync(ct);
+            return result.Select(x =>
+            {
+                x.TotalAmountBase /= rate;
+                x.PaidAmountBase /= rate;
+                x.RemainingBase /= rate;
+                return x;
+            }).ToList();
         } 
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query().AsNoTracking()
+            var result = await _repo.Query().AsNoTracking()
                           .Where(x => x.VesselId == vesselId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse(rate))
+                          .Select(ToResponse())
                           .ToListAsync(ct);
-
+            return result.Select(x =>
+            {
+                x.TotalAmountBase /= rate;
+                x.PaidAmountBase /= rate;
+                x.RemainingBase /= rate;
+                return x;
+            }).ToList();
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId,
             CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query().AsNoTracking()
+            var result = await _repo.Query().AsNoTracking()
                           .Where(x => x.DocTypeId == docTypeId && x.IsActive)
                           .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse(rate))
+                          .Select(ToResponse())
                           .ToListAsync(ct);
+            return result.Select(x =>
+            {
+                x.TotalAmountBase /= rate;
+                x.PaidAmountBase /= rate;
+                x.RemainingBase /= rate;
+                return x;
+            }).ToList();
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             CancellationToken ct = default)
         {
             var rate = await GetBaseCurrencyExchangeRate(ct) * 1m;
-            return await _repo.Query().AsNoTracking()
+
+            var result = await _repo.Query().AsNoTracking()
                           .Where(x => x.IsActive && x.TotalAmount > x.Payments
                                           .Where(p => p.DocumentId == x.Id)
                                           .Sum(p => p.PaidAmount))
                           .OrderBy(x => x.DocDate)
-                          .Select(ToResponse(rate))
+                          .Select(ToResponse())
                           .ToListAsync(ct);
+            return result.Select(x =>
+            {
+                x.TotalAmountBase /= rate;
+                x.PaidAmountBase /= rate;
+                x.RemainingBase /= rate;
+                return x;
+            }).ToList();
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId,
@@ -140,7 +213,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query().AsNoTracking()
                           .Where(x => x.ParentDocumentId == parentDocumentId)
                           .OrderBy(x => x.DocDate)
-                          .Select(ToResponse(rate))
+                          .Select(ToResponse())
                           .ToListAsync(ct);
         }
 
@@ -638,7 +711,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                       .FirstOrDefaultAsync(ct);
         }
 
-        private static Expression<Func<Document, DocumentResponse>> ToResponse(decimal baseRate)
+        private static Expression<Func<Document, DocumentResponse>> ToResponse()
         {
             return x => new DocumentResponse
             {
@@ -669,11 +742,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ParentDocumentId = x.ParentDocumentId,
                 IsActive = x.IsActive,
 
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate / baseRate,
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate ,
 
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate / baseRate,
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate / baseRate
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
 
             };
         }
@@ -801,7 +874,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
-        private static Expression<Func<Document, DocumentResponse>> ToResponseFully(decimal baseRate)
+        private static Expression<Func<Document, DocumentResponse>> ToResponseFully()
         {
             return x => new DocumentResponse
             {
@@ -875,11 +948,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
 
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate / baseRate,
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
 
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate / baseRate,
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate / baseRate
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
 
             };
         }
