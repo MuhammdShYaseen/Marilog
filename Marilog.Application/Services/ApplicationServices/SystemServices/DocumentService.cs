@@ -25,6 +25,27 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
+        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+                return [];
+
+            var normalized = term.Trim().ToLowerInvariant();
+
+            var tokens = normalized
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct()
+                .ToArray();
+
+            var docs = await _repo.Query()
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && tokens.All(t => x.SearchVector.Contains(t)))
+                    .OrderByDescending(x => x.DocDate)
+                    .Take(80)
+                    .Select(ToResponse())
+                    .ToListAsync(ct);
+            return docs;
+        }
         public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
             var result = await _repo.Query()
@@ -187,6 +208,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                            portId, parentDocumentId, reference);
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
+            await BuildSearchVectorAsync(document, ct);
+            await _repo.SaveChangesAsync(ct);
             return new DocumentResponse
             {
                 DocNumber = docNumber,
@@ -198,6 +221,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ParentDocumentId = parentDocumentId,
                 Reference = reference
             };
+
         }
         public async Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
         IEnumerable<CreateDocumentRequest> commands,
@@ -216,6 +240,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             }
 
             await _repo.AddRangeAsync(documents, ct);
+            await _repo.SaveChangesAsync(ct);
+
+            foreach (var doc in documents)
+                await BuildSearchVectorAsync(doc, ct);
+
             await _repo.SaveChangesAsync(ct);
 
             return documents
@@ -240,7 +269,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var document = await GetOrThrowAsync(id, ct);
             document.Update(docTypeId, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
             _repo.Update(document);
+            await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
+               
         }
 
         public async Task LinkToParentAsync(int id, int parentDocumentId,
@@ -706,6 +737,37 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             }
         }
 
+        private async Task BuildSearchVectorAsync(Document document, CancellationToken ct)
+        {
+            // query واحدة تجلب كل المرتبطات دفعة واحدة
+            var data = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == document.Id)
+                .Select(x => new
+                {
+                    SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
+                    BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
+                    VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                    CurrencyCode = x.Currency.CurrencyCode,
+                    DocTypeName = x.DocType != null ? x.DocType.Name : null,
+                    Port = x.Port != null ? x.Port.PortName : null,
+                    Reference = x.Reference,
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (data is null) return;
+
+            document.RebuildSearchVector(
+                supplierName: data.SupplierName,
+                buyerName: data.BuyerName,
+                vesselName: data.VesselName,
+                currencyCode: data.CurrencyCode,
+                totalAmount: document.TotalAmount.ToString("F2"),
+                port: data.Port,
+                reference: data.Reference,
+                docType: data.DocTypeName ?? string.Empty
+            );
+        }
         private static Expression<Func<Document, DocumentResponse>> ToResponse()
         {
             return x => new DocumentResponse

@@ -28,6 +28,8 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         public string? Reference { get; private set; }
 
+        public string SearchVector { get; private set; } = string.Empty;
+
         // ── Parent reference only — no navigation ownership ──────────────────────
         public int? ParentDocumentId { get; private set; }
 
@@ -106,6 +108,32 @@ namespace Marilog.Domain.Entities.SystemEntities
             ParentDocumentId = parentDocumentId;
             Touch();
            
+        }
+
+        public void RebuildSearchVector(string? supplierName, string? buyerName,
+                                        string? vesselName, string? currencyCode,
+                                        string? totalAmount, string? port,
+                                        string? reference, string docType)
+        {
+            var parts = new[]
+            {
+                DocNumber,
+                supplierName,
+                buyerName,
+                vesselName,
+                currencyCode,
+                DocDate.ToString("yyyy-MM-dd"),
+                DocDate.Year.ToString(),
+                totalAmount,
+                port,
+                reference,
+                docType
+             };
+
+            SearchVector = string.Join(" | ", parts
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => p!.Trim().ToLowerInvariant()))
+                .ToLowerInvariant();
         }
 
         // ── Parent linking ────────────────────────────────────────────────────────

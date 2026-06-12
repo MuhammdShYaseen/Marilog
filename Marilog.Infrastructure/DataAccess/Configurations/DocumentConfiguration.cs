@@ -20,7 +20,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Reference).HasMaxLength(200);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
-
+            builder.Property(x => x.SearchVector).HasMaxLength(1000).HasDefaultValue(string.Empty);
             // ── DocType (lookup FK) ───────────────────────────────────────────────
             builder.HasOne(x => x.DocType)
                    .WithMany()
@@ -81,6 +81,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasIndex(x => x.BuyerId);
             builder.HasIndex(x => x.VesselId);
             builder.HasIndex(x => x.ParentDocumentId);
+            builder.HasIndex(x => x.SearchVector);
         }
     }
 }
