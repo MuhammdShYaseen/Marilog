@@ -261,13 +261,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToList();
         }
-        public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
+        public async Task UpdateAsync(int id, string docNumber, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null,
             CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            document.Update(docTypeId, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
+            document.Update(docTypeId, docNumber, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
             _repo.Update(document);
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);

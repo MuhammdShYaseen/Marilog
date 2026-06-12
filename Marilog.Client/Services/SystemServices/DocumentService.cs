@@ -120,7 +120,7 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, int docTypeId, DateOnly docDate,
+        public async Task UpdateAsync(int id,string docNumber, int docTypeId, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null
             , CancellationToken ct = default)
@@ -128,6 +128,7 @@ namespace Marilog.Client.Services.SystemServices
             var request = new UpdateDocumentRequest
             {
                 DocTypeId = docTypeId,
+                DocNumber = docNumber,
                 DocDate = docDate,
                 CurrencyId = currencyId,
                 TotalAmount = totalAmount,

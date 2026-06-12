@@ -2,6 +2,7 @@ using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace Marilog.Contracts.Interfaces.Services.SystemServices
@@ -33,7 +34,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                                 IEnumerable<CreateDocumentRequest> commands,
                                                 CancellationToken ct = default);
 
-        Task           UpdateAsync(int id, int docTypeId, DateOnly docDate,
+        Task           UpdateAsync( int id, string docNumber, int docTypeId, DateOnly docDate,
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
                                    int? vesselId = null, int? portId = null, int? parentDocumentId = null,

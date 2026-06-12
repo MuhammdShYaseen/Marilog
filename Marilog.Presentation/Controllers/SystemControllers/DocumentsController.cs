@@ -157,6 +157,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             await _service.UpdateAsync(
                 id,
+                request.DocNumber,
                 request.DocTypeId,
                 request.DocDate,
                 request.CurrencyId,

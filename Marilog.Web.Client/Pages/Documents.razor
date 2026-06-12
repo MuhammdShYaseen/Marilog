@@ -183,6 +183,7 @@ else
         await DocumentService.UpdateAsync
         (
             doc.Id,
+            model.DocNumber,
             model.DocTypeId,
             model.DocDate,
             model.CurrencyId,

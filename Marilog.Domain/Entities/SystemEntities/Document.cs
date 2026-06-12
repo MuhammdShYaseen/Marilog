@@ -82,6 +82,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         // ── Update ───────────────────────────────────────────────────────────────
         public void Update(
             int docTypeId,
+            string docNumber,
             DateOnly docDate,
             int currencyId,
             decimal totalAmount,
@@ -95,7 +96,10 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (docTypeId <= 0) throw new ArgumentException("Invalid DocTypeId.");
             if (currencyId <= 0) throw new ArgumentException("Invalid CurrencyId.");
             if (totalAmount < 0) throw new ArgumentException("TotalAmount cannot be negative.");
-
+            if (string.IsNullOrEmpty(docNumber))
+            {
+                throw new ArgumentException("Invalid doc number");
+            }
             DocTypeId = docTypeId;
             DocDate = docDate;
             CurrencyId = currencyId;
@@ -106,6 +110,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             PortId = portId;
             Reference = reference;
             ParentDocumentId = parentDocumentId;
+            DocNumber = docNumber;
             Touch();
            
         }
