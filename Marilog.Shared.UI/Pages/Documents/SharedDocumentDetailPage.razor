@@ -98,7 +98,43 @@ else
                         </MudText>
                     </MudStack>
                 </MudStack>
+                <MudDivider Class="my-2" />
 
+                <MudText Typo="Typo.subtitle2" Class="mb-1">
+                    Base Currency @Document.CurrencyCodeBase
+                </MudText>
+
+                <MudStack Row="true">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Total (Base)
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.body2" Style="font-weight:600">
+                        @Document.TotalAmountBase.ToString("N2") @Document.CurrencyCodeBase
+                    </MudText>
+                </MudStack>
+
+                <MudStack Row="true">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Paid (Base)
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.body2" Color="Color.Success">
+                        @Document.PaidAmountBase.ToString("N2") @Document.CurrencyCodeBase
+                    </MudText>
+                </MudStack>
+
+                <MudStack Row="true">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Remaining (Base)
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.body2"
+                             Color="@(Document.RemainingBase > 0 ? Color.Warning : Color.Success)"
+                             Style="font-weight:600">
+                        @Document.RemainingBase.ToString("N2") @Document.CurrencyCodeBase
+                    </MudText>
+                </MudStack>
                 <MudDivider Class="my-3" />
                 <MudText Typo="Typo.subtitle2" Class="mb-2">
                     Items Validation

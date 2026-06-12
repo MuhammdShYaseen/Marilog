@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Math;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -460,7 +461,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         DocumentFilterOptions options,
         CancellationToken ct = default)
         {
-            var baseRate = await GetBaseCurrencyExchangeRate(ct) * 1m;
+            var baseRate = await GetBaseCurrencyExchangeRate(ct);
             var query = _repo.Query().AsNoTracking()
                              .Where(x => x.IsActive);
 
@@ -559,9 +560,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CurrencyId = x.CurrencyId,
                 //CurrencySymbol = x.CurrencySymbol,
                 // المبالغ بالعملة الأساسية للمقارنة
-                TotalAmountBase = x.TotalAmount * x.ExchangeRate / baseRate,
-                PaidAmountBase = x.Paid * x.ExchangeRate / baseRate,
-                RemainingBase = (x.TotalAmount - x.Paid) * x.ExchangeRate / baseRate,
+                TotalAmountBase = x.TotalAmount * x.ExchangeRate / baseRate.ExchangeRate,
+                PaidAmountBase = x.Paid * x.ExchangeRate / baseRate.ExchangeRate,
+                RemainingBase = (x.TotalAmount - x.Paid) * x.ExchangeRate / baseRate.ExchangeRate,
                 SupplierName = x.SupplierName,
                 BuyerName = x.BuyerName,
                 VesselName = x.VesselName,
@@ -658,33 +659,45 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     $"Document number '{docNumber}' already exists.");
         }
 
-        private async Task<decimal> GetBaseCurrencyExchangeRate(CancellationToken ct = default)
+        private async Task<CurrencyResponse> GetBaseCurrencyExchangeRate(CancellationToken ct = default)
         {
-            return await _currencyRepo.Query()
+            var result = await _currencyRepo.Query()
                                       .AsNoTracking()
                                       .Where(c => c.IsBaseCurrency == true)
-                                      .Select(r => r.ExchangeRate)
+                                      .Select(r => new CurrencyResponse
+                                      {
+                                          Code = r.CurrencyCode,
+                                          ExchangeRate = r.ExchangeRate
+                                      })
                                       .FirstOrDefaultAsync(ct);
+            if (result == null)
+                throw new InvalidOperationException("there is not Base Currency was set");
+
+            return result;
         }
 
         private async Task ApplyBaseRateAsync(DocumentResponse document, CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
 
-            document.TotalAmountBase /= rate;
-            document.PaidAmountBase /= rate;
-            document.RemainingBase /= rate;
+            document.TotalAmountBase /= baseC.ExchangeRate;
+            document.PaidAmountBase /= baseC.ExchangeRate;
+            document.RemainingBase /= baseC.ExchangeRate;
+            document.CurrencyNameBase = baseC.Name;
+            document.CurrencyCodeBase = baseC.Code;
         }
 
         private async Task ApplyBaseRateAsync(IEnumerable<DocumentResponse> documents, CancellationToken ct = default)
         {
-            var rate = await GetBaseCurrencyExchangeRate(ct);
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
 
             foreach (var document in documents)
             {
-                document.TotalAmountBase /= rate;
-                document.PaidAmountBase /= rate;
-                document.RemainingBase /= rate;
+                document.TotalAmountBase /= baseC.ExchangeRate;
+                document.PaidAmountBase /= baseC.ExchangeRate;
+                document.RemainingBase /= baseC.ExchangeRate;
+                document.CurrencyNameBase = baseC.Name;
+                document.CurrencyCodeBase = baseC.Code;
             }
         }
 
@@ -723,7 +736,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
+                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate,
 
             };
         }

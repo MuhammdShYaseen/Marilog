@@ -38,5 +38,7 @@
         public decimal TotalAmountBase { get; set; }
         public decimal PaidAmountBase { get; set; }
         public decimal RemainingBase { get; set; }
+        public string CurrencyCodeBase { get; set; } = string.Empty;
+        public string CurrencyNameBase { get; set; } = string.Empty;
     }
 }

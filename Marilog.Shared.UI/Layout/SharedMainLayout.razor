@@ -24,7 +24,11 @@
         </MudText>
 
         <MudSpacer />
-
+        <MudIconButton Icon="@(_isDark
+                                   ? Icons.Material.Filled.LightMode
+                               : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit"
+                       OnClick="ToggleTheme" />
         <MudText Typo="Typo.body2" Class="mr-3">
             @AppSubtitle
         </MudText>
@@ -130,4 +134,9 @@
     }
     private void ToggleDrawer()
         => drawerOpen = !drawerOpen;
+
+    private void ToggleTheme()
+    {
+        _isDark = !_isDark;
+    }
 }
