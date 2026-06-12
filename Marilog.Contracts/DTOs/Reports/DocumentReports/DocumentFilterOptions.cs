@@ -10,5 +10,9 @@
         public int? Year { get; set; }
         public int? Month { get; set; }
         public int? LastDays { get; set; }
+
+        public DateOnly? FromDate { get; set; } = null;
+        public DateOnly? ToDate { get; set; } = null;
+
     }
 }

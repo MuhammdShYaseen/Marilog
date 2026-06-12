@@ -485,9 +485,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) > x.TotalAmount);
             }
 
+            if (options.FromDate.HasValue || options.ToDate.HasValue)
+            {
+                if (options.FromDate.HasValue)
+                    query = query.Where(x => x.DocDate >= options.FromDate.Value);
 
+                if (options.ToDate.HasValue)
+                    query = query.Where(x => x.DocDate <= options.ToDate.Value);
+            }
 
-            if (options.LastDays.HasValue)
+            else if (options.LastDays.HasValue)
             {
                 var threshold = DateTime.UtcNow.AddDays(-options.LastDays.Value);
                 query = query.Where(x =>
