@@ -275,7 +275,10 @@ namespace Marilog.Client.Services.SystemServices
                 parts.Add($"year={options.Year.Value}");
             if (options.Month.HasValue)
                 parts.Add($"month={options.Month.Value}");
-
+            if (options.FromDate.HasValue)
+                parts.Add($"fromDate={options.FromDate.Value:yyyy-MM-dd}");
+            if (options.ToDate.HasValue)
+                parts.Add($"toDate={options.ToDate.Value:yyyy-MM-dd}");
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 

@@ -11,8 +11,8 @@
         public int? Month { get; set; }
         public int? LastDays { get; set; }
 
-        public DateOnly? FromDate { get; set; } = null;
-        public DateOnly? ToDate { get; set; } = null;
+        public DateOnly? FromDate { get; set; } 
+        public DateOnly? ToDate { get; set; }
 
     }
 }

@@ -120,7 +120,23 @@
                                          Variant="Variant.Outlined"
                                          Margin="Margin.Dense" />
                     </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker Date="_fromDateTime"
+                                       DateChanged="v => { _filter.FromDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; }"
+                                       Label="From Date"
+                                       Editable="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
 
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker Date="_toDateTime"
+                                       DateChanged="v => { _filter.ToDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; }"
+                                       Label="To Date"
+                                       Editable="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
                     <MudItem xs="12" sm="6" md="2">
                         <MudNumericField T="int?"
                                          @bind-Value="_filter.LastDays"
@@ -343,4 +359,9 @@
         _loadingReport = false;
         StateHasChanged();
     }
+    private DateTime? _fromDateTime =>
+     _filter.FromDate?.ToDateTime(TimeOnly.MinValue);
+
+    private DateTime? _toDateTime =>
+        _filter.ToDate?.ToDateTime(TimeOnly.MinValue);
 }
