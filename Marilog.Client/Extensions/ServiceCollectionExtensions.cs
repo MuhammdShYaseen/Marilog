@@ -1,7 +1,9 @@
 ﻿using Marilog.Client.Interfaces;
+using Marilog.Client.Services.FunctionaltyServices;
 using Marilog.Client.Services.SystemServices;
 using Marilog.Client.Services.UiServices;
 using Marilog.Contracts.Interfaces.FrontendServices;
+using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,6 +37,8 @@ namespace Marilog.Client.Extensions
             //=====frontend================================================================
             services.AddScoped<INavigationService, NavigationService>();
             services.AddScoped<IAppThemeService, AppThemeService>();
+            //=====functionalty services===================================================
+            services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
 
             return services;
         }

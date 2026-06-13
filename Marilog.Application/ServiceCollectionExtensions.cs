@@ -12,6 +12,8 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Interfaces.Ai;
+using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
+using Marilog.Application.Services.ApplicationServices.FunctionaltyServices;
 
 
 namespace Marilog.Application
@@ -94,6 +96,9 @@ namespace Marilog.Application
 
             //---StorgService----------------------------------------------------
             services.AddScoped<IStoredFileService, StoredFileService>();
+
+            //---FunctionaltyServices--------------------------------------------
+            services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
             return services;
         }
     }

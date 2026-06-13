@@ -6,9 +6,9 @@ using QuestPDF.Infrastructure;
 
 namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
 {
-    public class PdfFileGenerator : IPdfFileGenerator
+    public class PdfFileGeneratorService : IPdfFileGeneratorService
     {
-        public byte[] GenerateDocumentReportPdf(DocumentReport report, string title)
+        public async Task <byte[]> GenerateDocumentReportPdf(DocumentReport report, string title, CancellationToken ct)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
@@ -229,22 +229,19 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                 });
 
                 // Header
-                foreach (var header in headers)
+                table.Header(headerRow =>
                 {
-                    table.Header(header =>
+                    foreach (var h in headers)
                     {
-                        foreach (var h in headers)
-                        {
-                            header.Cell()
-                                .Background(Colors.Blue.Darken2)
-                                .Padding(5)
-                                .Text(h)
-                                .FontSize(8)
-                                .Bold()
-                                .FontColor(Colors.White);
-                        }
-                    });
-                }
+                        headerRow.Cell()
+                            .Background(Colors.Blue.Darken2)
+                            .Padding(5)
+                            .Text(h)
+                            .FontSize(8)
+                            .Bold()
+                            .FontColor(Colors.White);
+                    }
+                });
 
                 // Rows
                 for (int rowIdx = 0; rowIdx < rows.Count; rowIdx++)
@@ -268,12 +265,15 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
 
                         var isNumeric = colIdx > 0 && decimal.TryParse(cellText?.Replace(",", ""), out _);
 
-                        table.Cell()
-                            .Background(bg)
-                            .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
-                            .Padding(4)
-                            .AlignRight()
-                            .Text(cellText).FontSize(8).FontColor(textColor);
+                        var cell = table.Cell()
+                                        .Background(bg)
+                                        .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                                        .Padding(4);
+
+                        if (isNumeric)
+                            cell.AlignRight().Text(cellText ?? "-").FontSize(8).FontColor(textColor);
+                        else
+                            cell.AlignLeft().Text(cellText ?? "-").FontSize(8).FontColor(textColor);
                     }
                 }
             });
