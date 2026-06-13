@@ -3,6 +3,8 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Documents
+@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using MudBlazor
 
 @inject IDocumentService DocumentService
@@ -14,7 +16,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ISwiftTransferService SwiftTransferService
-
+@inject IPdfFileGeneratorService PdfService
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -28,7 +30,8 @@ else if (_detail is not null)
                               OnAddPaymentClicked="OpenAddPaymentDialog"
                               OnAddItemClicked="OpenAddItemDialog"
                               OnEditItemClicked="OpenEditItemDialog"
-                              OnRemoveItemClicked="ConfirmRemoveItem" />
+                              OnRemoveItemClicked="ConfirmRemoveItem"
+                               />
 }
 else
 {
@@ -44,10 +47,12 @@ else
                          OnVesselSelected="LoadByVessel"
                          OnSupplierSelected="LoadBySupplier" 
                          OnReportRequested="HandleReportRequestedAsync"
+                         OnExportPdfRequested="HandleExportPdfAsync"
                          @ref="_documentsPage" />
 }
 
 @code {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
     private IReadOnlyList<DocumentResponse> _unpaid = [];
     private IReadOnlyList<DocumentResponse> _byVessel = [];
     private IReadOnlyList<DocumentResponse> _bySupplier = [];
@@ -294,6 +299,13 @@ else
     {
         var report = await DocumentService.GetFilteredDocsReportAsync(filter);
         _documentsPage?.SetReport(report);
+    }
+
+    private async Task HandleExportPdfAsync((DocumentReport report, string title, string fileName) args)
+    {
+        var bytes = await PdfService.GenerateDocumentReportPdf(args.report, args.title);
+        var base64 = Convert.ToBase64String(bytes);  // ← حوّل إلى Base64
+        await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", base64);
     }
 
 }

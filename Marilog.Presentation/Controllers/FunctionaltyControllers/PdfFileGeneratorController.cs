@@ -6,10 +6,10 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PdfFileGeneratorContoller : ControllerBase
+    public class PdfFileGeneratorController : ControllerBase
     {
         private readonly IPdfFileGeneratorService _pdfGeneratorService;
-        public PdfFileGeneratorContoller(IPdfFileGeneratorService pdfFileGenerator)
+        public PdfFileGeneratorController(IPdfFileGeneratorService pdfFileGenerator)
         {
             _pdfGeneratorService = pdfFileGenerator;
         }

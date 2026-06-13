@@ -183,6 +183,17 @@
                                    OnClick="ClearFilter">
                             Clear
                         </MudButton>
+                        @if (_report is not null)
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                                       Disabled="_exportingPdf"
+                                       OnClick="ExportPdfAsync">
+                                @(_exportingPdf ? "Generating..." : "Save as PDF")
+                            </MudButton>
+                        }
+
                     </MudItem>
 
                 </MudGrid>
@@ -390,13 +401,14 @@
     [Parameter] public EventCallback<int?> OnVesselSelected { get; set; }
     [Parameter] public EventCallback<int?> OnSupplierSelected { get; set; }
     [Parameter] public EventCallback<DocumentFilterOptions> OnReportRequested { get; set; }
-
+    [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdfRequested { get; set; }
 
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
     private DocumentFilterOptions _filter = new();
     private DocumentReport? _report;
     private bool _loadingReport;
+    private bool _exportingPdf;
 
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
@@ -446,5 +458,56 @@
 
     private DateTime? _toDateTime =>
         _filter.ToDate?.ToDateTime(TimeOnly.MinValue);
+
+
+    private async Task ExportPdfAsync()
+    {
+        if (_report is null) return;
+        _exportingPdf = true;
+        StateHasChanged();
+        await OnExportPdfRequested.InvokeAsync((_report, BuildReportTitle(), BuildFileName()));
+        _exportingPdf = false;
+        StateHasChanged();
+    }
+
+
+    private string BuildReportTitle()
+    {
+        var parts = new List<string> { "Document Report" };
+
+        if (_filter.FromDate.HasValue && _filter.ToDate.HasValue)
+            parts.Add($"{_filter.FromDate.Value:yyyy-MM-dd} → {_filter.ToDate.Value:yyyy-MM-dd}");
+        else if (_filter.Year.HasValue && _filter.Month.HasValue)
+            parts.Add($"{System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(_filter.Month.Value)} {_filter.Year.Value}");
+        else if (_filter.Year.HasValue)
+            parts.Add(_filter.Year.Value.ToString());
+        else if (_filter.LastDays.HasValue)
+            parts.Add($"Last {_filter.LastDays.Value} Days");
+
+        if (_filter.Side.HasValue)
+            parts.Add($"— {_filter.Side.Value}");
+
+        return string.Join(" ", parts);
+    }
+
+    private string BuildFileName()
+    {
+        var parts = new List<string> { "DocumentReport" };
+
+        if (_filter.FromDate.HasValue && _filter.ToDate.HasValue)
+            parts.Add($"{_filter.FromDate.Value:yyyy-MM-dd}_to_{_filter.ToDate.Value:yyyy-MM-dd}");
+        else if (_filter.Year.HasValue && _filter.Month.HasValue)
+            parts.Add($"{_filter.Year.Value}-{_filter.Month.Value:D2}");
+        else if (_filter.Year.HasValue)
+            parts.Add(_filter.Year.Value.ToString());
+        else if (_filter.LastDays.HasValue)
+            parts.Add($"last{_filter.LastDays.Value}days");
+
+        if (_filter.Side.HasValue)
+            parts.Add(_filter.Side.Value.ToString());
+
+        parts.Add(DateTime.Now.ToString("yyyyMMdd_HHmm"));
+        return string.Join("_", parts) + ".pdf";
+    }
 
 }
