@@ -114,6 +114,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var doc = await _service.CreateAsync(
                 request.DocNumber,
                 request.DocTypeId,
+                request.Side,
                 request.DocDate,
                 request.CurrencyId,
                 request.TotalAmount,
@@ -159,6 +160,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 id,
                 request.DocNumber,
                 request.DocTypeId,
+                request.Side,
                 request.DocDate,
                 request.CurrencyId,
                 request.TotalAmount,

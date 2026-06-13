@@ -86,7 +86,7 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
+        public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null,
             string? reference = null, CancellationToken ct = default)
@@ -104,6 +104,7 @@ namespace Marilog.Client.Services.SystemServices
                 PortId = portId,
                 ParentDocumentId = parentDocumentId,
                 Reference = reference,
+                Side = side
             };
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
@@ -120,7 +121,7 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id,string docNumber, int docTypeId, DateOnly docDate,
+        public async Task UpdateAsync(int id,string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null
             , CancellationToken ct = default)
@@ -138,6 +139,7 @@ namespace Marilog.Client.Services.SystemServices
                 PortId = portId,
                 Reference = reference,
                 ParentDocumentId = parentDocumentId,
+                Side = side,
             };
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);

@@ -1,4 +1,6 @@
-﻿namespace Marilog.Contracts.DTOs.Responses
+﻿using Marilog.Kernel.Enums;
+
+namespace Marilog.Contracts.DTOs.Responses
 {
     public class DocumentResponse
     {
@@ -40,5 +42,6 @@
         public decimal RemainingBase { get; set; }
         public string CurrencyCodeBase { get; set; } = string.Empty;
         public string CurrencyNameBase { get; set; } = string.Empty;
+        public FinancialSide Side { get; set; }
     }
 }

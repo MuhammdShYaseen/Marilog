@@ -2,6 +2,7 @@
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Drawing;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -10,6 +11,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string DocNumber { get; private set; } = null!;
         public int DocTypeId { get; private set; }
         public DocumentType DocType { get; private set; } = null!;
+        public FinancialSide Side { get; private set; } = 0;
         public DateOnly DocDate { get; private set; }
 
         public int? SupplierId { get; private set; }
@@ -45,6 +47,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public static Document Create(
             string docNumber,
             int docTypeId,
+            FinancialSide side,
             DateOnly docDate,
             int currencyId,
             decimal totalAmount,
@@ -72,7 +75,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 VesselId = vesselId,
                 PortId = portId,
                 ParentDocumentId = parentDocumentId,
-                Reference = reference
+                Reference = reference,
+                Side = side,
             };
             
 
@@ -82,6 +86,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         // ── Update ───────────────────────────────────────────────────────────────
         public void Update(
             int docTypeId,
+            FinancialSide side,
             string docNumber,
             DateOnly docDate,
             int currencyId,
@@ -111,6 +116,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             Reference = reference;
             ParentDocumentId = parentDocumentId;
             DocNumber = docNumber;
+            Side = side;
             Touch();
            
         }
@@ -118,7 +124,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public void RebuildSearchVector(string? supplierName, string? buyerName,
                                         string? vesselName, string? currencyCode,
                                         string? totalAmount, string? port,
-                                        string? reference, string docType)
+                                        string? reference, string? docType, string? side)
         {
             var parts = new[]
             {
@@ -132,7 +138,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 totalAmount,
                 port,
                 reference,
-                docType
+                docType,
+                side
              };
 
             SearchVector = string.Join(" | ", parts

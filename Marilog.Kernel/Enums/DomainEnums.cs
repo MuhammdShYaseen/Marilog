@@ -153,6 +153,12 @@
 
     //Voyage Enums
     public enum VoyageStatus { PLANNED, UNDERWAY, COMPLETED, CANCELLED }
+    public enum FinancialSide
+    {
+        None = 0,
+        Revenue = 1, //مدخول
+        Expense = 2  //مصروفات
+    }
 
     public class DomainEnums
     {

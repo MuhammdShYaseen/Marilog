@@ -23,7 +23,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
+        Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId,FinancialSide side, DateOnly docDate,
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
                                    int? vesselId = null, int? portId = null,
@@ -34,7 +34,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                                 IEnumerable<CreateDocumentRequest> commands,
                                                 CancellationToken ct = default);
 
-        Task           UpdateAsync( int id, string docNumber, int docTypeId, DateOnly docDate,
+        Task           UpdateAsync( int id, string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
                                    int currencyId, decimal totalAmount,
                                    int? supplierId = null, int? buyerId = null,
                                    int? vesselId = null, int? portId = null, int? parentDocumentId = null,

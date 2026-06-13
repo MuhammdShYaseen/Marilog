@@ -1,4 +1,6 @@
-﻿namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
+﻿using Marilog.Kernel.Enums;
+
+namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
 {
     public class CreateDocumentRequest
     {
@@ -13,5 +15,6 @@
         public int? PortId { get; set; }
         public int? ParentDocumentId { get; set; }
         public string? Reference { get; set; }
+        public FinancialSide Side { get; set; }
     }
 }

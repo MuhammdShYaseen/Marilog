@@ -195,7 +195,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, DateOnly docDate,
+        public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId,FinancialSide side, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null,
             string? reference = null,
@@ -203,7 +203,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             await EnsureUniqueDocNumberAsync(docNumber, excludeId: null, ct);
 
-            var document = Document.Create(docNumber, docTypeId, docDate, currencyId,
+            var document = Document.Create(docNumber, docTypeId,side, docDate, currencyId,
                                            totalAmount, supplierId, buyerId, vesselId,
                                            portId, parentDocumentId, reference);
             await _repo.AddAsync(document, ct);
@@ -233,7 +233,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 await EnsureUniqueDocNumberAsync(c.DocNumber, excludeId: null, ct);
 
-                var document = Document.Create(c.DocNumber, c.DocTypeId, c.DocDate, c.CurrencyId,
+                var document = Document.Create(c.DocNumber, c.DocTypeId, c.Side, c.DocDate, c.CurrencyId,
                                                c.TotalAmount, c.SupplierId, c.BuyerId, c.VesselId,
                                                c.PortId, c.ParentDocumentId, c.Reference);
                 documents.Add(document);
@@ -261,13 +261,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToList();
         }
-        public async Task UpdateAsync(int id, string docNumber, int docTypeId, DateOnly docDate,
+        public async Task UpdateAsync(int id, string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
             int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
             int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null,
             CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            document.Update(docTypeId, docNumber, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
+            document.Update(docTypeId, side, docNumber, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
             _repo.Update(document);
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
@@ -752,6 +752,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     DocTypeName = x.DocType != null ? x.DocType.Name : null,
                     Port = x.Port != null ? x.Port.PortName : null,
                     Reference = x.Reference,
+                    Side = x.Side.ToString(),
                 })
                 .FirstOrDefaultAsync(ct);
 
@@ -765,7 +766,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 totalAmount: document.TotalAmount.ToString("F2"),
                 port: data.Port,
                 reference: data.Reference,
-                docType: data.DocTypeName ?? string.Empty
+                docType: data.DocTypeName,
+                side : data.Side
             );
         }
         private static Expression<Func<Document, DocumentResponse>> ToResponse()
@@ -777,7 +779,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocTypeName = x.DocType.Name,
                 DocDate = x.DocDate,
-
+                Side = x.Side,
                 SupplierId = x.SupplierId,
                 SupplierName = x.Supplier!.CompanyName,
                 BuyerId = x.BuyerId,
@@ -834,7 +836,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
                 RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
                 IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
+                Side = x.Side,
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
                 IsActive = x.IsActive,
@@ -880,7 +882,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
                 PortId = x.PortId,
                 PortName = x.Port != null ? x.Port.PortName : null,
-
+                Side = x.Side,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
 
@@ -888,7 +890,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
                 RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
                 IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
                 IsActive = x.IsActive,
@@ -899,6 +900,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     SwiftTransferId = p.SwiftTransferId,
                     DocumentId = p.DocumentId,
                     PaidAmount = p.PaidAmount,
+
                     PaymentDate = p.PaymentDate,
                     SwiftTransfer = new SwiftTransferResponse
                     {
@@ -940,7 +942,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocTypeName = x.DocType.Name,
                 DocDate = x.DocDate,
-
+                Side = x.Side,
                 SupplierId = x.SupplierId,
                 SupplierName = x.Supplier!.CompanyName,
                 BuyerId = x.BuyerId,

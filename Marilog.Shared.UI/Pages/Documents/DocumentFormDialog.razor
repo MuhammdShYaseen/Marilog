@@ -1,5 +1,6 @@
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
 
@@ -16,39 +17,39 @@
 
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
-                              @bind-Value="_DocNumber"
-                              Label="Document Number"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                @bind-Value="_DocNumber"
+                Label="Document Number"
+                Required="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="_docDateTime"
-                               Label="Document Date"
-                               Editable="true"
-                               Required="true"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense" />
+                Label="Document Date"
+                Editable="true"
+                Required="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
                 <MudNumericField T="decimal"
-                                 @bind-Value="_TotalAmount"
-                                 Label="Total Amount"
-                                 Required="true"
-                                 Min="0"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                @bind-Value="_TotalAmount"
+                Label="Total Amount"
+                Required="true"
+                Min="0"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int"
-                           @bind-Value="_DocTypeId"
-                           Label="Document Type"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                @bind-Value="_DocTypeId"
+                Label="Document Type"
+                Required="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var type in DocTypes)
                     {
@@ -60,13 +61,32 @@
                 </MudSelect>
             </MudItem>
 
+
             <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_CurrencyId"
-                           Label="Currency"
-                           Required="true"
+                <MudSelect T="FinancialSide?"
+                           @bind-Value="_Side"
+                           Label="Financial Side"
+                           Clearable="true"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
+
+                    @foreach (var item in Enum.GetValues<FinancialSide>())
+                    {
+                        <MudSelectItem T="FinancialSide?" Value="@item">
+                            @item.ToString()
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int"
+                @bind-Value="_CurrencyId"
+                Label="Currency"
+                Required="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var currency in Currencies)
                     {
@@ -80,11 +100,11 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                           @bind-Value="_SupplierId"
-                           Label="Supplier"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                @bind-Value="_SupplierId"
+                Label="Supplier"
+                Clearable="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var company in Companies)
                     {
@@ -98,11 +118,11 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                           @bind-Value="_BuyerId"
-                           Label="Buyer"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                @bind-Value="_BuyerId"
+                Label="Buyer"
+                Clearable="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var company in Companies)
                     {
@@ -116,11 +136,11 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                           @bind-Value="_VesselId"
-                           Label="Vessel"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                @bind-Value="_VesselId"
+                Label="Vessel"
+                Clearable="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var vessel in Vessels)
                     {
@@ -134,11 +154,11 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                           @bind-Value="_PortId"
-                           Label="Port"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                @bind-Value="_PortId"
+                Label="Port"
+                Clearable="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var port in Ports)
                     {
@@ -152,11 +172,11 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                           @bind-Value="_ParentDocumentId"
-                           Label="Parent Document"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                @bind-Value="_ParentDocumentId"
+                Label="Parent Document"
+                Clearable="true"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense">
 
                     @foreach (var doc in AllDocs.Where(x => x.Id != Document?.Id))
                     {
@@ -168,20 +188,20 @@
                 </MudSelect>
             </MudItem>
 
-            
+
 
             <MudItem xs="12">
                 <MudTextField T="string"
-                              @bind-Value="_Reference"
-                              Label="Reference"
-                              Lines="3"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                @bind-Value="_Reference"
+                Label="Reference"
+                Lines="3"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense" />
             </MudItem>
 
             <MudItem xs="12">
-    
-</MudItem>
+
+            </MudItem>
 
         </MudGrid>
 
@@ -190,14 +210,14 @@
     <DialogActions>
 
         <MudButton OnClick="Cancel"
-                   Variant="Variant.Text">
+        Variant="Variant.Text">
             Cancel
         </MudButton>
 
         <MudButton Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   OnClick="Submit"
-                   Disabled="@(!IsValid)">
+        Variant="Variant.Filled"
+        OnClick="Submit"
+        Disabled="@(!IsValid)">
             Save
         </MudButton>
 
@@ -205,7 +225,7 @@
 </MudDialog>
 
 @code {
-    
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -250,7 +270,7 @@
     private int? _VesselId;
     private int? _PortId;
     private int? _ParentDocumentId;
-
+    private FinancialSide? _Side;
     private bool IsValid =>
        !string.IsNullOrWhiteSpace(_DocNumber)
         && _docDate is not null
@@ -275,6 +295,7 @@
         _PortId = Document.PortId;
         _ParentDocumentId = Document.ParentDocumentId;
         _docDate = Document.DocDate;
+        _Side = Document.Side;
     }
 
     private void Cancel()
@@ -300,6 +321,7 @@
                  PortId = _PortId,
                  Reference = _Reference,
                  TotalAmount = _TotalAmount,
+                 Side = _Side ?? 0
             }));
         }
         else
@@ -317,6 +339,7 @@
                 PortId = _PortId,
                 Reference = _Reference,
                 TotalAmount = _TotalAmount,
+                Side = _Side ?? 0
             }));
         }
     }
