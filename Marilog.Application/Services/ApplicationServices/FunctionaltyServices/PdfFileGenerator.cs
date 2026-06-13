@@ -3,9 +3,6 @@ using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
 {
@@ -218,13 +215,9 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                 .Text(title).FontSize(10).Bold().FontColor(Colors.Blue.Darken2);
         };
 
-        private static void BuildTable(
-    IContainer container,
-    string[] headers,
-    List<string?[]> rows,                    // ← string?[] بدل string[]
-    Dictionary<int, (string positive, string negative)>? coloredColumns = null,
-    int? netColumnIndex = null,
-    List<decimal>? netValues = null)
+        private static void BuildTable(IContainer container, string[] headers, List<string?[]> rows,
+                                       Dictionary<int,(string positive, string negative)>? coloredColumns = null,
+                                       int? netColumnIndex = null, List<decimal>? netValues = null)
         {
             container.Table(table =>
             {
