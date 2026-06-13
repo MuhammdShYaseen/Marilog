@@ -1,4 +1,6 @@
-﻿namespace Marilog.Contracts.DTOs.Reports.DocumentReports
+﻿using Marilog.Kernel.Enums;
+
+namespace Marilog.Contracts.DTOs.Reports.DocumentReports
 {
     public class DocumentFilterOptions
     {
@@ -13,6 +15,6 @@
 
         public DateOnly? FromDate { get; set; } 
         public DateOnly? ToDate { get; set; }
-
+        public FinancialSide? Side { get; set; }
     }
 }

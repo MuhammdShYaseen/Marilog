@@ -1,0 +1,53 @@
+@media print {
+    /* إخفاء كل شيء ما عدا الـ report */
+    body > * {
+        display: none !important;
+    }
+
+    #marilog-report-print {
+        display: block !important;
+    }
+
+    /* إخفاء الـ navbar والـ sidebar */
+    .mud-drawer,
+    .mud-appbar,
+    .mud-nav-menu {
+        display: none !important;
+    }
+
+    /* إخفاء الـ filter bar والـ buttons */
+    .report-filter-bar,
+    .report-actions {
+        display: none !important;
+    }
+
+    /* ضبط الألوان للطباعة */
+    .mud-success-text {
+        color: #2e7d32 !important;
+    }
+
+    .mud-error-text {
+        color: #c62828 !important;
+    }
+
+    /* ضبط الجداول */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 6px;
+        font-size: 11px;
+    }
+
+    th {
+        background-color: #f5f5f5 !important;
+    }
+
+    /* page break بين الأقسام */
+    .mud-table-container {
+        page-break-inside: avoid;
+    }
+}

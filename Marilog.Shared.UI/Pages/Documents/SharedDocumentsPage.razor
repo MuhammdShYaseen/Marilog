@@ -1,5 +1,6 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
 
@@ -69,11 +70,12 @@
                            OnEditClicked="OnEditClicked"
                            OnDeleteClicked="OnDeleteClicked" />
         </MudTabPanel>
-        @* ── Filter / Report ──────────────────────────────────────────── *@
+
+        @* ── Report ───────────────────────────────────────────── *@
         <MudTabPanel Text="Report">
 
-            @* ── Filter Bar ─────────────────────────────────────────────── *@
-            <MudPaper Class="pa-3 mb-3" Elevation="0" Outlined="true">
+            @* ── Filter Bar ──────────────────────────────────────── *@
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
                 <MudGrid Spacing="2">
 
                     <MudItem xs="12" sm="6" md="3">
@@ -104,22 +106,19 @@
                         </MudSelect>
                     </MudItem>
 
-                    <MudItem xs="12" sm="6" md="2">
-                        <MudNumericField T="int?"
-                                         @bind-Value="_filter.Year"
-                                         Label="Year"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense" />
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect @bind-Value="_filter.Side"
+                                   Label="Financial Side"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var item in Enum.GetValues<FinancialSide>())
+                            {
+                                <MudSelectItem T="FinancialSide?" Value="@item">@item.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
                     </MudItem>
 
-                    <MudItem xs="12" sm="6" md="2">
-                        <MudNumericField T="int?"
-                                         @bind-Value="_filter.Month"
-                                         Label="Month"
-                                         Min="1" Max="12"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense" />
-                    </MudItem>
                     <MudItem xs="12" sm="6" md="3">
                         <MudDatePicker Date="_fromDateTime"
                                        DateChanged="v => { _filter.FromDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; }"
@@ -137,6 +136,24 @@
                                        Variant="Variant.Outlined"
                                        Margin="Margin.Dense" />
                     </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="int?"
+                                         @bind-Value="_filter.Year"
+                                         Label="Year"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="int?"
+                                         @bind-Value="_filter.Month"
+                                         Label="Month"
+                                         Min="1" Max="12"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
                     <MudItem xs="12" sm="6" md="2">
                         <MudNumericField T="int?"
                                          @bind-Value="_filter.LastDays"
@@ -171,13 +188,16 @@
                 </MudGrid>
             </MudPaper>
 
+            @* ── Loading ──────────────────────────────────────────── *@
             @if (_loadingReport)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
             }
+
+            @* ── Report Results ───────────────────────────────────── *@
             else if (_report is not null)
             {
-                @* ── KPI Cards ───────────────────────────────────────────── *@
+                @* 1. KPI Cards ──────────────────────────────────────── *@
                 <MudGrid Spacing="2" Class="mb-4">
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
@@ -188,24 +208,71 @@
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Value</MudText>
-                            <MudText Typo="Typo.h5">@_report.TotalValue.ToString("N2")</MudText>
+                            <MudText Typo="Typo.h5">@($"{_report.TotalValue:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Paid</MudText>
-                            <MudText Typo="Typo.h5" Color="Color.Success">@_report.TotalPaid.ToString("N2")</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@($"{_report.TotalPaid:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Remaining</MudText>
-                            <MudText Typo="Typo.h5" Color="Color.Error">@_report.TotalRemaining.ToString("N2")</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Error">@($"{_report.TotalRemaining:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                 </MudGrid>
 
-                @* ── Monthly Summary ─────────────────────────────────────── *@
+              
+                @* 2. Financial Overview (Revenue / Expense / Net) ───── *@
+                @if (_report.RevenueSideSummary?.Any() == true || _report.ExpenseSideSummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Financial Overview</MudText>
+                    <MudGrid Spacing="2" Class="mb-4">
+
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Success">
+                                    @($"{_report.RevenueSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Paid: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}") |
+                                    Due: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}")
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Expense</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Error">
+                                    @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Paid: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}") |
+                                    Due: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}")
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Net Position</MudText>
+                                <MudText Typo="Typo.h6"
+                                         Color="@(_report.NetPosition >= 0 ? Color.Success : Color.Error)">
+                                    @($"{_report.NetPosition:F2}")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue - Expense</MudText>
+                            </MudPaper>
+                        </MudItem>
+
+                    </MudGrid>
+                }
+
+                @* 3. Monthly Breakdown ──────────────────────────────── *@
                 @if (_report.MonthlySummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Monthly Breakdown</MudText>
@@ -219,6 +286,9 @@
                             <MudTh Style="text-align:right">Value</MudTh>
                             <MudTh Style="text-align:right">Paid</MudTh>
                             <MudTh Style="text-align:right">Remaining</MudTh>
+                            <MudTh Style="text-align:right">Revenue</MudTh>
+                            <MudTh Style="text-align:right">Expense</MudTh>
+                            <MudTh Style="text-align:right">Net</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd>@context.Year</MudTd>
@@ -227,11 +297,17 @@
                             <MudTd Style="text-align:right">@($"{context.TotalValue:F2}")</MudTd>
                             <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.TotalPaid:F2}")</MudTd>
                             <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.TotalRemain:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.Revenue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.Expense:F2}")</MudTd>
+                            <MudTd Style="text-align:right"
+                                   Class="@(context.NetPosition >= 0 ? "mud-success-text" : "mud-error-text")">
+                                @($"{context.NetPosition:F2}")
+                            </MudTd>
                         </RowTemplate>
                     </MudTable>
                 }
 
-                @* ── Supplier Summary ────────────────────────────────────── *@
+                @* 4. By Supplier ────────────────────────────────────── *@
                 @if (_report.SupplierSummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">By Supplier</MudText>
@@ -255,7 +331,7 @@
                     </MudTable>
                 }
 
-                @* ── Vessel Summary ──────────────────────────────────────── *@
+                @* 5. By Vessel ──────────────────────────────────────── *@
                 @if (_report.VesselSummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">By Vessel</MudText>
@@ -268,6 +344,9 @@
                             <MudTh Style="text-align:right">Value</MudTh>
                             <MudTh Style="text-align:right">Paid</MudTh>
                             <MudTh Style="text-align:right">Remaining</MudTh>
+                            <MudTh Style="text-align:right">Revenue</MudTh>
+                            <MudTh Style="text-align:right">Expense</MudTh>
+                            <MudTh Style="text-align:right">Net</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd>@context.VesselName</MudTd>
@@ -275,11 +354,17 @@
                             <MudTd Style="text-align:right">@($"{context.TotalValue:F2}")</MudTd>
                             <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.TotalPaid:F2}")</MudTd>
                             <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.TotalRemain:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.Revenue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.Expense:F2}")</MudTd>
+                            <MudTd Style="text-align:right"
+                                   Class="@(context.NetPosition >= 0 ? "mud-success-text" : "mud-error-text")">
+                                @($"{context.NetPosition:F2}")
+                            </MudTd>
                         </RowTemplate>
                     </MudTable>
                 }
 
-                @* ── Documents Table ─────────────────────────────────────── *@
+                @* 6. Documents ──────────────────────────────────────── *@
                 <MudText Typo="Typo.subtitle1" Class="mb-2">Documents (@_report.Count)</MudText>
                 <DocumentTable Items="_report.Documents"
                                OnRowClick="OnDocumentClick"
@@ -304,9 +389,14 @@
     [Parameter] public EventCallback<int> OnDocumentSelected { get; set; }
     [Parameter] public EventCallback<int?> OnVesselSelected { get; set; }
     [Parameter] public EventCallback<int?> OnSupplierSelected { get; set; }
+    [Parameter] public EventCallback<DocumentFilterOptions> OnReportRequested { get; set; }
+
 
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
+    private DocumentFilterOptions _filter = new();
+    private DocumentReport? _report;
+    private bool _loadingReport;
 
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
@@ -325,22 +415,14 @@
 
     private void OnTabChanged(int index)
     {
-        // reset selections when switching tabs
         _selectedVesselId = null;
         _selectedSupplierId = null;
     }
 
-    // ── Report state ─────────────────────────────────────────────────────────
-    [Parameter] public EventCallback<DocumentFilterOptions> OnReportRequested { get; set; }
-
-    private DocumentFilterOptions _filter = new();
-    private DocumentReport? _report;
-    private bool _loadingReport;
-
     private async Task RunReportAsync()
     {
         _loadingReport = true;
-        StateHasChanged();  // ← أضف هذا
+        StateHasChanged();
         await OnReportRequested.InvokeAsync(_filter);
         _loadingReport = false;
     }
@@ -349,19 +431,20 @@
     {
         _filter = new();
         _report = null;
-        StateHasChanged();  // ← أضف هذا
+        StateHasChanged();
     }
 
-    // يستدعيه الـ parent لتمرير النتيجة للـ component
     public void SetReport(DocumentReport report)
     {
         _report = report;
         _loadingReport = false;
         StateHasChanged();
     }
+
     private DateTime? _fromDateTime =>
-     _filter.FromDate?.ToDateTime(TimeOnly.MinValue);
+        _filter.FromDate?.ToDateTime(TimeOnly.MinValue);
 
     private DateTime? _toDateTime =>
         _filter.ToDate?.ToDateTime(TimeOnly.MinValue);
+
 }

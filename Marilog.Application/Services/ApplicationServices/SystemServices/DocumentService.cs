@@ -219,7 +219,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VesselId = vesselId,
                 PortId = portId,
                 ParentDocumentId = parentDocumentId,
-                Reference = reference
+                Reference = reference,
+                Side = side
             };
 
         }
@@ -257,7 +258,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VesselId = doc.VesselId,
                     PortId = doc.PortId,
                     ParentDocumentId = doc.ParentDocumentId,
-                    Reference = doc.Reference
+                    Reference = doc.Reference,
+                    Side = doc.Side
                 })
                 .ToList();
         }
@@ -507,6 +509,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.DocTypeId.HasValue)
                 query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
 
+            if(options.Side.HasValue)
+                query = query.Where(x => x.Side == options.Side.Value);
+
             if (options.UnpaidOnly == true)
                 query = query.Where(x =>
                     (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount);
@@ -576,7 +581,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
                 VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
                 DocTypeName = x.DocType != null ? x.DocType.Name : null,
-                DocNumber = x.DocNumber
+                DocNumber = x.DocNumber,
+                Side = x.Side
             })
         .ToListAsync(ct);
 
@@ -603,7 +609,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 BuyerName = x.BuyerName,
                 VesselName = x.VesselName,
                 DocTypeName = x.DocTypeName,
-                DocNumber = x.DocNumber
+                DocNumber = x.DocNumber,
+                Side = x.Side,
             }).ToList();
 
             var totalValueBase = documents.Sum(d => d.TotalAmountBase);
@@ -620,6 +627,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
                     TotalPaid = g.Sum(d => d.PaidAmountBase),
                     TotalRemain = g.Sum(d => d.RemainingBase),
+                    Revenue = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase),
+                    Expense = g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    NetPosition = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase)
+            - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
                     Count = g.Count()
                 })
                 .OrderBy(m => m.Year).ThenBy(m => m.Month)
@@ -652,11 +663,33 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
                     TotalPaid = g.Sum(d => d.PaidAmountBase),
                     TotalRemain = g.Sum(d => d.RemainingBase),
+                    Revenue = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase),
+                    Expense = g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    NetPosition = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase)
+            - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
                     Count = g.Count()
                 })
                 .OrderBy(v => v.VesselName)
                 .ToList();
 
+
+            var sideSummaries = documents
+            .GroupBy(d => d.Side)
+            .Select(g => new FinancelSideDocumentSummary
+            {
+                Side = g.Key.ToString(),
+                Count = g.Count(),
+                TotalValue = g.Sum(d => d.TotalAmountBase),
+                TotalPaid = g.Sum(d => d.PaidAmountBase),
+                TotalRemain = g.Sum(d => d.RemainingBase),
+            })
+            .ToList();
+
+            var revenue = sideSummaries.Where(x => x.Side == FinancialSide.Revenue.ToString()).ToList();
+            var expense = sideSummaries.Where(x => x.Side == FinancialSide.Expense.ToString()).ToList();
+            var none = sideSummaries.Where(x => x.Side == FinancialSide.None.ToString()).ToList();
+            // ─── Net Position ─────────────────────────────────────────────────────
+            var netPosition = (revenue.Sum(x => x.TotalValue)) - (expense.Sum(x => x.TotalValue));
             return new DocumentReport
             {
                 Documents = documents,
@@ -667,6 +700,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 MonthlySummary = monthlySummary,
                 SupplierSummary = supplierSummary,
                 VesselSummary = vesselSummary,
+                RevenueSideSummary = revenue ?? [],
+                ExpenseSideSummary =expense ?? [],
+                NoneSideSummary = none,
+                NetPosition = netPosition
             };
         }
 

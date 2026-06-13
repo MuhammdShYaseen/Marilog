@@ -7,6 +7,9 @@
         public decimal TotalValue { get; set; }
         public decimal? TotalPaid { get; set; }
         public decimal TotalRemain { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal Expense { get; set; }
+        public decimal NetPosition { get; set; }
         public int Count { get; set; }
     }
 }

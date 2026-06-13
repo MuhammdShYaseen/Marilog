@@ -282,6 +282,8 @@ namespace Marilog.Client.Services.SystemServices
                 parts.Add($"fromDate={options.FromDate.Value:yyyy-MM-dd}");
             if (options.ToDate.HasValue)
                 parts.Add($"toDate={options.ToDate.Value:yyyy-MM-dd}");
+            if (options.Side.HasValue)
+                parts.Add($"side={options.Side.Value}");
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 
