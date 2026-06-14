@@ -1,6 +1,7 @@
 ﻿namespace Marilog.Kernel.Enums
 {
-
+    public enum PhoneType { Office, Mobile, Fax, WhatsApp }
+    public enum EmailRole { General, Operations, Accounts, Legal, Technical }
     public enum BlType
     {
         Straight,      // Non-negotiable, named consignee
