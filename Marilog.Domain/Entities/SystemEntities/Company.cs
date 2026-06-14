@@ -1,4 +1,6 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Domain.ValueObjects.ReusableValueObjects;
+using Marilog.Kernel.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,13 +16,29 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string? Email { get; private set; }
         public string? Phone { get; private set; }
         public string? Address { get; private set; }
+        public string? Website { get; private set; }
         public string? RegistrationNumber { get; private set; }
 
+
+        // ── Collections (Owned) ───────────────────────────────────────
+        private readonly List<BankAccount> _bankAccounts = new();
+        public IReadOnlyCollection<BankAccount> BankAccounts => _bankAccounts.AsReadOnly();
+
+        private readonly List<ContactEmail> _emails = new();
+        public IReadOnlyCollection<ContactEmail> Emails => _emails.AsReadOnly();
+
+        private readonly List<ContactPhone> _phones = new();
+        public IReadOnlyCollection<ContactPhone> Phones => _phones.AsReadOnly();
         private readonly List<Vessel> _vessels = new();
         public IReadOnlyCollection<Vessel> Vessels => _vessels.AsReadOnly();
 
+        // ── Convenience accessors ─────────────────────────────────────
+        public BankAccount? PrimaryBankAccount => _bankAccounts.FirstOrDefault(b => b.IsPrimary);
+        public ContactEmail? PrimaryEmail => _emails.FirstOrDefault(e => e.IsPrimary);
+        public ContactPhone? PrimaryPhone => _phones.FirstOrDefault(p => p.IsPrimary);
+
         private Company() { }
-        public static Company Create(string? registrationNumber, string companyName, int? countryId,
+        public static Company Create(string? webSite, string? registrationNumber, string companyName, int? countryId,
             string? contactName = null, string? email = null,
             string? phone = null,  string? address = null)
         {
@@ -34,11 +52,12 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ContactName = contactName,
                 Email = email,
                 Phone = phone,
-                Address = address
+                Address = address,
+                Website = webSite
             };
         }
 
-        public void Update(string? registrationNumber, string companyName, int? countryId,
+        public void Update(string? webSite, string? registrationNumber, string companyName, int? countryId,
             string? contactName = null, string? email = null,
             string? phone = null, string? address = null)
         {
@@ -51,7 +70,62 @@ namespace Marilog.Domain.Entities.SystemEntities
             Phone = phone;
             Address = address;
             RegistrationNumber = registrationNumber;
+            Website = webSite;
             Touch();
         }
+
+        // ── Bank Accounts ─────────────────────────────────────────────
+        public Result AddBankAccount(BankAccount account)
+        {
+            if (_bankAccounts.Any(b => b.IBAN == account.IBAN))
+                return Result.Fail("This IBAN already exists.");
+
+            if (account.IsPrimary)
+                ClearPrimaryBankAccounts();
+
+            _bankAccounts.Add(account);
+            return Result.Ok();
+        }
+
+        public Result RemoveBankAccount(string iban)
+        {
+            var account = _bankAccounts.FirstOrDefault(b => b.IBAN == iban);
+            if (account is null)
+                return Result.Fail("Bank account not found.");
+
+            _bankAccounts.Remove(account);
+            return Result.Ok();
+        }
+
+        // ── Emails ────────────────────────────────────────────────────
+        public Result AddEmail(ContactEmail email)
+        {
+            if (_emails.Any(e => e.Address == email.Address))
+                return Result.Fail("This email already exists.");
+
+            if (email.IsPrimary)
+                ClearPrimaryEmails();
+
+            _emails.Add(email);
+            return Result.Ok();
+        }
+
+        // ── Phones ────────────────────────────────────────────────────
+        public Result AddPhone(ContactPhone phone)
+        {
+            if (_phones.Any(p => p.Number == phone.Number && p.Type == phone.Type))
+                return Result.Fail("This phone already exists.");
+
+            if (phone.IsPrimary)
+                ClearPrimaryPhones();
+
+            _phones.Add(phone);
+            return Result.Ok();
+        }
+
+        // ── Private helpers ───────────────────────────────────────────
+        private void ClearPrimaryBankAccounts() { /* reflection or rebuild list */ }
+        private void ClearPrimaryEmails() { /* same */ }
+        private void ClearPrimaryPhones() { /* same */ }
     }
 }
