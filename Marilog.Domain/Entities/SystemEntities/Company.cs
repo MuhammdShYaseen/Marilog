@@ -13,8 +13,6 @@ namespace Marilog.Domain.Entities.SystemEntities
         public int? CountryId { get; private set; }
         public Country? Country { get; private set; }
         public string? ContactName { get; private set; }
-        public string? Email { get; private set; }
-        public string? Phone { get; private set; }
         public string? Address { get; private set; }
         public string? Website { get; private set; }
         public string? RegistrationNumber { get; private set; }
@@ -39,8 +37,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private Company() { }
         public static Company Create(string? webSite, string? registrationNumber, string companyName, int? countryId,
-            string? contactName = null, string? email = null,
-            string? phone = null,  string? address = null)
+            string? contactName = null, string? address = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(companyName);
 
@@ -50,24 +47,19 @@ namespace Marilog.Domain.Entities.SystemEntities
                 CompanyName = companyName,
                 CountryId = countryId,
                 ContactName = contactName,
-                Email = email,
-                Phone = phone,
                 Address = address,
                 Website = webSite
             };
         }
 
         public void Update(string? webSite, string? registrationNumber, string companyName, int? countryId,
-            string? contactName = null, string? email = null,
-            string? phone = null, string? address = null)
+            string? contactName = null, string? address = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(companyName);
 
             CompanyName = companyName;
             CountryId = countryId;
             ContactName = contactName;
-            Email = email;
-            Phone = phone;
             Address = address;
             RegistrationNumber = registrationNumber;
             Website = webSite;
@@ -124,8 +116,23 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         // ── Private helpers ───────────────────────────────────────────
-        private void ClearPrimaryBankAccounts() { /* reflection or rebuild list */ }
-        private void ClearPrimaryEmails() { /* same */ }
-        private void ClearPrimaryPhones() { /* same */ }
+        private void ClearPrimaryBankAccounts()
+        {
+            var primary = _bankAccounts.FirstOrDefault(b => b.IsPrimary);
+            primary?.Update(primary.IBAN, primary.BankName, primary.SwiftCode,
+                primary.CurrencyId, primary.AccountHolderName, isPrimary: false);
+        }
+
+        private void ClearPrimaryEmails()
+        {
+            var primary = _emails.FirstOrDefault(e => e.IsPrimary);
+            primary?.Update(primary.Address, primary.Role, primary.Label!, isPrimary: false);
+        }
+
+        private void ClearPrimaryPhones()
+        {
+            var primary = _phones.FirstOrDefault(p => p.IsPrimary);
+            primary?.Update(primary.Number, primary.Type, primary.Label, isPrimary: false);
+        }
     }
 }

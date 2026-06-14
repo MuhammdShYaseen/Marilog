@@ -44,10 +44,7 @@ namespace Marilog.Domain.ValueObjects.ReusableValueObjects
             if (string.IsNullOrWhiteSpace(bankName))
                 throw new ArgumentNullException(nameof(bankName));
 
-            if (currencyId <= 0)
-                throw new ArgumentOutOfRangeException(nameof(currencyId));
-
-
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(currencyId);
             IBAN = iban.Trim().ToUpperInvariant();
             BankName = bankName.Trim();
             SwiftCode = swiftCode?.Trim().ToUpperInvariant();
