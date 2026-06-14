@@ -1,0 +1,96 @@
+@using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ContactForms
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_iban"
+                              Label="IBAN"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_bankName"
+                              Label="Bank Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_swiftCode"
+                              Label="SWIFT Code"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudSelect T="int"
+                           @bind-Value="_currencyId"
+                           Label="Currency"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var currency in Currencies)
+                    {
+                        <MudSelectItem T="int" Value="@currency.Id">@currency.Code</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_accountHolderName"
+                              Label="Account Holder"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_isPrimary" Label="Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(string.IsNullOrWhiteSpace(_iban) || string.IsNullOrWhiteSpace(_bankName) || _currencyId <= 0)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public BankAccountResponse? BankAccount { get; set; }
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+
+    private string _iban = string.Empty;
+    private string _bankName = string.Empty;
+    private string? _swiftCode;
+    private int _currencyId;
+    private string? _accountHolderName;
+    private bool _isPrimary;
+
+    protected override void OnParametersSet()
+    {
+        if (BankAccount is null) return;
+        _iban = BankAccount.IBAN;
+        _bankName = BankAccount.BankName;
+        _swiftCode = BankAccount.SwiftCode;
+        _currencyId = BankAccount.CurrencyId;
+        _accountHolderName = BankAccount.AccountHolderName;
+        _isPrimary = BankAccount.IsPrimary;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new AddBankAccountRequest
+    {
+        IBAN = _iban,
+        BankName = _bankName,
+        SwiftCode = _swiftCode,
+        CurrencyId = _currencyId,
+        AccountHolderName = _accountHolderName,
+        IsPrimary = _isPrimary
+    }));
+}

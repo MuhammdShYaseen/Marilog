@@ -1,8 +1,10 @@
 ﻿@page "/companies"
 @using Marilog.Contracts.DTOs.Requests.CompanyDTOs
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Companies
+@using Marilog.Shared.UI.Pages.ContactForms
 @using MudBlazor
 
 @inject ICompanyService CompanyService
@@ -10,6 +12,7 @@
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject ICurrencyService CurrencyService
 
 @if (_loading)
 {
@@ -17,20 +20,29 @@
 }
 else
 {
-    <SharedCompaniesPage Companies="_companies"
+    <SharedCompaniesPage @ref="_sharedPage"
+                         Companies="_companies"
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnDeleteClicked="ConfirmDelete"
                          OnActivateClicked="Activate"
                          OnDeactivateClicked="Deactivate"
                          OnVesselClick="OnVesselClicked"
-                         GetCompanyWithVessels="RowSelectedHandler" />
+                         GetCompanyWithVessels="RowSelectedHandler"
+                         OnAddBankAccountClicked="OpenAddBankAccountDialog"
+                         OnAddEmailClicked="OpenAddEmailDialog"
+                         OnAddPhoneClicked="OpenAddPhoneDialog"
+                         OnDeleteBankAccountClicked="ConfirmDeleteBankAccount"
+                         OnDeleteEmailClicked="ConfirmDeleteEmail"
+                         OnDeletePhoneClicked="ConfirmDeletePhone"
+                         OnEditBankAccountClicked="OpenEditBankAccountDialog"
+                         OnEditEmailClicked="OpenEditEmailDialog"
+                         OnEditPhoneClicked="OpenEditPhoneDialog"/>
 }
 
 @code {
     private IReadOnlyList<CompanyResponse> _companies = [];
     private bool _loading = true;
-
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
@@ -129,9 +141,147 @@ else
         Snackbar.Add($"{company.Name} deactivated.", Severity.Warning);
         await LoadAsync();
     }
+
+    private CompanyResponse _selectedCompany =new();
     private async Task<CompanyResponse?> RowSelectedHandler(int id)
     {
-        return await CompanyService.GetWithVesselsAsync(id);
+        _selectedCompany = await CompanyService.GetWithVesselsAsync(id) ?? new();
+        return _selectedCompany;
+
+    }
+
+
+    // ── Emails ────────────────────────────────────────────────────────────────
+    private async Task OpenAddEmailDialog(CompanyResponse company)
+    {
+        var dialog = await DialogService.ShowAsync<EmailFormDialog>("Add Email");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (AddEmailRequest)result.Data!;
+        await CompanyService.AddEmailAsync(company.Id, request.Address, request.Role, request.Label, request.IsPrimary);
+        Snackbar.Add("Email added.", Severity.Success);
+        await RefreshSelected(company.Id);
+    }
+
+    private async Task OpenEditEmailDialog((CompanyResponse company, EmailsResponse email) args)
+    {
+        var parameters = new DialogParameters { ["Email"] = args.email };
+        var dialog = await DialogService.ShowAsync<EmailFormDialog>("Edit Email", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (AddEmailRequest)result.Data!;
+        await CompanyService.UpdateEmailAsync(args.company.Id, args.email.Address, request.Address, request.Role, request.Label, request.IsPrimary);
+        Snackbar.Add("Email updated.", Severity.Success);
+        await RefreshSelected(args.company.Id);
+    }
+
+    private async Task ConfirmDeleteEmail((CompanyResponse company, EmailsResponse email) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Email", $"Delete '{args.email.Address}'?",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await CompanyService.RemoveEmailAsync(args.company.Id, args.email.Address);
+        Snackbar.Add("Email removed.", Severity.Success);
+        await RefreshSelected(args.company.Id);
+    }
+
+    // ── Phones ────────────────────────────────────────────────────────────────
+    private async Task OpenAddPhoneDialog(CompanyResponse company)
+    {
+        var dialog = await DialogService.ShowAsync<PhoneFormDialog>("Add Phone");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (AddPhoneRequest)result.Data!;
+        await CompanyService.AddPhoneAsync(company.Id, request.Number, request.Type, request.Label, request.IsPrimary);
+        Snackbar.Add("Phone added.", Severity.Success);
+        await RefreshSelected(company.Id);
+    }
+
+    private async Task OpenEditPhoneDialog((CompanyResponse company, PhonesResponse phone) args)
+    {
+        var parameters = new DialogParameters { ["Phone"] = args.phone };
+        var dialog = await DialogService.ShowAsync<PhoneFormDialog>("Edit Phone", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (AddPhoneRequest)result.Data!;
+        await CompanyService.UpdatePhoneAsync(args.company.Id, args.phone.Number, args.phone.Type, request.Number, request.Type, request.Label, request.IsPrimary);
+        Snackbar.Add("Phone updated.", Severity.Success);
+        await RefreshSelected(args.company.Id);
+    }
+
+    private async Task ConfirmDeletePhone((CompanyResponse company, PhonesResponse phone) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Phone", $"Delete '{args.phone.Number}'?",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await CompanyService.RemovePhoneAsync(args.company.Id, args.phone.Number, args.phone.Type);
+        Snackbar.Add("Phone removed.", Severity.Success);
+        await RefreshSelected(args.company.Id);
+    }
+
+    // ── Bank Accounts ─────────────────────────────────────────────────────────
+    private async Task OpenAddBankAccountDialog(CompanyResponse company)
+    {
+        var parameters = new DialogParameters { ["Currencies"] = await CurrenciesList() };
+        var dialog = await DialogService.ShowAsync<BankAccountFormDialog>("Add Bank Account", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (AddBankAccountRequest)result.Data!;
+        await CompanyService.AddBankAccountAsync(company.Id, request.IBAN, request.BankName, request.SwiftCode, request.CurrencyId, request.AccountHolderName, request.IsPrimary);
+        Snackbar.Add("Bank account added.", Severity.Success);
+        await RefreshSelected(company.Id);
+    }
+
+    private async Task OpenEditBankAccountDialog((CompanyResponse company, BankAccountResponse bank) args)
+    {
+        var parameters = new DialogParameters
+        {
+            ["BankAccount"] = args.bank,
+            ["Currencies"] = await CurrenciesList()
+        };
+        var dialog = await DialogService.ShowAsync<BankAccountFormDialog>("Edit Bank Account", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (AddBankAccountRequest)result.Data!;
+        await CompanyService.UpdateBankAccountAsync(args.company.Id, args.bank.IBAN, request.BankName, request.SwiftCode, request.CurrencyId, request.AccountHolderName, request.IsPrimary);
+        Snackbar.Add("Bank account updated.", Severity.Success);
+        await RefreshSelected(args.company.Id);
+    }
+
+    private async Task ConfirmDeleteBankAccount((CompanyResponse company, BankAccountResponse bank) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Bank Account", $"Delete IBAN '{args.bank.IBAN}'?",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await CompanyService.RemoveBankAccountAsync(args.company.Id, args.bank.IBAN);
+        Snackbar.Add("Bank account removed.", Severity.Success);
+        await RefreshSelected(args.company.Id);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private async Task<IReadOnlyList<CurrencyResponse>> CurrenciesList()
+    {
+        return await CurrencyService.GetActiveAsync();
+    }
+
+    private SharedCompaniesPage _sharedPage = default!;
+
+    private async Task RefreshSelected(int companyId)
+    {
+        var updated = await CompanyService.GetWithVesselsAsync(companyId) ?? new();
+        _sharedPage?.UpdateSelected(updated);
     }
     private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
 }

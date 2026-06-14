@@ -74,112 +74,264 @@
 
     @* ── Detail Panel ──────────────────────────────────────────── *@
     @if (_selected is not null)
-    {
-        <MudItem xs="12" md="5">
-            <MudPaper Class="pa-4" Elevation="2">
+        @* ── Detail Panel ──────────────────────────────────────────── *@
+        @if (_selected is not null)
+        {
+            <MudItem xs="12" md="5">
+                <MudPaper Class="pa-4" Elevation="2">
 
-                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.h6">@_selected.Name</MudText>
-                    <MudSpacer />
-                    <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                   Size="Size.Small"
-                                   OnClick="ClosePanel" />
-                </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.h6">@_selected.Name</MudText>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       OnClick="ClosePanel" />
+                    </MudStack>
 
-                <MudDivider Class="mb-3" />
+                    <MudDivider Class="mb-3" />
 
-                @* Info *@
-                <MudGrid Spacing="2">
+                    <MudTabs Elevation="0" Rounded="false" PanelClass="pt-3">
 
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Registration No.</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.RegistrationNumber ?? "—")</MudText>
-                    </MudItem>
+                        @* ── Info ── *@
+                        <MudTabPanel Text="Info" Icon="@Icons.Material.Filled.Info">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Registration No.</MudText>
+                                    <MudText Typo="Typo.body2">@(_selected.RegistrationNumber ?? "—")</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                                    <MudChip T="string"
+                                             Color="@(_selected.IsActive ? Color.Success : Color.Default)"
+                                             Size="Size.Small">
+                                        @(_selected.IsActive ? "Active" : "Inactive")
+                                    </MudChip>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Contact</MudText>
+                                    <MudText Typo="Typo.body2">@(_selected.ContactName ?? "—")</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Website</MudText>
+                                    <MudText Typo="Typo.body2">@(_selected.WebSite ?? "—")</MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Address</MudText>
+                                    <MudText Typo="Typo.body2">@(_selected.Address ?? "—")</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
 
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
-                        <MudChip T="string"
-                                 Color="@(_selected.IsActive ? Color.Success : Color.Default)"
-                                 Size="Size.Small">
-                            @(_selected.IsActive ? "Active" : "Inactive")
-                        </MudChip>
-                    </MudItem>
+                        @* ── Contacts ── *@
+                        <MudTabPanel Text="Contacts" Icon="@Icons.Material.Filled.Contacts">
 
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Contact</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.ContactName ?? "—")</MudText>
-                    </MudItem>
+                            @* Emails *@
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                                <MudText Typo="Typo.subtitle2">Emails</MudText>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnAddEmailClicked.InvokeAsync(_selected)" />
+                            </MudStack>
 
+                            @if (_selected.Emails.Any())
+                            {
+                                <MudList T="EmailsResponse" Dense="true" DisablePadding="true">
+                                    @foreach (var email in _selected.Emails)
+                                    {
+                                        <MudListItem T="EmailsResponse" Dense="true">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                                <MudIcon Icon="@Icons.Material.Filled.Email"
+                                                         Size="Size.Small"
+                                                         Color="Color.Secondary" />
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.body2">@email.Address</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @email.Role @(email.Label is not null ? $"· {email.Label}" : "")
+                                                        @(email.IsPrimary ? "· Primary" : "")
+                                                    </MudText>
+                                                </MudStack>
+                                                <MudSpacer />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                               Size="Size.Small"
+                                                               OnClick="() => OnEditEmailClicked.InvokeAsync((_selected, email))" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Size="Size.Small"
+                                                               Color="Color.Error"
+                                                               OnClick="() => OnDeleteEmailClicked.InvokeAsync((_selected, email))" />
+                                            </MudStack>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">No emails added.</MudText>
+                            }
 
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Address</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.Address ?? "—")</MudText>
-                    </MudItem>
+                            <MudDivider Class="my-3" />
 
-                </MudGrid>
+                            @* Phones *@
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                                <MudText Typo="Typo.subtitle2">Phones</MudText>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnAddPhoneClicked.InvokeAsync(_selected)" />
+                            </MudStack>
 
-                <MudDivider Class="my-3" />
+                            @if (_selected.Phones.Any())
+                            {
+                                <MudList T="PhonesResponse" Dense="true" DisablePadding="true">
+                                    @foreach (var phone in _selected.Phones)
+                                    {
+                                        <MudListItem T="PhonesResponse" Dense="true">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                                <MudIcon Icon="@Icons.Material.Filled.Phone"
+                                                         Size="Size.Small"
+                                                         Color="Color.Secondary" />
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.body2">@phone.Number</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @phone.Type @(phone.Label is not null ? $"· {phone.Label}" : "")
+                                                        @(phone.IsPrimary ? "· Primary" : "")
+                                                    </MudText>
+                                                </MudStack>
+                                                <MudSpacer />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                               Size="Size.Small"
+                                                               OnClick="() => OnEditPhoneClicked.InvokeAsync((_selected, phone))" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Size="Size.Small"
+                                                               Color="Color.Error"
+                                                               OnClick="() => OnDeletePhoneClicked.InvokeAsync((_selected, phone))" />
+                                            </MudStack>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">No phones added.</MudText>
+                            }
 
-                @* Vessels *@
-                <MudText Typo="Typo.subtitle2" Class="mb-2">Vessels</MudText>
+                        </MudTabPanel>
 
-                @if (_selected.Vessels.Any())
-                {
-                    foreach (var vessel in _selected.Vessels)
-                    {
-                        <MudChip T="string"
-                                 Icon="@Icons.Material.Filled.DirectionsBoat"
-                                 Color="Color.Primary"
-                                 Size="Size.Small"
-                                 Class="mr-1 mb-1"
-                                 OnClick="() => OnVesselClick.InvokeAsync(vessel.Id)">
-                            @vessel.Name
-                        </MudChip>
-                    }
-                }
-                else
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">No vessels assigned.</MudText>
-                }
+                        @* ── Bank Accounts ── *@
+                        <MudTabPanel Text="Bank" Icon="@Icons.Material.Filled.AccountBalance">
 
-                <MudDivider Class="my-3" />
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                                <MudText Typo="Typo.subtitle2">Bank Accounts</MudText>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnAddBankAccountClicked.InvokeAsync(_selected)" />
+                            </MudStack>
 
-                @* Actions *@
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
-                        Edit
-                    </MudButton>
-                    @if (_selected.IsActive)
-                    {
+                            @if (_selected.BankAccounts.Any())
+                            {
+                                <MudList T="BankAccountResponse" Dense="true" DisablePadding="true">
+                                    @foreach (var bank in _selected.BankAccounts)
+                                    {
+                                        <MudListItem T="BankAccountResponse" Dense="true">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                                <MudIcon Icon="@Icons.Material.Filled.CreditCard"
+                                                         Size="Size.Small"
+                                                         Color="Color.Secondary" />
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.body2">@bank.IBAN</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @bank.BankName @(bank.SwiftCode is not null ? $"· {bank.SwiftCode}" : "")
+                                                        @(bank.IsPrimary ? "· Primary" : "")
+                                                    </MudText>
+                                                </MudStack>
+                                                <MudSpacer />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                               Size="Size.Small"
+                                                               OnClick="() => OnEditBankAccountClicked.InvokeAsync((_selected, bank))" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Size="Size.Small"
+                                                               Color="Color.Error"
+                                                               OnClick="() => OnDeleteBankAccountClicked.InvokeAsync((_selected, bank))" />
+                                            </MudStack>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">No bank accounts added.</MudText>
+                            }
+
+                        </MudTabPanel>
+
+                        @* ── Vessels ── *@
+                        <MudTabPanel Text="Vessels" Icon="@Icons.Material.Filled.DirectionsBoat">
+                            @if (_selected.Vessels.Any())
+                            {
+                                foreach (var vessel in _selected.Vessels)
+                                {
+                                    <MudChip T="string"
+                                             Icon="@Icons.Material.Filled.DirectionsBoat"
+                                             Color="Color.Primary"
+                                             Size="Size.Small"
+                                             Class="mr-1 mb-1"
+                                             OnClick="() => OnVesselClick.InvokeAsync(vessel.Id)">
+                                        @vessel.Name
+                                    </MudChip>
+                                }
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">No vessels assigned.</MudText>
+                            }
+                        </MudTabPanel>
+
+                    </MudTabs>
+
+                    <MudDivider Class="my-3" />
+
+                    @* Actions *@
+                    <MudStack Row="true" Spacing="2">
                         <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Warning"
-                                   StartIcon="@Icons.Material.Filled.PauseCircle"
-                                   OnClick="() => OnDeactivateClicked.InvokeAsync(_selected)">
-                            Deactivate
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                            Edit
                         </MudButton>
-                    }
-                    else
-                    {
+                        @if (_selected.IsActive)
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Warning"
+                                       StartIcon="@Icons.Material.Filled.PauseCircle"
+                                       OnClick="() => OnDeactivateClicked.InvokeAsync(_selected)">
+                                Deactivate
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.PlayCircle"
+                                       OnClick="() => OnActivateClicked.InvokeAsync(_selected)">
+                                Activate
+                            </MudButton>
+                        }
                         <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Success"
-                                   StartIcon="@Icons.Material.Filled.PlayCircle"
-                                   OnClick="() => OnActivateClicked.InvokeAsync(_selected)">
-                            Activate
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
+                            Delete
                         </MudButton>
-                    }
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
-                        Delete
-                    </MudButton>
-                </MudStack>
+                    </MudStack>
 
-            </MudPaper>
-        </MudItem>
+                </MudPaper>
+            </MudItem>
+        }
+
     }
 
 </MudGrid>
@@ -193,6 +345,19 @@
     [Parameter] public Func<int, Task<CompanyResponse?>>? GetCompanyWithVessels { get; set; }
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<int> OnVesselClick { get; set; }
+
+
+    [Parameter] public EventCallback<CompanyResponse> OnAddEmailClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, EmailsResponse)> OnEditEmailClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, EmailsResponse)> OnDeleteEmailClicked { get; set; }
+
+    [Parameter] public EventCallback<CompanyResponse> OnAddPhoneClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, PhonesResponse)> OnEditPhoneClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, PhonesResponse)> OnDeletePhoneClicked { get; set; }
+
+    [Parameter] public EventCallback<CompanyResponse> OnAddBankAccountClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, BankAccountResponse)> OnEditBankAccountClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, BankAccountResponse)> OnDeleteBankAccountClicked { get; set; }
 
     private CompanyResponse? _selected;
     private string _search = string.Empty;
@@ -218,4 +383,12 @@
             _selected = company;
     }
     private void ClosePanel() => _selected = null;
+
+    public void UpdateSelected(CompanyResponse company)
+    {
+        _selected = company;
+        _lastSelectedId = company.Id;
+        StateHasChanged();
+    }
+
 }

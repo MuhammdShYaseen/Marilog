@@ -1,0 +1,77 @@
+@using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ContactForms
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_number"
+                              Label="Phone Number"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudSelect T="PhoneType"
+                           @bind-Value="_type"
+                           Label="Type"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var type in Enum.GetValues<PhoneType>())
+                    {
+                        <MudSelectItem T="PhoneType" Value="@type">@type</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_label"
+                              Label="Label (optional)"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_isPrimary" Label="Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="string.IsNullOrWhiteSpace(_number)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PhonesResponse? Phone { get; set; }
+
+    private string _number = string.Empty;
+    private PhoneType _type = PhoneType.Office;
+    private string? _label;
+    private bool _isPrimary;
+
+    protected override void OnParametersSet()
+    {
+        if (Phone is null) return;
+        _number = Phone.Number;
+        _type = Phone.Type;
+        _label = Phone.Label;
+        _isPrimary = Phone.IsPrimary;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new AddPhoneRequest
+    {
+        Number = _number,
+        Type = _type,
+        Label = _label,
+        IsPrimary = _isPrimary
+    }));
+}

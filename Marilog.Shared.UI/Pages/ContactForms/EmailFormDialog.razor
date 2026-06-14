@@ -1,0 +1,77 @@
+@using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ContactForms
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_address"
+                              Label="Email Address"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudSelect T="EmailRole"
+                           @bind-Value="_role"
+                           Label="Role"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var role in Enum.GetValues<EmailRole>())
+                    {
+                        <MudSelectItem T="EmailRole" Value="@role">@role</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_label"
+                              Label="Label (optional)"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_isPrimary" Label="Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="string.IsNullOrWhiteSpace(_address)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public EmailsResponse? Email { get; set; }
+
+    private string _address = string.Empty;
+    private EmailRole _role = EmailRole.General;
+    private string? _label;
+    private bool _isPrimary;
+
+    protected override void OnParametersSet()
+    {
+        if (Email is null) return;
+        _address = Email.Address;
+        _role = Email.Role;
+        _label = Email.Label;
+        _isPrimary = Email.IsPrimary;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new AddEmailRequest
+    {
+        Address = _address,
+        Role = _role,
+        Label = _label,
+        IsPrimary = _isPrimary
+    }));
+}

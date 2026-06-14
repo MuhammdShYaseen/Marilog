@@ -27,6 +27,7 @@
     <Folder Include="Pages\CrewContracts\" />
     <Folder Include="Pages\Currencies\" />
     <Folder Include="Pages\Documents\" />
+    <Folder Include="Pages\ContactForms\" />
     <Folder Include="Styles\" />
   </ItemGroup>
 
