@@ -33,7 +33,6 @@
                       Dense="true"
                       Hover="true"
                       Striped="true"
-                      SelectedItem="_selected"
                       SelectedItemChanged="OnRowSelected"
                       T="CompanyResponse">
                 <HeaderContent>
@@ -200,6 +199,7 @@
     [Parameter] public EventCallback<CompanyResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<CompanyResponse> OnActivateClicked { get; set; }
     [Parameter] public EventCallback<CompanyResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public Func<int, Task<CompanyResponse?>>? GetCompanyWithVessels { get; set; }
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<int> OnVesselClick { get; set; }
 
@@ -214,6 +214,17 @@
                 (c.ContactName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (c.RegistrationNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
 
-    private void OnRowSelected(CompanyResponse company) => _selected = company;
+    private int? _lastSelectedId;
+    private async Task OnRowSelected(CompanyResponse? company)
+    {
+        if (company is null || company.Id == _lastSelectedId) return;
+
+        _lastSelectedId = company.Id;
+
+        if (GetCompanyWithVessels is not null)
+            _selected = await GetCompanyWithVessels(company.Id);
+        else
+            _selected = company;
+    }
     private void ClosePanel() => _selected = null;
 }

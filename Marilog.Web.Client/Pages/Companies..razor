@@ -23,7 +23,8 @@ else
                          OnDeleteClicked="ConfirmDelete"
                          OnActivateClicked="Activate"
                          OnDeactivateClicked="Deactivate"
-                         OnVesselClick="OnVesselClicked" />
+                         OnVesselClick="OnVesselClicked"
+                         GetCompanyWithVessels="RowSelectedHandler" />
 }
 
 @code {
@@ -130,6 +131,9 @@ else
         Snackbar.Add($"{company.Name} deactivated.", Severity.Warning);
         await LoadAsync();
     }
-
+    private async Task<CompanyResponse?> RowSelectedHandler(int id)
+    {
+        return await CompanyService.GetWithVesselsAsync(id);
+    }
     private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
 }
