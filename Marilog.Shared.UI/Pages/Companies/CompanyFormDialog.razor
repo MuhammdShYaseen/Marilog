@@ -19,6 +19,14 @@
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_webSite"
+                              Label="Web Site"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
             <MudItem xs="6">
                 <MudTextField @bind-Value="_contactName"
                               Label="Contact Name"
@@ -86,16 +94,16 @@
     private string? _email;
     private string? _address;
     private int? _countryId;
+    private string? _webSite;
     protected override void OnParametersSet()
     {
         if (Company is null) return;
         _name = Company.Name;
         _registrationNumber = Company.RegistrationNumber;
         _contactName = Company.ContactName;
-        _phone = Company.Phone;
-        _email = Company.Email;
         _address = Company.Address;
         _countryId = Company.CountryId;  // أضف هذا السطر
+        _webSite = Company.WebSite;
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -106,9 +114,8 @@
         CompanyName = _name,
         RegistrationNumber = _registrationNumber,
         ContactName = _contactName,
-        Phone = _phone,
-        Email = _email,
         Address = _address,
-        CountryId = _countryId
+        CountryId = _countryId,
+        WebSite = _webSite
     }));
 }

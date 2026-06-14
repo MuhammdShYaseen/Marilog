@@ -65,11 +65,10 @@ else
         var request = (CreateCompanyRequest)result.Data!;
         await CompanyService.CreateAsync(
             request.RegistrationNumber,
+            request.WebSite,
             request.CompanyName,
             request.CountryId,
             request.ContactName,
-            request.Email,
-            request.Phone,
             request.Address);
 
         Snackbar.Add("Company created.", Severity.Success);
@@ -91,11 +90,10 @@ else
         await CompanyService.UpdateAsync(
             company.Id,
             request.RegistrationNumber,
+            request.ContactName,
             request.CompanyName,
             request.CountryId,
-            request.ContactName,
-            request.Email,
-            request.Phone,
+            request.WebSite,
             request.Address);
 
         Snackbar.Add("Company updated.", Severity.Success);

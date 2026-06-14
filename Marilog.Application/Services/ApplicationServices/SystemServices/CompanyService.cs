@@ -3,6 +3,8 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Domain.ValueObjects.ReusableValueObjects;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
@@ -24,8 +26,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                    Id = x.Id,
                    Address = x.Address,
                    IsActive = x.IsActive,
-                   Email = x.Email,
-                   Phone = x.Phone,
+                   BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
+                   {
+                       IBAN = b.IBAN,
+                       BankName = b.BankName,
+                       SwiftCode = b.SwiftCode,
+                       CurrencyId = b.CurrencyId,
+                       AccountHolderName = b.AccountHolderName,
+                       IsPrimary = b.IsPrimary
+                   }).ToList(),
+
+                   Emails = x.Emails.Select(e => new EmailsResponse
+                   {
+                       Address = e.Address,
+                       Role = e.Role,
+                       Label = e.Label,
+                       IsPrimary = e.IsPrimary
+                   }).ToList(),
+
+                   Phones = x.Phones.Select(p => new PhonesResponse
+                   {
+                       Number = p.Number,
+                       Type = p.Type,
+                       Label = p.Label,
+                       IsPrimary = p.IsPrimary
+                   }).ToList(),
                    ContactName = x.ContactName,
                    RegistrationNumber = x.RegistrationNumber,
                    Name = x.CompanyName,
@@ -44,8 +69,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Id = x.Id,
                     Address = x.Address,
                     IsActive = x.IsActive,
-                    Email = x.Email,
-                    Phone = x.Phone,
+                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
+                    {
+                        IBAN = b.IBAN,
+                        BankName = b.BankName,
+                        SwiftCode = b.SwiftCode,
+                        CurrencyId = b.CurrencyId,
+                        AccountHolderName = b.AccountHolderName,
+                        IsPrimary = b.IsPrimary
+                    }).ToList(),
+
+                    Emails = x.Emails.Select(e => new EmailsResponse
+                    {
+                        Address = e.Address,
+                        Role = e.Role,
+                        Label = e.Label,
+                        IsPrimary = e.IsPrimary
+                    }).ToList(),
+
+                    Phones = x.Phones.Select(p => new PhonesResponse
+                    {
+                        Number = p.Number,
+                        Type = p.Type,
+                        Label = p.Label,
+                        IsPrimary = p.IsPrimary
+                    }).ToList(),
                     ContactName = x.ContactName,
                     RegistrationNumber = x.RegistrationNumber,
                     Name = x.CompanyName,
@@ -78,8 +126,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Name = x.CompanyName,
                     Address = x.Address,
                     IsActive = x.IsActive,
-                    Email = x.Email,
-                    Phone = x.Phone,
+                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
+                    {
+                        IBAN = b.IBAN,
+                        BankName = b.BankName,
+                        SwiftCode = b.SwiftCode,
+                        CurrencyId = b.CurrencyId,
+                        AccountHolderName = b.AccountHolderName,
+                        IsPrimary = b.IsPrimary
+                    }).ToList(),
+
+                    Emails = x.Emails.Select(e => new EmailsResponse
+                    {
+                        Address = e.Address,
+                        Role = e.Role,
+                        Label = e.Label,
+                        IsPrimary = e.IsPrimary
+                    }).ToList(),
+
+                    Phones = x.Phones.Select(p => new PhonesResponse
+                    {
+                        Number = p.Number,
+                        Type = p.Type,
+                        Label = p.Label,
+                        IsPrimary = p.IsPrimary
+                    }).ToList(),
                     ContactName = x.ContactName,
                     RegistrationNumber = x.RegistrationNumber
                 })
@@ -100,8 +171,35 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Name = x.CompanyName,
                     Address = x.Address,
                     IsActive = x.IsActive,
-                    Email = x.Email,
-                    Phone = x.Phone,
+
+
+
+                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
+                    {
+                        IBAN = b.IBAN,
+                        BankName = b.BankName,
+                        SwiftCode = b.SwiftCode,
+                        CurrencyId = b.CurrencyId,
+                        AccountHolderName = b.AccountHolderName,
+                        IsPrimary = b.IsPrimary
+                    }).ToList(),
+                    Emails = x.Emails.Select(e => new EmailsResponse
+                    {
+                        Address = e.Address,
+                        Role = e.Role,
+                        Label = e.Label,
+                        IsPrimary = e.IsPrimary
+                    }).ToList(),
+                    Phones = x.Phones.Select(p => new PhonesResponse
+                    {
+                        Number = p.Number,
+                        Type = p.Type,
+                        Label = p.Label,
+                        IsPrimary = p.IsPrimary
+                    }).ToList(),
+
+
+
                     ContactName = x.ContactName,
                     RegistrationNumber = x.RegistrationNumber
                 })
@@ -122,8 +220,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Name = x.CompanyName,
                     Address = x.Address,
                     IsActive = x.IsActive,
-                    Email = x.Email,
-                    Phone = x.Phone,
+                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
+                    {
+                        IBAN = b.IBAN,
+                        BankName = b.BankName,
+                        SwiftCode = b.SwiftCode,
+                        CurrencyId = b.CurrencyId,
+                        AccountHolderName = b.AccountHolderName,
+                        IsPrimary = b.IsPrimary
+                    }).ToList(),
+
+                    Emails = x.Emails.Select(e => new EmailsResponse
+                    {
+                        Address = e.Address,
+                        Role = e.Role,
+                        Label = e.Label,
+                        IsPrimary = e.IsPrimary
+                    }).ToList(),
+
+                    Phones = x.Phones.Select(p => new PhonesResponse
+                    {
+                        Number = p.Number,
+                        Type = p.Type,
+                        Label = p.Label,
+                        IsPrimary = p.IsPrimary
+                    }).ToList(),
                     ContactName = x.ContactName,
                     RegistrationNumber = x.RegistrationNumber
                 })
@@ -134,9 +255,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CompanyResponse> CreateAsync(string? registrationNumber, string companyName, int? countryId = null, string? contactName = null, string? email = null, string? phone = null, string? address = null,  CancellationToken ct = default)
+        public async Task<CompanyResponse> CreateAsync(string? webSite, string? registrationNumber, string companyName, int? countryId = null, string? contactName = null, string? address = null,  CancellationToken ct = default)
         {
-            var company = Company.Create(registrationNumber, companyName, countryId, contactName, email, phone, address);
+            var company = Company.Create(webSite, registrationNumber, companyName, countryId, contactName, address);
             await _repo.AddAsync(company, ct);
             await _repo.SaveChangesAsync(ct);
             return new CompanyResponse
@@ -145,10 +266,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Name = company.CompanyName,
                 Address = company.Address,
                 IsActive = company.IsActive,
-                Email = company.Email,
-                Phone = company.Phone,
                 ContactName = company.ContactName,
-                RegistrationNumber = company.RegistrationNumber
+                RegistrationNumber = company.RegistrationNumber,
+                WebSite = company.Website
             };
         }
 
@@ -157,12 +277,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var companies = commands
                 .Select(c => Company.Create(
+                    c.WebSite,
                     c.RegistrationNumber,
                     c.CompanyName,
                     c.CountryId,
                     c.ContactName,
-                    c.Email,
-                    c.Phone,
                     c.Address))
                 .ToList();
 
@@ -176,21 +295,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Name = company.CompanyName,
                     Address = company.Address,
                     IsActive = company.IsActive,
-                    Email = company.Email,
-                    Phone = company.Phone,
+                    
+                    WebSite = company.Website,
                     ContactName = company.ContactName,
                     RegistrationNumber = company.RegistrationNumber
                 })
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, string? registrationNumber, string companyName, int? countryId = null,
-            string? contactName = null, string? email = null,
-            string? phone = null, string? address = null,
+        public async Task UpdateAsync(int id, string? registrationNumber,string? webSite, string companyName, int? countryId = null,
+            string? contactName = null,
+            string? address = null,
             CancellationToken ct = default)
         {
             var company = await GetOrThrowAsync(id, ct);
-            company.Update(registrationNumber, companyName, countryId, contactName, email, phone, address);
+            company.Update(webSite, registrationNumber, companyName, countryId, contactName, address);
             _repo.Update(company);
             await _repo.SaveChangesAsync(ct);
         }
@@ -227,10 +346,138 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+
+        // ── Bank Accounts ─────────────────────────────────────────────────────────
+        public async Task AddBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+            int currencyId, string? accountHolderName, bool isPrimary, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+
+            var account = BankAccount.Create(iban, bankName, swiftCode, currencyId, accountHolderName, isPrimary);
+            company.AddBankAccount(account);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+            int currencyId, string? accountHolderName, bool isPrimary, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+
+
+            var account = company.BankAccounts.FirstOrDefault(b => b.IBAN == iban.Trim().ToUpperInvariant())
+                ?? throw new KeyNotFoundException($"Bank account {iban} not found.");
+
+
+            account.Update(iban, bankName, swiftCode, currencyId, accountHolderName, isPrimary);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemoveBankAccountAsync(int companyId, string iban, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+            company.RemoveBankAccount(iban);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        // ── Emails ────────────────────────────────────────────────────────────────
+        public async Task AddEmailAsync(int companyId, string address, EmailRole role, string? label, bool isPrimary,
+            CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+            var email = ContactEmail.Create(address, role, label!, isPrimary);
+            company.AddEmail(email);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateEmailAsync(int companyId, string oldAddress, string newAddress, EmailRole role,
+            string? label, bool isPrimary, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+
+            var email = company.Emails.FirstOrDefault(e => e.Address == oldAddress.Trim().ToLowerInvariant())
+                ?? throw new KeyNotFoundException($"Email {oldAddress} not found.");
+            email.Update(newAddress, role, label!, isPrimary);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemoveEmailAsync(int companyId, string address, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+
+            var email = company.Emails.FirstOrDefault(e => e.Address == address.Trim().ToLowerInvariant())
+                ?? throw new KeyNotFoundException($"Email {address} not found.");
+
+            company.RemoveEmail(address);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        // ── Phones ────────────────────────────────────────────────────────────────
+        public async Task AddPhoneAsync(int companyId, string number, PhoneType type, string? label, bool isPrimary,
+            CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+
+            var phone = ContactPhone.Create(number, type, label, isPrimary);
+            company.AddPhone(phone);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdatePhoneAsync(int companyId, string oldNumber, PhoneType oldType, string newNumber,
+            PhoneType newType, string? label, bool isPrimary, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+
+            var phone = company.Phones.FirstOrDefault(p => p.Number == oldNumber && p.Type == oldType)
+                ?? throw new KeyNotFoundException($"Phone {oldNumber} not found.");
+            phone.Update(newNumber, newType, label, isPrimary);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemovePhoneAsync(int companyId, string number, PhoneType type, CancellationToken ct = default)
+        {
+            var company = await GetOrThrowAsync(companyId, ct);
+
+            if (company == null)
+                throw new KeyNotFoundException(nameof(company));
+            var phone = company.Phones.FirstOrDefault(p => p.Number == number && p.Type == type)
+                ?? throw new KeyNotFoundException($"Phone {number} not found.");
+            company.RemovePhone(number);
+            await _repo.SaveChangesAsync(ct);
+        }
+
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<Company> GetOrThrowAsync(int id, CancellationToken ct)
-            => await _repo.GetByIdAsync(id, ct)
+            => await _repo.Query()
+                .Include(p => p.Phones)
+                .Include(p => p.Emails)
+                .Include(b => b.BankAccounts)
+                .Where(a => a.Id == id)
+                .FirstOrDefaultAsync(ct)
                ?? throw new KeyNotFoundException($"Company {id} not found.");
     }
 }

@@ -1,9 +1,11 @@
-﻿using Marilog.Contracts.DTOs.Requests.CompanyDTOs;
-using Marilog.Contracts.DTOs.Responses;
+﻿using Marilog.Client.Extensions;
 using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.CompanyDTOs;
+using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs;
+using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Kernel.Enums;
 using System.Net.Http.Json;
-using Marilog.Client.Extensions;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -44,8 +46,8 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CompanyResponse> CreateAsync(string? registrationNumber, string companyName, int? countryId = null,
-            string? contactName = null, string? email = null, string? phone = null, string? address = null,
+        public async Task<CompanyResponse> CreateAsync(string? registrationNumber, string? webSite, string companyName, int? countryId = null,
+            string? contactName = null, string? address = null,
             CancellationToken ct = default)
         {
             var request = new CreateCompanyRequest
@@ -54,9 +56,8 @@ namespace Marilog.Client.Services.SystemServices
                 CompanyName = companyName,
                 CountryId = countryId,
                 ContactName = contactName,
-                Email = email,
-                Phone = phone,
-                Address = address
+                Address = address,
+                WebSite = webSite,
             };
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
@@ -75,8 +76,8 @@ namespace Marilog.Client.Services.SystemServices
             return response ?? [];
         }
 
-        public async Task UpdateAsync(int id, string? registerationNumber, string companyName, int? countryId = null,
-            string? contactName = null, string? email = null, string? phone = null, string? address = null,
+        public async Task UpdateAsync(int id, string? registerationNumber, string? website, string companyName, int? countryId = null,
+            string? contactName = null, string? address = null,
             CancellationToken ct = default)
         {
             var request = new UpdateCompanyRequest
@@ -84,10 +85,9 @@ namespace Marilog.Client.Services.SystemServices
                 CompanyName = companyName,
                 CountryId = countryId,
                 ContactName = contactName,
-                Email = email,
-                Phone = phone,
                 Address = address,
-                RegistrationNumber = registerationNumber
+                RegistrationNumber = registerationNumber,
+                WebSite = website,
                 
             };
 
@@ -110,6 +110,121 @@ namespace Marilog.Client.Services.SystemServices
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        // ── Bank Accounts ─────────────────────────────────────────────────────────
+
+        public async Task AddBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+            int currencyId, string? accountHolderName, bool isPrimary, CancellationToken ct = default)
+        {
+            var request = new AddBankAccountRequest
+            {
+                IBAN = iban,
+                BankName = bankName,
+                SwiftCode = swiftCode,
+                CurrencyId = currencyId,
+                AccountHolderName = accountHolderName,
+                IsPrimary = isPrimary
+            };
+            var http = await _http.PostAsJsonAsync($"{Base}/{companyId}/bank-accounts", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdateBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+            int currencyId, string? accountHolderName, bool isPrimary, CancellationToken ct = default)
+        {
+            var request = new AddBankAccountRequest
+            {
+                IBAN = iban,
+                BankName = bankName,
+                SwiftCode = swiftCode,
+                CurrencyId = currencyId,
+                AccountHolderName = accountHolderName,
+                IsPrimary = isPrimary
+            };
+            var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/bank-accounts/{Uri.EscapeDataString(iban)}", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task RemoveBankAccountAsync(int companyId, string iban, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{companyId}/bank-accounts/{Uri.EscapeDataString(iban)}", ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        // ── Emails ────────────────────────────────────────────────────────────────
+
+        public async Task AddEmailAsync(int companyId, string address, EmailRole role, string? label,
+            bool isPrimary, CancellationToken ct = default)
+        {
+            var request = new AddEmailRequest
+            {
+                Address = address,
+                Role = role,
+                Label = label,
+                IsPrimary = isPrimary
+            };
+            var http = await _http.PostAsJsonAsync($"{Base}/{companyId}/emails", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdateEmailAsync(int companyId, string oldAddress, string newAddress, EmailRole role,
+            string? label, bool isPrimary, CancellationToken ct = default)
+        {
+            var request = new AddEmailRequest
+            {
+                Address = newAddress,
+                Role = role,
+                Label = label,
+                IsPrimary = isPrimary
+            };
+            var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/emails/{Uri.EscapeDataString(oldAddress)}", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task RemoveEmailAsync(int companyId, string address, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{companyId}/emails/{Uri.EscapeDataString(address)}", ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        // ── Phones ────────────────────────────────────────────────────────────────
+
+        public async Task AddPhoneAsync(int companyId, string number, PhoneType type, string? label,
+            bool isPrimary, CancellationToken ct = default)
+        {
+            var request = new AddPhoneRequest
+            {
+                Number = number,
+                Type = type,
+                Label = label,
+                IsPrimary = isPrimary
+            };
+            var http = await _http.PostAsJsonAsync($"{Base}/{companyId}/phones", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdatePhoneAsync(int companyId, string oldNumber, PhoneType oldType, string newNumber,
+            PhoneType newType, string? label, bool isPrimary, CancellationToken ct = default)
+        {
+            var request = new UpdatePhoneRequest
+            {
+                OldNumber = oldNumber,
+                OldType = oldType,
+                NewNumber = newNumber,
+                NewType = newType,
+                Label = label,
+                IsPrimary = isPrimary
+            };
+            var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/phones", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task RemovePhoneAsync(int companyId, string number, PhoneType type, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync(
+                $"{Base}/{companyId}/phones?number={Uri.EscapeDataString(number)}&type={type}", ct);
             http.EnsureSuccessStatusCode();
         }
     }

@@ -2,8 +2,10 @@
 {
     using Marilog.Contracts.Common;
     using Marilog.Contracts.DTOs.Requests.CompanyDTOs;
+    using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs;
     using Marilog.Contracts.DTOs.Responses;
     using Marilog.Contracts.Interfaces.Services.SystemServices;
+    using Marilog.Kernel.Enums;
     using Microsoft.AspNetCore.Mvc;
 
     [ApiController]
@@ -71,11 +73,10 @@
         {
             var company = await _service.CreateAsync(
                 request.RegistrationNumber,
+                request.WebSite,
                 request.CompanyName,
                 request.CountryId,
                 request.ContactName,
-                request.Email,
-                request.Phone,
                 request.Address,
                 ct);
 
@@ -90,11 +91,10 @@
             var commands = requests.Select(r => new CreateCompanyRequest
             {
                 RegistrationNumber = r.RegistrationNumber,
+                WebSite = r.WebSite,
                 CompanyName = r.CompanyName,
                 CountryId = r.CountryId,
                 ContactName = r.ContactName,
-                Email = r.Email,
-                Phone = r.Phone,
                 Address = r.Address
             }
             );
@@ -111,11 +111,10 @@
             await  _service.UpdateAsync(
                 id,
                 request.RegistrationNumber,
+                request.WebSite,
                 request.CompanyName,
                 request.CountryId,
                 request.ContactName,
-                request.Email,
-                request.Phone,
                 request.Address,
                 ct);
 
@@ -141,6 +140,86 @@
         public async Task<IActionResult> Delete(int id, CancellationToken ct)
         {
             await _service.DeleteAsync(id, ct);
+            return NoContent();
+        }
+
+
+
+        // ─────────────────────────────────────────────
+        // Bank Accounts
+        // ─────────────────────────────────────────────
+
+        [HttpPost("{id:int}/bank-accounts")]
+        public async Task<IActionResult> AddBankAccount(int id, [FromBody] AddBankAccountRequest request, CancellationToken ct)
+        {
+            await _service.AddBankAccountAsync(id, request.IBAN, request.BankName, request.SwiftCode,
+                request.CurrencyId, request.AccountHolderName, request.IsPrimary, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id:int}/bank-accounts/{iban}")]
+        public async Task<IActionResult> UpdateBankAccount(int id, string iban, [FromBody] AddBankAccountRequest request, CancellationToken ct)
+        {
+            await _service.UpdateBankAccountAsync(id, iban, request.BankName, request.SwiftCode,
+                request.CurrencyId, request.AccountHolderName, request.IsPrimary, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}/bank-accounts/{iban}")]
+        public async Task<IActionResult> RemoveBankAccount(int id, string iban, CancellationToken ct)
+        {
+            await _service.RemoveBankAccountAsync(id, iban, ct);
+            return NoContent();
+        }
+
+        // ─────────────────────────────────────────────
+        // Emails
+        // ─────────────────────────────────────────────
+
+        [HttpPost("{id:int}/emails")]
+        public async Task<IActionResult> AddEmail(int id, [FromBody] AddEmailRequest request, CancellationToken ct)
+        {
+            await _service.AddEmailAsync(id, request.Address, request.Role, request.Label, request.IsPrimary, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id:int}/emails/{address}")]
+        public async Task<IActionResult> UpdateEmail(int id, string address, [FromBody] AddEmailRequest request, CancellationToken ct)
+        {
+            await _service.UpdateEmailAsync(id, address, request.Address, request.Role, request.Label, request.IsPrimary, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}/emails/{address}")]
+        public async Task<IActionResult> RemoveEmail(int id, string address, CancellationToken ct)
+        {
+            await _service.RemoveEmailAsync(id, address, ct);
+            return NoContent();
+        }
+
+        // ─────────────────────────────────────────────
+        // Phones
+        // ─────────────────────────────────────────────
+
+        [HttpPost("{id:int}/phones")]
+        public async Task<IActionResult> AddPhone(int id, [FromBody] AddPhoneRequest request, CancellationToken ct)
+        {
+            await _service.AddPhoneAsync(id, request.Number, request.Type, request.Label, request.IsPrimary, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id:int}/phones")]
+        public async Task<IActionResult> UpdatePhone(int id, [FromBody] UpdatePhoneRequest request, CancellationToken ct)
+        {
+            await _service.UpdatePhoneAsync(id, request.OldNumber, request.OldType,
+                request.NewNumber, request.NewType, request.Label, request.IsPrimary, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}/phones")]
+        public async Task<IActionResult> RemovePhone(int id, [FromQuery] string number, [FromQuery] PhoneType type, CancellationToken ct)
+        {
+            await _service.RemovePhoneAsync(id, number, type, ct);
             return NoContent();
         }
     }

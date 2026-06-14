@@ -102,6 +102,15 @@ namespace Marilog.Domain.Entities.SystemEntities
             return Result.Ok();
         }
 
+        public Result RemoveEmail(string address)
+        {
+            var email = _emails.FirstOrDefault(e => e.Address == address);
+            if (email == null)
+                return Result.Fail("Email Address not found.");
+            _emails.Remove(email);
+            return Result.Ok();
+        }
+
         // ── Phones ────────────────────────────────────────────────────
         public Result AddPhone(ContactPhone phone)
         {
@@ -112,6 +121,16 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ClearPrimaryPhones();
 
             _phones.Add(phone);
+            return Result.Ok();
+        }
+
+        public Result RemovePhone(string phoneNumber)
+        {
+            var phone = _phones.FirstOrDefault(p => p.Number == phoneNumber);
+            if (phone == null)
+                return Result.Fail("Phone number not found");
+
+            _phones.Remove(phone);
             return Result.Ok();
         }
 
