@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
@@ -30,7 +31,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             EntityType entityType,
             int? entityId)
         {
-            return new StoredFile
+            var storedfile = new StoredFile
             {
                 OriginalFileName = originalFileName,
                 StoredFileName = storedFileName,
@@ -41,6 +42,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 EntityId = entityId,
                 EntityType = entityType
             };
+            storedfile.AddDomainEvent(new StoredFileOcrRequestedEvent(storedfile.Id, storedfile.StoredFileName));
+            return storedfile;
         }
 
         public void UpdateEntityLink(EntityType entityType, int? entityId)

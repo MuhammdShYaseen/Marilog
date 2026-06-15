@@ -1,4 +1,5 @@
-﻿using Marilog.Domain.Common;
+﻿using Marilog.Application.Interfaces.Events;
+using Marilog.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -6,8 +7,10 @@ namespace Marilog.Infrastructure.DataAccess.ContextDb
 {
     public class MarilogContext : DbContext
     {
-        public MarilogContext(DbContextOptions<MarilogContext> options) : base(options)
+        private readonly IEventDispatcher _dispatcher;
+        public MarilogContext(DbContextOptions<MarilogContext> options, IEventDispatcher dispatcher) : base(options)
         {
+            _dispatcher = dispatcher;
         }
 
 
@@ -46,6 +49,27 @@ namespace Marilog.Infrastructure.DataAccess.ContextDb
                 }
             }
         }
+        public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
+        {
+            var entitiesWithEvents = ChangeTracker
+                .Entries<Entity>()
+                .Where(e => e.Entity.DomainEvents.Any())
+                .Select(e => e.Entity)
+                .ToList();
 
+            var events = entitiesWithEvents
+                .SelectMany(e => e.DomainEvents)
+                .ToList();
+
+            // Domain events are dispatched only after successful persistence
+            var result = await base.SaveChangesAsync(ct);
+
+            entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
+
+            foreach (var domainEvent in events)
+                await _dispatcher.EnqueueAsync(domainEvent, ct);
+
+            return result;
+        }
     }
 }
