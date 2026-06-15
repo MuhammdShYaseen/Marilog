@@ -1,5 +1,6 @@
 using Marilog.OCR.Worker;
 using Marilog.OCR.Worker.Extensions;
+using Marilog.OCR.Worker.Options;
 using Microsoft.Extensions.Logging;
 
 namespace Marilog.OCR.Worker;
@@ -13,7 +14,7 @@ public sealed class Program
         // ── Logging ──
         builder.Logging.AddConsole();
         builder.Logging.SetMinimumLevel(LogLevel.Information);
-
+        builder.Services.Configure<UrlsOptions>(builder.Configuration.GetSection("Urls"));
         // ── OCR Pipeline ──
         builder.Services.AddSearchablePdfGenerator(opts =>
         {

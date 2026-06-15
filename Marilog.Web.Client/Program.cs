@@ -1,7 +1,8 @@
+using Marilog.Client.Extensions;
+using Marilog.Contracts.Options;
+using Marilog.Shared.UI.Extensions;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Marilog.Client.Extensions;
-using Marilog.Shared.UI.Extensions;
 namespace Marilog.Web.Client
 {
     public class Program
@@ -19,6 +20,7 @@ namespace Marilog.Web.Client
             builder.Services.AddMarilogUI();
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
+            builder.Services.Configure<UrlsOptions>(builder.Configuration.GetSection("Urls"));
             await builder.Build().RunAsync();
         }
     }

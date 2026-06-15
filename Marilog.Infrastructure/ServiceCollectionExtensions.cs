@@ -4,6 +4,7 @@ using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
+using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.DataAccess.ContextDb;
@@ -43,20 +44,21 @@ namespace Marilog.Infrastructure
 
                 return new SecretEncryptionService(key);
             });
-            // Event Dispatcher
+            //Event Dispatcher
             services.AddSingleton<InMemoryEventDispatcher>();
 
             services.AddSingleton<IEventDispatcher>(sp => sp.GetRequiredService<InMemoryEventDispatcher>());
 
-            // Event Handlers
+            //Event Handlers
             services.AddScoped<IEventHandler<StoredFileOcrRequestedEvent>, StoredFileOcrRequestedEventHandler>();
 
             //Local Storg
             services.AddSingleton<IFileStorageProvider, LocalFileStorageProvider>();
+
+            //options
+            services.Configure<UrlsOptions>(configuration.GetSection("Urls"));
+
             return services;
-
-            
-
         }
     }
 }
