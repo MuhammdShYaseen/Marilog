@@ -1,7 +1,9 @@
 ﻿using Marilog.Application.Interfaces.Events;
 using Marilog.Contracts.DTOs.OCR;
+using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 
 namespace Marilog.Application.EventHandlers;
@@ -10,10 +12,12 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
 {
     private readonly ILogger<StoredFileOcrRequestedEventHandler> _logger;
     private readonly HttpClient _httpClient;
-    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient)
+    private readonly IOptions<UrlsOptions> _urlsOptions;
+    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient, IOptions<UrlsOptions> urlOptions)
     {
         _logger = logger;
         _httpClient = httpClient;
+        _urlsOptions = urlOptions;
     }
 
     public async Task HandleAsync(StoredFileOcrRequestedEvent @event, CancellationToken ct = default)
@@ -24,7 +28,7 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
             @event.StoredFileId,
             @event.FilePath);
 
-        var response = await _httpClient.PostAsJsonAsync("/api/ocr/process", request, ct);
+        var response = await _httpClient.PostAsJsonAsync(_urlsOptions.Value.Ocr + "api/ocr/process", request, ct);
 
         if (!response.IsSuccessStatusCode)
         {
