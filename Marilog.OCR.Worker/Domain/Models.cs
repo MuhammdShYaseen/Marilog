@@ -57,6 +57,9 @@ public sealed class OcrOptions
 
     /// <summary>حفظ نسخة احتياطية من الملف الأصلي</summary>
     public bool KeepOriginalBackup { get; init; } = false;
+
+    public int BatchSize { get; init; } = 4;
+    public int MaxDegreeOfParallelism { get; init; } = 2;
 }
 
 public sealed record OcrRequest(
