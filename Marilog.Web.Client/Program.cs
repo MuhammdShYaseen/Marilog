@@ -12,13 +12,9 @@ namespace Marilog.Web.Client
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-            builder.Services.AddScoped(sp =>
+            builder.Services.AddScoped(sp => new HttpClient
             {
-                var urls = sp.GetRequiredService<IOptions<UrlsOptions>>().Value;
-                return new HttpClient
-                {
-                    BaseAddress = new Uri(urls.Presentation)
-                };
+                BaseAddress = new Uri("https://localhost:5001/")
             });
             //builder.Services.AddMudServices();
             builder.Services.AddMarilogClientService();
