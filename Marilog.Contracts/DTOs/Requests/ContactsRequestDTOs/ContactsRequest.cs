@@ -15,6 +15,17 @@ namespace Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
         public bool IsPrimary { get; set; }
     }
 
+    public class UpdateBankAccountRequest
+    {
+        public string OldIBAN { get; set; } = null!;
+        public string? NewIban { get; set; }
+        public string BankName { get; set; } = null!;
+        public string? SwiftCode { get; set; }
+        public int CurrencyId { get; set; }
+        public string? AccountHolderName { get; set; }
+        public bool IsPrimary { get; set; }
+    }
+
     public class AddEmailRequest
     {
         public string Address { get; set; } = null!;

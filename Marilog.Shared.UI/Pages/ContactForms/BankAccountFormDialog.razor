@@ -66,6 +66,7 @@
     [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
 
     private string _iban = string.Empty;
+    private string _oldIban = string.Empty;
     private string _bankName = string.Empty;
     private string? _swiftCode;
     private int _currencyId;
@@ -76,6 +77,7 @@
     {
         if (BankAccount is null) return;
         _iban = BankAccount.IBAN;
+        _oldIban = BankAccount.IBAN;
         _bankName = BankAccount.BankName;
         _swiftCode = BankAccount.SwiftCode;
         _currencyId = BankAccount.CurrencyId;
@@ -84,9 +86,10 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new AddBankAccountRequest
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new UpdateBankAccountRequest
     {
-        IBAN = _iban,
+        NewIban = _iban,
+        OldIBAN = _oldIban,
         BankName = _bankName,
         SwiftCode = _swiftCode,
         CurrencyId = _currencyId,

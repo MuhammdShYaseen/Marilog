@@ -252,8 +252,8 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var request = (AddBankAccountRequest)result.Data!;
-        await CompanyService.UpdateBankAccountAsync(args.company.Id, args.bank.IBAN, request.BankName, request.SwiftCode, request.CurrencyId, request.AccountHolderName, request.IsPrimary);
+        var request = (UpdateBankAccountRequest)result.Data!;
+        await CompanyService.UpdateBankAccountAsync(args.company.Id, args.bank.IBAN, request.NewIban, request.BankName, request.SwiftCode, request.CurrencyId, request.AccountHolderName, request.IsPrimary);
         Snackbar.Add("Bank account updated.", Severity.Success);
         await RefreshSelected(args.company.Id);
     }

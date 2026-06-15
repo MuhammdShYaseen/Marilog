@@ -131,19 +131,20 @@ namespace Marilog.Client.Services.SystemServices
             http.EnsureSuccessStatusCode();
         }
 
-        public async Task UpdateBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+        public async Task UpdateBankAccountAsync(int companyId, string oldIban, string? newIban, string bankName, string? swiftCode,
             int currencyId, string? accountHolderName, bool isPrimary, CancellationToken ct = default)
         {
-            var request = new AddBankAccountRequest
+            var request = new UpdateBankAccountRequest
             {
-                IBAN = iban,
+                OldIBAN = oldIban,
+                NewIban = newIban,
                 BankName = bankName,
                 SwiftCode = swiftCode,
                 CurrencyId = currencyId,
                 AccountHolderName = accountHolderName,
                 IsPrimary = isPrimary
             };
-            var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/bank-accounts/{Uri.EscapeDataString(iban)}", request, ct);
+            var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/bank-accounts/{Uri.EscapeDataString(oldIban)}", request, ct);
             http.EnsureSuccessStatusCode();
         }
 

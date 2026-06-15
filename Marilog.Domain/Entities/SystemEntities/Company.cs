@@ -138,7 +138,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         private void ClearPrimaryBankAccounts()
         {
             var primary = _bankAccounts.FirstOrDefault(b => b.IsPrimary);
-            primary?.Update(primary.IBAN, primary.BankName, primary.SwiftCode,
+            primary?.Update(primary.IBAN, null, primary.BankName, primary.SwiftCode,
                 primary.CurrencyId, primary.AccountHolderName, isPrimary: false);
         }
 

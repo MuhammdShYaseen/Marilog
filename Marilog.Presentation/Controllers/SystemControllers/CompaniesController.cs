@@ -158,9 +158,9 @@
         }
 
         [HttpPut("{id:int}/bank-accounts/{iban}")]
-        public async Task<IActionResult> UpdateBankAccount(int id, string iban, [FromBody] AddBankAccountRequest request, CancellationToken ct)
+        public async Task<IActionResult> UpdateBankAccount(int id, string iban, [FromBody] UpdateBankAccountRequest request, CancellationToken ct)
         {
-            await _service.UpdateBankAccountAsync(id, iban, request.BankName, request.SwiftCode,
+            await _service.UpdateBankAccountAsync(id, iban, request.NewIban, request.BankName, request.SwiftCode,
                 request.CurrencyId, request.AccountHolderName, request.IsPrimary, ct);
             return NoContent();
         }

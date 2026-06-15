@@ -361,7 +361,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-        public async Task UpdateBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+        public async Task UpdateBankAccountAsync(int companyId, string oldIban, string? newIban, string bankName, string? swiftCode,
             int currencyId, string? accountHolderName, bool isPrimary, CancellationToken ct = default)
         {
             var company = await GetOrThrowAsync(companyId, ct);
@@ -370,11 +370,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new KeyNotFoundException(nameof(company));
 
 
-            var account = company.BankAccounts.FirstOrDefault(b => b.IBAN == iban.Trim().ToUpperInvariant())
-                ?? throw new KeyNotFoundException($"Bank account {iban} not found.");
+            var account = company.BankAccounts.FirstOrDefault(b => b.IBAN == oldIban.Trim().ToUpperInvariant())
+                ?? throw new KeyNotFoundException($"Bank account {oldIban} not found.");
 
 
-            account.Update(iban, bankName, swiftCode, currencyId, accountHolderName, isPrimary);
+            account.Update(oldIban, newIban, bankName, swiftCode, currencyId, accountHolderName, isPrimary);
             await _repo.SaveChangesAsync(ct);
         }
 

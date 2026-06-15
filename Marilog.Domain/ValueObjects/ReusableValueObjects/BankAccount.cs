@@ -35,17 +35,25 @@ namespace Marilog.Domain.ValueObjects.ReusableValueObjects
             };
         }
 
-        public void  Update(string iban, string bankName, string? swiftCode,
+        public void  Update(string oldIban, string? newIban, string bankName, string? swiftCode,
             int currencyId, string? accountHolderName, bool isPrimary)
         {
-            if (string.IsNullOrWhiteSpace(iban))
-                throw new ArgumentNullException(nameof(iban));
+            if (string.IsNullOrWhiteSpace(oldIban))
+                throw new ArgumentNullException(nameof(oldIban));
 
             if (string.IsNullOrWhiteSpace(bankName))
                 throw new ArgumentNullException(nameof(bankName));
 
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(currencyId);
-            IBAN = iban.Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(newIban))
+            {
+                IBAN = oldIban;
+            }
+            else
+            {
+                IBAN = newIban.Trim().ToUpperInvariant();
+            }
             BankName = bankName.Trim();
             SwiftCode = swiftCode?.Trim().ToUpperInvariant();
             CurrencyId = currencyId;

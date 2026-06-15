@@ -33,7 +33,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task AddBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
                                  int currencyId, string? accountHolderName, bool isPrimary,
                                  CancellationToken ct = default);
-        Task UpdateBankAccountAsync(int companyId, string iban, string bankName, string? swiftCode,
+        Task UpdateBankAccountAsync(int companyId, string oldIban, string? newIban, string bankName, string? swiftCode,
                                     int currencyId, string? accountHolderName, bool isPrimary,
                                     CancellationToken ct = default);
         Task RemoveBankAccountAsync(int companyId, string iban, CancellationToken ct = default);
