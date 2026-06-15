@@ -86,14 +86,33 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new UpdateBankAccountRequest
+    private void Submit()
     {
-        NewIban = _iban,
-        OldIBAN = _oldIban,
-        BankName = _bankName,
-        SwiftCode = _swiftCode,
-        CurrencyId = _currencyId,
-        AccountHolderName = _accountHolderName,
-        IsPrimary = _isPrimary
-    }));
+        if(BankAccount != null)
+        {
+            MudDialog.Close(DialogResult.Ok(new UpdateBankAccountRequest
+            {
+                NewIban = _iban,
+                OldIBAN = _oldIban,
+                BankName = _bankName,
+                SwiftCode = _swiftCode,
+                CurrencyId = _currencyId,
+                AccountHolderName = _accountHolderName,
+                IsPrimary = _isPrimary
+            }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new AddBankAccountRequest
+            {
+                IBAN = _iban,
+                BankName = _bankName,
+                SwiftCode = _swiftCode,
+                CurrencyId = _currencyId,
+                AccountHolderName = _accountHolderName,
+                IsPrimary = _isPrimary
+            }));
+        }
+
+    }
 }
