@@ -3,6 +3,7 @@ using Marilog.Contracts.Options;
 using Marilog.Shared.UI.Extensions;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.Options;
 namespace Marilog.Web.Client
 {
     public class Program
@@ -11,9 +12,13 @@ namespace Marilog.Web.Client
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-            builder.Services.AddScoped(sp => new HttpClient
+            builder.Services.AddScoped(sp =>
             {
-                BaseAddress = new Uri("https://localhost:5001/")
+                var urls = sp.GetRequiredService<IOptions<UrlsOptions>>().Value;
+                return new HttpClient
+                {
+                    BaseAddress = new Uri(urls.Presentation)
+                };
             });
             //builder.Services.AddMudServices();
             builder.Services.AddMarilogClientService();

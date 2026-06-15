@@ -1,4 +1,5 @@
 using Marilog.Application;
+using Marilog.Contracts.Options;
 using Marilog.Infrastructure;
 using Marilog.Presentation.Extensions;
 using Serilog;
@@ -25,8 +26,13 @@ namespace Marilog.Presentation
             {
                 options.AddPolicy("AllowClient", policy =>
                 {
+                    var urls = builder.Configuration
+                        .GetSection("Urls")
+                        .Get<UrlsOptions>()
+                        ?? throw new InvalidOperationException("Urls configuration is missing.");
+
                     policy
-                        .WithOrigins("https://localhost:5003")
+                        .WithOrigins(urls.Frontend.TrimEnd('/'))
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });
