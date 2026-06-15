@@ -1,6 +1,7 @@
 
 using Marilog.OCR.Worker.Abstractions;
 using Marilog.OCR.Worker.Domain;
+using Marilog.OCR.Worker.Services;
 
 namespace Marilog.OCR.Worker;
 
@@ -9,15 +10,17 @@ public sealed class Worker : BackgroundService
     private readonly ILogger<Worker> _logger;
     private readonly OcrQueue _queue;
     private readonly ISearchablePdfService _pdfService;
-
+    private readonly ICallBackService _callbackService;
     public Worker(
         ILogger<Worker> logger,
         OcrQueue queue,
-        ISearchablePdfService pdfService)
+        ISearchablePdfService pdfService,
+        ICallBackService callBack)
     {
         _logger = logger;
         _queue = queue;
         _pdfService = pdfService;
+        _callbackService = callBack;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -27,7 +30,7 @@ public sealed class Worker : BackgroundService
         await foreach (var request in _queue.Reader.ReadAllAsync(ct))
         {
             // لا ننتظر — نعالج في الخلفية
-            _ = ProcessAsync(request, ct);
+            _ = ProcessAsync(request, CancellationToken.None);
         }
     }
 
@@ -63,7 +66,11 @@ public sealed class Worker : BackgroundService
             );
 
             // ── لاحقاً: إخبار Marilog.Presentation بالنتيجة ──
-            // await _callbackService.NotifyCompletedAsync(request.DocumentId, result);
+            var extractedContent = string.Join("\n",
+            result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
+
+            await _callbackService.NotifyOcrCompletedAsync(
+                request.DocumentId, extractedContent, ct);
         }
         catch (Exception ex)
         {

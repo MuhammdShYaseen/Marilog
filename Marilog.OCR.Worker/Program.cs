@@ -1,7 +1,10 @@
 using Marilog.OCR.Worker;
 using Marilog.OCR.Worker.Extensions;
+using Marilog.OCR.Worker.Filters;
 using Marilog.OCR.Worker.Options;
+using Marilog.OCR.Worker.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Marilog.OCR.Worker;
 
@@ -10,7 +13,7 @@ public sealed class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        builder.Services.AddScoped<InternalApiKeyFilter>();
         // ── Logging ──
         builder.Logging.AddConsole();
         builder.Logging.SetMinimumLevel(LogLevel.Information);
@@ -26,6 +29,15 @@ public sealed class Program
 
         // ── Background Worker ──
         builder.Services.AddHostedService<Worker>();
+
+        builder.Services.AddHttpClient<ICallBackService, CallBackService>((sp, client) =>
+        {
+            var urls = sp.GetRequiredService<IOptions<UrlsOptions>>().Value;
+            var apiKey = builder.Configuration["InternalApiKey"]
+                ?? throw new InvalidOperationException("InternalApiKey is not configured.");
+            client.BaseAddress = new Uri(urls.Presentation);
+            client.DefaultRequestHeaders.Add("X-Internal-Api-Key", apiKey);
+        });
 
         var app = builder.Build();
 
@@ -58,7 +70,7 @@ public sealed class Program
                 Message = "OCR job queued",
                 DocumentId = request.DocumentId
             });
-        });
+        }).AddEndpointFilter<InternalApiKeyFilter>();
 
         await app.RunAsync();
     }
