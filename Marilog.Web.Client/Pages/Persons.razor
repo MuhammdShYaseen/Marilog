@@ -1,0 +1,143 @@
+﻿@page "/persons"
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Pages.Persons
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@inject ICountryService CountryService
+@inject IPersonService PersonService
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<SharedPersonPage @ref="_sharedPage"
+                   Persons="_persons"
+                   OnActivateClicked="Activate"
+                   OnDeactivateClicked="Deactivate"
+                   OnDeleteClicked="ConfirmDelete"
+                   OnEditClicked="OpenEditDialog"
+                   OnAddClicked="OpenAddDialog"
+                   />
+@code {
+
+    private IReadOnlyList<PersonResponse> _persons = [];
+    private IReadOnlyList<CountryResponse> _countries = [];
+    private bool _loading = true;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _persons = await PersonService.GetActiveAsync();
+        _loading = false;
+    }
+
+    private async Task<IReadOnlyList<CountryResponse>> CountriesList()
+    {
+        var response = await CountryService.GetActiveAsync();
+        return response.Select(s => new CountryResponse
+        {
+            Code = s.Code,
+            IsActive = s.IsActive,
+            Id = s.Id,
+            Name = s.Name
+        }).ToList().AsReadOnly();
+
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<PersonDialog>("New Person",
+            new DialogParameters { ["Countries"] = await CountriesList() });
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;  // ← check null first
+
+        var request = (CreatePersonRequest)result.Data!;
+        await PersonService.CreateAsync(
+            request.BankName,
+            request.IBAN,
+            request.IsPassportExpired,
+            request.BankSwiftCode,
+            request.FullName,
+            request.Nationality,
+            request.PassportNo,
+            request.PassportExpiry,
+            request.SeamanBookNo,
+            request.DateOfBirth,
+            request.Phone,
+            request.Email);
+
+        Snackbar.Add("Person created.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(PersonResponse person)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Person"] = person,
+            ["Countries"] = await CountriesList()  // ← pass countries here too
+        };
+        var dialog = await DialogService.ShowAsync<PersonDialog>("Edit Person", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;  // ← check null first
+
+        var request = (UpdatePersonRequest)result.Data!;
+        await PersonService.UpdateAsync(
+            person.Id,
+            request.FullName,
+            request.Nationality,
+            request.PassportNo,
+            request.PassportExpiry,
+            request.SeamanBookNo,
+            request.DateOfBirth,
+            request.Phone,
+            request.Email
+            );
+
+        Snackbar.Add("person updated.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task ConfirmDelete(PersonResponse person)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Person",
+            $"Are you sure you want to delete '{person.FullName}'?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            await PersonService.DeleteAsync(person.Id);
+            Snackbar.Add("Company deleted.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task Activate(PersonResponse person)
+    {
+        await PersonService.ActivateAsync(person.Id);
+        Snackbar.Add($"{person.FullName} activated.", Severity.Success);
+        await LoadAsync();
+    }
+
+
+
+    private SharedPersonPage _sharedPage = default!;
+
+    private async Task RefreshSelected(int personId)
+    {
+        var updated = await PersonService.GetByIdAsync(personId) ?? new();
+        _sharedPage?.UpdateSelected(updated);
+    }
+
+    private async Task Deactivate(PersonResponse person)
+    {
+        await PersonService.DeactivateAsync(person.Id);
+        Snackbar.Add($"{person.FullName} deactivated.", Severity.Warning);
+        await LoadAsync();
+    }
+
+}

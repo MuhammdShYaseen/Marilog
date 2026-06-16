@@ -1,0 +1,270 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<MudGrid>
+
+    @* ── List ─────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
+
+        <MudPaper Class="pa-4" Elevation="2">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Persons</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_search"
+                              Placeholder="Search..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mr-2"
+                              Style="max-width:250px" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OnAddClicked">
+                    New
+                </MudButton>
+            </MudStack>
+
+            <MudTable Items="_filtered"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      SelectedItemChanged="OnRowSelected"
+                      T="PersonResponse">
+                <HeaderContent>
+                    <MudTh>Full Name</MudTh>
+                    <MudTh>Passport</MudTh>
+                    <MudTh>Seaman Book</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Expiry</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.FullName</MudTd>
+                    <MudTd>@(context.PassportNo ?? "—")</MudTd>
+                    <MudTd>@(context.SeamanBookNo ?? "—")</MudTd>
+                    <MudTd>
+                        <MudChip T="string"
+                                 Color="@(context.IsActive ? Color.Success : Color.Default)"
+                                 Size="Size.Small">
+                            @(context.IsActive ? "Active" : "Inactive")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.PassportExpiry is not null)
+                        {
+                            var daysLeft = (context.PassportExpiry.Value.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
+                            var color = daysLeft < 30 ? Color.Error : daysLeft < 90 ? Color.Warning : Color.Success;
+                            <MudChip T="string" Color="@color" Size="Size.Small">
+                                @context.PassportExpiry.Value.ToString("yyyy-MM-dd") (@(daysLeft) days)
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       OnClick="() => OnEditClicked.InvokeAsync(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No persons found.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+        </MudPaper>
+
+    </MudItem>
+
+    @* ── Detail Panel ──────────────────────────────────────────── *@
+    @if (_selected is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">@_selected.FullName</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="ClosePanel" />
+                </MudStack>
+
+                <MudDivider Class="mb-3" />
+
+                <MudTabs Elevation="0" Rounded="false" PanelClass="pt-3">
+
+                    @* ── Info ── *@
+                    <MudTabPanel Text="Info" Icon="@Icons.Material.Filled.Person">
+                        <MudGrid Spacing="2">
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Nationality</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.NationalityCountryName ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Date of Birth</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.DateOfBirth?.ToString("yyyy-MM-dd") ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Passport</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.PassportNo ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Passport Expiry</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.PassportExpiry?.ToString("yyyy-MM-dd") ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Seaman Book</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.SeamanBookNo ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Phone</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.Phone ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.Email ?? "—")</MudText>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                                <MudChip T="string"
+                                         Color="@(_selected.IsActive ? Color.Success : Color.Default)"
+                                         Size="Size.Small">
+                                    @(_selected.IsActive ? "Active" : "Inactive")
+                                </MudChip>
+                                @if (_selected.IsPassportExpired)
+                                {
+                                    <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ml-2">
+                                        Passport Expired
+                                    </MudChip>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </MudTabPanel>
+
+                    @* ── Bank Account ── *@
+                    <MudTabPanel Text="Bank" Icon="@Icons.Material.Filled.AccountBalance">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Bank Details</MudText>
+                            <MudSpacer />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnEditBankClicked.InvokeAsync(_selected)" />
+                        </MudStack>
+
+                        @if (!string.IsNullOrWhiteSpace(_selected.BankName) || !string.IsNullOrWhiteSpace(_selected.IBAN))
+                        {
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Bank Name</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.BankName ?? "—")</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">IBAN</MudText>
+                                <MudText Typo="Typo.body2">@(_selected.IBAN ?? "—")</MudText>
+                                @if (!string.IsNullOrWhiteSpace(_selected.BankSwiftCode))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Swift Code</MudText>
+                                    <MudText Typo="Typo.body2">@_selected.BankSwiftCode</MudText>
+                                }
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No bank details added.</MudText>
+                        }
+                    </MudTabPanel>
+
+                </MudTabs>
+
+                <MudDivider Class="my-3" />
+
+                @* Actions *@
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Edit
+                    </MudButton>
+                    @if (_selected.IsActive)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.PauseCircle"
+                                   OnClick="() => OnDeactivateClicked.InvokeAsync(_selected)">
+                            Deactivate
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.PlayCircle"
+                                   OnClick="() => OnActivateClicked.InvokeAsync(_selected)">
+                            Activate
+                        </MudButton>
+                    }
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
+                        Delete
+                    </MudButton>
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<PersonResponse> Persons { get; set; } = [];
+    [Parameter] public EventCallback<PersonResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+
+    private PersonResponse? _selected;
+    private string _search = string.Empty;
+
+    private IEnumerable<PersonResponse> _filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? Persons
+            : Persons.Where(p =>
+                p.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (p.PassportNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.SeamanBookNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Phone?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Email?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private int? _lastSelectedId;
+
+    private async Task OnRowSelected(PersonResponse? person)
+    {
+        if (person is null || person.Id == _lastSelectedId) return;
+        _lastSelectedId = person.Id;
+        _selected = person;
+    }
+
+    private void ClosePanel() => _selected = null;
+
+    public void UpdateSelected(PersonResponse person)
+    {
+        _selected = person;
+        _lastSelectedId = person.Id;
+        StateHasChanged();
+    }
+}

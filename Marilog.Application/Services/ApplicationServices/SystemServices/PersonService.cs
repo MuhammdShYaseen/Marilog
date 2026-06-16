@@ -101,7 +101,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<PersonResponse> CreateAsync(string bankName, string iBAN, bool isPassportExpired, string? bankSwiftCode,string fullName, int? nationality = null,
+        public async Task<PersonResponse> CreateAsync(string? bankName, string? iBAN, bool isPassportExpired, string? bankSwiftCode,string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
             string? phone = null, string? email = null,
@@ -127,7 +127,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 IBAN = person.IBAN,
                 IsPassportExpired = person.IsPassportExpired(),
                 Id = person.Id,
-                IsActive = true
+                IsActive = true,
+                Nationality = person.Nationality,
+                NationalityCountryName = ""
             };
         }
 
@@ -294,7 +296,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 Id = x.Id,
                 FullName = x.FullName,
-                Nationality = x.NationalityCountry!.CountryName,
+                Nationality = x.Nationality,
                 NationalityCountryName = x.NationalityCountry != null
                     ? x.NationalityCountry.CountryName
                     : null,

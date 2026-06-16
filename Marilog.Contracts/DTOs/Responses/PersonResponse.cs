@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
         public string FullName { get; set; } = null!;
-        public string Nationality { get; set; } = null!;
+        public int? Nationality { get; set; }
         public string? NationalityCountryName { get; set; }
         public string? PassportNo { get; set; } = null!;
         public DateOnly? PassportExpiry { get; set; }

@@ -2,8 +2,8 @@
 {
     public class CreatePersonRequest
     {
-        public string BankName { get;  set; } = string.Empty;
-        public string IBAN { get;  set; } = string.Empty ;
+        public string? BankName { get;  set; }
+        public string? IBAN { get;  set; }
         public bool IsPassportExpired { get;  set; }
         public string? BankSwiftCode { get;  set; }
         public string FullName { get; set; } = string.Empty;

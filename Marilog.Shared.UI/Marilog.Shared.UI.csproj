@@ -28,6 +28,7 @@
     <Folder Include="Pages\Currencies\" />
     <Folder Include="Pages\Documents\" />
     <Folder Include="Pages\ContactForms\" />
+    <Folder Include="Pages\Persons\" />
     <Folder Include="Styles\" />
   </ItemGroup>
 

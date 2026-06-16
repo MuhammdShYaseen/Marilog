@@ -21,7 +21,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 
         private Person() { }
-        public static Person Create(string bankName, string iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,
+        public static Person Create(string? bankName, string? iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
             string? phone = null, string? email = null)

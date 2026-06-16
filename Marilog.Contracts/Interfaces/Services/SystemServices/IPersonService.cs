@@ -15,7 +15,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<PersonResponse>> GetWithExpiringPassportsAsync(int withinDays, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<PersonResponse> CreateAsync(string bankName, string iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,
+        Task<PersonResponse> CreateAsync(string? bankName, string? iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
             string? phone = null, string? email = null,

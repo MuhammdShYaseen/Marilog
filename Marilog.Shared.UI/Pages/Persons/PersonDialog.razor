@@ -1,0 +1,195 @@
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_fullName"
+                              Label="Full Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudSelect T="int?"
+                           @bind-Value="_nationality"
+                           Label="Nationality"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var country in Countries)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)country.Id)">
+                            @country.Name
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudDatePicker @bind-Value="_dateOfBirth"
+                               Label="Date of Birth"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               MaxDate="@DateTime.Now" />
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_passportNo"
+                              Label="Passport No."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudDatePicker @bind-Value="_passportExpiry"
+                               Label="Passport Expiry"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_seamanBookNo"
+                              Label="Seaman Book No."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_phone"
+                              Label="Phone"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_email"
+                              Label="Email"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSwitch @bind-Value="_isPassportExpired"
+                           Label="Passport Expired"
+                           Color="Color.Warning" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Bank Details</MudText>
+                <MudDivider Class="my-2" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_bankName"
+                              Label="Bank Name"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="8">
+                <MudTextField @bind-Value="_iban"
+                              Label="IBAN"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="4">
+                <MudTextField @bind-Value="_bankSwiftCode"
+                              Label="Swift Code"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="string.IsNullOrWhiteSpace(_fullName)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PersonResponse? Person { get; set; }
+    [Parameter] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
+
+    private string _fullName = string.Empty;
+    private int? _nationality;
+    private string? _passportNo;
+    private DateOnly? _passportExpiry;
+    private string? _seamanBookNo;
+    private DateOnly? _dateOfBirth;
+    private string? _phone;
+    private string? _email;
+    private string? _bankName;
+    private string? _iban;
+    private string? _bankSwiftCode;
+    private bool _isPassportExpired;
+
+    protected override void OnParametersSet()
+    {
+        if (Person is null) return;
+        _fullName = Person.FullName;
+        _nationality = Person.Nationality;
+        _passportNo = Person.PassportNo;
+        _passportExpiry = Person.PassportExpiry;
+        _seamanBookNo = Person.SeamanBookNo;
+        _dateOfBirth = Person.DateOfBirth;
+        _phone = Person.Phone;
+        _email = Person.Email;
+        _bankName = Person.BankName;
+        _iban = Person.IBAN;
+        _bankSwiftCode = Person.BankSwiftCode;
+        _isPassportExpired = Person.IsPassportExpired;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (Person is null)
+        {
+            MudDialog.Close(DialogResult.Ok(new CreatePersonRequest
+            {
+                FullName = _fullName,
+                Nationality = _nationality,
+                PassportNo = _passportNo,
+                PassportExpiry = _passportExpiry,
+                SeamanBookNo = _seamanBookNo,
+                DateOfBirth = _dateOfBirth,
+                Phone = _phone,
+                Email = _email,
+                BankName = _bankName,
+                IBAN = _iban,
+                BankSwiftCode = _bankSwiftCode,
+                IsPassportExpired = _isPassportExpired
+            }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new UpdatePersonRequest
+            {
+                FullName = _fullName,
+                Nationality = _nationality,
+                PassportNo = _passportNo,
+                PassportExpiry = _passportExpiry,
+                SeamanBookNo = _seamanBookNo,
+                DateOfBirth = _dateOfBirth,
+                Phone = _phone,
+                Email = _email,
+                BankName = _bankName,
+                BankSwiftCode = _bankSwiftCode,
+                IBAN = _iban
+            }));
+        }
+    }
+}

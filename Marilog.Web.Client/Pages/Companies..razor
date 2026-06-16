@@ -98,7 +98,7 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;  // ← check null first
 
-        var request = (CreateCompanyRequest)result.Data!;
+        var request = (UpdateCompanyRequest)result.Data!;
         await CompanyService.UpdateAsync(
             company.Id,
             request.RegistrationNumber,

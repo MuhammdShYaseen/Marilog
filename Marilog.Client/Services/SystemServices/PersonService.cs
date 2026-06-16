@@ -59,7 +59,7 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<PersonResponse> CreateAsync(string bankName, string iBAN, bool isPassportExpired,
+        public async Task<PersonResponse> CreateAsync(string? bankName, string? iBAN, bool isPassportExpired,
             string? bankSwiftCode, string fullName, int? nationality = null,
             string? passportNo = null, DateOnly? passportExpiry = null,
             string? seamanBookNo = null, DateOnly? dateOfBirth = null,
