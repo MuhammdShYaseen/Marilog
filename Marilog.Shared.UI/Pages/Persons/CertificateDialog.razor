@@ -1,0 +1,82 @@
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_certificateName"
+                              Label="Certificate Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_issueDateDt"
+                               Label="Issue Date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_expiryDateDt"
+                               Label="Expiry Date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_description"
+                              Label="Description"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="3" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="string.IsNullOrWhiteSpace(_certificateName)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PersonCertificateResponse? Certificate { get; set; }
+
+    private string _certificateName = string.Empty;
+    private DateTime? _issueDateDt;
+    private DateTime? _expiryDateDt;
+    private string? _description;
+
+    protected override void OnParametersSet()
+    {
+        if (Certificate is null) return;
+        _certificateName = Certificate.CertificateName;
+        _issueDateDt = Certificate.IssueDate?.ToDateTime(TimeOnly.MinValue);
+        _expiryDateDt = Certificate.ExpiryDate?.ToDateTime(TimeOnly.MinValue);
+        _description = Certificate.Description;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new UpsertCertificateRequest
+        {
+            CertificateName = _certificateName.Trim(),
+            IssueDate = _issueDateDt.HasValue
+                ? DateOnly.FromDateTime(_issueDateDt.Value)
+                : null,
+            ExpiryDate = _expiryDateDt.HasValue
+                ? DateOnly.FromDateTime(_expiryDateDt.Value)
+                : null,
+            Description = string.IsNullOrWhiteSpace(_description)
+                ? null
+                : _description.Trim()
+        }));
+}

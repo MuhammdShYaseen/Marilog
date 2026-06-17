@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Domain.ValueObjects.Person;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -19,6 +20,12 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
+
+        private readonly List<PersonCertificate> _certificates = new();
+        public IReadOnlyCollection<PersonCertificate> Certificates => _certificates.AsReadOnly();
+
+        private readonly List<PersonSeaService> _seaServices = new();
+        public IReadOnlyCollection<PersonSeaService> SeaServices => _seaServices.AsReadOnly();
 
         private Person() { }
         public static Person Create(string? bankName, string? iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,
@@ -76,6 +83,53 @@ namespace Marilog.Domain.Entities.SystemEntities
             BankName = null;
             IBAN = null;
             BankSwiftCode = null;
+            Touch();
+        }
+
+        //-----Certificates--------------------------
+        public void AddCertificate(string name, DateOnly? issueDate, DateOnly? expiryDate, string? description)
+        {
+            _certificates.Add(PersonCertificate.Create(name, issueDate, expiryDate, description));
+            Touch();
+        }
+        public void UpdateCertificate(int index, string name, DateOnly? issueDate, DateOnly? expiryDate, string? description)
+        {
+            if (index < 0 || index >= _certificates.Count)
+                throw new IndexOutOfRangeException("Certificate not found.");
+
+            // ✅ ValueObject — استبدال بدل تعديل
+            _certificates[index] = _certificates[index]
+                .WithUpdates(name, issueDate, expiryDate, description);
+            Touch();
+        }
+
+        public void RemoveCertificate(int index)
+        {
+            if (index < 0 || index >= _certificates.Count)
+                throw new IndexOutOfRangeException("Certificate not found.");
+            _certificates.RemoveAt(index);
+            Touch();
+        }
+        public void UpdateSeaService(int index, int rankId, int experienceInMonths, decimal? vesselSizeInMT)
+        {
+            if (index < 0 || index >= _seaServices.Count)
+                throw new IndexOutOfRangeException("Sea service not found.");
+
+            _seaServices[index] = _seaServices[index]
+                .WithUpdates(rankId, experienceInMonths, vesselSizeInMT);
+            Touch();
+        }
+        public void AddSeaService(int rankId, int experienceInMonths, decimal? vesselSizeInMT)
+        {
+            _seaServices.Add(PersonSeaService.Create(rankId, experienceInMonths, vesselSizeInMT));
+            Touch();
+        }
+
+        public void RemoveSeaService(int index)
+        {
+            if (index < 0 || index >= _seaServices.Count)
+                throw new IndexOutOfRangeException("Sea service not found.");
+            _seaServices.RemoveAt(index);
             Touch();
         }
     }

@@ -8,6 +8,7 @@
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IRankService RankService
 
 <SharedPersonPage @ref="_sharedPage"
                    Persons="_persons"
@@ -16,7 +17,11 @@
                    OnDeleteClicked="ConfirmDelete"
                    OnEditClicked="OpenEditDialog"
                    OnAddClicked="OpenAddDialog"
-                  OnEditBankClicked="OpenEditBankDialog" />
+                   OnEditBankClicked="OpenEditBankDialog"
+                   OnAddCertificateClicked="OpenAddCertificateDialog"
+                   OnEditCertificateClicked="OpenEditCertificateDialog"
+                   OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
+                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"/>
 @code {
 
     private IReadOnlyList<PersonResponse> _persons = [];
@@ -40,6 +45,21 @@
         {
             Code = s.Code,
             IsActive = s.IsActive,
+            Id = s.Id,
+            Name = s.Name
+        }).ToList().AsReadOnly();
+
+    }
+
+
+    private async Task<IReadOnlyList<RankResponse>> RanksList()
+    {
+        var response = await RankService.GetActiveAsync();
+        return response.Select(s => new RankResponse
+        {
+            Code = s.Code,
+            IsActive = s.IsActive,
+            Department =s.Department,
             Id = s.Id,
             Name = s.Name
         }).ToList().AsReadOnly();
@@ -163,6 +183,126 @@
 
         await LoadAsync();
         await RefreshSelected(person.Id);
+    }
+
+
+    // ── Certificates ──────────────────────────────────────────────────────────────
+
+    private async Task OpenAddCertificateDialog(PersonResponse person)
+    {
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpsertCertificateRequest)result.Data!;
+        await PersonService.AddCertificateAsync(person.Id, request);
+        Snackbar.Add("Certificate added.", Severity.Success);
+        await LoadAsync();
+        await RefreshSelected(person.Id);
+    }
+
+    private async Task OpenEditCertificateDialog((PersonResponse person, PersonCertificateResponse cert) args)
+    {
+        var parameters = new DialogParameters { ["Certificate"] = args.cert };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("Edit Certificate", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpsertCertificateRequest)result.Data!;
+        await PersonService.UpdateCertificateAsync(args.person.Id, args.cert.Index, request);
+        Snackbar.Add("Certificate updated.", Severity.Success);
+        await LoadAsync();
+        await RefreshSelected(args.person.Id);
+    }
+
+    private async Task ConfirmRemoveCertificate((PersonResponse person, PersonCertificateResponse cert) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Certificate",
+            $"Remove '{args.cert.CertificateName}'?",
+            yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            await PersonService.RemoveCertificateAsync(args.person.Id, args.cert.Index);
+            Snackbar.Add("Certificate removed.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(args.person.Id);
+        }
+    }
+
+    // ── Sea Service ──────────────────────────────────────────────────────────────
+
+    private async Task OpenAddSeaServiceDialog(PersonResponse person)
+    {
+        var ranks = await RanksList();
+        var parameters = new DialogParameters
+        {
+            ["Ranks"] = ranks,
+        };
+        var dialog = await DialogService.ShowAsync<SeaServiceDialog>("New Sea Service", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpsertSeaServiceRequest)result.Data!;
+
+        await PersonService.AddSeaServiceAsync(person.Id, request);
+
+        Snackbar.Add("Sea service added.", Severity.Success);
+
+        await LoadAsync();
+        await RefreshSelected(person.Id);
+    }
+
+    private async Task OpenEditSeaServiceDialog((PersonResponse person, PersonSeaServiceResponse seaService) args)
+    {
+        var ranks = await RanksList();
+        var parameters = new DialogParameters
+        {
+            ["Ranks"] = ranks,
+            ["SeaService"] = args.seaService
+        };
+
+        var dialog = await DialogService.ShowAsync<SeaServiceDialog>(
+            "Edit Sea Service",
+            parameters);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpsertSeaServiceRequest)result.Data!;
+
+        await PersonService.UpdateSeaServiceAsync(
+            args.person.Id,
+            args.seaService.Index,
+            request);
+
+        Snackbar.Add("Sea service updated.", Severity.Success);
+
+        await LoadAsync();
+        await RefreshSelected(args.person.Id);
+    }
+
+    private async Task ConfirmRemoveSeaService(
+        (PersonResponse person, PersonSeaServiceResponse seaService) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Sea Service",
+            $"Remove '{args.seaService.RankName}'?",
+            yesText: "Remove",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            await PersonService.RemoveSeaServiceAsync(
+                args.person.Id,
+                args.seaService.Index);
+
+            Snackbar.Add("Sea service removed.", Severity.Success);
+
+            await LoadAsync();
+            await RefreshSelected(args.person.Id);
+        }
     }
 
 }

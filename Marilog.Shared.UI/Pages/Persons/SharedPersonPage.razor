@@ -192,9 +192,152 @@
                             <MudText Typo="Typo.body2" Color="Color.Secondary">No bank details added.</MudText>
                         }
                     </MudTabPanel>
+                    @* ── Certificates ── *@
+                    <MudTabPanel Text="Certificates" Icon="@Icons.Material.Filled.CardMembership">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Certificates</MudText>
+                            <MudSpacer />
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnAddCertificateClicked.InvokeAsync(_selected)" />
+                        </MudStack>
 
+                        @if (_selected.Certificates.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No certificates added.</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var cert in _selected.Certificates)
+                            {
+                                var certToday = DateOnly.FromDateTime(DateTime.Today);
+                                var certExpired = cert.ExpiryDate.HasValue && cert.ExpiryDate.Value < certToday;
+                                var certExpiringSoon = !certExpired && cert.ExpiryDate.HasValue &&
+                                                       (cert.ExpiryDate.Value.DayNumber - certToday.DayNumber) <= 90;
+
+                                <MudPaper Elevation="0" Class="pa-2 mb-2"
+                                          Style="border:1px solid var(--mud-palette-divider)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Start">
+
+                                        @* ── Content ── *@
+                                        <MudStack Spacing="0" Style="flex:1; min-width:0">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <MudText Typo="Typo.body2"><b>@cert.CertificateName</b></MudText>
+                                                @if (certExpired)
+                                                {
+                                                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Expired</MudChip>
+                                                }
+                                                else if (certExpiringSoon)
+                                                {
+                                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Expiring Soon</MudChip>
+                                                }
+                                            </MudStack>
+
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                Issue: @(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")
+                                                &nbsp;·&nbsp;
+                                                Expiry: @(cert.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")
+                                            </MudText>
+
+                                            @if (!string.IsNullOrWhiteSpace(cert.Description))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                                                    @cert.Description
+                                                </MudText>
+                                            }
+                                        </MudStack>
+
+                                        @* ── Actions ── *@
+                                        <MudStack Row="true" Spacing="0">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Size="Size.Small"
+                                                           OnClick="() => OnEditCertificateClicked.InvokeAsync((_selected, cert))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           OnClick="() => OnRemoveCertificateClicked.InvokeAsync((_selected, cert))" />
+                                        </MudStack>
+
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        }
+                    </MudTabPanel>
+
+                    @* ── Sea Services ── *@
+                    <MudTabPanel Text="Sea Services" Icon="@Icons.Material.Filled.DirectionsBoat">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Sea Services</MudText>
+                            <MudSpacer />
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnAddSeaServiceClicked.InvokeAsync(_selected)" />
+                        </MudStack>
+
+                        @if (_selected.SeaServices.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                No sea services added.
+                            </MudText>
+                        }
+                        else
+                        {
+                            @foreach (var service in _selected.SeaServices)
+                            {
+                                <MudPaper Elevation="0"
+                                          Class="pa-2 mb-2"
+                                          Style="border:1px solid var(--mud-palette-divider)">
+
+                                    <MudStack Row="true" AlignItems="AlignItems.Start">
+
+                                        @* ── Content ── *@
+                                        <MudStack Spacing="0" Style="flex:1; min-width:0">
+
+                                            <MudText Typo="Typo.body2">
+                                                <b>@(service.RankName ?? "Unknown Rank")</b>
+                                            </MudText>
+
+                                            <MudText Typo="Typo.caption"
+                                                     Color="Color.Secondary">
+                                                Experience:
+                                                @service.ExperienceInMonths month@(service.ExperienceInMonths == 1 ? "" : "s")
+                                            </MudText>
+
+                                            @if (service.VesselSizeInMT.HasValue)
+                                            {
+                                                <MudText Typo="Typo.caption"
+                                                         Color="Color.Tertiary">
+                                                    Vessel Size:
+                                                    @service.VesselSizeInMT.Value.ToString("N0") MT
+                                                </MudText>
+                                            }
+
+                                        </MudStack>
+
+                                        @* ── Actions ── *@
+                                        <MudStack Row="true" Spacing="0">
+
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Size="Size.Small"
+                                                           OnClick="() => OnEditSeaServiceClicked.InvokeAsync((_selected, service))" />
+
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           OnClick="() => OnRemoveSeaServiceClicked.InvokeAsync((_selected, service))" />
+
+                                        </MudStack>
+
+                                    </MudStack>
+
+                                </MudPaper>
+                            }
+                        }
+                    </MudTabPanel>
                 </MudTabs>
-
+               
                 <MudDivider Class="my-3" />
 
                 @* Actions *@
@@ -239,12 +382,21 @@
 
 @code {
     [Parameter] public IReadOnlyList<PersonResponse> Persons { get; set; } = [];
+    [Parameter] public IReadOnlyList<RankResponse> Ranks { get; set; } = [];
     [Parameter] public EventCallback<PersonResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnActivateClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
     [Parameter] public EventCallback OnAddClicked { get; set; }
+
+    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, PersonCertificateResponse)> OnEditCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, PersonCertificateResponse)> OnRemoveCertificateClicked { get; set; }
+
+    [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
 
     private PersonResponse? _selected;
     private string _search = string.Empty;

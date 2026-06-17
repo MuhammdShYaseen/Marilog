@@ -157,5 +157,55 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.DeleteAsync(id, ct);
             return NoContent();
         }
+
+        // ── Certificates ─────────────────────────────────────────────────────────────
+
+        [HttpPost("{id}/certificates")]
+        public async Task<IActionResult> AddCertificate(int id,
+            [FromBody] UpsertCertificateRequest request, CancellationToken ct)
+        {
+            await _service.AddCertificateAsync(id, request, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id}/certificates/{index}")]
+        public async Task<IActionResult> UpdateCertificate(int id, int index,
+            [FromBody] UpsertCertificateRequest request, CancellationToken ct)
+        {
+            await _service.UpdateCertificateAsync(id, index, request, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}/certificates/{index}")]
+        public async Task<IActionResult> RemoveCertificate(int id, int index, CancellationToken ct)
+        {
+            await _service.RemoveCertificateAsync(id, index, ct);
+            return NoContent();
+        }
+
+        // ── Sea Services ─────────────────────────────────────────────────────────────
+
+        [HttpPost("{id}/sea-services")]
+        public async Task<IActionResult> AddSeaService(int id,
+            [FromBody] UpsertSeaServiceRequest request, CancellationToken ct)
+        {
+            await _service.AddSeaServiceAsync(id, request, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id}/sea-services/{index}")]
+        public async Task<IActionResult> UpdateSeaService(int id, int index,
+            [FromBody] UpsertSeaServiceRequest request, CancellationToken ct)
+        {
+            await _service.UpdateSeaServiceAsync(id, index, request, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}/sea-services/{index}")]
+        public async Task<IActionResult> RemoveSeaService(int id, int index, CancellationToken ct)
+        {
+            await _service.RemoveSeaServiceAsync(id, index, ct);
+            return NoContent();
+        }
     }
 }

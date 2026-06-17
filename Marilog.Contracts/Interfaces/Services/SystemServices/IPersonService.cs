@@ -35,5 +35,16 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task UpdateBankAccountAsync(int id, string? bankName, string? iban,
                                     string? bankSwiftCode, CancellationToken ct = default);
         Task ClearBankAccountAsync(int id, CancellationToken ct = default);
+
+
+        // Certificates
+        Task AddCertificateAsync(int personId, UpsertCertificateRequest request, CancellationToken ct = default);
+        Task UpdateCertificateAsync(int personId, int index, UpsertCertificateRequest request, CancellationToken ct = default);
+        Task RemoveCertificateAsync(int personId, int index, CancellationToken ct = default);
+
+        // Sea Services
+        Task AddSeaServiceAsync(int personId, UpsertSeaServiceRequest request, CancellationToken ct = default);
+        Task UpdateSeaServiceAsync(int personId, int index, UpsertSeaServiceRequest request, CancellationToken ct = default);
+        Task RemoveSeaServiceAsync(int personId, int index, CancellationToken ct = default);
     }
 }

@@ -1,0 +1,95 @@
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+
+            <MudItem xs="12">
+                <MudSelect T="int"
+                           @bind-Value="_rankId"
+                           Label="Rank"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var rank in Ranks)
+                    {
+                        <MudSelectItem T="int" Value="@rank.Id">
+                            @rank.Name
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudNumericField T="int"
+                                 @bind-Value="_experienceInMonths"
+                                 Label="Experience (Months)"
+                                 Min="0"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudNumericField T="decimal?"
+                                 @bind-Value="_vesselSizeInMT"
+                                 Label="Vessel Size (MT)"
+                                 Min="0"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="_rankId <= 0">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public PersonSeaServiceResponse? SeaService { get; set; }
+
+    [Parameter] public IReadOnlyCollection<RankResponse> Ranks { get; set; } = [];
+
+    private int _rankId;
+    private int _experienceInMonths;
+    private decimal? _vesselSizeInMT;
+
+    protected override void OnParametersSet()
+    {
+        if (SeaService is null)
+            return;
+
+        _rankId = SeaService.RankId;
+        _experienceInMonths = SeaService.ExperienceInMonths;
+        _vesselSizeInMT = SeaService.VesselSizeInMT;
+    }
+
+    private void Cancel()
+        => MudDialog.Cancel();
+
+    private void Submit()
+        => MudDialog.Close(DialogResult.Ok(
+            new UpsertSeaServiceRequest
+            {
+                RankId = _rankId,
+                ExperienceInMonths = _experienceInMonths,
+                VesselSizeInMT = _vesselSizeInMT
+            }));
+}

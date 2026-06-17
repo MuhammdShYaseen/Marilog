@@ -154,5 +154,58 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.PostAsync($"{Base}/{id}/bank-account/clear", null, ct);
             http.EnsureSuccessStatusCode();
         }
+
+
+        // ── Certificates ─────────────────────────────────────────────────────────────
+
+        public async Task AddCertificateAsync(int personId,
+            UpsertCertificateRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync(
+                $"{Base}/{personId}/certificates", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdateCertificateAsync(int personId, int index,
+            UpsertCertificateRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync(
+                $"{Base}/{personId}/certificates/{index}", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task RemoveCertificateAsync(int personId, int index,
+            CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync(
+                $"{Base}/{personId}/certificates/{index}", ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        // ── Sea Services ─────────────────────────────────────────────────────────────
+
+        public async Task AddSeaServiceAsync(int personId,
+            UpsertSeaServiceRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync(
+                $"{Base}/{personId}/sea-services", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdateSeaServiceAsync(int personId, int index,
+            UpsertSeaServiceRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync(
+                $"{Base}/{personId}/sea-services/{index}", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task RemoveSeaServiceAsync(int personId, int index,
+            CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync(
+                $"{Base}/{personId}/sea-services/{index}", ct);
+            http.EnsureSuccessStatusCode();
+        }
     }
 }

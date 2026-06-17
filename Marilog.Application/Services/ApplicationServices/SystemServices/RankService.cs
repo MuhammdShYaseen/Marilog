@@ -83,7 +83,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return new RankResponse
             {
                 Code = rankCode,
-                Department = (int)department,
+                Department = department,
                 IsActive = true,
                 Name = rankName,
             };
@@ -130,7 +130,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     Code = rank.RankCode,
                     Name = rank.RankName,
-                    Department = (int)rank.Department,
+                    Department = rank.Department,
                     IsActive = rank.IsActive
                 })
                 .ToList();
@@ -187,7 +187,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             Id = x.Id,
             Code = x.RankCode,
             Name = x.RankName,
-            Department = (int)x.Department,
+            Department = x.Department,
             IsActive = x.IsActive
         };
     }
