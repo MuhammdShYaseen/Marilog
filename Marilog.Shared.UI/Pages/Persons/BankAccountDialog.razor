@@ -1,0 +1,76 @@
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_bankName"
+                              Label="Bank Name"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="8">
+                <MudTextField @bind-Value="_iban"
+                              Label="IBAN"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="4">
+                <MudTextField @bind-Value="_bankSwiftCode"
+                              Label="Swift Code"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error"
+                   OnClick="Clear">
+            Clear
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PersonResponse? Person { get; set; }
+
+    private string? _bankName;
+    private string? _iban;
+    private string? _bankSwiftCode;
+
+    protected override void OnParametersSet()
+    {
+        if (Person is null) return;
+        _bankName = Person.BankName;
+        _iban = Person.IBAN;
+        _bankSwiftCode = Person.BankSwiftCode;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Clear() =>
+        MudDialog.Close(DialogResult.Ok(new UpdateBankAccountRequest
+        {
+            BankName = null,
+            IBAN = null,
+            BankSwiftCode = null
+        }));
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new UpdateBankAccountRequest
+        {
+            BankName = _bankName,
+            IBAN = _iban,
+            BankSwiftCode = _bankSwiftCode
+        }));
+}

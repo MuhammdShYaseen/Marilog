@@ -16,7 +16,7 @@
                    OnDeleteClicked="ConfirmDelete"
                    OnEditClicked="OpenEditDialog"
                    OnAddClicked="OpenAddDialog"
-                   />
+                  OnEditBankClicked="OpenEditBankDialog" />
 @code {
 
     private IReadOnlyList<PersonResponse> _persons = [];
@@ -138,6 +138,31 @@
         await PersonService.DeactivateAsync(person.Id);
         Snackbar.Add($"{person.FullName} deactivated.", Severity.Warning);
         await LoadAsync();
+    }
+
+    private async Task OpenEditBankDialog(PersonResponse person)
+    {
+        var parameters = new DialogParameters { ["Person"] = person };
+        var dialog = await DialogService.ShowAsync<BankAccountDialog>("Bank Account", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpdateBankAccountRequest)result.Data!;
+
+        // Clear إذا كانت كل القيم null
+        if (request.BankName is null && request.IBAN is null && request.BankSwiftCode is null)
+        {
+            await PersonService.ClearBankAccountAsync(person.Id);
+            Snackbar.Add("Bank account cleared.", Severity.Info);
+        }
+        else
+        {
+            await PersonService.UpdateBankAccountAsync(person.Id, request.BankName, request.IBAN, request.BankSwiftCode);
+            Snackbar.Add("Bank account updated.", Severity.Success);
+        }
+
+        await LoadAsync();
+        await RefreshSelected(person.Id);
     }
 
 }

@@ -31,7 +31,7 @@
             </MudItem>
 
             <MudItem xs="6">
-                <MudDatePicker @bind-Value="_dateOfBirth"
+                <MudDatePicker @bind-Date="_dateOfBirthDt"
                                Label="Date of Birth"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
@@ -46,7 +46,7 @@
             </MudItem>
 
             <MudItem xs="6">
-                <MudDatePicker @bind-Value="_passportExpiry"
+                <MudDatePicker @bind-Date="_passportExpiryDt"
                                Label="Passport Expiry"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense" />
@@ -125,9 +125,9 @@
     private string _fullName = string.Empty;
     private int? _nationality;
     private string? _passportNo;
-    private DateOnly? _passportExpiry;
+    private DateTime? _passportExpiryDt;
+    private DateTime? _dateOfBirthDt;
     private string? _seamanBookNo;
-    private DateOnly? _dateOfBirth;
     private string? _phone;
     private string? _email;
     private string? _bankName;
@@ -141,9 +141,10 @@
         _fullName = Person.FullName;
         _nationality = Person.Nationality;
         _passportNo = Person.PassportNo;
-        _passportExpiry = Person.PassportExpiry;
+        _passportExpiryDt = Person.PassportExpiry?.ToDateTime(TimeOnly.MinValue);
+        _dateOfBirthDt = Person.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
+
         _seamanBookNo = Person.SeamanBookNo;
-        _dateOfBirth = Person.DateOfBirth;
         _phone = Person.Phone;
         _email = Person.Email;
         _bankName = Person.BankName;
@@ -156,6 +157,14 @@
 
     private void Submit()
     {
+        var passportExpiry = _passportExpiryDt.HasValue
+            ? DateOnly.FromDateTime(_passportExpiryDt.Value)
+            : (DateOnly?)null;
+
+        var dateOfBirth = _dateOfBirthDt.HasValue
+                    ? DateOnly.FromDateTime(_dateOfBirthDt.Value)
+                    : (DateOnly?)null;
+
         if (Person is null)
         {
             MudDialog.Close(DialogResult.Ok(new CreatePersonRequest
@@ -163,9 +172,9 @@
                 FullName = _fullName,
                 Nationality = _nationality,
                 PassportNo = _passportNo,
-                PassportExpiry = _passportExpiry,
+                PassportExpiry = passportExpiry,
                 SeamanBookNo = _seamanBookNo,
-                DateOfBirth = _dateOfBirth,
+                DateOfBirth = dateOfBirth,
                 Phone = _phone,
                 Email = _email,
                 BankName = _bankName,
@@ -181,9 +190,9 @@
                 FullName = _fullName,
                 Nationality = _nationality,
                 PassportNo = _passportNo,
-                PassportExpiry = _passportExpiry,
+                PassportExpiry = passportExpiry,
                 SeamanBookNo = _seamanBookNo,
-                DateOfBirth = _dateOfBirth,
+                DateOfBirth = dateOfBirth,
                 Phone = _phone,
                 Email = _email,
                 BankName = _bankName,

@@ -21,6 +21,13 @@
                               Margin="Margin.Dense"
                               Class="mr-2"
                               Style="max-width:250px" />
+                <MudToggleIconButton @bind-Toggled="_showExpiringOnly"
+                                     Icon="@Icons.Material.Filled.Warning"
+                                     ToggledIcon="@Icons.Material.Filled.Warning"
+                                     ToggledColor="Color.Warning"
+                                     Title="Show expiring passports only"
+                                     Size="Size.Medium"
+                                     Class="mr-1" />
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
@@ -57,7 +64,9 @@
                     <MudTd>
                         @if (context.PassportExpiry is not null)
                         {
-                            var daysLeft = (context.PassportExpiry.Value.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
+                            var expiry = context.PassportExpiry.Value;
+                            var today = DateOnly.FromDateTime(DateTime.Today);
+                            var daysLeft = expiry.DayNumber - today.DayNumber;
                             var color = daysLeft < 30 ? Color.Error : daysLeft < 90 ? Color.Warning : Color.Success;
                             <MudChip T="string" Color="@color" Size="Size.Small">
                                 @context.PassportExpiry.Value.ToString("yyyy-MM-dd") (@(daysLeft) days)
@@ -240,15 +249,20 @@
     private PersonResponse? _selected;
     private string _search = string.Empty;
 
+    private bool _showExpiringOnly = false;
+
     private IEnumerable<PersonResponse> _filtered =>
-        string.IsNullOrWhiteSpace(_search)
-            ? Persons
-            : Persons.Where(p =>
-                p.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-                (p.PassportNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.SeamanBookNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Phone?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Email?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+        Persons
+            .Where(p => !_showExpiringOnly ||
+                        (p.PassportExpiry.HasValue &&
+                         (p.PassportExpiry.Value.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days <= 90))
+            .Where(p => string.IsNullOrWhiteSpace(_search) ||
+                        p.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                        (p.PassportNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (p.SeamanBookNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (p.Phone?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (p.Email?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+
 
     private int? _lastSelectedId;
 
