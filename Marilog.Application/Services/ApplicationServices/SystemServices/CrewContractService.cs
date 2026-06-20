@@ -138,25 +138,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.AddAsync(contract, ct);
             await _repo.SaveChangesAsync(ct);
 
-            return new CrewContractResponse
-            {
-                ContractId = contract.Id,
-                PersonId = contract.PersonID,
-                PersonFullName = contract.Person.FullName,
-                VesselId = contract.VesselID,
-                VesselName = contract.Vessel.VesselName,
-                RankId = contract.RankID,
-                RankName = contract.Rank.RankName,
-                RankDepartment = contract.Rank.Department,
-                MonthlyWage = contract.MonthlyWage,
-                SignOnDate = contract.SignOnDate,
-                SignOffDate = contract.SignOffDate,
-                SignOnPort = contract.SignOnPort,
-                SignOnPortName = contract.SignOnPort.ToString(),
-                SignOffPort = contract.SignOffPort,
-                SignOffPortName = contract.SignOnPort.ToString(),
-                IsActive = contract.IsActive
-            };
+            return await _repo.Query()
+                              .AsNoTracking()
+                              .Where(x => x.Id == contract.Id)
+                              .Select(ToResponse())
+                              .FirstAsync(ct);
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> CreateRangeAsync(

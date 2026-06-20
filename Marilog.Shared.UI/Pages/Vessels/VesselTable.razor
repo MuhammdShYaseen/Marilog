@@ -1,0 +1,79 @@
+@* VesselTable.razor *@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+
+<MudDataGrid T="VesselResponse"
+             Items="Items"
+             Hover="true"
+             Dense="true"
+             Striped="true"
+             SelectedItem="_selected"
+             SelectedItemChanged="OnRowSelectedChanged"
+             Breakpoint="Breakpoint.Sm">
+
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Vessel Name" />
+        <PropertyColumn Property="x => x.IMONumber" Title="IMO Number" />
+        <PropertyColumn Property="x => x.GrossTonnage" Title="GRT" Format="N0" />
+        <PropertyColumn Property="x => x.CompanyName" Title="Company" />
+        <PropertyColumn Property="x => x.FlagCountryName" Title="Flag" />
+        <TemplateColumn Title="Status" Sortable="false">
+            <CellTemplate>
+                <MudChip T="string"
+                         Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                         Size="Size.Small"
+                         Variant="Variant.Filled">
+                    @(context.Item.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="" Sortable="false" CellStyle="width:120px">
+            <CellTemplate>
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+                    <MudIconButton Icon="@(context.Item.IsActive
+                                                                              ? Icons.Material.Filled.ToggleOff
+                                                                          : Icons.Material.Filled.ToggleOn)"
+                                   Size="Size.Small"
+                                   Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
+                                   OnClick="() => OnToggleActiveClicked.InvokeAsync(context.Item)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+            No vessels found.
+        </MudText>
+    </NoRecordsContent>
+
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<VesselResponse> Items { get; set; } = [];
+    [Parameter] public VesselResponse? Selected { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnRowSelected { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
+
+    private VesselResponse? _selected;
+
+    protected override void OnParametersSet() => _selected = Selected;
+
+    private async Task OnRowSelectedChanged(VesselResponse? item)
+    {
+        if (item is null) return;
+        _selected = item;
+        await OnRowSelected.InvokeAsync(item);
+    }
+}

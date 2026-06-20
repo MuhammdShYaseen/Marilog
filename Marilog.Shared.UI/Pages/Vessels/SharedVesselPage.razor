@@ -1,0 +1,219 @@
+@* SharedVesselPage.razor *@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+
+<MudGrid>
+
+    @* ── List Panel ───────────────────────────────────────────── *@
+    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
+        <MudPaper Class="pa-4" Elevation="2">
+
+            @* ── Toolbar ──────────────────────────────────────── *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Vessels</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_search"
+                              Placeholder="Search..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mr-2"
+                              Style="max-width:220px" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OnAddClicked">
+                    New
+                </MudButton>
+            </MudStack>
+
+            @* ── Summary Chips ────────────────────────────────── *@
+            <MudStack Row="true" Spacing="2" Class="mb-3">
+                <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                    Total: @Vessels.Count
+                </MudChip>
+                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
+                    Active: @Vessels.Count(v => v.IsActive)
+                </MudChip>
+                <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small">
+                    Inactive: @Vessels.Count(v => !v.IsActive)
+                </MudChip>
+            </MudStack>
+
+            @* ── Tabs ─────────────────────────────────────────── *@
+            <MudTabs @bind-ActivePanelIndex="_activeTab"
+                     Elevation="0"
+                     Rounded="true"
+                     Class="mb-3">
+
+                <MudTabPanel Text="All">
+                    <VesselTable Items="_filtered"
+                                 Selected="_selected"
+                                 OnRowSelected="OnRowSelected"
+                                 OnEditClicked="OnEditClicked"
+                                 OnDeleteClicked="OnDeleteClicked"
+                                 OnToggleActiveClicked="OnToggleActiveClicked" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Active">
+                    <VesselTable Items="_filteredActive"
+                                 Selected="_selected"
+                                 OnRowSelected="OnRowSelected"
+                                 OnEditClicked="OnEditClicked"
+                                 OnDeleteClicked="OnDeleteClicked"
+                                 OnToggleActiveClicked="OnToggleActiveClicked" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Inactive">
+                    <VesselTable Items="_filteredInactive"
+                                 Selected="_selected"
+                                 OnRowSelected="OnRowSelected"
+                                 OnEditClicked="OnEditClicked"
+                                 OnDeleteClicked="OnDeleteClicked"
+                                 OnToggleActiveClicked="OnToggleActiveClicked" />
+                </MudTabPanel>
+
+            </MudTabs>
+
+        </MudPaper>
+    </MudItem>
+
+    @* ── Detail Panel ──────────────────────────────────────────── *@
+    @if (_selected is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+
+                @* ── Header ───────────────────────────────────── *@
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                    <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                        @(_selected.Name.Length > 0 ? _selected.Name[0] : '?')
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6">@_selected.Name</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @(_selected.CompanyName ?? "—")
+                        </MudText>
+                    </MudStack>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="ClosePanel" />
+                </MudStack>
+
+                <MudDivider Class="mb-3" />
+
+                @* ── Fields ───────────────────────────────────── *@
+                <MudGrid Spacing="2">
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">IMO Number</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.IMONumber ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Gross Tonnage</MudText>
+                        <MudText Typo="Typo.body2">
+                            @(_selected.GrossTonnage.HasValue
+                                ? _selected.GrossTonnage.Value.ToString("N0")
+                                : "—")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Company</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.CompanyName ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Flag</MudText>
+                        <MudText Typo="Typo.body2">@(_selected.FlagCountryName ?? "—")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudChip T="string"
+                                 Color="@(_selected.IsActive ? Color.Success : Color.Default)"
+                                 Size="Size.Small"
+                                 Variant="Variant.Filled">
+                            @(_selected.IsActive ? "Active" : "Inactive")
+                        </MudChip>
+                    </MudItem>
+
+                    @if (!string.IsNullOrWhiteSpace(_selected.Notes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+                            <MudText Typo="Typo.body2">@_selected.Notes</MudText>
+                        </MudItem>
+                    }
+
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+                @* ── Actions ──────────────────────────────────── *@
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Edit
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="@(_selected.IsActive ? Color.Warning : Color.Success)"
+                               StartIcon="@(_selected.IsActive
+                                                                            ? Icons.Material.Filled.ToggleOff
+                                                                        : Icons.Material.Filled.ToggleOn)"
+                               OnClick="() => OnToggleActiveClicked.InvokeAsync(_selected)">
+                        @(_selected.IsActive ? "Deactivate" : "Activate")
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
+                        Delete
+                    </MudButton>
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
+
+    private VesselResponse? _selected;
+    private string _search = string.Empty;
+    private int _activeTab;
+
+    private IEnumerable<VesselResponse> _filtered =>
+        Filter(Vessels);
+
+    private IEnumerable<VesselResponse> _filteredActive =>
+        Filter(Vessels.Where(v => v.IsActive));
+
+    private IEnumerable<VesselResponse> _filteredInactive =>
+        Filter(Vessels.Where(v => !v.IsActive));
+
+    private IEnumerable<VesselResponse> Filter(IEnumerable<VesselResponse> source) =>
+        string.IsNullOrWhiteSpace(_search)
+            ? source
+            : source.Where(v =>
+                v.Name.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (v.IMONumber ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (v.CompanyName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (v.FlagCountryName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private void OnRowSelected(VesselResponse vessel) => _selected = vessel;
+    private void ClosePanel() => _selected = null;
+}
