@@ -301,6 +301,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var persons = await query
                 .AsNoTracking()
                 .Include(p => p.NationalityCountry)
+                .Include(p => p.Certificates)   // ← أضف هذا
+                .Include(p => p.SeaServices)    // ← وهذا
                 .ToListAsync(ct);
 
             var ranks = await GetRanksDictAsync(

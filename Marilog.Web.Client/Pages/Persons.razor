@@ -21,7 +21,8 @@
                    OnAddCertificateClicked="OpenAddCertificateDialog"
                    OnEditCertificateClicked="OpenEditCertificateDialog"
                    OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
-                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"/>
+                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
+                   OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog" />
 @code {
 
     private IReadOnlyList<PersonResponse> _persons = [];
@@ -303,6 +304,19 @@
             await LoadAsync();
             await RefreshSelected(args.person.Id);
         }
+    }
+
+    private async Task OpenExpiringCertificatesDialog(List<PersonResponse> items)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Items"] = items
+        };
+
+        await DialogService.ShowAsync<ExpiringCertificatesDialog>(
+            "Expiring Certificates",
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
     }
 
 }
