@@ -4,29 +4,125 @@
 @namespace Marilog.Shared.UI.Pages.CrewContracts
 
 <MudDialog>
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(Contract is null
+                                                   ? Icons.Material.Filled.Add
+                                                   : Icons.Material.Filled.Edit)"
+                     Class="mr-2" />
+            @(Contract is null ? "New Contract" : "Edit Contract")
+        </MudText>
+    </TitleContent>
+
     <DialogContent>
         <MudGrid>
+
+            @* Person *@
             <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_monthlyWage"
+                <MudSelect T="int"
+                           @bind-Value="_personId"
+                           Label="Crew Member"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var p in Persons)
+                    {
+                        <MudSelectItem T="int" Value="p.Id">@p.FullName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* Vessel *@
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int"
+                           @bind-Value="_vesselId"
+                           Label="Vessel"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var v in Vessels)
+                    {
+                        <MudSelectItem T="int" Value="v.Id">@v.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* Rank *@
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int"
+                           @bind-Value="_rankId"
+                           Label="Rank"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var r in Ranks)
+                    {
+                        <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* Monthly Wage *@
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal"
+                                 @bind-Value="_monthlyWage"
                                  Label="Monthly Wage"
                                  Required="true"
+                                 Min="0"
+                                 Format="N2"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_durationInMonth"
-                                 Label="Duration (Months)"
-                                 Required="true"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
+
+            @* Sign On Date *@
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="_signOnDate"
                                Label="Sign On Date"
                                Required="true"
                                Variant="Variant.Outlined"
-                               Margin="Margin.Dense" />
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy" />
             </MudItem>
+
+            @* Duration *@
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int"
+                                 @bind-Value="_durationInMonth"
+                                 Label="Duration (Months)"
+                                 Required="true"
+                                 Min="1"
+                                 Max="36"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+
+            @* Sign On Port *@
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?"
+                           @bind-Value="_signOnPort"
+                           Label="Sign On Port"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var p in Ports)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* Estimated Sign Off (computed, read-only) *@
+            <MudItem xs="12" sm="6">
+                <MudTextField Value="@_estimatedSignOff"
+                              Label="Estimated Sign Off"
+                              ReadOnly="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+            @* Notes *@
             <MudItem xs="12">
                 <MudTextField @bind-Value="_notes"
                               Label="Notes"
@@ -34,42 +130,99 @@
                               Margin="Margin.Dense"
                               Lines="2" />
             </MudItem>
+
         </MudGrid>
     </DialogContent>
+
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
-                   OnClick="Submit"
-                   Disabled="@(_monthlyWage <= 0 || _signOnDate is null)">
+                   Disabled="@(!IsValid)"
+                   OnClick="Submit">
             Save
         </MudButton>
     </DialogActions>
+
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public CrewContractResponse? Contract { get; set; }
 
+    [Parameter] public CrewContractResponse? Contract { get; set; }
+    [Parameter] public IReadOnlyList<PersonResponse> Persons { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<RankResponse> Ranks { get; set; } = [];
+    [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+
+    private int _personId;
+    private int _vesselId;
+    private int _rankId;
     private decimal _monthlyWage;
     private int _durationInMonth = 6;
     private DateTime? _signOnDate;
+    private int? _signOnPort;
     private string? _notes;
+
+    private bool IsValid =>
+        _personId > 0 &&
+        _vesselId > 0 &&
+        _rankId > 0 &&
+        _monthlyWage > 0 &&
+        _signOnDate is not null &&
+        _durationInMonth >= 1;
+
+    private string _estimatedSignOff =>
+        _signOnDate.HasValue
+            ? _signOnDate.Value.AddMonths(_durationInMonth).ToString("dd MMM yyyy")
+            : "—";
 
     protected override void OnParametersSet()
     {
         if (Contract is null) return;
+
+        _personId = Contract.PersonId;
+        _vesselId = Contract.VesselId;
+        _rankId = Contract.RankId;
         _monthlyWage = Contract.MonthlyWage;
+        _signOnDate = Contract.SignOnDate.ToDateTime(TimeOnly.MinValue);
+        _signOnPort = Contract.SignOnPort;
         _notes = Contract.Notes;
+        // DurationInMonth غير موجود في Response → نتركه بالقيمة الافتراضية
     }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateCrewContractRequest
+    private void Submit()
     {
-        MonthlyWage = _monthlyWage,
-        DurationInMonth = _durationInMonth,
-        SignOnDate = DateOnly.FromDateTime(_signOnDate!.Value),
-        Notes = _notes
-    }));
+        if (Contract is null)
+        {
+            MudDialog.Close(DialogResult.Ok(new CreateCrewContractRequest
+            {
+                PersonId = _personId,
+                VesselId = _vesselId,
+                RankId = _rankId,
+                MonthlyWage = _monthlyWage,
+                DurationInMonth = _durationInMonth,
+                SignOnDate = DateOnly.FromDateTime(_signOnDate!.Value),
+                SignOnPort = _signOnPort,
+                Notes = _notes
+            }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new UpdateCrewContractRequest
+            {
+                Id = Contract.ContractId,
+                PersonId = _personId,
+                VesselId = _vesselId,
+                RankId = _rankId,
+                MonthlyWage = _monthlyWage,
+                DurationInMonth = _durationInMonth,
+                SignOnDate = DateOnly.FromDateTime(_signOnDate!.Value),
+                SignOnPort = _signOnPort,
+                Notes = _notes
+            }));
+        }
+    }
 }

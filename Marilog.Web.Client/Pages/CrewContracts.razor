@@ -6,9 +6,12 @@
 @using MudBlazor
 
 @inject ICrewContractService CrewContractService
-@inject IVesselService VesselService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
+@inject IVesselService       VesselService
+@inject IPersonService       PersonService
+@inject IRankService         RankService
+@inject IPortService         PortService
+@inject ISnackbar            Snackbar
+@inject IDialogService       DialogService
 
 @if (_loading)
 {
@@ -16,19 +19,22 @@
 }
 else
 {
-    <SharedCrewContractsPage Contracts="_contracts"
-                             ExpiringContracts="_expiring"
-                             Vessels="_vessels"
-                             OnAddClicked="OpenAddDialog"
-                             OnEditClicked="OpenEditDialog"
-                             OnDeleteClicked="ConfirmDelete"
-                             OnSignOffClicked="OpenSignOffDialog" />
+    <SharedCrewContractsPage Contracts="@_contracts"
+                      ExpiringContracts="@_expiring"
+                      Vessels="@_vessels"
+                      OnAddClicked="OpenAddDialog"
+                      OnEditClicked="OpenEditDialog"
+                      OnDeleteClicked="ConfirmDelete"
+                      OnSignOffClicked="OpenSignOffDialog" />
 }
 
 @code {
     private IReadOnlyList<CrewContractResponse> _contracts = [];
-    private IReadOnlyList<CrewContractResponse> _expiring = [];
-    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<CrewContractResponse> _expiring  = [];
+    private IReadOnlyList<VesselResponse>       _vessels   = [];
+    private IReadOnlyList<PersonResponse>       _persons   = [];
+    private IReadOnlyList<RankResponse>         _ranks     = [];
+    private IReadOnlyList<PortResponse>         _ports     = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -40,15 +46,21 @@ else
         _loading = true;
         try
         {
-            var t1 = CrewContractService.GetActiveOnDateAsync(DateOnly.FromDateTime(DateTime.Today));
+            var t1 = CrewContractService.GetAllAsync();
             var t2 = CrewContractService.GetAboutExpireAsync();
             var t3 = VesselService.GetActiveAsync();
+            var t4 = PersonService.GetActiveAsync();
+            var t5 = RankService.GetActiveAsync();
+            var t6 = PortService.GetAllAsync();
 
-            await Task.WhenAll(t1, t2, t3);
+            await Task.WhenAll(t1, t2, t3, t4, t5, t6);
 
             _contracts = t1.Result;
-            _expiring = t2.Result;
-            _vessels = t3.Result;
+            _expiring  = t2.Result;
+            _vessels   = t3.Result;
+            _persons   = t4.Result;
+            _ranks     = t5.Result;
+            _ports     = t6.Result;
         }
         catch (Exception ex)
         {
@@ -64,51 +76,68 @@ else
 
     private async Task OpenAddDialog()
     {
-        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Crew Contract");
-        var result = await dialog.Result;
+        var parameters = new DialogParameters
+        {
+            [nameof(CrewContractFormDialog.Persons)] = _persons,
+            [nameof(CrewContractFormDialog.Vessels)] = _vessels,
+            [nameof(CrewContractFormDialog.Ranks)] = _ranks,
+            [nameof(CrewContractFormDialog.Ports)] = _ports,
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Contract", parameters, options);
+        var result  = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (CreateCrewContractRequest)result.Data!;
-        var outcome = await CrewContractService.CreateAsync(
-            data.DurationInMonth,
-            data.PersonId,
-            data.VesselId,
-            data.RankId,
-            data.MonthlyWage,
-            data.SignOnDate,
-            data.SignOnPort,
-            data.Notes
-        );
-
-        if (outcome != null)
+        var req = (CreateCrewContractRequest)result.Data!;
+        try
         {
+            await CrewContractService.CreateAsync(
+                req.DurationInMonth,
+                req.PersonId,
+                req.VesselId,
+                req.RankId,
+                req.MonthlyWage,
+                req.SignOnDate,
+                req.SignOnPort,
+                req.Notes);
+
             Snackbar.Add("Contract created.", Severity.Success);
             await LoadAsync();
         }
-        else
-            Snackbar.Add("Contract create unsucceed", Severity.Error);
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private async Task OpenEditDialog(CrewContractResponse contract)
     {
-        var parameters = new DialogParameters { ["Contract"] = contract };
-        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("Edit Crew Contract", parameters);
-        var result = await dialog.Result;
+        var parameters = new DialogParameters
+        {
+            [nameof(CrewContractFormDialog.Contract)] = contract,
+            [nameof(CrewContractFormDialog.Persons)] = _persons,
+            [nameof(CrewContractFormDialog.Vessels)] = _vessels,
+            [nameof(CrewContractFormDialog.Ranks)] = _ranks,
+            [nameof(CrewContractFormDialog.Ports)] = _ports,
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("Edit Contract", parameters, options);
+        var result  = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (CreateCrewContractRequest)result.Data!;
-        var outcome = await CrewContractService.UpdateAsync
-        (
-            contract.ContractId,
-            data.DurationInMonth,
-            data.PersonId,
-            data.VesselId,
-            data.RankId,
-            data.MonthlyWage,
-            data.SignOnDate,
-            data.SignOnPort,
-            data.Notes
-        );
+        var req     = (UpdateCrewContractRequest)result.Data!;
+        var outcome = await CrewContractService.UpdateAsync(
+            req.Id,
+            req.DurationInMonth,
+            req.PersonId,
+            req.VesselId,
+            req.RankId,
+            req.MonthlyWage,
+            req.SignOnDate,
+            req.SignOnPort,
+            req.Notes);
 
         if (outcome.IsSuccess)
         {
@@ -121,13 +150,22 @@ else
 
     private async Task OpenSignOffDialog(CrewContractResponse contract)
     {
-        var parameters = new DialogParameters { ["Contract"] = contract };
-        var dialog = await DialogService.ShowAsync<SignOffDialog>("Sign Off", parameters);
-        var result = await dialog.Result;
+        var parameters = new DialogParameters
+        {
+            [nameof(SignOffDialog.Contract)] = contract,
+            [nameof(SignOffDialog.Ports)]    = _ports,
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog  = await DialogService.ShowAsync<SignOffDialog>("Sign Off", parameters, options);
+        var result  = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var (signOffDate, signOffPort) = ((DateOnly, int?))result.Data!;
-        var outcome = await CrewContractService.SignOffAsync(contract.ContractId, signOffDate, signOffPort);
+        var req     = (SignOffCrewContractRequest)result.Data!;
+        var outcome = await CrewContractService.SignOffAsync(
+            contract.ContractId,
+            req.SignOffDate,
+            req.SignOffPort);
 
         if (outcome.IsSuccess)
         {
@@ -138,13 +176,13 @@ else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    // ─── Actions ───────────────────────────────────────────────────────────
+    // ─── Delete ────────────────────────────────────────────────────────────
 
     private async Task ConfirmDelete(CrewContractResponse contract)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Delete Contract",
-            $"Delete contract for '{contract.PersonFullName}'?",
+            $"Delete contract for '{contract.PersonFullName}'? This action cannot be undone.",
             yesText: "Delete",
             cancelText: "Cancel");
 

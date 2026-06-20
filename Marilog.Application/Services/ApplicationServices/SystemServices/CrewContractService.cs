@@ -6,6 +6,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -35,25 +36,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate ,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -64,25 +47,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.PersonID == personId)
                 .OrderByDescending(x => x.SignOnDate)
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Select(ToResponse())
                 .ToListAsync(ct);
         }
 
@@ -93,25 +58,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.VesselID == vesselId)
                 .OrderByDescending(x => x.SignOnDate)
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Select(ToResponse())
                 .ToListAsync(ct);
         }
         public async Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct)
@@ -119,26 +66,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var today = DateOnly.FromDateTime(DateTime.Today);
             return await _repo.Query()
                 .AsNoTracking()
-                .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) < today)
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) < today && c.IsActive == true)
+                .Select(ToResponse())
                 .ToListAsync(ct);
         }
 
@@ -149,26 +78,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             return await _repo.Query()
                 .AsNoTracking()
-                .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) >= today && c.SignOnDate.AddMonths(c.DurationInMonth!.Value) <= nextTwoMonths)
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) >= today && c.SignOnDate.AddMonths(c.DurationInMonth!.Value) <= nextTwoMonths && c.IsActive == true)
+                .Select(ToResponse())
                 .ToListAsync(ct);
         }
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId,
@@ -179,25 +90,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.VesselID == vesselId && x.IsActive)
                 .OrderBy(x => x.Rank.Department)
                 .ThenBy(x => x.Person.FullName)
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Select(ToResponse())
                 .ToListAsync(ct);
         }
 
@@ -207,25 +100,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.VesselID == vesselId && x.IsActive && x.Rank.RankCode == "MASTER")
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -235,25 +110,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.SignOnDate <= date && (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
-                .Select(x => new CrewContractResponse
-                {
-                    ContractId = x.Id,
-                    PersonId = x.PersonID,
-                    PersonFullName = x.Person.FullName,
-                    VesselId = x.VesselID,
-                    VesselName = x.Vessel.VesselName,
-                    RankId = x.RankID,
-                    RankName = x.Rank.RankName,
-                    RankDepartment = x.Rank.Department,
-                    MonthlyWage = x.MonthlyWage,
-                    SignOnDate = x.SignOnDate,
-                    SignOffDate = x.SignOffDate,
-                    SignOnPort = x.SignOnPort,
-                    SignOnPortName = x.SignOnPortNav!.PortName,
-                    SignOffPort = x.SignOffPort,
-                    SignOffPortName = x.SignOffPortNav!.PortName,
-                    IsActive = x.IsActive
-                })
+                .Select(ToResponse())
                 .ToListAsync(ct);
         }
 
@@ -261,25 +118,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             return await _repo.Query()
                               .AsNoTracking()
-                              .Select(x => new CrewContractResponse
-            {
-                ContractId = x.Id,
-                PersonId = x.PersonID,
-                PersonFullName = x.Person.FullName,
-                VesselId = x.VesselID,
-                VesselName = x.Vessel.VesselName,
-                RankId = x.RankID,
-                RankName = x.Rank.RankName,
-                RankDepartment = x.Rank.Department,
-                MonthlyWage = x.MonthlyWage,
-                SignOnDate = x.SignOnDate,
-                SignOffDate = x.SignOffDate,
-                SignOnPort = x.SignOnPort,
-                SignOnPortName = x.SignOnPortNav!.PortName,
-                SignOffPort = x.SignOffPort,
-                SignOffPortName = x.SignOffPortNav!.PortName,
-                IsActive = x.IsActive
-            })
+                              .Select(ToResponse())
                 .ToListAsync(ct);
         }
 
@@ -298,6 +137,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                                monthlyWage, signOnDate, signOnPort, notes);
             await _repo.AddAsync(contract, ct);
             await _repo.SaveChangesAsync(ct);
+
             return new CrewContractResponse
             {
                 ContractId = contract.Id,
@@ -312,9 +152,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 SignOnDate = contract.SignOnDate,
                 SignOffDate = contract.SignOffDate,
                 SignOnPort = contract.SignOnPort,
-                SignOnPortName = contract.SignOnPortNav!.PortName,
+                SignOnPortName = contract.SignOnPort.ToString(),
                 SignOffPort = contract.SignOffPort,
-                SignOffPortName = contract.SignOffPortNav!.PortName,
+                SignOffPortName = contract.SignOnPort.ToString(),
                 IsActive = contract.IsActive
             };
         }
@@ -553,6 +393,40 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     "This crew member already has an active contract on this vessel.");
         }
 
-        
+        //---------Mapping---------------
+        public static Expression<Func<CrewContract, CrewContractResponse>> ToResponse()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            return x => new CrewContractResponse
+            {
+                ContractId = x.Id,
+                PersonId = x.PersonID,
+                PersonFullName = x.Person.FullName,
+                VesselId = x.VesselID,
+                VesselName = x.Vessel.VesselName,
+                RankId = x.RankID,
+                RankName = x.Rank.RankName,
+                RankDepartment = x.Rank.Department,
+                MonthlyWage = x.MonthlyWage,
+                SignOnDate = x.SignOnDate,
+                SignOffDate = x.SignOffDate,
+                SignOnPort = x.SignOnPort,
+                SignOnPortName = x.SignOnPortNav != null ? x.SignOnPortNav.PortName : null,
+                SignOffPort = x.SignOffPort,
+                SignOffPortName = x.SignOffPortNav != null ? x.SignOffPortNav.PortName : null,
+                IsActive = x.IsActive,
+                Notes = x.Notes,
+
+                ContractDurationDays = x.SignOffDate.HasValue
+                    ? x.SignOffDate.Value.DayNumber - x.SignOnDate.DayNumber
+                    : today.DayNumber - x.SignOnDate.DayNumber,
+
+                TotalWageEarned = x.SignOffDate.HasValue
+                    ? x.MonthlyWage / 30m * (x.SignOffDate.Value.DayNumber - x.SignOnDate.DayNumber)
+                    : x.MonthlyWage / 30m * (today.DayNumber - x.SignOnDate.DayNumber)
+            };
+        }
     }
 }
+

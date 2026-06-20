@@ -1,39 +1,88 @@
+@using Marilog.Contracts.DTOs.Requests.CrewDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewContracts
 
 <MudDialog>
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.ExitToApp" Class="mr-2" />
+            Sign Off — @Contract.PersonFullName
+        </MudText>
+    </TitleContent>
+
     <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Vessel: <strong>@Contract.VesselName</strong> &nbsp;|&nbsp;
+            Sign On: <strong>@Contract.SignOnDate.ToString("dd MMM yyyy")</strong>
+        </MudText>
+
         <MudGrid>
-            <MudItem xs="12">
+            <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="_signOffDate"
                                Label="Sign Off Date"
                                Required="true"
                                Variant="Variant.Outlined"
-                               Margin="Margin.Dense" />
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               MinDate="@Contract.SignOnDate.ToDateTime(TimeOnly.MinValue)" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?"
+                           @bind-Value="_signOffPort"
+                           Label="Sign Off Port"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var p in Ports)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                    }
+                </MudSelect>
             </MudItem>
         </MudGrid>
+
+        @if (_signOffDate.HasValue)
+        {
+            var days = (int)(_signOffDate.Value - Contract.SignOnDate.ToDateTime(TimeOnly.MinValue)).TotalDays;
+            var wage = (Contract.MonthlyWage / 30m) * days;
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                Service Duration: <strong>@days days</strong> &nbsp;|&nbsp;
+                Estimated Wage: <strong>@wage.ToString("N2")</strong>
+            </MudAlert>
+        }
     </DialogContent>
+
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Warning"
-                   OnClick="Submit"
-                   Disabled="@(_signOffDate is null)">
-            Sign Off
+                   Disabled="@(_signOffDate is null)"
+                   OnClick="Submit">
+            Confirm Sign Off
         </MudButton>
     </DialogActions>
+
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public CrewContractResponse? Contract { get; set; }
 
-    private DateTime? _signOffDate;
+    [Parameter] public CrewContractResponse Contract { get; set; } = default!;
+    [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+
+    private DateTime? _signOffDate = DateTime.Today;
+    private int? _signOffPort;
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(
-        (DateOnly.FromDateTime(_signOffDate!.Value), (int?)null)
-    ));
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new SignOffCrewContractRequest
+        {
+            SignOffDate = DateOnly.FromDateTime(_signOffDate!.Value),
+            SignOffPort = _signOffPort
+        }));
 }
