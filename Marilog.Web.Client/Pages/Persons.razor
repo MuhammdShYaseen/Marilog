@@ -9,7 +9,10 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IRankService RankService
-
+@if (_loading == true)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
 <SharedPersonPage @ref="_sharedPage"
                    Persons="_persons"
                    OnActivateClicked="Activate"

@@ -33,18 +33,7 @@
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="6">
-                <MudTextField @bind-Value="_phone"
-                              Label="Phone"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField @bind-Value="_email"
-                              Label="Email"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
+
             <MudItem xs="12">
                 <MudTextField @bind-Value="_address"
                               Label="Address"
@@ -108,14 +97,32 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(
-    new CreateCompanyRequest
+    private void Submit()
     {
-        CompanyName = _name,
-        RegistrationNumber = _registrationNumber,
-        ContactName = _contactName,
-        Address = _address,
-        CountryId = _countryId,
-        WebSite = _webSite
-    }));
+        if (Company == null)
+        {
+            MudDialog.Close(DialogResult.Ok(new CreateCompanyRequest
+            {
+                CompanyName = _name,
+                RegistrationNumber = _registrationNumber,
+                ContactName = _contactName,
+                Address = _address,
+                CountryId = _countryId,
+                WebSite = _webSite
+            }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(new UpdateCompanyRequest
+            {
+                CompanyName = _name,
+                RegistrationNumber = _registrationNumber,
+                ContactName = _contactName,
+                Address = _address,
+                CountryId = _countryId,
+                WebSite = _webSite
+            }));
+        }
+
+    }
 }
