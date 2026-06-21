@@ -1,0 +1,30 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Voyages
+@* VoyageStopCard.razor *@
+<MudPaper Class="pa-3 mb-2" Outlined="true">
+    <MudGrid>
+        <MudItem xs="1">
+            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Primary" />
+        </MudItem>
+        <MudItem xs="3">
+            <MudText Typo="Typo.subtitle2">@Stop.PortName</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Stop @Stop.StopOrder</MudText>
+        </MudItem>
+        <MudItem xs="3">
+            <MudText Typo="Typo.caption">Arrival</MudText>
+            <MudText Typo="Typo.body2">@(Stop.ArrivalDate?.ToString("dd MMM yyyy HH:mm") ?? "—")</MudText>
+        </MudItem>
+        <MudItem xs="3">
+            <MudText Typo="Typo.caption">Departure</MudText>
+            <MudText Typo="Typo.body2">@(Stop.DepartureDate?.ToString("dd MMM yyyy HH:mm") ?? "—")</MudText>
+        </MudItem>
+        <MudItem xs="2">
+            <MudText Typo="Typo.caption">Purpose</MudText>
+            <MudText Typo="Typo.body2">@(Stop.PurposeOfCall ?? "—")</MudText>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+@code{
+    [Parameter, EditorRequired] public VoyageStopResponse Stop { get; set; } = null!;
+}

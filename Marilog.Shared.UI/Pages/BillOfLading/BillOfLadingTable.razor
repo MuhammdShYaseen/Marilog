@@ -1,0 +1,71 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.BillOfLading
+<MudTable T="BillOfLadingResponse"
+          Items="BillsOfLading"
+          Hover="true"
+          Striped="true"
+          Dense="true"
+          Loading="IsLoading">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Bills of Lading</MudText>
+        <MudSpacer />
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New B/L
+        </MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>B/L Number</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Issuance</MudTh>
+        <MudTh>Shipper</MudTh>
+        <MudTh>Port of Loading</MudTh>
+        <MudTh>Port of Discharge</MudTh>
+        <MudTh>Cargo</MudTh>
+        <MudTh>Freight</MudTh>
+        <MudTh>Issue Date</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.BlNumber</MudTd>
+        <MudTd>@context.BlType</MudTd>
+        <MudTd>
+            <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                @context.IssuanceType
+            </MudChip>
+        </MudTd>
+        <MudTd>@context.ShipperCompany?.Name</MudTd>
+        <MudTd>@context.PortOfLoading?.Name</MudTd>
+        <MudTd>@context.PortOfDischarge?.Name</MudTd>
+        <MudTd>@context.CargoDescription</MudTd>
+        <MudTd>@context.FreightTerms</MudTd>
+        <MudTd>@context.IssueDate?.ToString("dd MMM yyyy")</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Size="Size.Small"
+                           OnClick="@(() => OnViewClicked.InvokeAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           OnClick="@(() => OnEditClicked.InvokeAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@(() => OnDeleteClicked.InvokeAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Color="Color.Secondary">No Bills of Lading for this voyage.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnViewClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnDeleteClicked { get; set; }
+}

@@ -1,0 +1,128 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Pages.BillOfLading
+@using MudBlazor
+@* VoyagePage.razor *@
+@if (SelectedVoyage is null)
+{
+    <VoyageTable Voyages="Voyages"
+                 IsLoading="IsLoading"
+                 OnAddClicked="OnAddClicked"
+                 OnViewClicked="OnViewClicked"
+                 OnEditClicked="OnEditClicked"
+                 OnDeleteClicked="OnDeleteClicked" />
+}
+else
+{
+    <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2" />
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
+
+        {{!-- Tab 1: Overview --}}
+        <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Info">
+            <MudGrid Class="mt-2">
+                {{!-- Header Card --}}
+                <MudItem xs="12">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudGrid>
+                            <MudItem xs="12" md="3">
+                                <MudText Typo="Typo.caption">Voyage Number</MudText>
+                                <MudText Typo="Typo.h6">@SelectedVoyage.VoyageNumber</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudText Typo="Typo.caption">Vessel</MudText>
+                                <MudText Typo="Typo.body1">@SelectedVoyage.VesselName</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="2">
+                                <MudText Typo="Typo.caption">Month</MudText>
+                                <MudText Typo="Typo.body1">@SelectedVoyage.VoyageMonth.ToString("MMM yyyy")</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="2">
+                                <MudText Typo="Typo.caption">Status</MudText>
+                                <MudChip T="string" Color="@GetStatusColor(SelectedVoyage.Status.ToString())" Size="Size.Small">
+                                    @SelectedVoyage.Status
+                                </MudChip>
+                            </MudItem>
+                            <MudItem xs="12" md="2" Class="d-flex align-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               OnClick="@(() => OnEditClicked.InvokeAsync(SelectedVoyage))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               OnClick="@(() => OnDeleteClicked.InvokeAsync(SelectedVoyage))" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+
+                {{!-- Stops Timeline --}}
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Port Stops</MudText>
+                    @if (SelectedVoyage.Stops is { Count: > 0 })
+                    {
+                        @foreach (var stop in SelectedVoyage.Stops.OrderBy(s => s.StopOrder))
+                        {
+                            <VoyageStopCard Stop="stop" />
+                        }
+                    }
+                    else
+                    {
+                        <MudText Color="Color.Secondary">No stops recorded.</MudText>
+                    }
+                    <MudButton StartIcon="@Icons.Material.Filled.AddLocation"
+                               Variant="Variant.Outlined"
+                               Class="mt-2"
+                               OnClick="OnAddStopClicked">
+                        Add Stop
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        {{!-- Tab 2: Bills of Lading --}}
+        <MudTabPanel Text="Bills of Lading" Icon="@Icons.Material.Filled.Description">
+            <BillOfLadingTable BillsOfLading="BillsOfLading"
+                               IsLoading="IsBillsLoading"
+                               OnAddClicked="OnAddBillClicked"
+                               OnEditClicked="OnEditBillClicked"
+                               OnDeleteClicked="OnDeleteBillClicked"
+                               OnViewClicked="OnViewBillClicked" />
+        </MudTabPanel>
+
+    </MudTabs>
+}
+
+        @code{
+    // ── Voyage list ───────────────────────────────────────────────────────────
+    [Parameter, EditorRequired] public IReadOnlyList<VoyageResponse> Voyages { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    // ── Selected voyage detail ────────────────────────────────────────────────
+    [Parameter] public VoyageResponse? SelectedVoyage { get; set; }
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
+    [Parameter] public bool IsBillsLoading { get; set; }
+
+    // ── Voyage callbacks ──────────────────────────────────────────────────────
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnViewClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback OnAddStopClicked { get; set; }
+
+    // ── BL callbacks ──────────────────────────────────────────────────────────
+    [Parameter] public EventCallback OnAddBillClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnViewBillClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnEditBillClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnDeleteBillClicked { get; set; }
+
+    private List<BreadcrumbItem> _breadcrumbs => [
+        new("Voyages", href: null, icon: Icons.Material.Filled.Sailing),
+        new(SelectedVoyage?.VoyageNumber ?? string.Empty, href: null, disabled: true)
+    ];
+
+    private static Color GetStatusColor(string? status) => status switch
+    {
+        "Active" => Color.Success,
+        "Completed" => Color.Info,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
+}

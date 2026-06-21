@@ -1,0 +1,74 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Voyages
+<MudTable T="VoyageResponse"
+          Items="Voyages"
+          Hover="true"
+          Striped="true"
+          Dense="true"
+          OnRowClick="OnRowClick"
+          Loading="IsLoading">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Voyages</MudText>
+        <MudSpacer />
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="OnAddClicked">
+            New Voyage
+        </MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Voyage #</MudTh>
+        <MudTh>Vessel</MudTh>
+        <MudTh>Month</MudTh>
+        <MudTh>Departure</MudTh>
+        <MudTh>Arrival</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.VoyageNumber</MudTd>
+        <MudTd>@context.VesselName</MudTd>
+        <MudTd>@context.VoyageMonth.ToString("MMM yyyy")</MudTd>
+        <MudTd>@(context.DepartureDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd>@(context.ArrivalDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd>
+            <MudChip T="string" Color="@GetStatusColor(context.Status.ToString())" Size="Size.Small">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Size="Size.Small"
+                           OnClick="@(() => OnViewClicked.InvokeAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           OnClick="@((e) => OnEditClicked.InvokeAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@((e) => OnDeleteClicked.InvokeAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+@code{
+
+    [Parameter, EditorRequired] public IReadOnlyList<VoyageResponse> Voyages { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnViewClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+
+    private void OnRowClick(TableRowClickEventArgs<VoyageResponse> args)
+        => OnViewClicked.InvokeAsync(args.Item);
+
+    private static Color GetStatusColor(string? status) => status switch
+    {
+        "Active" => Color.Success,
+        "Completed" => Color.Info,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
+}

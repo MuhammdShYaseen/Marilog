@@ -1,0 +1,170 @@
+﻿@page "/voyages"
+@using Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Voyages
+@using Marilog.Shared.UI.Pages.BillOfLading
+@* VoyagePageHost.razor *@
+@inject IVoyageService VoyageService
+@inject IBillOfLadingService BillOfLadingService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<VoyagePage Voyages="_voyages"
+            IsLoading="_loading"
+            SelectedVoyage="_selectedVoyage"
+            BillsOfLading="_bills"
+            IsBillsLoading="_billsLoading"
+            OnAddClicked="OpenAddDialog"
+            OnViewClicked="SelectVoyage"
+            OnEditClicked="OpenEditDialog"
+            OnDeleteClicked="ConfirmDelete"
+            OnAddStopClicked="OpenAddStopDialog"
+            OnAddBillClicked="OpenAddBillDialog"
+            OnViewBillClicked="OpenViewBillDialog"
+            OnEditBillClicked="OpenEditBillDialog"
+            OnDeleteBillClicked="ConfirmDeleteBill" />
+@code {
+    
+
+    private IReadOnlyList<VoyageResponse> _voyages = [];
+    private IReadOnlyList<BillOfLadingResponse> _bills = [];
+    private VoyageResponse? _selectedVoyage;
+    private bool _loading;
+    private bool _billsLoading;
+
+    // lookup data
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<PortResponse> _ports = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _voyages = await VoyageService.GetActiveVoyagesAsync();
+        _loading = false;
+    }
+
+    // ── Select / navigate ─────────────────────────────────────────────────────
+    private async Task SelectVoyage(VoyageResponse voyage)
+    {
+        _selectedVoyage = voyage;
+        _billsLoading = true;
+        _bills = await BillOfLadingService.GetByVoyageAsync(voyage.VoyageId);
+        _billsLoading = false;
+    }
+
+    // ── Voyage CRUD ───────────────────────────────────────────────────────────
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageDialog.Voyage)] = null,
+            [nameof(VoyageDialog.Vessels)] = _vessels,
+            [nameof(VoyageDialog.Ports)] = _ports
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("New Voyage", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: CreateVoyageRequest r })
+        {
+            await VoyageService.CreateAsync(
+                r.VesselId, r.VoyageNumber, r.VoyageMonth,
+                departurePortId: r.DeparturePortId,
+                arrivalPortId: r.ArrivalPortId,
+                departureDate: r.DepartureDate,
+                arrivalDate: r.ArrivalDate,
+                cargoType: r.CargoType,
+                cargoQuantityMt: r.CargoQuantityMt,
+                notes: r.Notes);
+
+            _voyages = await VoyageService.GetActiveVoyagesAsync();
+            Snackbar.Add("Voyage created", Severity.Success);
+        }
+    }
+
+    private async Task OpenEditDialog(VoyageResponse voyage)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageDialog.Voyage)] = voyage,
+            [nameof(VoyageDialog.Vessels)] = _vessels,
+            [nameof(VoyageDialog.Ports)] = _ports
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit Voyage", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: UpdateVoyageRequest r })
+        {
+            await VoyageService.UpdateAsync(
+                voyage.VoyageId,
+                r.DeparturePortId, r.ArrivalPortId,
+                r.DepartureDate, r.ArrivalDate,
+                r.CargoType, r.CargoQuantityMt,
+                r.Notes);
+
+            _voyages = await VoyageService.GetActiveVoyagesAsync();
+            if (_selectedVoyage?.VoyageId == voyage.VoyageId)
+                _selectedVoyage = await VoyageService.GetWithStopsAsync(voyage.VoyageId);
+
+            Snackbar.Add("Voyage updated", Severity.Success);
+        }
+    }
+
+    private async Task ConfirmDelete(VoyageResponse voyage)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Voyage",
+            $"Delete voyage {voyage.VoyageNumber}?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed is true)
+        {
+            await VoyageService.DeleteAsync(voyage.VoyageId);
+            if (_selectedVoyage?.VoyageId == voyage.VoyageId) _selectedVoyage = null;
+            _voyages = await VoyageService.GetActiveVoyagesAsync();
+            Snackbar.Add("Voyage deleted", Severity.Success);
+        }
+    }
+
+    // ── Stop ──────────────────────────────────────────────────────────────────
+    private async Task OpenAddStopDialog()
+    {
+        // نفس pattern الـ dialog — تبنيه لاحقاً لما تحتاجه
+    }
+
+    // ── BL CRUD ───────────────────────────────────────────────────────────────
+    private async Task OpenAddBillDialog()
+    {
+        
+    }
+
+    private async Task OpenEditBillDialog(BillOfLadingResponse bl)
+    {
+       
+    }
+
+    private async Task OpenViewBillDialog(BillOfLadingResponse bl)
+    {
+        var parameters = new DialogParameters
+        {
+
+        };
+
+        await DialogService.ShowAsync<BillOfLadingDialog>("Bill of Lading", parameters);
+    }
+
+    private async Task ConfirmDeleteBill(BillOfLadingResponse bl)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete B/L",
+            $"Delete BL {bl.BlNumber}?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed is true)
+        {
+            await BillOfLadingService.DeleteAsync(bl.Id!.Value);
+            _bills = await BillOfLadingService.GetByVoyageAsync(_selectedVoyage!.VoyageId);
+            Snackbar.Add("Bill of Lading deleted", Severity.Success);
+        }
+    }
+}
