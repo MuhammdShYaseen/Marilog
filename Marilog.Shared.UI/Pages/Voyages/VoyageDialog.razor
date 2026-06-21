@@ -79,14 +79,16 @@
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-DateTime="_departureDate"
+                <MudDatePicker @bind-Date="_departureDate"
                                    Label="Departure Date"
+                                   Editable="true"
+                                   Required="true"
                                    Variant="Variant.Outlined"
                                    Margin="Margin.Dense" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-DateTime="_arrivalDate"
+                <MudDatePicker @bind-Date="_arrivalDate"
                                    Label="Arrival Date"
                                    Variant="Variant.Outlined"
                                    Margin="Margin.Dense" />

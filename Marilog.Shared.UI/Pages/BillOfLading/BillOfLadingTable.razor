@@ -5,8 +5,7 @@
           Items="BillsOfLading"
           Hover="true"
           Striped="true"
-          Dense="true"
-          Loading="IsLoading">
+          Dense="true">
     <ToolBarContent>
         <MudText Typo="Typo.h6">Bills of Lading</MudText>
         <MudSpacer />
@@ -63,7 +62,6 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
-    [Parameter] public bool IsLoading { get; set; }
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnViewClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnEditClicked { get; set; }

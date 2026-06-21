@@ -6,8 +6,10 @@
 @using Marilog.Shared.UI.Pages.BillOfLading
 @* VoyagePageHost.razor *@
 @inject IVoyageService VoyageService
+@inject IVesselService VesselService
 @inject IBillOfLadingService BillOfLadingService
 @inject IDialogService DialogService
+@inject IPortService PortService
 @inject ISnackbar Snackbar
 
 <VoyagePage Voyages="_voyages"
@@ -23,9 +25,10 @@
             OnAddBillClicked="OpenAddBillDialog"
             OnViewBillClicked="OpenViewBillDialog"
             OnEditBillClicked="OpenEditBillDialog"
-            OnDeleteBillClicked="ConfirmDeleteBill" />
+            OnDeleteBillClicked="ConfirmDeleteBill" 
+            OnBackClicked="HandleBack" />
 @code {
-    
+
 
     private IReadOnlyList<VoyageResponse> _voyages = [];
     private IReadOnlyList<BillOfLadingResponse> _bills = [];
@@ -34,8 +37,14 @@
     private bool _billsLoading;
 
     // lookup data
-    private IReadOnlyList<VesselResponse> _vessels = [];
-    private IReadOnlyList<PortResponse> _ports = [];
+    private async Task<IReadOnlyList<VesselResponse>> Vessels()
+    {
+        return await VesselService.GetActiveAsync();
+    }
+    private async Task<IReadOnlyList<PortResponse>> Ports()
+    {
+        return await PortService.GetActiveAsync();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,8 +68,8 @@
         var parameters = new DialogParameters
         {
             [nameof(VoyageDialog.Voyage)] = null,
-            [nameof(VoyageDialog.Vessels)] = _vessels,
-            [nameof(VoyageDialog.Ports)] = _ports
+            [nameof(VoyageDialog.Vessels)] = await Vessels(),
+            [nameof(VoyageDialog.Ports)] = await Ports()
         };
 
         var dialog = await DialogService.ShowAsync<VoyageDialog>("New Voyage", parameters);
@@ -87,8 +96,8 @@
         var parameters = new DialogParameters
         {
             [nameof(VoyageDialog.Voyage)] = voyage,
-            [nameof(VoyageDialog.Vessels)] = _vessels,
-            [nameof(VoyageDialog.Ports)] = _ports
+            [nameof(VoyageDialog.Vessels)] = await Vessels(),
+            [nameof(VoyageDialog.Ports)] = await Ports()
         };
 
         var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit Voyage", parameters);
@@ -166,5 +175,12 @@
             _bills = await BillOfLadingService.GetByVoyageAsync(_selectedVoyage!.VoyageId);
             Snackbar.Add("Bill of Lading deleted", Severity.Success);
         }
+    }
+
+
+    private void HandleBack()
+    {
+        _selectedVoyage = null;
+        _bills = [];
     }
 }

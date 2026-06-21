@@ -41,7 +41,7 @@ namespace Marilog.Application
             // ── Operations ────────────────────────────────────────────────────────
             services.AddScoped<ICrewContractService, CrewContractService>();
             services.AddScoped<IVoyageService, VoyageService>();
-
+            services.AddScoped<IBillOfLadingService, BillOfLadingService>();
 
             // ── Financial ─────────────────────────────────────────────────────────
             services.AddScoped<IDocumentService, DocumentService>();
