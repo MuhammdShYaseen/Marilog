@@ -154,10 +154,9 @@
         else
         {
             var result = await VoyageService.GetByVesselAsync(vesselId.Value);
-            _byVessel = result.ToList(); // new reference, forces Blazor diff to detect change
-            StateHasChanged();
+            _byVessel = result.ToList(); // new reference, forces Blazor diff to detect change    
         }
-        
+        StateHasChanged();
     }
 
     // ── Stop ──────────────────────────────────────────────────────────────────
