@@ -47,61 +47,111 @@
                 </MudButton>
             </MudStack>
 
-            <MudTable Items="_filtered"
-                      Dense="true"
-                      Hover="true"
-                      Striped="true"
-                      SelectedItemChanged="OnRowSelected"
-                      T="PersonResponse">
-                <HeaderContent>
-                    <MudTh>Full Name</MudTh>
-                    <MudTh>Passport</MudTh>
-                    <MudTh>Seaman Book</MudTh>
-                    <MudTh>Status</MudTh>
-                    <MudTh>Expiry</MudTh>
-                    <MudTh></MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.FullName</MudTd>
-                    <MudTd>@(context.PassportNo ?? "—")</MudTd>
-                    <MudTd>@(context.SeamanBookNo ?? "—")</MudTd>
-                    <MudTd>
-                        <MudChip T="string"
-                                 Color="@(context.IsActive ? Color.Success : Color.Default)"
-                                 Size="Size.Small">
-                            @(context.IsActive ? "Active" : "Inactive")
-                        </MudChip>
-                    </MudTd>
-                    <MudTd>
-                        @if (context.PassportExpiry is not null)
-                        {
-                            var expiry = context.PassportExpiry.Value;
-                            var today = DateOnly.FromDateTime(DateTime.Today);
-                            var daysLeft = expiry.DayNumber - today.DayNumber;
-                            var color = daysLeft < 30 ? Color.Error : daysLeft < 90 ? Color.Warning : Color.Success;
-                            <MudChip T="string" Color="@color" Size="Size.Small">
-                                @context.PassportExpiry.Value.ToString("yyyy-MM-dd") (@(daysLeft) days)
+            <MudDataGrid T="PersonResponse"
+                         Items="_filtered"
+                         Hover="true"
+                         Dense="true"
+                         Striped="true"
+                         SelectedItem="_selected"
+                         SelectedItemChanged="OnRowSelected"
+                         Breakpoint="Breakpoint.Sm">
+
+                <Columns>
+
+                    <PropertyColumn Property="x => x.FullName"
+                                    Title="Full Name" />
+
+                    <PropertyColumn Property="x => x.PassportNo"
+                                    Title="Passport" />
+
+                    <PropertyColumn Property="x => x.SeamanBookNo"
+                                    Title="Seaman Book" />
+
+                    <TemplateColumn Title="Status">
+                        <CellTemplate>
+                            <MudChip T="string"
+                                     Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                     Size="Size.Small"
+                                     Variant="Variant.Filled">
+                                @(context.Item.IsActive ? "Active" : "Inactive")
                             </MudChip>
-                        }
-                        else
-                        {
-                            <span>—</span>
-                        }
-                    </MudTd>
-                    <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Size="Size.Small"
-                                       OnClick="() => OnEditClicked.InvokeAsync(context)" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
-                    </MudTd>
-                </RowTemplate>
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Passport Expiry">
+                        <CellTemplate>
+                            @if (context.Item.PassportExpiry is not null)
+                            {
+                                var expiry = context.Item.PassportExpiry.Value;
+                                var today = DateOnly.FromDateTime(DateTime.Today);
+                                var daysLeft = expiry.DayNumber - today.DayNumber;
+
+                                var color =
+                                    daysLeft < 30 ? Color.Error :
+                                    daysLeft < 90 ? Color.Warning :
+                                    Color.Success;
+
+                                <MudChip T="string"
+                                         Color="@color"
+                                         Size="Size.Small"
+                                         Variant="Variant.Filled">
+                                    @expiry.ToString("yyyy-MM-dd")
+                                    (@daysLeft days)
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">—</MudText>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title=""
+                                    Sortable="false"
+                                    CellStyle="width:140px">
+                        <CellTemplate>
+                            <MudStack Row="true" Spacing="1">
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+
+                                <MudIconButton Icon="@(context.Item.IsActive
+                                                                                           ? Icons.Material.Filled.ToggleOff
+                                                                                       : Icons.Material.Filled.ToggleOn)"
+                                               Size="Size.Small"
+                                               Color="@(context.Item.IsActive
+                                                                                           ? Color.Warning
+                                                                                           : Color.Success)"
+                                               OnClick="() =>
+                                                                                  {
+                                                                                      if (context.Item.IsActive)
+                                                                                          OnDeactivateClicked.InvokeAsync(context.Item);
+                                                                                      else
+                                                                                          OnActivateClicked.InvokeAsync(context.Item);
+                                                                                  }" />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                </Columns>
+
                 <NoRecordsContent>
-                    <MudText>No persons found.</MudText>
+                    <MudText Typo="Typo.body2"
+                             Color="Color.Secondary"
+                             Class="pa-4">
+                        No persons found.
+                    </MudText>
                 </NoRecordsContent>
-            </MudTable>
+
+            </MudDataGrid>
 
         </MudPaper>
 

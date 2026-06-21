@@ -29,44 +29,85 @@
                 </MudButton>
             </MudStack>
 
-            <MudTable Items="_filtered"
-                      Dense="true"
-                      Hover="true"
-                      Striped="true"
-                      SelectedItemChanged="OnRowSelected"
-                      T="CompanyResponse">
-                <HeaderContent>
-                    <MudTh>Name</MudTh>
-                    <MudTh>Reg. No.</MudTh>
-                    <MudTh>Contact</MudTh>
-                    <MudTh>Status</MudTh>
-                    <MudTh></MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.Name</MudTd>
-                    <MudTd>@(context.RegistrationNumber ?? "—")</MudTd>
-                    <MudTd>@(context.ContactName ?? "—")</MudTd>
-                    <MudTd>
-                        <MudChip T="string"
-                                 Color="@(context.IsActive ? Color.Success : Color.Default)"
-                                 Size="Size.Small">
-                            @(context.IsActive ? "Active" : "Inactive")
-                        </MudChip>
-                    </MudTd>
-                    <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Size="Size.Small"
-                                       OnClick="() => OnEditClicked.InvokeAsync(context)" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
-                    </MudTd>
-                </RowTemplate>
+            <MudDataGrid T="CompanyResponse"
+                         Items="_filtered"
+                         Hover="true"
+                         Dense="true"
+                         Striped="true"
+                         SelectedItem="_selected"
+                         SelectedItemChanged="OnRowSelected"
+                         Breakpoint="Breakpoint.Sm">
+
+                <Columns>
+
+                    <PropertyColumn Property="x => x.Name"
+                                    Title="Company Name" />
+
+                    <PropertyColumn Property="x => x.RegistrationNumber"
+                                    Title="Reg. No." />
+
+                    <PropertyColumn Property="x => x.ContactName"
+                                    Title="Contact" />
+
+                    <TemplateColumn Title="Status">
+                        <CellTemplate>
+                            <MudChip T="string"
+                                     Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                     Size="Size.Small"
+                                     Variant="Variant.Filled">
+                                @(context.Item.IsActive ? "Active" : "Inactive")
+                            </MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title=""
+                                    Sortable="false"
+                                    CellStyle="width:140px">
+                        <CellTemplate>
+
+                            <MudStack Row="true" Spacing="1">
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+
+                                <MudIconButton Icon="@(context.Item.IsActive
+                                                                                           ? Icons.Material.Filled.ToggleOff
+                                                                                       : Icons.Material.Filled.ToggleOn)"
+                                               Size="Size.Small"
+                                               Color="@(context.Item.IsActive
+                                                                                           ? Color.Warning
+                                                                                           : Color.Success)"
+                                               OnClick="() =>
+                                                                                  {
+                                                                                      if (context.Item.IsActive)
+                                                                                          OnDeactivateClicked.InvokeAsync(context.Item);
+                                                                                      else
+                                                                                          OnActivateClicked.InvokeAsync(context.Item);
+                                                                                  }" />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+
+                            </MudStack>
+
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                </Columns>
+
                 <NoRecordsContent>
-                    <MudText>No companies found.</MudText>
+                    <MudText Typo="Typo.body2"
+                             Color="Color.Secondary"
+                             Class="pa-4">
+                        No companies found.
+                    </MudText>
                 </NoRecordsContent>
-            </MudTable>
+
+            </MudDataGrid>
 
         </MudPaper>
 
