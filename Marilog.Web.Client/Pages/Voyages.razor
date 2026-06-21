@@ -25,16 +25,22 @@
             OnAddBillClicked="OpenAddBillDialog"
             OnViewBillClicked="OpenViewBillDialog"
             OnEditBillClicked="OpenEditBillDialog"
-            OnDeleteBillClicked="ConfirmDeleteBill" 
-            OnBackClicked="HandleBack" />
+            OnDeleteBillClicked="ConfirmDeleteBill"
+            OnBackClicked="HandleBack"
+            OnVesselSelected="LoadByVessel"
+            Vessels="_vessels"
+            ByVessel="_byVessel" />  @* <- تأكد من تمرير هذه الخاصية *@
 @code {
 
 
     private IReadOnlyList<VoyageResponse> _voyages = [];
     private IReadOnlyList<BillOfLadingResponse> _bills = [];
+    private IReadOnlyList<VoyageResponse> _byVessel = [];
+    private IReadOnlyList<VesselResponse> _vessels = [];
     private VoyageResponse? _selectedVoyage;
     private bool _loading;
     private bool _billsLoading;
+    private int? _selectedVesselId;
 
     // lookup data
     private async Task<IReadOnlyList<VesselResponse>> Vessels()
@@ -50,6 +56,7 @@
     {
         _loading = true;
         _voyages = await VoyageService.GetActiveVoyagesAsync();
+        _vessels = await VesselService.GetActiveAsync();
         _loading = false;
     }
 
@@ -135,6 +142,24 @@
         }
     }
 
+    private async Task LoadByVessel(int? vesselId)
+    {
+        _selectedVesselId = vesselId;
+
+        
+        if (vesselId == 0 || vesselId == null)
+        {
+            _byVessel = _voyages;
+        }
+        else
+        {
+            var result = await VoyageService.GetByVesselAsync(vesselId.Value);
+            _byVessel = result.ToList(); // new reference, forces Blazor diff to detect change
+            StateHasChanged();
+        }
+        
+    }
+
     // ── Stop ──────────────────────────────────────────────────────────────────
     private async Task OpenAddStopDialog()
     {
@@ -144,12 +169,12 @@
     // ── BL CRUD ───────────────────────────────────────────────────────────────
     private async Task OpenAddBillDialog()
     {
-        
+
     }
 
     private async Task OpenEditBillDialog(BillOfLadingResponse bl)
     {
-       
+
     }
 
     private async Task OpenViewBillDialog(BillOfLadingResponse bl)

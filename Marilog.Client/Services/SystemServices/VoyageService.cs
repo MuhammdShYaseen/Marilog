@@ -32,8 +32,8 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<VoyageResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default)
         {
             // Controller returns unwrapped on this endpoint
-            var response = await _http.GetFromJsonAsync<IReadOnlyList<VoyageResponse>>($"{Base}/by-vessel/{vesselId}", ct);
-            return response ?? [];
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-vessel/{vesselId}", ct);
+            return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<VoyageResponse>> GetByMonthAsync(DateOnly month, CancellationToken ct = default)
