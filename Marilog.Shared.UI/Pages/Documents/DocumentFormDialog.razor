@@ -136,19 +136,16 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                @bind-Value="_VesselId"
-                Label="Vessel"
-                Clearable="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-
+                           Value="_VesselId"
+                           ValueChanged="OnVesselChanged"
+                           Label="Vessel"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
                     @foreach (var vessel in Vessels)
                     {
-                        <MudSelectItem Value="@((int?)vessel.Id)">
-                            @vessel.Name
-                        </MudSelectItem>
+                        <MudSelectItem Value="@((int?)vessel.Id)">@vessel.Name</MudSelectItem>
                     }
-
                 </MudSelect>
             </MudItem>
 
@@ -172,16 +169,36 @@
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                @bind-Value="_ParentDocumentId"
-                Label="Parent Document"
-                Clearable="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
+                           @bind-Value="_ParentDocumentId"
+                           Label="Parent Document"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           ToStringFunc="@(id => AllDocs.FirstOrDefault(x => x.Id == id)?.DocNumber ?? "")">
 
                     @foreach (var doc in AllDocs.Where(x => x.Id != Document?.Id))
                     {
                         <MudSelectItem T="int?" Value="@((int?)doc.Id)">
-                            @doc.DocNumber
+                            <div style="display:flex; flex-direction:column; gap:2px; padding: 2px 0">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:16px">
+                                    <MudText Typo="Typo.body2" Style="font-weight:600">@doc.DocNumber</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Primary" Style="font-weight:600">
+                                        @doc.TotalAmount.ToString("N2") @doc.CurrencyCode
+                                    </MudText>
+                                </div>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@doc.DocTypeName</MudChip>
+                                    @if (!string.IsNullOrEmpty(doc.SupplierName))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined">@doc.SupplierName</MudChip>
+                                    }
+                                    @if (!string.IsNullOrEmpty(doc.PortName))
+                                    {
+                                        <MudChip T="string" Icon="@Icons.Material.Filled.Anchor" Size="Size.Small" Variant="Variant.Outlined">@doc.PortName</MudChip>
+                                    }
+                                    <MudText Typo="Typo.caption" Style="align-self:center; opacity:0.7">@doc.DocDate.ToString("dd MMM yyyy")</MudText>
+                                </div>
+                            </div>
                         </MudSelectItem>
                     }
 
@@ -243,13 +260,25 @@
 
     [Parameter]
     public IReadOnlyList<CompanyResponse> Companies { get; set; }     = [];
-
-    [Parameter]
-    public IReadOnlyList<DocumentResponse> AllDocs { get; set; }      = [];
+    private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
+    //[Parameter]
+    ///public IReadOnlyList<DocumentResponse> AllDocs { get; set; }      = [];
 
     [Parameter]
     public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
+    [Parameter]
+    public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
+    private async Task OnVesselChanged(int? vesselId)
+    {
+        _VesselId = vesselId;
 
+        if (vesselId.HasValue && GetDocsByVessel is not null)
+            AllDocs = await GetDocsByVessel(vesselId.Value);
+        else
+            AllDocs = [];
+
+        StateHasChanged();
+    }
     private string?   _DocNumber;
     private decimal   _TotalAmount;
     private string?   _Reference;
