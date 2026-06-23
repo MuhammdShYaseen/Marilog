@@ -7,6 +7,7 @@
     <Project Path="Marilog.Presentation/Marilog.Presentation.csproj" Id="5af85a2f-8fd0-45e4-a004-2628afe02e7a" />
   </Folder>
   <Folder Name="/Backend/Workers/">
+    <Project Path="Marilog.Intelligence.Worker/Marilog.Intelligence.Worker.csproj" Id="83668850-3683-4b3c-8905-8c3effc86509" />
     <Project Path="Marilog.OCR.Worker/Marilog.OCR.Worker.csproj" Id="ff47533b-9d4b-4b57-bf1d-3710e8a1a20f" />
   </Folder>
   <Folder Name="/Common/">

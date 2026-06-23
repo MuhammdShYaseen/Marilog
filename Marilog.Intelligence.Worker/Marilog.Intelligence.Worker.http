@@ -1,0 +1,6 @@
+@Marilog.Intelligence.Worker_HostAddress = http://localhost:5118
+
+GET {{Marilog.Intelligence.Worker_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
