@@ -12,7 +12,7 @@ namespace Marilog.Domain.Entities.AiEntities
         public string BaseUrl { get; private set; } = default!;
         public string ModelIdentifier { get; private set; } = default!;
         public string? ApiVersion { get; private set; }
-
+        public string AuthHeader { get; private set; } = default!;
         public int MaxInputTokens { get; private set; }
         public int MaxOutputTokens { get; private set; }
         public int ChunkOverlapTokens { get; private set; }
@@ -28,6 +28,7 @@ namespace Marilog.Domain.Entities.AiEntities
 
         public static AiProvider Create(
             string name,
+            string authHeader,
             AiProviderType providerType,
             string baseUrl,
             string modelIdentifier,
@@ -35,9 +36,12 @@ namespace Marilog.Domain.Entities.AiEntities
             int maxInputTokens = 8000,
             int maxOutputTokens = 2000,
             int chunkOverlapTokens = 200,
+
             string apiKeyName = "Authorization",
             string apiKeyEncrypted = "",
+            
             string? apiVersion = null,
+            
             decimal defaultTemperature = 0.1m,
             bool supportsStreaming = false)
         {
@@ -57,6 +61,7 @@ namespace Marilog.Domain.Entities.AiEntities
                 SupportsStreaming = supportsStreaming,
                 IsActive = true,
                 RequestTemplateJson = requestTemplateJson,
+                AuthHeader = authHeader
             };
         }
 
@@ -74,7 +79,8 @@ namespace Marilog.Domain.Entities.AiEntities
             string? apiKeyEncrypted,
             decimal defaultTemperature,
             bool supportsStreaming,
-            bool isActive)
+            bool isActive,
+            string? authHeader)
         {
             Name = name ?? Name;
             BaseUrl = baseUrl ?? BaseUrl;
@@ -90,6 +96,7 @@ namespace Marilog.Domain.Entities.AiEntities
             ProviderType = providerType;
             SupportsStreaming = supportsStreaming;
             IsActive = isActive;
+            AuthHeader = authHeader ?? AuthHeader;
         }
 
         public string GenerateProviderPayloadJson()

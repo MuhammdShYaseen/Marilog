@@ -1,9 +1,16 @@
-﻿using Marilog.Kernel.Enums;
-
-namespace Marilog.Contracts.DTOs.Requests.AiProviderDTOs
+﻿namespace Marilog.Intelligence.Worker.Models
 {
-    public class CreateAiProviderRequest
+    public enum AiProviderType
     {
+        OpenAI = 1,
+        Anthropic = 2,
+        AzureOpenAI = 3,
+        GoogleGemini = 4,
+        Ollama = 5
+    }
+    public sealed class AiProviderResponse
+    {
+        public int Id { get; set; }
         public string Name { get; set; } = default!;
         public AiProviderType ProviderType { get; set; }
         public string RequestTemplateJson { get; set; } = default!;
@@ -18,7 +25,6 @@ namespace Marilog.Contracts.DTOs.Requests.AiProviderDTOs
         public decimal DefaultTemperature { get; set; }
 
         public string ApiKeyName { get; set; } = default!;
-        public string ApiKeyEncrypted { get; set; } = default!;
         public bool SupportsStreaming { get; set; }
     }
 }

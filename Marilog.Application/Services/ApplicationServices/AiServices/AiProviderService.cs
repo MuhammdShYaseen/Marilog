@@ -41,6 +41,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             var entity = AiProvider.Create
             (
                 request.Name,
+                request.AuthHeader,
                 request.ProviderType,
                 request.BaseUrl,
                 request.ModelIdentifier,
@@ -80,6 +81,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             var entity = await _repo.GetByIdAsync(id, ct);
             if (entity is null) return false;
             entity.Update(request.Name,
+                          
                           request.ProviderType,
                           request.BaseUrl,
                           request.ModelIdentifier,
@@ -92,7 +94,8 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                           request.ApiKeyEncrypted,
                           request.DefaultTemperature,
                           request.SupportsStreaming,
-                          true);
+                          true,
+                          request.AuthHeader);
  
             _repo.Update(entity);
             await _repo.SaveChangesAsync(ct);
@@ -156,7 +159,8 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 DefaultTemperature = e.DefaultTemperature,
                 ApiKeyName = e.ApiKeyName,
                 SupportsStreaming = e.SupportsStreaming,
-                RequestTemplateJson = e.RequestTemplateJson
-            };
+                RequestTemplateJson = e.RequestTemplateJson,
+                ApiKeyEncrypted = e.ApiKeyEncrypted,
+    };
     }
 }

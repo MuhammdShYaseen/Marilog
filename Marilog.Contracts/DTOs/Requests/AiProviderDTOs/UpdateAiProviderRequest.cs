@@ -14,7 +14,7 @@ namespace Marilog.Contracts.DTOs.Requests.AiProviderDTOs
         public string BaseUrl { get; set; } = default!;
         public string ModelIdentifier { get; set; } = default!;
         public string? ApiVersion { get; set; }
-
+        public string? AuthHeader { get; set; }
         public int MaxInputTokens { get; set; }
         public int MaxOutputTokens { get; set; }
         public int ChunkOverlapTokens { get; set; }

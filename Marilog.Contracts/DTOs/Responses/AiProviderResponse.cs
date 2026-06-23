@@ -23,5 +23,6 @@ namespace Marilog.Contracts.DTOs.Responses
 
         public string ApiKeyName { get; set; } = default!;
         public bool SupportsStreaming { get; set; }
+        public string ApiKeyEncrypted { get; set; } = default!;
     }
 }
