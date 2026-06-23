@@ -59,7 +59,7 @@ public sealed class RagService
             .Replace("{{prompt}}", prompt);
 
         var client = _httpFactory.CreateClient();
-        client.DefaultRequestHeaders.Add(provider.AuthHeader, $"Bearer {provider.ApiKeyName}");
+        client.DefaultRequestHeaders.Add(provider.AuthHeader, $"Bearer {provider.ApiKeyEncrypted}");
 
         var response = await client.PostAsync(
             provider.BaseUrl,

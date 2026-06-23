@@ -6,7 +6,8 @@
         Anthropic = 2,
         AzureOpenAI = 3,
         GoogleGemini = 4,
-        Ollama = 5
+        Ollama = 5,
+        Embadding = 6,
     }
     public sealed class AiProviderResponse
     {
@@ -25,6 +26,7 @@
         public decimal DefaultTemperature { get; set; }
 
         public string ApiKeyName { get; set; } = default!;
+        public string ApiKeyEncrypted { get; set; } = default!;
         public bool SupportsStreaming { get; set; }
     }
 }

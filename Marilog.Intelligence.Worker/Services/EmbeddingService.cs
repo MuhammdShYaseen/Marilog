@@ -22,7 +22,7 @@ public sealed class EmbeddingService
 
     public async Task<float[]?> GetEmbeddingAsync(string text, CancellationToken ct = default)
     {
-        var provider = await _providerService.GetByTypeAsync(AiProviderType.GoogleGemini, ct);
+        var provider = await _providerService.GetByTypeAsync(AiProviderType.Embadding, ct);
         if (provider is null)
         {
             _logger.LogError("No embedding provider configured");
@@ -30,7 +30,7 @@ public sealed class EmbeddingService
         }
 
         var client = _httpFactory.CreateClient();
-        client.DefaultRequestHeaders.Add(provider.AuthHeader, $"Bearer {provider.ApiKeyName}");
+        client.DefaultRequestHeaders.Add(provider.AuthHeader, $"Bearer {provider.ApiKeyEncrypted}");
 
         // بناء الـ payload من الـ template
         var payload = provider.RequestTemplateJson
