@@ -3,6 +3,8 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Domain.Entities.AiEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
+using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -141,6 +143,20 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             _repo.Update(entity);
             await _repo.SaveChangesAsync(ct);
         }
+
+        public async Task<AiProviderResponse> GetByTypeAsync(AiProviderType type, CancellationToken ct)
+        {
+            var result = await _repo.Query()
+                              .AsNoTracking()
+                              .Where(p => p.ProviderType == type)
+                              .Select(ToResponse)
+                              .FirstOrDefaultAsync(ct);
+            if (result == null)
+                return new AiProviderResponse();
+
+            return result;
+        }
+   
 
         //----Privates---------------------------------------------------------
 

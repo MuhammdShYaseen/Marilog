@@ -18,7 +18,7 @@ public sealed class AiProviderService
         try
         {
             var response = await _http.GetFromJsonAsync<List<AiProviderResponse>>(
-                "/api/ai-providers", ct);
+                $"/api/ai-providers/by-type/{providerType}", ct);
 
             return response?.FirstOrDefault(p =>
                 p.ProviderType == providerType);

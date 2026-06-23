@@ -1,5 +1,6 @@
 ﻿using Marilog.Contracts.DTOs.Requests.AiProviderDTOs;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Kernel.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -15,5 +16,6 @@ namespace Marilog.Contracts.Interfaces.Services.AiProviderServices
         Task<bool> DeleteAsync(int id, CancellationToken ct);
         Task DeactiveAsync(int id, CancellationToken ct);
         Task ActivateAsync(int id, CancellationToken ct);
+        Task<AiProviderResponse> GetByTypeAsync(AiProviderType type, CancellationToken ct);
     }
 }

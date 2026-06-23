@@ -2,6 +2,7 @@
 using Marilog.Contracts.DTOs.Requests.AiProviderDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.AiControllers
@@ -32,6 +33,15 @@ namespace Marilog.Presentation.Controllers.AiControllers
                 return NotFound(ApiResponse<AiProviderResponse>.Fail("Not found"));
 
             return Ok(ApiResponse<AiProviderResponse>.Ok(result));
+        }
+        [HttpGet("by-type/{type}")]
+        public async Task<ActionResult<AiProviderResponse>> GetByType(AiProviderType type, CancellationToken ct)
+        {
+            var result = await _service.GetByTypeAsync(type, ct);
+            if (result is null)
+                return NotFound();
+
+            return Ok(result);
         }
 
         [HttpPost]
