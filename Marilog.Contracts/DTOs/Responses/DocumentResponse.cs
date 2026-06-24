@@ -43,5 +43,15 @@ namespace Marilog.Contracts.DTOs.Responses
         public string CurrencyCodeBase { get; set; } = string.Empty;
         public string CurrencyNameBase { get; set; } = string.Empty;
         public FinancialSide Side { get; set; }
+
+
+        /// <summary>عمق الـ node في الشجرة — الجذر = 0</summary>
+        public int Depth { get; set; }
+
+        /// <summary>الأبناء المباشرون لهذا المستند</summary>
+        public List<DocumentResponse> Children { get; set; } = [];
+
+        /// <summary>هل عنده أبناء</summary>
+        public bool HasChildren => Children.Count > 0;
     }
 }

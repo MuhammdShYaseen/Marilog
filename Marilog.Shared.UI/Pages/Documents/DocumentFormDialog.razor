@@ -300,17 +300,16 @@
         && _CurrencyId > 0
         && _TotalAmount > 0;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (Document is null)
             return;
 
-        // تعبئة جميع الحقول
         _DocNumber = Document.DocNumber;
         _TotalAmount = Document.TotalAmount;
         _Reference = Document.Reference;
-        _DocTypeId = Document.DocTypeId;      
-        _CurrencyId = Document.CurrencyId;    
+        _DocTypeId = Document.DocTypeId;
+        _CurrencyId = Document.CurrencyId;
         _SupplierId = Document.SupplierId;
         _BuyerId = Document.BuyerId;
         _VesselId = Document.VesselId;
@@ -318,6 +317,9 @@
         _ParentDocumentId = Document.ParentDocumentId;
         _docDate = Document.DocDate;
         _Side = Document.Side;
+
+        if (Document.VesselId.HasValue && GetDocsByVessel is not null)
+            AllDocs = await GetDocsByVessel(Document.VesselId.Value);
     }
 
     private void Cancel()

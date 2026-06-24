@@ -21,7 +21,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
-
+        Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default);
+        Task<DocumentResponse?> GetTreeByDocumentIdAsync(int documentId, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId,FinancialSide side, DateOnly docDate,
                                    int currencyId, decimal totalAmount,

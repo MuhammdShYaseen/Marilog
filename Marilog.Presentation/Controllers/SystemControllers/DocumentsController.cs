@@ -102,6 +102,20 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
+        [HttpGet("tree")]
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetAllAsTree(CancellationToken ct)
+        {
+            var tree = await _service.GetAllAsTreeAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(tree));
+        }
+
+        [HttpGet("{id:int}/tree")]
+        public async Task<ActionResult<DocumentResponse>> GetTreeByDocumentId(int id, CancellationToken ct)
+        {
+            var tree = await _service.GetTreeByDocumentIdAsync(id, ct);
+            return tree is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(tree));
+        }
+
         // ─────────────────────────────────────────────
         // Commands
         // ─────────────────────────────────────────────

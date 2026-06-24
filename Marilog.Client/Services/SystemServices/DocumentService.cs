@@ -84,6 +84,20 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
+        public async Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>(
+                $"{Base}/tree", ct);
+            return response?.Data ?? [];
+        }
+
+        public async Task<DocumentResponse?> GetTreeByDocumentIdAsync(int id, CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>(
+                $"{Base}/{id}/tree", ct);
+            return response?.Data;
+        }
+
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
@@ -287,6 +301,6 @@ namespace Marilog.Client.Services.SystemServices
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 
-
+       
     }
 }

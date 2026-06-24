@@ -127,6 +127,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .OrderByDescending(x => x.DocDate)
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
+
             return result;
         }
 
@@ -152,6 +153,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Select(ToResponse())
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
+
             return result;
         }
 
@@ -178,7 +180,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Select(ToResponse())
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
-            return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId,
@@ -192,6 +195,46 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await ApplyBaseRateAsync(result, ct);
             return result;
         }
+
+        public async Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default)
+        {
+            // ── Query واحدة تجلب كل المستندات ────────────────────────────────────────
+            var allDocs = await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.DocDate)
+                .Select(ToResponseFully())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateToTreeAsync(allDocs, ct);
+            return BuildTree(allDocs, parentId: null, depth: 0);
+        }
+
+        
+
+        public async Task<DocumentResponse?> GetTreeByDocumentIdAsync(
+            int documentId,
+            CancellationToken ct = default)
+        {
+            // ── نجلب كل المستندات مرة واحدة ─────────────────────────────────────────
+            var allDocs = await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.DocDate)
+                .Select(ToResponseFully())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateToTreeAsync(allDocs, ct);
+
+            // ── نبحث عن الجذر الذي ينتمي إليه هذا الـ document ─────────────────────
+            var rootId = FindRootId(allDocs, documentId);
+            if (rootId is null) return null;
+
+            // ── نبني الشجرة كاملة ابتداءً من الجذر ──────────────────────────────────
+            var roots = BuildTree(allDocs, parentId: null, depth: 0);
+            return roots.FirstOrDefault(r => r.Id == rootId);
+        }
+
+
+       
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
@@ -314,6 +357,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var document = await _repo.Query()
@@ -321,9 +365,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new KeyNotFoundException($"Document {id} not found.");
 
+            // ── Guard 1: له مدفوعات ──────────────────────────────────────────────────
             if (document.Payments.Any())
                 throw new InvalidOperationException(
                     "Cannot delete a document that has payments. Deactivate it instead.");
+
+            // ── Guard 2: له أبناء ────────────────────────────────────────────────────
+            var hasChildren = await _repo.Query()
+                .AnyAsync(x => x.ParentDocumentId == id, ct);
+
+            if (hasChildren)
+                throw new InvalidOperationException(
+                    "Cannot delete a document that has sub-documents. " +
+                    "Delete or unlink the sub-documents first.");
 
             _repo.HardDelete(document);
             await _repo.SaveChangesAsync(ct);
@@ -1051,6 +1105,65 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
 
             };
+        }
+
+        // ── Private Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// يبني الشجرة هرمياً بشكل recursive.
+        /// يأخذ كل المستندات flat ويرتبها كـ parent → children.
+        /// </summary>
+        private static IReadOnlyList<DocumentResponse> BuildTree(
+            IReadOnlyList<DocumentResponse> allDocs,
+            int? parentId,
+            int depth)
+        {
+            return allDocs
+                .Where(d => d.ParentDocumentId == parentId)
+                .Select(d =>
+                {
+                    d.Depth = depth;
+                    d.Children = BuildTree(allDocs, d.Id, depth + 1).ToList();
+                    return d;
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// يصعد من أي document للجذر عبر ParentDocumentId.
+        /// يعيد Id الجذر (الذي ParentDocumentId == null).
+        /// </summary>
+        private static int? FindRootId(
+            IReadOnlyList<DocumentResponse> allDocs,
+            int documentId)
+        {
+            var lookup = allDocs.ToDictionary(d => d.Id);
+
+            if (!lookup.TryGetValue(documentId, out var current))
+                return null;
+
+            // نصعد حتى نصل للجذر
+            while (current.ParentDocumentId.HasValue &&
+                   lookup.TryGetValue(current.ParentDocumentId.Value, out var parent))
+            {
+                current = parent;
+            }
+
+            return current.Id;
+        }
+
+        /// <summary>
+        /// تطبيق base currency على flat list قبل بناء الشجرة.
+        /// لا نحتاجها على DocumentTreeResponse حالياً لكن نتركها للتوسع.
+        /// </summary>
+        private async Task ApplyBaseRateToTreeAsync(IReadOnlyList<DocumentResponse> docs,
+            CancellationToken ct)
+        {
+            if (!docs.Any()) return;
+
+            // نجلب الـ base rate مرة واحدة فقط
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
+            _ = baseC; // مستخدمة للتوسع لاحقاً إذا أضفت TotalAmountBase للـ TreeResponse
         }
     }
 }
