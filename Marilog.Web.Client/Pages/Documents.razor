@@ -179,7 +179,8 @@ else
             ["Companies"] = _suppliers,
             ["Currencies"] = _currencies,
             ["Vessels"] = _vessels,
-            ["Ports"] = _ports
+            ["Ports"] = _ports,
+            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId)
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("Edit Document", parameters);

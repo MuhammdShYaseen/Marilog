@@ -243,31 +243,22 @@
 
 @code {
 
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter]private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter]
-    public DocumentResponse? Document { get; set; }
+    [Parameter]public DocumentResponse? Document { get; set; }
 
-    [Parameter]
-    public IReadOnlyList<CurrencyResponse> Currencies { get; set; }   = [];
+    [Parameter]public IReadOnlyList<CurrencyResponse> Currencies { get; set; }   = [];
 
-    [Parameter]
-    public IReadOnlyList<VesselResponse> Vessels { get; set; }        = [];
+    [Parameter]public IReadOnlyList<VesselResponse> Vessels { get; set; }        = [];
 
-    [Parameter]
-    public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
+    [Parameter]public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
 
-    [Parameter]
-    public IReadOnlyList<CompanyResponse> Companies { get; set; }     = [];
+    [Parameter]public IReadOnlyList<CompanyResponse> Companies { get; set; }     = [];
+
+    [Parameter]public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
+
+    [Parameter]public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
     private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
-    //[Parameter]
-    ///public IReadOnlyList<DocumentResponse> AllDocs { get; set; }      = [];
-
-    [Parameter]
-    public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
-    [Parameter]
-    public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
     private async Task OnVesselChanged(int? vesselId)
     {
         _VesselId = vesselId;
