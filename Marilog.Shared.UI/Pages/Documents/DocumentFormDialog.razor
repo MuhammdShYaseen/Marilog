@@ -258,7 +258,9 @@
     [Parameter]public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
 
     [Parameter]public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
+
     private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
+
     private async Task OnVesselChanged(int? vesselId)
     {
         _VesselId = vesselId;
