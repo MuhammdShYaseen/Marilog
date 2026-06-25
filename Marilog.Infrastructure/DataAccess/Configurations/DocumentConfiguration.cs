@@ -55,7 +55,11 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .WithMany()
                    .HasForeignKey(x => x.PortId)
                    .OnDelete(DeleteBehavior.Restrict);
-
+            //---voyage--------------------------------------------------------------
+            builder.HasOne(d => d.Voyage)
+                   .WithMany()
+                   .HasForeignKey(d => d.VoyageId)
+                   .OnDelete(DeleteBehavior.SetNull);
             // ── Self-reference (parent only — no navigation collection) ───────────
             builder.HasOne<Document>()
                    .WithMany()

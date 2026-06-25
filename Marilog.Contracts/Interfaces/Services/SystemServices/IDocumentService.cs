@@ -24,23 +24,10 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<DocumentResponse?> GetTreeByDocumentIdAsync(int documentId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, bool treeView = false, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId,FinancialSide side, DateOnly docDate,
-                                   int currencyId, decimal totalAmount,
-                                   int? supplierId = null, int? buyerId = null,
-                                   int? vesselId = null, int? portId = null,
-                                   int? parentDocumentId = null,
-                                   string? reference = null,
-                                   CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
-                                                IEnumerable<CreateDocumentRequest> commands,
-                                                CancellationToken ct = default);
+        Task<DocumentResponse> CreateAsync(CreateDocumentRequest createDto, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync( IEnumerable<CreateDocumentRequest> commands, CancellationToken ct = default);
 
-        Task           UpdateAsync( int id, string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
-                                   int currencyId, decimal totalAmount,
-                                   int? supplierId = null, int? buyerId = null,
-                                   int? vesselId = null, int? portId = null, int? parentDocumentId = null,
-                                   string? reference = null,
-                                   CancellationToken ct = default);
+        Task           UpdateAsync(int documentId, UpdateDocumentRequest updateDto, CancellationToken ct = default);
         Task           LinkToParentAsync(int id, int parentDocumentId, CancellationToken ct = default);
         Task           UnlinkFromParentAsync(int id, CancellationToken ct = default);
         Task           ActivateAsync(int id, CancellationToken ct = default);

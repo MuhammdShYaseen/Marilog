@@ -16,5 +16,6 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
         public DateOnly? FromDate { get; set; } 
         public DateOnly? ToDate { get; set; }
         public FinancialSide? Side { get; set; }
+        public int? VoyageId { get; set; }
     }
 }

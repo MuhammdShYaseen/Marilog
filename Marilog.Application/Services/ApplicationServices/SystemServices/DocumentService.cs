@@ -258,32 +258,29 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId,FinancialSide side, DateOnly docDate,
-            int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
-            int? vesselId = null, int? portId = null, int? parentDocumentId = null,
-            string? reference = null,
-            CancellationToken ct = default)
+        public async Task<DocumentResponse> CreateAsync(CreateDocumentRequest createDto, CancellationToken ct = default)
         {
-            await EnsureUniqueDocNumberAsync(docNumber, excludeId: null, ct);
+            await EnsureUniqueDocNumberAsync(createDto.DocNumber, excludeId: null, ct);
 
-            var document = Document.Create(docNumber, docTypeId,side, docDate, currencyId,
-                                           totalAmount, supplierId, buyerId, vesselId,
-                                           portId, parentDocumentId, reference);
+            var document = Document.Create(createDto.DocNumber, createDto.DocTypeId, createDto.Side, createDto.DocDate, createDto.CurrencyId,
+                                           createDto.TotalAmount, createDto.SupplierId, createDto.BuyerId, createDto.VesselId,
+                                           createDto.PortId, createDto.VoyageId, createDto.ParentDocumentId, createDto.Reference);
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
             return new DocumentResponse
             {
-                DocNumber = docNumber,
-                TotalAmount = totalAmount,
-                SupplierId = supplierId,
-                BuyerId = buyerId,
-                VesselId = vesselId,
-                PortId = portId,
-                ParentDocumentId = parentDocumentId,
-                Reference = reference,
-                Side = side
+                DocNumber = document.DocNumber,
+                TotalAmount = document.TotalAmount,
+                SupplierId = document.SupplierId,
+                BuyerId = document.BuyerId,
+                VesselId = document.VesselId,
+                PortId = document.PortId,
+                ParentDocumentId = document.ParentDocumentId,
+                Reference = document.Reference,
+                Side = document.Side,
+                VoyageId = document.VoyageId,
             };
 
         }
@@ -299,7 +296,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 var document = Document.Create(c.DocNumber, c.DocTypeId, c.Side, c.DocDate, c.CurrencyId,
                                                c.TotalAmount, c.SupplierId, c.BuyerId, c.VesselId,
-                                               c.PortId, c.ParentDocumentId, c.Reference);
+                                               c.PortId, c.VoyageId, c.ParentDocumentId, c.Reference);
                 documents.Add(document);
             }
 
@@ -326,13 +323,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToList();
         }
-        public async Task UpdateAsync(int id, string docNumber, int docTypeId, FinancialSide side, DateOnly docDate,
-            int currencyId, decimal totalAmount, int? supplierId = null, int? buyerId = null,
-            int? vesselId = null, int? portId = null, int? parentDocumentId = null, string? reference = null,
-            CancellationToken ct = default)
+        public async Task UpdateAsync(int id, UpdateDocumentRequest updateDto, CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            document.Update(docTypeId, side, docNumber, docDate,currencyId, totalAmount, parentDocumentId, supplierId, buyerId, vesselId, portId, reference);
+            document.Update(updateDto.DocTypeId, updateDto.Side, updateDto.DocNumber, updateDto.DocDate, updateDto.CurrencyId, updateDto.TotalAmount, updateDto.ParentDocumentId, updateDto.SupplierId, updateDto.BuyerId, updateDto.VesselId, updateDto.PortId, updateDto.VoyageId, updateDto.Reference);
             _repo.Update(document);
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
@@ -575,6 +569,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.SupplierId.HasValue)
                 query = query.Where(x => x.SupplierId == options.SupplierId.Value);
 
+            if (options.VoyageId.HasValue)
+                query = query.Where(x => x.VoyageId == options.VoyageId);
+
             if (options.BuyerId.HasValue)
                 query = query.Where(x => x.BuyerId == options.BuyerId.Value);
 
@@ -657,7 +654,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
                 DocTypeName = x.DocType != null ? x.DocType.Name : null,
                 DocNumber = x.DocNumber,
-                Side = x.Side
+                Side = x.Side,
+                VoyageId = x.VoyageId,
+                
             })
         .ToListAsync(ct);
 
@@ -686,6 +685,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeName = x.DocTypeName,
                 DocNumber = x.DocNumber,
                 Side = x.Side,
+                VoyageId = x.VoyageId
             }).ToList();
 
             var totalValueBase = documents.Sum(d => d.TotalAmountBase);
@@ -900,7 +900,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
                 PortId = x.PortId,
                 PortName = x.Port != null ? x.Port.PortName : null,
-
+                VoyageId = x.VoyageId,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
 
@@ -940,7 +940,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
                 PortId = x.PortId,
                 PortName = x.Port != null ? x.Port.PortName : null,
-
+                VoyageId = x.VoyageId,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
 
@@ -997,7 +997,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Side = x.Side,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
-
+                VoyageId = x.VoyageId,
                 TotalAmount = x.TotalAmount,
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
                 RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
@@ -1071,7 +1071,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
                 RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
                 IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
-
+                VoyageId = x.VoyageId,
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
                 IsActive = x.IsActive,

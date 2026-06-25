@@ -53,5 +53,7 @@ namespace Marilog.Contracts.DTOs.Responses
 
         /// <summary>هل عنده أبناء</summary>
         public bool HasChildren => Children.Count > 0;
+
+        public int? VoyageId { get; set; }
     }
 }

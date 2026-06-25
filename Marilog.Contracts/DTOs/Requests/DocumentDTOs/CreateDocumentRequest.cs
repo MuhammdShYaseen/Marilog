@@ -16,5 +16,6 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
         public int? ParentDocumentId { get; set; }
         public string? Reference { get; set; }
         public FinancialSide Side { get; set; }
+        public int? VoyageId { get; set; }
     }
 }

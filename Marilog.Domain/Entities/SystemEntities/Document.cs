@@ -40,7 +40,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         
         public IReadOnlyCollection<DocumentItem> Items => _items.AsReadOnly();
         public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
-
+        public int? VoyageId { get; private set; }
+        public Voyage? Voyage { get; private set; }
         private Document() { }
 
         // ── Factory ──────────────────────────────────────────────────────────────
@@ -51,12 +52,14 @@ namespace Marilog.Domain.Entities.SystemEntities
             DateOnly docDate,
             int currencyId,
             decimal totalAmount,
+            int? voyageId,
             int? supplierId = null,
             int? buyerId = null,
             int? vesselId = null,
             int? portId = null,
             int? parentDocumentId = null,
-            string? reference = null)
+            string? reference = null
+            )
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(docNumber);
             if (docTypeId <= 0) throw new ArgumentException("Invalid DocTypeId.");
@@ -74,6 +77,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 BuyerId = buyerId,
                 VesselId = vesselId,
                 PortId = portId,
+                VoyageId = voyageId,
                 ParentDocumentId = parentDocumentId,
                 Reference = reference,
                 Side = side,
@@ -91,6 +95,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             DateOnly docDate,
             int currencyId,
             decimal totalAmount,
+            int? voyageId,
             int? parentDocumentId,
             int? supplierId = null,
             int? buyerId = null,
@@ -117,6 +122,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             ParentDocumentId = parentDocumentId;
             DocNumber = docNumber;
             Side = side;
+            VoyageId = voyageId;
             Touch();
            
         }
@@ -266,7 +272,18 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Participants: participants));
         }
 
-        
+        //----voyage linked-------------
+        public void LinkToVoyage(int voyageId)
+        {
+            if (voyageId <= 0) throw new ArgumentException("Invalid VoyageId.");
+            VoyageId = voyageId;
+            Touch();
+        }
+        public void UnlinkFromVoyage()
+        {
+            VoyageId = null;
+            Touch();
+        }
 
         // ── Computed ─────────────────────────────────────────────────────────────
         public decimal TotalPaid => _payments.Sum(p => p.PaidAmount);
