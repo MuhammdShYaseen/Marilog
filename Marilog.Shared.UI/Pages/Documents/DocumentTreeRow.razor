@@ -1,0 +1,83 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+<MudTr>
+    <MudTd />
+
+    <MudTd>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight"
+                     Size="Size.Small"
+                     Color="Color.Primary"
+                     Style="@($"margin-left:{Item.Depth * 16}px")" />
+
+            <MudLink OnClick="() => OnRowClick.InvokeAsync(Item)"
+                     Style="cursor:pointer">
+                @Item.DocNumber
+            </MudLink>
+        </MudStack>
+    </MudTd>
+
+    <MudTd>@(Item.DocTypeName ?? "—")</MudTd>
+    <MudTd>@Item.DocDate.ToString("dd MMM yyyy")</MudTd>
+    <MudTd>@(Item.SupplierName ?? "—")</MudTd>
+    <MudTd>@(Item.VesselName ?? "—")</MudTd>
+    <MudTd>@Item.CurrencyCode</MudTd>
+    <MudTd>@Item.TotalAmount.ToString("N2")</MudTd>
+    <MudTd>@Item.TotalPaid.ToString("N2")</MudTd>
+
+    <MudTd>
+        <MudText Color="@(Item.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+            @Item.RemainingBalance.ToString("N2")
+        </MudText>
+    </MudTd>
+
+    <MudTd>
+        <MudChip T="string"
+                 Color="@(Item.IsFullyPaid ? Color.Success : Color.Warning)"
+                 Size="Size.Small"
+                 Variant="Variant.Filled">
+            @(Item.IsFullyPaid ? "Paid" : "Unpaid")
+        </MudChip>
+    </MudTd>
+
+    <MudTd>
+        <MudStack Row="true" Spacing="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="() => OnEditClicked.InvokeAsync(Item)" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(Item)" />
+        </MudStack>
+    </MudTd>
+</MudTr>
+
+@if (Item.Children?.Any() == true)
+{
+    @foreach (var child in Item.Children)
+    {
+        <DocumentTreeRow Item="child"
+                         OnRowClick="OnRowClick"
+                         OnEditClicked="OnEditClicked"
+                         OnDeleteClicked="OnDeleteClicked" />
+    }
+}
+
+@code {
+
+    [Parameter, EditorRequired]
+    public DocumentResponse Item { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<DocumentResponse> OnRowClick { get; set; }
+
+    [Parameter]
+    public EventCallback<DocumentResponse> OnEditClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+}

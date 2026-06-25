@@ -301,6 +301,9 @@ namespace Marilog.Client.Services.SystemServices
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 
-       
+        public Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

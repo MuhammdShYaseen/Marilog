@@ -78,108 +78,15 @@
     </Columns>
 
     <ChildRowContent>
+
         @foreach (var child in context.Item.Children)
         {
-            <MudTr>
-                <MudTd />
-                <MudTd>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight"
-                                 Size="Size.Small"
-                                 Color="Color.Primary"
-                                 Style="@($"margin-left:{child.Depth * 16}px")" />
-                        <MudLink OnClick="() => OnRowClick.InvokeAsync(child)"
-                                 Style="cursor:pointer; font-weight:500">
-                            @child.DocNumber
-                        </MudLink>
-                    </MudStack>
-                </MudTd>
-                <MudTd>@(child.DocTypeName ?? "—")</MudTd>
-                <MudTd>@child.DocDate.ToString("dd MMM yyyy")</MudTd>
-                <MudTd>@(child.SupplierName ?? "—")</MudTd>
-                <MudTd>@(child.VesselName ?? "—")</MudTd>
-                <MudTd>@child.CurrencyCode</MudTd>
-                <MudTd>@child.TotalAmount.ToString("N2")</MudTd>
-                <MudTd>@child.TotalPaid.ToString("N2")</MudTd>
-                <MudTd>
-                    <MudText Color="@(child.RemainingBalance > 0 ? Color.Warning : Color.Success)">
-                        @child.RemainingBalance.ToString("N2")
-                    </MudText>
-                </MudTd>
-                <MudTd>
-                    <MudChip T="string"
-                             Color="@(child.IsFullyPaid ? Color.Success : Color.Warning)"
-                             Size="Size.Small"
-                             Variant="Variant.Filled">
-                        @(child.IsFullyPaid ? "Paid" : "Unpaid")
-                    </MudChip>
-                </MudTd>
-                <MudTd>
-                    <MudStack Row="true" Spacing="1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Size="Size.Small"
-                                       Color="Color.Primary"
-                                       OnClick="() => OnEditClicked.InvokeAsync(child)" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="() => OnDeleteClicked.InvokeAsync(child)" />
-                    </MudStack>
-                </MudTd>
-            </MudTr>
-
-            @* أحفاد — مستوى ثانٍ *@
-            @foreach (var grandchild in child.Children)
-            {
-                <MudTr Style="background: var(--mud-palette-background-grey)">
-                    <MudTd />
-                    <MudTd>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight"
-                                     Size="Size.Small"
-                                     Color="Color.Secondary"
-                                     Style="@($"margin-left:{grandchild.Depth * 16}px")" />
-                            <MudLink OnClick="() => OnRowClick.InvokeAsync(grandchild)"
-                                     Style="cursor:pointer">
-                                @grandchild.DocNumber
-                            </MudLink>
-                        </MudStack>
-                    </MudTd>
-                    <MudTd>@(grandchild.DocTypeName ?? "—")</MudTd>
-                    <MudTd>@grandchild.DocDate.ToString("dd MMM yyyy")</MudTd>
-                    <MudTd>@(grandchild.SupplierName ?? "—")</MudTd>
-                    <MudTd>@(grandchild.VesselName ?? "—")</MudTd>
-                    <MudTd>@grandchild.CurrencyCode</MudTd>
-                    <MudTd>@grandchild.TotalAmount.ToString("N2")</MudTd>
-                    <MudTd>@grandchild.TotalPaid.ToString("N2")</MudTd>
-                    <MudTd>
-                        <MudText Color="@(grandchild.RemainingBalance > 0 ? Color.Warning : Color.Success)">
-                            @grandchild.RemainingBalance.ToString("N2")
-                        </MudText>
-                    </MudTd>
-                    <MudTd>
-                        <MudChip T="string"
-                                 Color="@(grandchild.IsFullyPaid ? Color.Success : Color.Warning)"
-                                 Size="Size.Small"
-                                 Variant="Variant.Filled">
-                            @(grandchild.IsFullyPaid ? "Paid" : "Unpaid")
-                        </MudChip>
-                    </MudTd>
-                    <MudTd>
-                        <MudStack Row="true" Spacing="1">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Primary"
-                                           OnClick="() => OnEditClicked.InvokeAsync(grandchild)" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="() => OnDeleteClicked.InvokeAsync(grandchild)" />
-                        </MudStack>
-                    </MudTd>
-                </MudTr>
-            }
+            <DocumentTreeRow Item="child"
+                             OnRowClick="OnRowClick"
+                             OnEditClicked="OnEditClicked"
+                             OnDeleteClicked="OnDeleteClicked" />
         }
+
     </ChildRowContent>
 
     <NoRecordsContent>
