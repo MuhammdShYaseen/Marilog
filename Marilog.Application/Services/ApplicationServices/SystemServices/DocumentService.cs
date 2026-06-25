@@ -568,7 +568,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var baseRate = await GetBaseCurrencyExchangeRate(ct);
             var query = _repo.Query().AsNoTracking()
-                             .Where(x => x.IsActive);
+                             .Where(x => x.IsActive)
+                             .Where(x => x.Side != FinancialSide.None);
 
             // ─── فلترة ───────────────────────────────────────────────────────────
             if (options.SupplierId.HasValue)
