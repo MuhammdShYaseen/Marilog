@@ -74,7 +74,7 @@ else
         _loading = true;
         try
         {
-            var t1 = DocumentService.GetUnpaidAsync();
+            var t1 = DocumentService.GetUnpaidAsync(true);
             var t2 = VesselService.GetActiveAsync();
             var t3 = CompanyService.GetActiveAsync();
             var t4 = DocTypeService.GetActiveAsync();
