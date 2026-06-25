@@ -1118,15 +1118,23 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             int? parentId,
             int depth)
         {
-            return allDocs
-                .Where(d => d.ParentDocumentId == parentId)
-                .Select(d =>
-                {
-                    d.Depth = depth;
-                    d.Children = BuildTree(allDocs, d.Id, depth + 1).ToList();
-                    return d;
-                })
-                .ToList();
+            var lookup = allDocs.ToLookup(x => x.ParentDocumentId);
+
+            return BuildTreeInternal(lookup, parentId: null, depth: 0);
+        }
+
+        private static List<DocumentResponse> BuildTreeInternal(ILookup<int?, DocumentResponse> lookup,
+                                                                int? parentId, int depth)
+        {
+            var children = lookup[parentId].ToList();
+
+            foreach (var child in children)
+            {
+                child.Depth = depth;
+                child.Children = BuildTreeInternal(lookup, child.Id, depth + 1);
+            }
+
+            return children;
         }
 
         /// <summary>

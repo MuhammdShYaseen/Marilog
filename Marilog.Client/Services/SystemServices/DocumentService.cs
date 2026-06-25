@@ -54,6 +54,12 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
+        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/vector-search/{term}", ct);
+            return response?.Data ?? [];
+        }
+
         public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, CancellationToken ct = default)
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-buyer/{buyerId}", ct);
@@ -301,9 +307,6 @@ namespace Marilog.Client.Services.SystemServices
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 
-        public Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
+        
     }
 }

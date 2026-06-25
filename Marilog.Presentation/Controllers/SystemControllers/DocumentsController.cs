@@ -60,6 +60,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
+        [HttpGet("vector-search/{searchText}")]
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> Search(string searchText, CancellationToken ct)
+        {
+            var doc = await _service.SearchAsync(searchText, ct);
+            return doc is null ? NotFound() : Ok(ApiResponse < IReadOnlyList<DocumentResponse>>.Ok(doc));
+        }
+
         [HttpGet("by-supplier/{supplierId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetBySupplier(int supplierId, CancellationToken ct)
         {

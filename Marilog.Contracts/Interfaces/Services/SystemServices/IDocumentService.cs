@@ -2,7 +2,6 @@ using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace Marilog.Contracts.Interfaces.Services.SystemServices
