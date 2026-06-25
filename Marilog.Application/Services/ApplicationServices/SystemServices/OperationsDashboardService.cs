@@ -35,7 +35,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ?? new List<CrewContractResponse>();
 
             var unpaidDocuments =
-                await _documentService.GetUnpaidAsync(ct)
+                await _documentService.GetUnpaidAsync(false, ct)
                 ?? new List<DocumentResponse>();
 
             // Date logic

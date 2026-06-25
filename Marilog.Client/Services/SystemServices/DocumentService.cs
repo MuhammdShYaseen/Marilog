@@ -18,69 +18,69 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetByIdAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}?treeView={treeView}", ct);
             return response?.Data;
         }
 
-        public async Task<DocumentResponse?> GetWithItemsAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetWithItemsAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-items", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-items?treeView={treeView}", ct);
             return response?.Data;
         }
 
-        public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-payments", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-payments?treeView={treeView}", ct);
             return response?.Data;
         }
 
-        public async Task<DocumentResponse?> GetFullAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetFullAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/full", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/full?treeView={treeView}", ct);
             return response?.Data;
         }
 
-        public async Task<DocumentResponse?> GetByNumberAsync(string docNumber, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetByNumberAsync(string docNumber, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/by-number/{Uri.EscapeDataString(docNumber)}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/by-number/{Uri.EscapeDataString(docNumber)}?treeView={treeView}", ct);
             return response?.Data;
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-supplier/{supplierId}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-supplier/{supplierId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/vector-search/{term}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/vector-search/{term}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-buyer/{buyerId}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-buyer/{buyerId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-vessel/{vesselId}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-vessel/{vesselId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-type/{docTypeId}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-type/{docTypeId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/unpaid", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/unpaid?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 

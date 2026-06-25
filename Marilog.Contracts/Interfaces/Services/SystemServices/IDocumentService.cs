@@ -9,20 +9,20 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
     public interface IDocumentService
     {
         // ── Queries ───────────────────────────────────────────────────────────────
-        Task<DocumentResponse?>              GetByIdAsync(int id, CancellationToken ct = default);
-        Task<DocumentResponse?>              GetWithItemsAsync(int id, CancellationToken ct = default);
-        Task<DocumentResponse?>              GetWithPaymentsAsync(int id, CancellationToken ct = default);
-        Task<DocumentResponse?>              GetFullAsync(int id, CancellationToken ct = default);
-        Task<DocumentResponse?>              GetByNumberAsync(string docNumber, CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(CancellationToken ct = default);
+        Task<DocumentResponse?>              GetByIdAsync(int id, bool treeView = false, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetWithItemsAsync(int id, bool treeView = false, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetWithPaymentsAsync(int id, bool treeView = false, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetFullAsync(int id, bool treeView = false, CancellationToken ct = default);
+        Task<DocumentResponse?>              GetByNumberAsync(string docNumber, bool treeView = false, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, bool treeView = false, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, bool treeView = false, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default);
         Task<DocumentResponse?> GetTreeByDocumentIdAsync(int documentId, CancellationToken ct = default);
-        Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default);
+        Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, bool treeView = false, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<DocumentResponse> CreateAsync(string docNumber, int docTypeId,FinancialSide side, DateOnly docDate,
                                    int currencyId, decimal totalAmount,

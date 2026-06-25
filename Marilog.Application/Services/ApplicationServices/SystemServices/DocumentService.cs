@@ -5,6 +5,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -25,7 +26,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
-        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, bool treeView = false, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(term))
                 return [];
@@ -44,9 +45,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     .Take(80)
                     .Select(ToResponse())
                     .ToListAsync(ct);
-            return docs;
+
+
+            if (treeView == false)
+                return docs;
+            await ApplyBaseRateToTreeAsync(docs, ct);
+            return BuildTree(docs, parentId: null, depth: 0);
         }
-        public async Task<DocumentResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetByIdAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
@@ -60,7 +66,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return result;
         }
 
-        public async Task<DocumentResponse?> GetWithItemsAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetWithItemsAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
@@ -75,7 +81,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return result;
         }
 
-        public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
@@ -89,7 +95,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             }
             return result;
         }
-        public async Task<DocumentResponse?> GetFullAsync(int id, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetFullAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()
                           .Where(x => x.Id == id)
@@ -102,7 +108,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return result;
         } 
 
-        public async Task<DocumentResponse?> GetByNumberAsync(string docNumber,
+        public async Task<DocumentResponse?> GetByNumberAsync(string docNumber, bool treeView = false,
             CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()
@@ -117,7 +123,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, bool treeView = false,
             CancellationToken ct = default)
         {
            
@@ -128,10 +134,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
 
-            return result;
+            if (treeView == false)
+                return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false,
             CancellationToken ct = default)
         {
             var result = await _repo.Query()
@@ -141,10 +150,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Select(ToResponse())
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
-            return result;
+            if (treeView == false)
+                return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
         } 
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, bool treeView = false,
             CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()
@@ -154,10 +166,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
 
-            return result;
+            if (treeView == false)
+                return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false,
             CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()
@@ -166,10 +181,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Select(ToResponse())
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
-            return result;
+            if (treeView == false)
+                return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
+        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false,
             CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()
@@ -180,6 +198,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Select(ToResponse())
                           .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
+            if(treeView == false) 
+                return result;
             await ApplyBaseRateToTreeAsync(result, ct);
             return BuildTree(result, parentId: null, depth: 0);
         }

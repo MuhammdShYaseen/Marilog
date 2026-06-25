@@ -26,79 +26,79 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // ─────────────────────────────────────────────
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<DocumentResponse>> GetById(int id, CancellationToken ct)
+        public async Task<ActionResult<DocumentResponse>> GetById(int id, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var doc = await _service.GetByIdAsync(id, ct);
+            var doc = await _service.GetByIdAsync(id, treeView, ct);
             return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("{id:int}/with-items")]
-        public async Task<ActionResult<DocumentResponse>> GetWithItems(int id, CancellationToken ct)
+        public async Task<ActionResult<DocumentResponse>> GetWithItems(int id,  CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var doc = await _service.GetWithItemsAsync(id, ct);
+            var doc = await _service.GetWithItemsAsync(id,treeView, ct);
             return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("{id:int}/with-payments")]
-        public async Task<ActionResult<DocumentResponse>> GetWithPayments(int id, CancellationToken ct)
+        public async Task<ActionResult<DocumentResponse>> GetWithPayments(int id, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var doc = await _service.GetWithPaymentsAsync(id, ct);
+            var doc = await _service.GetWithPaymentsAsync(id, treeView, ct);
             return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("{id:int}/full")]
-        public async Task<ActionResult<DocumentResponse>> GetFull(int id, CancellationToken ct)
+        public async Task<ActionResult<DocumentResponse>> GetFull(int id, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var doc = await _service.GetFullAsync(id, ct);
+            var doc = await _service.GetFullAsync(id,treeView, ct);
             return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("by-number/{docNumber}")]
-        public async Task<ActionResult<DocumentResponse>> GetByNumber(string docNumber, CancellationToken ct)
+        public async Task<ActionResult<DocumentResponse>> GetByNumber(string docNumber, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var doc = await _service.GetByNumberAsync(docNumber, ct);
+            var doc = await _service.GetByNumberAsync(docNumber,treeView, ct);
             return doc is null ? NotFound() : Ok(ApiResponse<DocumentResponse>.Ok(doc));
         }
 
         [HttpGet("vector-search/{searchText}")]
-        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> Search(string searchText, CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> Search(string searchText, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var doc = await _service.SearchAsync(searchText, ct);
+            var doc = await _service.SearchAsync(searchText,treeView, ct);
             return doc is null ? NotFound() : Ok(ApiResponse < IReadOnlyList<DocumentResponse>>.Ok(doc));
         }
 
         [HttpGet("by-supplier/{supplierId:int}")]
-        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetBySupplier(int supplierId, CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetBySupplier(int supplierId, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var docs = await _service.GetBySupplierAsync(supplierId, ct);
+            var docs = await _service.GetBySupplierAsync(supplierId, treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-buyer/{buyerId:int}")]
-        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByBuyer(int buyerId, CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByBuyer(int buyerId,  CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var docs = await _service.GetByBuyerAsync(buyerId, ct);
+            var docs = await _service.GetByBuyerAsync(buyerId,treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-vessel/{vesselId:int}")]
-        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByVessel(int vesselId, CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByVessel(int vesselId, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var docs = await _service.GetByVesselAsync(vesselId, ct);
+            var docs = await _service.GetByVesselAsync(vesselId,treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("by-type/{docTypeId:int}")]
-        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByType(int docTypeId, CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByType(int docTypeId, CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var docs = await _service.GetByTypeAsync(docTypeId, ct);
+            var docs = await _service.GetByTypeAsync(docTypeId, treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
         [HttpGet("unpaid")]
-        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetUnpaid(CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetUnpaid(CancellationToken ct, [FromQuery] bool treeView = false)
         {
-            var docs = await _service.GetUnpaidAsync(ct);
+            var docs = await _service.GetUnpaidAsync(treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
@@ -167,7 +167,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 VesselId = r.VesselId,
                 PortId = r.PortId,
                 ParentDocumentId = r.ParentDocumentId,
-                Reference = r.Reference
+                Reference = r.Reference,
+                Side = r.Side
             });
 
             var result = await _service.CreateRangeAsync(commands, ct);
