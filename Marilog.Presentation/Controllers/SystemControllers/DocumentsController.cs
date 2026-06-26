@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Azure.Core;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
 using Marilog.Contracts.DTOs.Responses;
@@ -132,20 +133,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             [FromBody] CreateDocumentRequest request,
             CancellationToken ct)
         {
-            var doc = await _service.CreateAsync(
-                request.DocNumber,
-                request.DocTypeId,
-                request.Side,
-                request.DocDate,
-                request.CurrencyId,
-                request.TotalAmount,
-                request.SupplierId,
-                request.BuyerId,
-                request.VesselId,
-                request.PortId,
-                request.ParentDocumentId,
-                request.Reference,
-                ct);
+            var doc = await _service.CreateAsync(request, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = doc.Id }, ApiResponse<DocumentResponse>.Ok(doc));
         }
@@ -178,21 +166,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateDocumentRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(
-                id,
-                request.DocNumber,
-                request.DocTypeId,
-                request.Side,
-                request.DocDate,
-                request.CurrencyId,
-                request.TotalAmount,
-                request.SupplierId,
-                request.BuyerId,
-                request.VesselId,
-                request.PortId,
-                request.ParentDocumentId,
-                request.Reference,
-                ct);
+            await _service.UpdateAsync(id, request, ct);
 
             return NoContent();
         }

@@ -152,18 +152,7 @@ else
         var model = (CreateDocumentRequest)result.Data;
         await DocumentService.CreateAsync
         (
-            model.DocNumber,
-            model.DocTypeId,
-            model.Side,
-            model.DocDate,
-            model.CurrencyId,
-            model.TotalAmount,
-            model.SupplierId,
-            model.BuyerId,
-            model.VesselId,
-            model.PortId,
-            model.ParentDocumentId,
-            model.Reference
+            model
         );
 
         Snackbar.Add("Document created.", Severity.Success);
@@ -191,18 +180,7 @@ else
         await DocumentService.UpdateAsync
         (
             doc.Id,
-            model.DocNumber,
-            model.DocTypeId,
-            model.Side,
-            model.DocDate,
-            model.CurrencyId,
-            model.TotalAmount,
-            model.SupplierId,
-            model.BuyerId,
-            model.VesselId,
-            model.PortId,
-            model.ParentDocumentId,
-            model.Reference
+            model
         );
 
         Snackbar.Add("Document updated.", Severity.Success);

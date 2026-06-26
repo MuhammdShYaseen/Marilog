@@ -18,6 +18,8 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
         public IReadOnlyList<FinancelSideDocumentSummary> RevenueSideSummary { get; init; } = [];
         public IReadOnlyList<FinancelSideDocumentSummary> ExpenseSideSummary { get; init; } = [];
         public IReadOnlyList<FinancelSideDocumentSummary> NoneSideSummary { get; init; } = [];
+        public List<VoyageDocumentSummary> VoyageSummary { get; init; } = [];
         public decimal NetPosition { get; set; }
+       
     }
 }

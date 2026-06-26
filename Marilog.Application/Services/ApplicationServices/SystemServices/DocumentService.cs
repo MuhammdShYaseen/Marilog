@@ -262,9 +262,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             await EnsureUniqueDocNumberAsync(createDto.DocNumber, excludeId: null, ct);
 
-            var document = Document.Create(createDto.DocNumber, createDto.DocTypeId, createDto.Side, createDto.DocDate, createDto.CurrencyId,
-                                           createDto.TotalAmount, createDto.SupplierId, createDto.BuyerId, createDto.VesselId,
-                                           createDto.PortId, createDto.VoyageId, createDto.ParentDocumentId, createDto.Reference);
+            var document = Document.Create(
+                docNumber : createDto.DocNumber,
+                docTypeId  : createDto.DocTypeId,
+                side : createDto.Side,
+                docDate : createDto.DocDate,
+                currencyId : createDto.CurrencyId,
+                totalAmount : createDto.TotalAmount,
+                voyageId : createDto.VoyageId,
+                supplierId : createDto.SupplierId,
+                buyerId : createDto.BuyerId,
+                vesselId : createDto.VesselId,
+                portId : createDto.PortId,
+                parentDocumentId : createDto.ParentDocumentId,
+                reference : createDto.Reference
+                );
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
             await BuildSearchVectorAsync(document, ct);
@@ -326,7 +338,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task UpdateAsync(int id, UpdateDocumentRequest updateDto, CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            document.Update(updateDto.DocTypeId, updateDto.Side, updateDto.DocNumber, updateDto.DocDate, updateDto.CurrencyId, updateDto.TotalAmount, updateDto.ParentDocumentId, updateDto.SupplierId, updateDto.BuyerId, updateDto.VesselId, updateDto.PortId, updateDto.VoyageId, updateDto.Reference);
+            document.Update(
+                docTypeId : updateDto.DocTypeId,
+                side : updateDto.Side,
+                docNumber : updateDto.DocNumber,
+                docDate : updateDto.DocDate,
+                currencyId : updateDto.CurrencyId,
+                totalAmount : updateDto.TotalAmount,
+                voyageId : updateDto.VoyageId,
+                parentDocumentId : updateDto.ParentDocumentId,
+                supplierId : updateDto.SupplierId,
+                buyerId : updateDto.BuyerId,
+                vesselId : updateDto.VesselId,
+                portId : updateDto.PortId,
+                reference : updateDto.Reference
+                );
             _repo.Update(document);
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
@@ -562,6 +588,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var baseRate = await GetBaseCurrencyExchangeRate(ct);
             var query = _repo.Query().AsNoTracking()
+                             .Include(v => v.Voyage)
+                             .Include(ve => ve.Vessel)
+                             .Include(p => p.Port)
                              .Where(x => x.IsActive)
                              .Where(x => x.Side != FinancialSide.None);
 
@@ -656,7 +685,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocNumber = x.DocNumber,
                 Side = x.Side,
                 VoyageId = x.VoyageId,
-                
+                VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
+                VoyageSummary = x.Voyage != null ? "From : " + x.Voyage.DeparturePort!.PortName + "To : " + x.Voyage.ArrivalPort!.PortName : null
+
             })
         .ToListAsync(ct);
 
@@ -685,7 +716,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeName = x.DocTypeName,
                 DocNumber = x.DocNumber,
                 Side = x.Side,
-                VoyageId = x.VoyageId
+                VoyageId = x.VoyageId,
+                VoyageNumber = x.VoyageNumber,
+                VoyageSummary = x.VoyageSummary,
             }).ToList();
 
             var totalValueBase = documents.Sum(d => d.TotalAmountBase);
@@ -746,7 +779,27 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .OrderBy(v => v.VesselName)
                 .ToList();
-
+            // Voyage
+            var voyageSummary = documents
+                .Where(d => d.VoyageId.HasValue)
+                .GroupBy(d => d.VoyageId!.Value)
+                .Select(g => new VoyageDocumentSummary
+                {
+                    VoyageId = g.Key,
+                    VoyageNumber = g.First().VoyageNumber ?? string.Empty,
+                    VoyageSummary = g.First().VoyageSummary ?? string.Empty,
+                    VesselName = g.First().VesselName ?? string.Empty,
+                    TotalValue = g.Sum(d => d.TotalAmountBase),
+                    TotalPaid = g.Sum(d => d.PaidAmountBase),
+                    TotalRemain = g.Sum(d => d.RemainingBase),
+                    Revenue = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase),
+                    Expense = g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    NetPosition = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase)
+                                 - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    Count = g.Count()
+                })
+                .OrderBy(v => v.VoyageNumber)
+                .ToList();
 
             var sideSummaries = documents
             .GroupBy(d => d.Side)
@@ -776,7 +829,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 SupplierSummary = supplierSummary,
                 VesselSummary = vesselSummary,
                 RevenueSideSummary = revenue ?? [],
-                ExpenseSideSummary =expense ?? [],
+                ExpenseSideSummary = expense ?? [],
+                VoyageSummary = voyageSummary ?? [],
                 NoneSideSummary = none,
                 NetPosition = netPosition
             };
@@ -903,7 +957,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VoyageId = x.VoyageId,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
-
+                VoyageNumber = x.Voyage!=null ? x.Voyage.VoyageNumber : null,
                 TotalAmount = x.TotalAmount,
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
                 RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
