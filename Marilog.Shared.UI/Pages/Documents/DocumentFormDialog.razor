@@ -292,6 +292,7 @@
     [Parameter]public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
 
     [Parameter]public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
+
     [Parameter]public Func<int, Task<IReadOnlyList<VoyageResponse>>>? GetVoyagesByVessel { get; set; }
 
     private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
