@@ -375,6 +375,40 @@
                     </MudTable>
                 }
 
+
+                @* 5. By Voyage ──────────────────────────────────────── *@
+                @if (_report.VoyageSummary.Any())
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Voyage</MudText>
+                    <MudTable Items="_report.VoyageSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Voyage</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Value</MudTh>
+                            <MudTh Style="text-align:right">Paid</MudTh>
+                            <MudTh Style="text-align:right">Remaining</MudTh>
+                            <MudTh Style="text-align:right">Revenue</MudTh>
+                            <MudTh Style="text-align:right">Expense</MudTh>
+                            <MudTh Style="text-align:right">Net</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.VoyageNumber : @context.VoyageSummary</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right">@($"{context.TotalValue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.TotalPaid:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.TotalRemain:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.Revenue:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.Expense:F2}")</MudTd>
+                            <MudTd Style="text-align:right"
+                                   Class="@(context.NetPosition >= 0 ? "mud-success-text" : "mud-error-text")">
+                                @($"{context.NetPosition:F2}")
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
                 @* 6. Documents ──────────────────────────────────────── *@
                 <MudText Typo="Typo.subtitle1" Class="mb-2">Documents (@_report.Count)</MudText>
                 <DocumentTable Items="_report.Documents"

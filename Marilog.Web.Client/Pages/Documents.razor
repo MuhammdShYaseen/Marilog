@@ -8,6 +8,7 @@
 @using MudBlazor
 
 @inject IDocumentService DocumentService
+@inject IVoyageService VoyageService
 @inject IVesselService VesselService
 @inject ICompanyService CompanyService
 @inject IDocumentTypeService DocTypeService
@@ -55,6 +56,7 @@ else
     [Inject] private IJSRuntime JS { get; set; } = default!;
     private IReadOnlyList<DocumentResponse> _unpaid = [];
     private IReadOnlyList<DocumentResponse> _byVessel = [];
+    private IReadOnlyList<VoyageResponse> _VoyagesbyVessel = [];
     private IReadOnlyList<DocumentResponse> _bySupplier = [];
     private IReadOnlyList<VesselResponse> _vessels = [];
     private IReadOnlyList<CompanyResponse> _suppliers = [];
@@ -142,7 +144,8 @@ else
             ["Currencies"] = _currencies,
             ["Vessels"] = _vessels,
             ["Ports"] = _ports,
-            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId)
+            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId),
+            ["GetVoyagesByVessel"] = async (int vesselId) => await VoyageService.GetByVesselAsync(vesselId)
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
@@ -169,7 +172,8 @@ else
             ["Currencies"] = _currencies,
             ["Vessels"] = _vessels,
             ["Ports"] = _ports,
-            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId)
+            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId),
+            ["GetVoyagesByVessel"] = async (int vesselId) => await VoyageService.GetByVesselAsync(vesselId)
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("Edit Document", parameters);

@@ -207,6 +207,39 @@
 
 
 
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?"
+                           @bind-Value="_VoyageId"
+                           Label="Voyage"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           ToStringFunc="@(id => AllVoyages.FirstOrDefault(x => x.VoyageId == id)?.VoyageNumber ?? "")">
+
+                    @foreach (var voy in AllVoyages.Where(x => x.VoyageId != Voyage?.VoyageId))
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)voy.VoyageId)">
+                            <div style="display:flex; flex-direction:column; gap:2px; padding: 2px 0">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:16px">
+                                    <MudText Typo="Typo.body2" Style="font-weight:600">@voy.VoyageNumber</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Primary" Style="font-weight:600">
+                                        Departure : @voy.DeparturePortName Arrival : @voy.ArrivalPortName
+                                    </MudText>
+                                </div>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Type : @voy.CargoType</MudChip>
+                                    <MudText Typo="Typo.caption" Style="align-self:center; opacity:0.7">Departure Date : @voy.DepartureDate?.ToString("dd MMM yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Style="align-self:center; opacity:0.7">Arrival Date : @voy.ArrivalDate?.ToString("dd MMM yyyy")</MudText>
+                                </div>
+                            </div>
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+
+
             <MudItem xs="12">
                 <MudTextField T="string"
                 @bind-Value="_Reference"
@@ -246,6 +279,7 @@
     [CascadingParameter]private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]public DocumentResponse? Document { get; set; }
+    [Parameter] public VoyageResponse? Voyage { get; set; }
 
     [Parameter]public IReadOnlyList<CurrencyResponse> Currencies { get; set; }   = [];
 
@@ -258,17 +292,34 @@
     [Parameter]public IReadOnlyList<PortResponse> Ports { get; set; }            = [];
 
     [Parameter]public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
+    [Parameter]public Func<int, Task<IReadOnlyList<VoyageResponse>>>? GetVoyagesByVessel { get; set; }
 
     private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
+    private IReadOnlyList<VoyageResponse> AllVoyages { get; set; } = [];
 
     private async Task OnVesselChanged(int? vesselId)
     {
         _VesselId = vesselId;
 
         if (vesselId.HasValue && GetDocsByVessel is not null)
+        {
             AllDocs = await GetDocsByVessel(vesselId.Value);
+        }
+
         else
+        {
             AllDocs = [];
+        }
+
+        if (vesselId.HasValue && GetVoyagesByVessel is not null)
+        {
+            AllVoyages = await GetVoyagesByVessel(vesselId.Value);
+        }
+        else
+        {
+            AllVoyages = [];
+        }
+
 
         StateHasChanged();
     }
@@ -292,6 +343,7 @@
     private int? _VesselId;
     private int? _PortId;
     private int? _ParentDocumentId;
+    private int? _VoyageId;
     private FinancialSide? _Side;
     private bool IsValid =>
        !string.IsNullOrWhiteSpace(_DocNumber)
@@ -320,6 +372,9 @@
 
         if (Document.VesselId.HasValue && GetDocsByVessel is not null)
             AllDocs = await GetDocsByVessel(Document.VesselId.Value);
+
+        if (Document.VesselId.HasValue && GetVoyagesByVessel is not null)
+            AllVoyages = await GetVoyagesByVessel(Document.VesselId.Value);
     }
 
     private void Cancel()
@@ -345,7 +400,8 @@
                  PortId = _PortId,
                  Reference = _Reference,
                  TotalAmount = _TotalAmount,
-                 Side = _Side ?? 0
+                 Side = _Side ?? 0,
+                 VoyageId = _VoyageId ?? 0,
             }));
         }
         else
@@ -363,7 +419,8 @@
                 PortId = _PortId,
                 Reference = _Reference,
                 TotalAmount = _TotalAmount,
-                Side = _Side ?? 0
+                Side = _Side ?? 0,
+                VoyageId = _VoyageId ?? 0,
             }));
         }
     }
