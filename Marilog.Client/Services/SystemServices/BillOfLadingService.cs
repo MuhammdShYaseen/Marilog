@@ -1,9 +1,7 @@
 ﻿using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Client.Extensions;
 using System.Net.Http.Json;
-using Marilog.Contracts.Common;
 
 namespace Marilog.Client.Services.SystemServices
 {
