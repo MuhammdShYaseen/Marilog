@@ -6,7 +6,7 @@ using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Marilog.Presentation.Controllers
+namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -25,7 +25,9 @@ namespace Marilog.Presentation.Controllers
 
         [HttpGet("voyage/{voyageId:int}")]
         public async Task<IActionResult> GetByVoyage(int voyageId, CancellationToken ct)
-            => Ok(await _service.GetByVoyageAsync(voyageId, ct));
+        { 
+            return Ok(await _service.GetByVoyageAsync(voyageId, ct)); 
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateBillOfLadingRequest request, CancellationToken ct)

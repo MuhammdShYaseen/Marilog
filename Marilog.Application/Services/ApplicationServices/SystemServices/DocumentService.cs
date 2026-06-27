@@ -176,8 +176,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var result = await _repo.Query().AsNoTracking()
                                     .Where(v => v.VoyageId == voyageId)
-                                    .Include(v => v.Voyage)
-                                    .Select(ToResponseFully())
+                                    .Select(ToResponse())
                                     .ToListAsync(ct);
             await ApplyBaseRateAsync(result, ct);
 

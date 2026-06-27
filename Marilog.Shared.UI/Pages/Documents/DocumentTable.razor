@@ -102,4 +102,9 @@
     [Parameter] public EventCallback<DocumentResponse> OnRowClick { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine($"DocumentTable Items count: {Items?.Count()}");
+    }
 }

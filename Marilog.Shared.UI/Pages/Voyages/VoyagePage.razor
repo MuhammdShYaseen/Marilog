@@ -1,5 +1,6 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Shared.UI.Pages.BillOfLading
+@using Marilog.Shared.UI.Pages.Documents
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Voyages
 
@@ -161,6 +162,11 @@ else
                                OnViewClicked="OnViewBillClicked" />
         </MudTabPanel>
 
+       @*Tab 3 : Documents*@
+        <MudTabPanel Text="Documents" Icon="@Icons.Material.Filled.Pages">
+            <DocumentTable Items="Docs" />
+        </MudTabPanel>
+
     </MudTabs>
 }
 
@@ -191,6 +197,11 @@ else
     [Parameter] public EventCallback<BillOfLadingResponse> OnViewBillClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnEditBillClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnDeleteBillClicked { get; set; }
+
+
+    //----Documents--------------------------------------------------------------
+    [Parameter] public IReadOnlyList<DocumentResponse> Docs { get; set; } = [];
+
 
     private List<BreadcrumbItem> _breadcrumbs =>
     [

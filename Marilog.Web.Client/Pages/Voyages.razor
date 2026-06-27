@@ -11,7 +11,7 @@
 @inject IDialogService DialogService
 @inject IPortService PortService
 @inject ISnackbar Snackbar
-
+@inject IDocumentService DocumentService
 <VoyagePage Voyages="_voyages"
             IsLoading="_loading"
             SelectedVoyage="_selectedVoyage"
@@ -29,6 +29,7 @@
             OnBackClicked="HandleBack"
             OnVesselSelected="LoadByVessel"
             Vessels="_vessels"
+            Docs="_docs"
             ByVessel="_byVessel" />  @* <- تأكد من تمرير هذه الخاصية *@
 @code {
 
@@ -37,6 +38,7 @@
     private IReadOnlyList<BillOfLadingResponse> _bills = [];
     private IReadOnlyList<VoyageResponse> _byVessel = [];
     private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<DocumentResponse> _docs = [];
     private VoyageResponse? _selectedVoyage;
     private bool _loading;
     private bool _billsLoading;
@@ -63,10 +65,12 @@
     // ── Select / navigate ─────────────────────────────────────────────────────
     private async Task SelectVoyage(VoyageResponse voyage)
     {
-        _selectedVoyage = voyage;
-        _billsLoading = true;
-        _bills = await BillOfLadingService.GetByVoyageAsync(voyage.VoyageId);
-        _billsLoading = false;
+       
+         _selectedVoyage = voyage;
+         _billsLoading = true;
+         _docs = await DocumentService.GetByVoyageAsync(voyage.VoyageId, true);
+         _bills = await BillOfLadingService.GetByVoyageAsync(voyage.VoyageId);
+         _billsLoading = false;
     }
 
     // ── Voyage CRUD ───────────────────────────────────────────────────────────

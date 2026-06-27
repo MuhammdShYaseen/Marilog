@@ -20,7 +20,7 @@ namespace Marilog.Client.Services.SystemServices
         // ── Queries ──────────────────────────────────────────────────────────
         public async Task<BillOfLadingResponse> GetByIdAsync(int id, CancellationToken ct = default)
         { 
-            var bl = await _http.GetApiAsync<BillOfLadingResponse>($"{Base}/{id}", ct);
+            var bl = await _http.GetFromJsonAsync<BillOfLadingResponse>($"{Base}/{id}", ct);
             if(bl == null)
                 return new BillOfLadingResponse();
 
@@ -28,23 +28,27 @@ namespace Marilog.Client.Services.SystemServices
         }
 
         public async Task<IReadOnlyList<BillOfLadingResponse>> GetByVoyageAsync(int voyageId, CancellationToken ct = default)
-            => await _http.GetApiListAsync<BillOfLadingResponse>($"{Base}/voyage/{voyageId}", ct);
+        {
+            var response = await _http.GetFromJsonAsync<IReadOnlyList<BillOfLadingResponse>>($"{Base}/voyage/{voyageId}", ct);
+            return response ?? [];   
+        }
 
         // ── Commands ─────────────────────────────────────────────────────────
         public async Task<BillOfLadingResponse> CreateAsync(CreateBillOfLadingRequest request, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<BillOfLadingResponse>>(ct);
-            return response!.Data!;
+            var response = await http.Content.ReadFromJsonAsync<BillOfLadingResponse>(ct);
+            return response!;
         }
 
         public async Task<BillOfLadingResponse> UpdateAsync(int id, UpdateBillOfLadingRequest request, CancellationToken ct = default)
         {
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<BillOfLadingResponse>>(ct);
-            return response!.Data!;
+            var response = await http.Content.ReadFromJsonAsync<BillOfLadingResponse>(ct);
+            
+            return response!;
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
@@ -58,24 +62,24 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/bl-number", request, ct);
             http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<BillOfLadingResponse>>(ct);
-            return response!.Data!;
+            var response = await http.Content.ReadFromJsonAsync<BillOfLadingResponse>(ct);
+            return response!;
         }
 
         public async Task<BillOfLadingResponse> ChangeIssuanceTypeAsync(int id, ChangeIssuanceTypeRequest request, CancellationToken ct = default)
         {
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/issuance-type", request, ct);
             http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<BillOfLadingResponse>>(ct);
-            return response!.Data!;
+            var response = await http.Content.ReadFromJsonAsync<BillOfLadingResponse>(ct);
+            return response!;
         }
 
         public async Task<BillOfLadingResponse> LinkToMasterBlAsync(int id, LinkToMasterBlRequest request, CancellationToken ct = default)
         {
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/link-master-bl", request, ct);
             http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<BillOfLadingResponse>>(ct);
-            return response!.Data!;
+            var response = await http.Content.ReadFromJsonAsync<BillOfLadingResponse>(ct);
+            return response!;
         }
     }
 }
