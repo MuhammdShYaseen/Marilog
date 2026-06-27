@@ -88,7 +88,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var docs = await _service.GetByVesselAsync(vesselId,treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
-
+        [HttpGet("by-voyage/{voyageId:int}")]
+        public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByVoyage(int voyageId, CancellationToken ct, [FromQuery] bool treeView = false)
+        {
+            var docs = await _service.GetByVoyageAsync(voyageId, treeView, ct);
+            return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
+        }
         [HttpGet("by-type/{docTypeId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByType(int docTypeId, CancellationToken ct, [FromQuery] bool treeView = false)
         {

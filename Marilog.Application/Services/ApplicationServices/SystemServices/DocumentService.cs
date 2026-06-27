@@ -172,6 +172,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return BuildTree(result, parentId: null, depth: 0);
         }
 
+        public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(int voyageId, bool treeView = false, CancellationToken ct = default)
+        {
+            var result = await _repo.Query().AsNoTracking()
+                                    .Where(v => v.VoyageId == voyageId)
+                                    .Include(v => v.Voyage)
+                                    .Select(ToResponseFully())
+                                    .ToListAsync(ct);
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView == false)
+                return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
+        }
+
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false,
             CancellationToken ct = default)
         {
@@ -1248,5 +1263,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var baseC = await GetBaseCurrencyExchangeRate(ct);
             _ = baseC; // مستخدمة للتوسع لاحقاً إذا أضفت TotalAmountBase للـ TreeResponse
         }
+
+        
     }
 }
