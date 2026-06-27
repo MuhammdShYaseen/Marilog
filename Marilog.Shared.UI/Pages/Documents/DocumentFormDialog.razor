@@ -370,6 +370,7 @@
         _ParentDocumentId = Document.ParentDocumentId;
         _docDate = Document.DocDate;
         _Side = Document.Side;
+        _VoyageId = Document.VoyageId;
 
         if (Document.VesselId.HasValue && GetDocsByVessel is not null)
             AllDocs = await GetDocsByVessel(Document.VesselId.Value);

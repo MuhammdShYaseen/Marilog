@@ -171,18 +171,20 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                 if (report.VesselSummary.Any())
                 {
                     col.Item().Element(SectionTitle("By Vessel"));
-                    col.Item().Element(c => BuildTable(c,
+                    col.Item().Element
+                    (c => BuildTable
+                    (c,
                         headers: ["Vessel", "Count", "Value", "Paid", "Remaining", "Revenue", "Expense", "Net"],
                         rows: report.VesselSummary.Select(v => new string?[]
                         {
-                    v.VesselName,
-                    v.Count.ToString(),
-                    $"{v.TotalValue:N2}",
-                    $"{v.TotalPaid:N2}",
-                    $"{v.TotalRemain:N2}",
-                    $"{v.Revenue:N2}",
-                    $"{v.Expense:N2}",
-                    $"{v.NetPosition:N2}",
+                            v.VesselName,
+                            v.Count.ToString(),
+                            $"{v.TotalValue:N2}",
+                            $"{v.TotalPaid:N2}",
+                            $"{v.TotalRemain:N2}",
+                            $"{v.Revenue:N2}",
+                            $"{v.Expense:N2}",
+                            $"{v.NetPosition:N2}",
                         }).ToList(),
                         coloredColumns: new Dictionary<int, (string positive, string negative)>
                         {
@@ -195,18 +197,65 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                         netColumnIndex: 7,
                         netValues: report.VesselSummary.Select(v => v.NetPosition).ToList(),
                         columnWidths:
-[
-    2.0f, // Vessel
-    0.8f, // Count
-    1.4f, // Value
-    1.4f, // Paid
-    1.4f, // Remaining
-    1.4f, // Revenue
-    1.4f, // Expense
-    1.4f  // Net
-]
-                    ));
+                        [
+                                2.0f, // Vessel
+                                0.8f, // Count
+                                1.4f, // Value
+                                1.4f, // Paid
+                                1.4f, // Remaining
+                                1.4f, // Revenue
+                                1.4f, // Expense
+                                1.4f  // Net
+                        ]
+                    )
+                    );
                 }
+
+
+                // By Voyage
+                if (report.VoyageSummary.Any())
+                {
+                    col.Item().Element(SectionTitle("By Voyage"));
+                    col.Item().Element
+                    (c => BuildTable
+                    (c,
+                        headers: ["Voyage", "Count", "Value", "Paid", "Remaining", "Revenue", "Expense", "Net"],
+                        rows: report.VoyageSummary.Select(v => new string?[]
+                        {
+             v.VoyageNumber + " " + v.VoyageSummary,
+             v.Count.ToString(),
+             $"{v.TotalValue:N2}",
+             $"{v.TotalPaid:N2}",
+             $"{v.TotalRemain:N2}",
+             $"{v.Revenue:N2}",
+             $"{v.Expense:N2}",
+             $"{v.NetPosition:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [3] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                            [4] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                            [5] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                            [6] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                            [7] = (Colors.Green.Darken1, Colors.Red.Darken1),
+                        },
+                        netColumnIndex: 7,
+                        netValues: report.VoyageSummary.Select(v => v.NetPosition).ToList(),
+                        columnWidths:
+                        [
+                                2.0f, // Voyage
+                 0.8f, // Count
+                 1.4f, // Value
+                 1.4f, // Paid
+                 1.4f, // Remaining
+                 1.4f, // Revenue
+                 1.4f, // Expense
+                 1.4f  // Net
+                        ]
+                    )
+                    );
+                }
+
             });
         };
 

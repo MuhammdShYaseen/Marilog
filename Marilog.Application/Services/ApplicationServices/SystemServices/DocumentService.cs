@@ -686,7 +686,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Side = x.Side,
                 VoyageId = x.VoyageId,
                 VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
-                VoyageSummary = x.Voyage != null ? "From : " + x.Voyage.DeparturePort!.PortName + "To : " + x.Voyage.ArrivalPort!.PortName : null
+                VoyageSummary = x.Voyage != null ? "From : " + x.Voyage.DeparturePort!.PortName + " To : " + x.Voyage.ArrivalPort!.PortName : null
 
             })
         .ToListAsync(ct);

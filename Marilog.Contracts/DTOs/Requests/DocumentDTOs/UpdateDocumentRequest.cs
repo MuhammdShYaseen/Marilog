@@ -4,7 +4,7 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
 {
     public class UpdateDocumentRequest
     {
-        public int? VoyageId;
+        public int? VoyageId { get; set; }
 
         public int DocTypeId { get; set; }
         public string DocNumber { get; set; } = "NON";
