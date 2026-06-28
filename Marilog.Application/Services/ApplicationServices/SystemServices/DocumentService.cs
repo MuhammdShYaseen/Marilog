@@ -504,25 +504,28 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Payments ──────────────────────────────────────────────────────────────
 
-        public async Task<PaymentResponse> AddPaymentAsync(int documentId, int swiftTransferId,
-            decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        public async Task<PaymentResponse> AddPaymentAsync(int documentId, AddPaymentRequest create, CancellationToken ct = default)
         {
             var document = await _repo.Query()
                 .Include(p => p.Payments)
                 .FirstOrDefaultAsync(x => x.Id == documentId, ct) ?? throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            var swiftExists = await _swiftRepo.Query()
+            if(create.SwiftTransferId.HasValue == true)
+            {
+                var swiftExists = await _swiftRepo.Query()
                 .AnyAsync(x =>
-                    x.Id == swiftTransferId &&
+                    x.Id == create.SwiftTransferId &&
                     x.IsActive &&
                     (x.SenderCompanyId == document.BuyerId ||
                      x.ReceiverCompanyId == document.SupplierId),
                     ct);
 
-            if (!swiftExists)
-                throw new KeyNotFoundException("SwiftTransfer not found or not allowed for this document.");
+                if (!swiftExists)
+                    throw new KeyNotFoundException("SwiftTransfer not found or not allowed for this document.");
+            }
+            
 
-            var payment = document.AddPayment(swiftTransferId, paidAmount, paymentDate);
+            var payment = document.AddPayment(create.SwiftTransferId, create.Method, create.PaidAmount, create.PaymentDate);
 
             _repo.Update(document);
 
@@ -534,11 +537,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocumentId = payment.DocumentId,
                 SwiftTransferId = payment.SwiftTransferId,
                 PaidAmount = payment.PaidAmount,
-                PaymentDate = payment.PaymentDate
+                PaymentDate = payment.PaymentDate,
+                PaymentMethod = payment.PaymentMethod,
             };
         }
 
-        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update, CancellationToken ct = default)
         {
             var document = await _repo.Query()
                 .Include(x => x.Payments)
@@ -546,14 +550,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ?? throw new KeyNotFoundException(
                     $"Document {documentId} not found.");
 
-            var swiftExists = await _swiftRepo.Query()
-                .AnyAsync(x => x.Id == swiftTransferId && x.IsActive, ct);
+            if(update.SwiftTransferId != null || update.SwiftTransferId != 0)
+            {
+                var swiftExists = await _swiftRepo.Query()
+                .AnyAsync(x => x.Id == update.SwiftTransferId && x.IsActive, ct);
 
-            if (!swiftExists)
-                throw new KeyNotFoundException(
-                    $"SwiftTransfer {swiftTransferId} not found or inactive.");
+                if (!swiftExists)
+                    throw new KeyNotFoundException(
+                        $"SwiftTransfer {update.SwiftTransferId} not found or inactive.");
+            }
+            
 
-            document.UpdatePayment(paymentId, swiftTransferId, paidAmount, paymentDate);
+            document.UpdatePayment(paymentId, update.Method, update.SwiftTransferId, update.PaidAmount, update.PaymentDate);
 
             _repo.Update(document);
 
@@ -568,7 +576,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 SwiftTransferId = payment.SwiftTransferId,
                 DocumentId = payment.DocumentId,
                 PaidAmount = payment.PaidAmount,
-                PaymentDate = payment.PaymentDate
+                PaymentDate = payment.PaymentDate,
+                PaymentMethod = payment.PaymentMethod,
             };
         }
 
@@ -630,11 +639,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.UnpaidOnly == true)
                 query = query.Where(x =>
                     (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount);
-            else
-            {
-                query = query.Where(x =>
-                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) > x.TotalAmount);
-            }
 
             if (options.FromDate.HasValue || options.ToDate.HasValue)
             {
@@ -1082,9 +1086,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     PaidAmount = p.PaidAmount,
 
                     PaymentDate = p.PaymentDate,
-                    SwiftTransfer = new SwiftTransferResponse
+                    SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
                     {
-                        AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                        AllocatedAmount = p.SwiftTransfer!.AllocatedAmount,
                         SenderBank = p.SwiftTransfer.SenderBank,
                         SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
                         SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
@@ -1150,9 +1154,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     DocumentId = p.DocumentId,
                     PaidAmount = p.PaidAmount,
                     PaymentDate = p.PaymentDate,
-                    SwiftTransfer = new SwiftTransferResponse
+                    SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
                     {
-                        AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                        AllocatedAmount = p.SwiftTransfer!.AllocatedAmount,
                         SenderBank = p.SwiftTransfer.SenderBank,
                         SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
                         SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,

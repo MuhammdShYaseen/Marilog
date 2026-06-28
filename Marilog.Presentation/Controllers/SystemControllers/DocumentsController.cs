@@ -261,7 +261,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPost("{id:int}/payments")]
         public async Task<ActionResult<PaymentResponse>> AddPayment(int id, [FromBody] AddPaymentRequest request, CancellationToken ct)
         {
-            var payment = await _service.AddPaymentAsync(id, request.SwiftTransferId, request.PaidAmount, request.PaymentDate, ct);
+            var payment = await _service.AddPaymentAsync(id, request, ct);
             return Ok(payment);
         }
 
@@ -271,9 +271,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var payment = await _service.UpdatePaymentAsync(
                 id,
                 paymentId,
-                request.SwiftTransferId,
-                request.PaidAmount,
-                request.PaymentDate,
+                request,
                 ct);
 
             return Ok(payment);

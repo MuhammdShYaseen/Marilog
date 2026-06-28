@@ -48,11 +48,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task               RemoveItemAsync(int documentId, int itemId, CancellationToken ct = default);
 
         // ── Payments ──────────────────────────────────────────────────────────────
-        Task<PaymentResponse> AddPaymentAsync(int documentId, int swiftTransferId,
-                                      decimal paidAmount, DateOnly paymentDate,
-                                      CancellationToken ct = default);
-        Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId,
-                                        decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default);
+        Task<PaymentResponse> AddPaymentAsync(int documentId,AddPaymentRequest create, CancellationToken ct = default);
+        Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update , CancellationToken ct = default);
 
         // ── Emails ────────────────────────────────────────────────────────────────
         Task LogEmailAsync(int documentId, string subject, string body,

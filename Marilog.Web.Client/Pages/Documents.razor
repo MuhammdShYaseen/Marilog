@@ -5,6 +5,7 @@
 @using Marilog.Shared.UI.Pages.Documents
 @using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Kernel.Enums
 @using MudBlazor
 
 @inject IDocumentService DocumentService
@@ -234,8 +235,15 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled || result.Data is null) return;
 
-        var (swiftId, amount, date) = ((int, decimal, DateOnly))result.Data;
-        await DocumentService.AddPaymentAsync(doc.Id, swiftId, amount, date);
+        var (swiftId, amount, date, method) = ((int?, decimal, DateOnly, PaymentMethod))result.Data;
+        await DocumentService.AddPaymentAsync(doc.Id,
+            new AddPaymentRequest 
+            {
+                SwiftTransferId = swiftId,
+                PaidAmount = amount,
+                PaymentDate = date,
+                Method = method
+            });
         Snackbar.Add("Payment recorded.", Severity.Success);
         await LoadDetail(doc.Id);
     }

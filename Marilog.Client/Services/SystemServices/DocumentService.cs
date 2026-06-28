@@ -201,26 +201,20 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Payments ──────────────────────────────────────────────────────────────
 
-        public async Task<PaymentResponse> AddPaymentAsync(int documentId, int swiftTransferId,
-            decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        public async Task<PaymentResponse> AddPaymentAsync(int documentId, AddPaymentRequest create, CancellationToken ct = default)
         {
-            var request = new AddPaymentRequest { SwiftTransferId = swiftTransferId, PaidAmount = paidAmount, PaymentDate = paymentDate };
-            var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/payments", request, ct);
+            //var request = new AddPaymentRequest { SwiftTransferId = swiftTransferId, PaidAmount = paidAmount, PaymentDate = paymentDate };
+            var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/payments", create, ct);
             http.EnsureSuccessStatusCode();
             var response = await http.Content.ReadFromJsonAsync<PaymentResponse>(ct);
             return response!;
         }
 
-        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate, CancellationToken ct = default)
+        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update, CancellationToken ct = default)
         {
-            var request = new UpdatePaymentRequest
-            {
-                SwiftTransferId = swiftTransferId,
-                PaidAmount = paidAmount,
-                PaymentDate = paymentDate
-            };
+            
 
-            var http = await _http.PutAsJsonAsync( $"{Base}/{documentId}/payments/{paymentId}",  request, ct);
+            var http = await _http.PutAsJsonAsync( $"{Base}/{documentId}/payments/{paymentId}", update, ct);
 
             http.EnsureSuccessStatusCode();
 

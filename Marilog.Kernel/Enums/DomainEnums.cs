@@ -143,9 +143,13 @@
     public enum PayrollStatus { Draft, Approved, PartiallyPaid, FullyPaid, Cancelled }
     public enum PaymentMethod
     {
-        CashOnBoard,   // نقداً على ظهر الباخرة   — VoyageId مطلوب
-        CashAtOffice,  // نقداً في مكتب الشركة    — City + Country + بيانات المستلم
-        BankTransfer   // حوالة بنكية              — SwiftTransferId مطلوب
+        CashOnBoard,   // نقداً على ظهر الباخرة 
+        CashAtOffice,  // نقداً في مكتب الشركة 
+        BankTransfer,
+        Swift,
+        Cash,
+        Cheque,
+        Other
     }
     public enum DisbursementStatus { Pending, Confirmed, Cancelled }
 

@@ -1,8 +1,6 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Drawing;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -197,14 +195,14 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         // ── Payments ─────────────────────────────────────────────────────────────
-        public Payment AddPayment(int swiftTransferId, decimal paidAmount, DateOnly paymentDate)
+        public Payment AddPayment(int? swiftTransferId, PaymentMethod method, decimal paidAmount, DateOnly paymentDate)
         {
             if (paidAmount <= 0)
                 throw new ArgumentException("PaidAmount must be positive.");
             if (RemainingBalance < paidAmount)
                 throw new InvalidOperationException("PaidAmount exceeds remaining balance.");
 
-            var payment = Payment.Create(Id, swiftTransferId, paidAmount, paymentDate);
+            var payment = Payment.Create(Id, method, swiftTransferId, paidAmount, paymentDate);
             _payments.Add(payment);
             Touch();
 
@@ -214,7 +212,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             return payment;
         }
 
-        public void UpdatePayment(int paymentId, int swiftTransferId, decimal paidAmount, DateOnly paymentDate)
+        public void UpdatePayment(int paymentId, PaymentMethod method, int? swiftTransferId, decimal paidAmount, DateOnly paymentDate)
         {
             var payment = _payments
                 .FirstOrDefault(x => x.Id == paymentId)
@@ -233,6 +231,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             payment.Update(
                 swiftTransferId,
+                method,
                 paidAmount,
                 paymentDate);
 
