@@ -16,12 +16,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<Document>      _repo;
         private readonly IRepository<SwiftTransfer> _swiftRepo;
         private readonly IRepository<Currency> _currencyRepo;
-
-        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo)
+        private readonly IRepository<Payment> _paymentRepo;
+        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo, IRepository<Payment> paymentRepo)
         {
             _repo      = repo;
             _swiftRepo = swiftRepo;
             _currencyRepo = currencyRepo;
+            _paymentRepo = paymentRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -550,7 +551,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ?? throw new KeyNotFoundException(
                     $"Document {documentId} not found.");
 
-            if(update.SwiftTransferId != null || update.SwiftTransferId != 0)
+            if(update.SwiftTransferId.HasValue == true)
             {
                 var swiftExists = await _swiftRepo.Query()
                 .AnyAsync(x => x.Id == update.SwiftTransferId && x.IsActive, ct);
@@ -581,6 +582,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
+
+        public async Task RemovePaymentAsync (int documentId, int  paymentId, CancellationToken ct)
+        {
+            var document = await GetWithPaymentsOrThrowAsync(documentId, ct);
+            document.RemovePayment(paymentId);
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+        }
         // ── Email ──────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,
@@ -860,6 +869,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         private async Task<Document> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
+                           
                ?? throw new KeyNotFoundException($"Document {id} not found.");
 
         private async Task<Document> GetWithItemsOrThrowAsync(int id, CancellationToken ct)
@@ -867,7 +877,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Include(x => x.Items)
                           .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Document {id} not found.");
-
+        private async Task<Document> GetWithPaymentsOrThrowAsync(int id, CancellationToken ct)
+                   => await _repo.Query()
+                                 .Include(x => x.Payments)
+                                 .FirstOrDefaultAsync(x => x.Id == id, ct)
+                      ?? throw new KeyNotFoundException($"Document {id} not found.");
         private async Task EnsureUniqueDocNumberAsync(string docNumber,
             int? excludeId, CancellationToken ct)
         {
@@ -1084,7 +1098,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     SwiftTransferId = p.SwiftTransferId,
                     DocumentId = p.DocumentId,
                     PaidAmount = p.PaidAmount,
-
+                    PaymentMethod = p.PaymentMethod,
                     PaymentDate = p.PaymentDate,
                     SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
                     {
@@ -1150,6 +1164,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Payments = x.Payments.Select(p => new PaymentResponse
                 {
                     Id = p.Id,
+                    PaymentMethod = p.PaymentMethod,
                     SwiftTransferId = p.SwiftTransferId,
                     DocumentId = p.DocumentId,
                     PaidAmount = p.PaidAmount,

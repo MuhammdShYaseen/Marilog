@@ -33,7 +33,8 @@ else if (_detail is not null)
                               OnAddItemClicked="OpenAddItemDialog"
                               OnEditItemClicked="OpenEditItemDialog"
                               OnRemoveItemClicked="ConfirmRemoveItem"
-                               />
+                              OnRemovePaymentClicked="ConfirmRemovePayment"
+                              OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))"              />
 }
 else
 {
@@ -231,7 +232,7 @@ else
             ["Document"] = doc,
             ["SwiftTransfers"] = swifts
         };
-        var dialog = await DialogService.ShowAsync<AddPaymentDialog>("Add Payment", parameters);
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Add Payment", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled || result.Data is null) return;
 
@@ -245,6 +246,32 @@ else
                 Method = method
             });
         Snackbar.Add("Payment recorded.", Severity.Success);
+        await LoadDetail(doc.Id);
+    }
+
+    private async Task OpenEditPaymentDialog(DocumentResponse doc, PaymentResponse payment)
+    {
+        var swifts = await SwiftTransferService.GetBySenderAndReceverAsync(doc.BuyerId!.Value, doc.SupplierId!.Value);
+        var parameters = new DialogParameters
+        {
+            ["Document"] = doc,
+            ["SwiftTransfers"] = swifts,
+            ["ExistingPayment"] = payment
+        };
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Edit Payment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (swiftId, amount, date, method) = ((int?, decimal, DateOnly, PaymentMethod))result.Data;
+        await DocumentService.UpdatePaymentAsync(doc.Id, payment.Id,
+            new UpdatePaymentRequest
+            {
+                SwiftTransferId = swiftId,
+                PaidAmount = amount,
+                PaymentDate = date,
+                Method = method
+            });
+        Snackbar.Add("Payment updated.", Severity.Success);
         await LoadDetail(doc.Id);
     }
 
@@ -271,6 +298,18 @@ else
         await DocumentService.UpdateItemAsync(args.DocumentId, args.Item.Id, data.ProductName, data.Quantity, data.UnitPrice, data.Unit);
         Snackbar.Add("Item updated.", Severity.Success);
         await LoadDetail(args.DocumentId);
+    }
+
+    private async Task ConfirmRemovePayment((int documentId, int paymentId) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+           "Remove Payment", "Remove this Payment?",
+           yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+        await DocumentService.RemovePaymentAsync(args.documentId, args.paymentId);
+        Snackbar.Add("Payment removed.", Severity.Success);
+        await LoadDetail(args.documentId);
     }
 
     private async Task ConfirmRemoveItem((int DocumentId, int ItemId) args)

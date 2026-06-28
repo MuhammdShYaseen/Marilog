@@ -223,6 +223,12 @@ namespace Marilog.Client.Services.SystemServices
             return response!;
         }
 
+        public async Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{documentId}/payment/{paymentId}", ct);
+            http.EnsureSuccessStatusCode();
+        }
+
         // ── Emails ────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,

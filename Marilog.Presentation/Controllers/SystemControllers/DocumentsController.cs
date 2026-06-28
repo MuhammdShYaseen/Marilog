@@ -277,6 +277,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(payment);
         }
 
+        [HttpDelete("{id:int}/payment/{paymentId:int}")]
+        public async Task<IActionResult> RemovePayment(int id, int paymentId, CancellationToken ct)
+        {
+            await _service.RemovePaymentAsync(id, paymentId, ct);
+            return NoContent();
+        }
+
         // ─────────────────────────────────────────────
         // Email
         // ─────────────────────────────────────────────

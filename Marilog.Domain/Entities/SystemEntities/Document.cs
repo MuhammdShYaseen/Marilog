@@ -240,7 +240,13 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (IsFullyPaid)
                 AddDomainEvent(new DocumentFullyPaidEvent(Id));
         }
-
+        public void RemovePayment(int paymentId)
+        {
+            var payment = _payments.FirstOrDefault(x => x.Id == paymentId)
+                ?? throw new InvalidOperationException($"Payment {paymentId} not found.");
+            _payments.Remove(payment);
+            Touch();
+        }
         // ── Email — raises Domain Event; handler persists Email aggregate ─────────
         /// <summary>
         /// Logs an email exchange as part of the procurement audit trail.

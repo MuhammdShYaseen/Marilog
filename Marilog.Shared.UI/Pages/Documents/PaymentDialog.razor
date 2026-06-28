@@ -73,11 +73,21 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public DocumentResponse? Document { get; set; }
     [Parameter] public IReadOnlyList<SwiftTransferResponse>? SwiftTransfers { get; set; }
-
+    [Parameter] public PaymentResponse? ExistingPayment { get; set; }
     private int? _swiftTransferId;
     private decimal _amount;
     private DateTime? _paymentDate = DateTime.Today;
     private PaymentMethod _method;
+    protected override void OnInitialized()
+    {
+        if (ExistingPayment is not null)
+        {
+            _swiftTransferId = ExistingPayment.SwiftTransferId;
+            _amount = ExistingPayment.PaidAmount;
+            _paymentDate = ExistingPayment.PaymentDate.ToDateTime(TimeOnly.MinValue);
+            _method = ExistingPayment.PaymentMethod;
+        }
+    }
 
     private bool IsValid()
     {

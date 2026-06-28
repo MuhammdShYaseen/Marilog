@@ -26,7 +26,6 @@
     <Folder Include="Pages\Countries\" />
     <Folder Include="Pages\CrewContracts\" />
     <Folder Include="Pages\Currencies\" />
-    <Folder Include="Pages\Documents\" />
     <Folder Include="Pages\ContactForms\" />
     <Folder Include="Pages\LogsUi\" />
     <Folder Include="Styles\" />

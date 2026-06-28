@@ -50,6 +50,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         // ── Payments ──────────────────────────────────────────────────────────────
         Task<PaymentResponse> AddPaymentAsync(int documentId,AddPaymentRequest create, CancellationToken ct = default);
         Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update , CancellationToken ct = default);
+        Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct = default);
 
         // ── Emails ────────────────────────────────────────────────────────────────
         Task LogEmailAsync(int documentId, string subject, string body,
