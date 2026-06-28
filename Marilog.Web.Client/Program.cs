@@ -12,9 +12,33 @@ namespace Marilog.Web.Client
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+            var apiPort = builder.Configuration["ApiSettings:Port"] ?? "5001";
+            var host = builder.HostEnvironment.BaseAddress;
+            var uri = new Uri(host);
+
+            string apiBase;
+
+            if (uri.Host.Contains(".devtunnels.ms"))
+            {
+                // Dev Tunnel: استبدل الـ port في الـ subdomain
+                // من: m7bcrg1w-5003.euw.devtunnels.ms
+                // إلى: m7bcrg1w-5001.euw.devtunnels.ms
+                var newHost = System.Text.RegularExpressions.Regex.Replace(
+                    uri.Host,
+                    @"-\d+\.",
+                    $"-{apiPort}."
+                );
+                apiBase = $"{uri.Scheme}://{newHost}/";
+            }
+            else
+            {
+                // Local: استخدم نفس host مع port مختلف
+                apiBase = $"{uri.Scheme}://{uri.Host}:{apiPort}/";
+            }
+
             builder.Services.AddScoped(sp => new HttpClient
             {
-                BaseAddress = new Uri("https://localhost:5001/")
+                BaseAddress = new Uri(apiBase)
             });
             //builder.Services.AddMudServices();
             builder.Services.AddMarilogClientService();

@@ -26,15 +26,27 @@ namespace Marilog.Presentation
             {
                 options.AddPolicy("AllowClient", policy =>
                 {
-                    var urls = builder.Configuration
-                        .GetSection("Urls")
-                        .Get<UrlsOptions>()
-                        ?? throw new InvalidOperationException("Urls configuration is missing.");
+                    if (builder.Environment.IsDevelopment())
+                    {
+                        // Development: اقبل أي origin
+                        policy
+                            .SetIsOriginAllowed(_ => true)
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    }
+                    else
+                    {
+                        // Production: محدد
+                        var urls = builder.Configuration
+                            .GetSection("Urls")
+                            .Get<UrlsOptions>()
+                            ?? throw new InvalidOperationException("Urls configuration is missing.");
 
-                    policy
-                        .WithOrigins(urls.Frontend.TrimEnd('/'))
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
+                        policy
+                            .WithOrigins(urls.Frontend.TrimEnd('/'))
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    }
                 });
             });
 
