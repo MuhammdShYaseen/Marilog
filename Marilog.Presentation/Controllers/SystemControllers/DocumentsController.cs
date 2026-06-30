@@ -264,11 +264,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             if (string.IsNullOrWhiteSpace(productName))
                 return BadRequest("Product name is required.");
 
-            var result = await _service.GetPriceHistoryAsync(
-                productName,
-                from,
-                to,
-                cancellationToken);
+            var result = await _service.GetPriceHistoryAsync(productName, from, to, cancellationToken);
 
             return Ok(result);
         }

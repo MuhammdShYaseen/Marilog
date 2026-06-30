@@ -649,6 +649,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
         }
+
+        public async Task<List<DocumentResponse>> GetPaymentsReportAsync(DateOnly from, DateOnly to, CancellationToken ct)
+        {
+            var docs = await _repo.Query()
+                .AsNoTracking()
+                .Where(d => d.Payments.Any(p => p.PaymentDate >= from && p.PaymentDate <= to))
+                .Select(ToResponseFully())
+                .ToListAsync(ct);
+        }
         // ── Email ──────────────────────────────────────────────────────────────────
 
         public async Task LogEmailAsync(int documentId, string subject, string body,
