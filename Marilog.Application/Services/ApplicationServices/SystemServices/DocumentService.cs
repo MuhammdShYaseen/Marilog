@@ -860,7 +860,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VoyageSummary = voyageSummary ?? [],
                 NoneSideSummary = none,
                 NetPosition = netPosition,
-                BaseCurrencyCode = await _currencyRepo.Query().AsNoTracking().Where(b => b.IsBaseCurrency == true).Select(bc=> bc.CurrencyCode).FirstOrDefaultAsync(ct) ?? ""
+                BaseCurrencyCode = await GetBaseCurrencyCode(ct)
             };
         }
 
@@ -868,6 +868,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Private ───────────────────────────────────────────────────────────────
 
+        private async Task<string> GetBaseCurrencyCode(CancellationToken ct = default)
+        {
+            return await _currencyRepo.Query()
+                .AsNoTracking()
+                .Where(b => b.IsBaseCurrency == true)
+                .Select(bc => bc.CurrencyCode)
+                .FirstOrDefaultAsync(ct) ?? "";
+        }
         private async Task<Document> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                            
