@@ -860,7 +860,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VoyageSummary = voyageSummary ?? [],
                 NoneSideSummary = none,
                 NetPosition = netPosition,
-                BaseCurrencyCode = await _currencyRepo.Query().Where(b => b.)
+                BaseCurrencyCode = await _currencyRepo.Query().AsNoTracking().Where(b => b.IsBaseCurrency == true).Select(bc=> bc.CurrencyCode).FirstOrDefaultAsync(ct) ?? ""
             };
         }
 
