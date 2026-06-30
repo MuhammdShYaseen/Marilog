@@ -219,19 +219,19 @@
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Value</MudText>
-                            <MudText Typo="Typo.h5">@($"{_report.TotalValue:F2}")</MudText>
+                            <MudText Typo="Typo.h5">@($"{_report.TotalValue + " "+ _report.BaseCurrencyCode:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Paid</MudText>
-                            <MudText Typo="Typo.h5" Color="Color.Success">@($"{_report.TotalPaid:F2}")</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@($"{_report.TotalPaid + " " + _report.BaseCurrencyCode:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Remaining</MudText>
-                            <MudText Typo="Typo.h5" Color="Color.Error">@($"{_report.TotalRemaining:F2}")</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Error">@($"{_report.TotalRemaining + " " + _report.BaseCurrencyCode:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                 </MudGrid>
@@ -247,11 +247,11 @@
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
                                 <MudText Typo="Typo.h6" Color="Color.Success">
-                                    @($"{_report.RevenueSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}")
+                                    @($"{_report.RevenueSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    Paid: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}") |
-                                    Due: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}")
+                                    Paid: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}" + " " + _report.BaseCurrencyCode) |
+                                    Due: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
                                 </MudText>
                             </MudPaper>
                         </MudItem>
@@ -260,11 +260,11 @@
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Expense</MudText>
                                 <MudText Typo="Typo.h6" Color="Color.Error">
-                                    @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}")
+                                    @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    Paid: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}") |
-                                    Due: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}")
+                                    Paid: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}" + " " + _report.BaseCurrencyCode) |
+                                    Due: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
                                 </MudText>
                             </MudPaper>
                         </MudItem>
@@ -274,7 +274,7 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Net Position</MudText>
                                 <MudText Typo="Typo.h6"
                                          Color="@(_report.NetPosition >= 0 ? Color.Success : Color.Error)">
-                                    @($"{_report.NetPosition:F2}")
+                                    @($"{_report.NetPosition + " " + _report.BaseCurrencyCode:F2}")
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue - Expense</MudText>
                             </MudPaper>

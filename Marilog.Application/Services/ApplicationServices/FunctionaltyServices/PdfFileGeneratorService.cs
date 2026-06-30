@@ -22,7 +22,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                     page.Margin(1.5f, Unit.Centimetre);
                     page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
 
-                    page.Header().Element(ComposeHeader(title));
+                    page.Header().Element(ComposeHeader(title, report.BaseCurrencyCode));
                     page.Content().Element(ComposeSummaryContent(report));
                     page.Footer().AlignCenter().Text(x =>
                     {
@@ -42,7 +42,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                         page.Margin(1.5f, Unit.Centimetre);
                         page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
 
-                        page.Header().Element(ComposeHeader($"{title} — Documents"));
+                        page.Header().Element(ComposeHeader($"{title} — Documents", report.BaseCurrencyCode));
                         page.Content().Element(ComposeDocumentsContent(report));
                         page.Footer().AlignCenter().Text(x =>
                         {
@@ -304,7 +304,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
         };
 
         // ── Header ────────────────────────────────────────────────────────────
-        private static Action<IContainer> ComposeHeader(string title) => container =>
+        private static Action<IContainer> ComposeHeader(string title, string baseCurrencyCode) => container =>
         {
             container.BorderBottom(1).BorderColor(Colors.Grey.Medium).PaddingBottom(8).Row(row =>
             {
@@ -312,6 +312,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                 {
                     col.Item().Text("MARILOG").FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
                     col.Item().Text(title).FontSize(11).FontColor(Colors.Grey.Darken2);
+                    col.Item().Text("Currency :" + " " + baseCurrencyCode).FontSize(7).FontColor(Colors.Pink.Darken2);
                 });
                 row.ConstantItem(150).AlignRight().Column(col =>
                 {
