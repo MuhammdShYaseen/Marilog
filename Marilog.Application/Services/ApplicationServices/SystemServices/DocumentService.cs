@@ -859,7 +859,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ExpenseSideSummary = expense ?? [],
                 VoyageSummary = voyageSummary ?? [],
                 NoneSideSummary = none,
-                NetPosition = netPosition
+                NetPosition = netPosition,
+                BaseCurrencyCode = await _currencyRepo.Query().Where(b => b.)
             };
         }
 

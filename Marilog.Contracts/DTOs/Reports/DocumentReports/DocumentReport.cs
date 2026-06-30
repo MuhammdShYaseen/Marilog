@@ -8,6 +8,7 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
         public IReadOnlyList<DocumentResponse> Documents { get; set; } = Array.Empty<DocumentResponse>();
         public decimal TotalValue { get; set; }
         public int Count { get; set; }
+        public string BaseCurrencyCode { get; set; } = null!;
         public IReadOnlyList<MonthlyTotal> MonthlyTotals { get; set; } = Array.Empty<MonthlyTotal>();
         public IReadOnlyList<YearlyTotal> YearlyTotals { get; set; } = Array.Empty<YearlyTotal>();
         public decimal TotalPaid { get; set; }
