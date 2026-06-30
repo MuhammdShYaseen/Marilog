@@ -1,4 +1,5 @@
 ﻿using Azure.Core;
+using Marilog.Application.Services.ApplicationServices.SystemServices;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
@@ -254,6 +255,23 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+
+        [HttpGet("item-price-history")]
+        [ProducesResponseType(typeof(IReadOnlyList<PriceHistoryResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<PriceHistoryResponse>>> GetPriceHistory([FromQuery] string productName, [FromQuery] DateOnly? from,
+                                                                                             [FromQuery] DateOnly? to, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(productName))
+                return BadRequest("Product name is required.");
+
+            var result = await _service.GetPriceHistoryAsync(
+                productName,
+                from,
+                to,
+                cancellationToken);
+
+            return Ok(result);
+        }
         // ─────────────────────────────────────────────
         // Payments
         // ─────────────────────────────────────────────

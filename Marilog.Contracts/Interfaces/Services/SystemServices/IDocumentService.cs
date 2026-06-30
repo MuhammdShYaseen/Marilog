@@ -47,6 +47,9 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                            string? unit = null, CancellationToken ct = default);
         Task               RemoveItemAsync(int documentId, int itemId, CancellationToken ct = default);
 
+
+        Task<IReadOnlyList<PriceHistoryResponse>> GetPriceHistoryAsync(string productName, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+
         // ── Payments ──────────────────────────────────────────────────────────────
         Task<PaymentResponse> AddPaymentAsync(int documentId,AddPaymentRequest create, CancellationToken ct = default);
         Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update , CancellationToken ct = default);

@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.InkML;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -17,12 +18,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<SwiftTransfer> _swiftRepo;
         private readonly IRepository<Currency> _currencyRepo;
         private readonly IRepository<Payment> _paymentRepo;
-        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo, IRepository<Payment> paymentRepo)
+        private readonly IRepository<DocumentType> _DocTypeRepo;
+        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo, IRepository<Payment> paymentRepo, IRepository<DocumentType> docTypeRepo)
         {
             _repo      = repo;
             _swiftRepo = swiftRepo;
             _currencyRepo = currencyRepo;
             _paymentRepo = paymentRepo;
+            _DocTypeRepo = docTypeRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -495,6 +498,62 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+        public async Task<IReadOnlyList<PriceHistoryResponse>> GetPriceHistoryAsync(string productName, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        {
+            var invoiceTypeId = await _DocTypeRepo.Query()
+                                                  .AsNoTracking()
+                                                  .Where(t => t.Code == "INV")
+                                                  .Select(i => i.Id)
+                                                  .FirstOrDefaultAsync(ct);
+            var query = _repo.Query()
+                             .AsNoTracking()
+                             .Include(i => i.Items)
+                             .Include(v => v.Vessel)
+                             .Include(c => c.Currency)
+                             .Include(b => b.Buyer)
+                             .Include(s => s.Supplier)
+                             .Where(d => d.DocTypeId == invoiceTypeId)
+                             .SelectMany(d => d.Items, (doc, item) => new { doc, item })
+                             .Where(x => x.item.ProductName.ToLower().Trim() == productName.ToLower().Trim());
+
+            
+            if (from.HasValue)
+                query = query.Where(x => x.doc.DocDate >= from);
+            if (to.HasValue)
+                query = query.Where(x => x.doc.DocDate <= to);
+
+            var results = await query
+                .OrderBy(x => x.doc.DocDate)
+                .Select(x => new PriceHistoryResponse
+                {
+                    DocDate = x.doc.DocDate,
+                    DocumentNumber = x.doc.DocNumber,
+                    Buyer = x.doc.Buyer != null ? x.doc.Buyer.CompanyName : "",
+                    Supplier = x.doc.Supplier != null ? x.doc.Supplier.ContactName : "",
+                    VesselName = x.doc.Vessel != null ? x.doc.Vessel.VesselName : "",
+                    ProductName = x.item.ProductName,
+                    UnitPrice = x.item.UnitPrice,
+                    CurrencyCode = x.doc.Currency.CurrencyCode,
+                    UnitPriceInBaseCurrency = x.item.UnitPrice * x.doc.Currency.ExchangeRate,
+                    Quantity = x.item.Quantity,
+                })
+                .ToListAsync();
+            await ApplyBaseRateAsync(results, ct);
+
+
+            // حساب نسبة التغير بين كل سعرين متتاليين (في C# بعد سحب البيانات، مو بالـ query)
+            for (int i = 1; i < results.Count; i++)
+            {
+                if (results[i - 1].UnitPriceInBaseCurrency != 0)
+                {
+                    var change = (results[i].UnitPriceInBaseCurrency - results[i - 1].UnitPriceInBaseCurrency) / results[i - 1].UnitPriceInBaseCurrency * 100;
+                    results[i].ChangePercent = Math.Round(change, 1);
+                }
+            }
+
+            return results;
+        }
+
         public async Task RemoveItemAsync(int documentId, int itemId, CancellationToken ct = default)
         {
             var document = await GetWithItemsOrThrowAsync(documentId, ct);
@@ -929,6 +988,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             document.RemainingBase /= baseC.ExchangeRate;
             document.CurrencyNameBase = baseC.Name;
             document.CurrencyCodeBase = baseC.Code;
+        }
+
+        private async Task ApplyBaseRateAsync(IEnumerable<PriceHistoryResponse> priceHistories, CancellationToken ct = default)
+        {
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
+
+            foreach (var p in priceHistories)
+            {
+                p.UnitPriceInBaseCurrency /= baseC.ExchangeRate;
+                p.CurrencyCodeBase = baseC.Code;
+            }
         }
 
         private async Task ApplyBaseRateAsync(IEnumerable<DocumentResponse> documents, CancellationToken ct = default)

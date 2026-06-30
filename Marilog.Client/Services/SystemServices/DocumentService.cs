@@ -199,6 +199,22 @@ namespace Marilog.Client.Services.SystemServices
             http.EnsureSuccessStatusCode();
         }
 
+
+
+        public async Task<IReadOnlyList<PriceHistoryResponse>> GetPriceHistoryAsync(string productName, DateOnly? from = null, DateOnly? to = null, CancellationToken cancellationToken = default)
+        {
+            var query = new List<string>{ $"productName={Uri.EscapeDataString(productName)}"};
+
+            if (from.HasValue)
+                query.Add($"from={from.Value:yyyy-MM-dd}");
+
+            if (to.HasValue)
+                query.Add($"to={to.Value:yyyy-MM-dd}");
+
+            var url = $"{Base}/item-price-history?{string.Join("&", query)}";
+
+            return await _http.GetFromJsonAsync<IReadOnlyList<PriceHistoryResponse>>(url,  cancellationToken) ?? [];
+        }
         // ── Payments ──────────────────────────────────────────────────────────────
 
         public async Task<PaymentResponse> AddPaymentAsync(int documentId, AddPaymentRequest create, CancellationToken ct = default)
