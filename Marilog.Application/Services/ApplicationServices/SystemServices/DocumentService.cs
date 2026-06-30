@@ -870,11 +870,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         private async Task<string> GetBaseCurrencyCode(CancellationToken ct = default)
         {
-            return await _currencyRepo.Query()
-                .AsNoTracking()
-                .Where(b => b.IsBaseCurrency == true)
-                .Select(bc => bc.CurrencyCode)
-                .FirstOrDefaultAsync(ct) ?? "";
+            return await _currencyRepo
+                        .Query()
+                        .AsNoTracking()
+                        .Where(b => b.IsBaseCurrency == true)
+                        .Select(bc => bc.CurrencyCode)
+                        .FirstOrDefaultAsync(ct) ?? "";
         }
         private async Task<Document> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
