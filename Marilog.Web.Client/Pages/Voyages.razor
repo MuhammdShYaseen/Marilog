@@ -4,6 +4,7 @@
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Voyages
 @using Marilog.Shared.UI.Pages.BillOfLading
+@using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
 @* VoyagePageHost.razor *@
 @inject IVoyageService VoyageService
 @inject IVesselService VesselService
@@ -12,6 +13,7 @@
 @inject IPortService PortService
 @inject ISnackbar Snackbar
 @inject IDocumentService DocumentService
+@inject ICompanyService CompanyService
 <VoyagePage Voyages="_voyages"
             IsLoading="_loading"
             SelectedVoyage="_selectedVoyage"
@@ -54,6 +56,11 @@
         return await PortService.GetActiveAsync();
     }
 
+    private async Task<IReadOnlyList<CompanyResponse>> Companies()
+    {
+        return await CompanyService.GetActiveAsync();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
@@ -65,12 +72,12 @@
     // ── Select / navigate ─────────────────────────────────────────────────────
     private async Task SelectVoyage(VoyageResponse voyage)
     {
-       
-         _selectedVoyage = voyage;
-         _billsLoading = true;
-         _docs = await DocumentService.GetByVoyageAsync(voyage.VoyageId, true);
-         _bills = await BillOfLadingService.GetByVoyageAsync(voyage.VoyageId);
-         _billsLoading = false;
+
+        _selectedVoyage = voyage;
+        _billsLoading = true;
+        _docs = await DocumentService.GetByVoyageAsync(voyage.VoyageId, true);
+        _bills = await BillOfLadingService.GetByVoyageAsync(voyage.VoyageId);
+        _billsLoading = false;
     }
 
     // ── Voyage CRUD ───────────────────────────────────────────────────────────
@@ -150,7 +157,7 @@
     {
         _selectedVesselId = vesselId;
 
-        
+
         if (vesselId == 0 || vesselId == null)
         {
             _byVessel = _voyages;
@@ -172,7 +179,23 @@
     // ── BL CRUD ───────────────────────────────────────────────────────────────
     private async Task OpenAddBillDialog()
     {
+        var parameters = new DialogParameters
+        {
+            [nameof(BillOfLadingDialog.Companies)] = await Companies(),
 
+            [nameof(BillOfLadingDialog.Ports)] = await Ports(),
+
+            [nameof(BillOfLadingDialog.VoyageId)] = _selectedVoyage?.VoyageId
+        };
+
+        var dialog = await DialogService.ShowAsync<BillOfLadingDialog>("New Bill of Lading", parameters);
+        var result = await dialog.Result;
+        if (result is {Canceled : false, Data : CreateBillOfLadingRequest bill})
+        {
+            var create = await BillOfLadingService.CreateAsync(bill);
+            _bills = await BillOfLadingService.GetByVoyageAsync(bill.VoyageId);
+            Snackbar.Add("Bill Off Lading created", Severity.Success);
+        }
     }
 
     private async Task OpenEditBillDialog(BillOfLadingResponse bl)
