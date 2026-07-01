@@ -1,16 +1,18 @@
 ﻿
 
+using Marilog.Kernel.Enums;
+
 namespace Marilog.Contracts.DTOs.Responses
 {
 
     public class BillOfLadingResponse
     {
-        public int? Id { get; init; }
-        public int? VoyageId { get; init; }
+        public int Id { get; init; }
+        public int VoyageId { get; init; }
         public string? VoyageNumber { get; init; }
         public string? BlNumber { get; init; }
         public string? BlType { get; init; }
-        public string? IssuanceType { get; init; }
+        public BlIssuanceType IssuanceType { get; init; }
         public CompanyResponse? ShipperCompany { get; init; }
         public CompanyResponse? ConsigneeCompany { get; init; }
         public string? ConsigneeToOrder { get; init; }

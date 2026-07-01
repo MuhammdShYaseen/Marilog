@@ -24,6 +24,7 @@
                 <MudTextField @bind-Value="_blNumber"
                               Label="B/L Number"
                               Required="true"
+                              Disabled="_sansetiveDisable"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
@@ -43,14 +44,13 @@
                 </MudSelect>
             </MudItem>
 
-            @* Issuance Type — create only *@
-            @if (ExistingBl is null)
-            {
+            
                 <MudItem xs="12" sm="6">
                     <MudSelect T="BlIssuanceType"
                                @bind-Value="_issuanceType"
                                Label="Issuance Type"
                                Required="true"
+                               Disabled ="_sansetiveDisable"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense">
                         @foreach (BlIssuanceType t in Enum.GetValues<BlIssuanceType>())
@@ -59,7 +59,6 @@
                         }
                     </MudSelect>
                 </MudItem>
-            }
 
             @* Shipper *@
             <MudItem xs="12" sm="6">
@@ -367,6 +366,7 @@
 
     private string _blNumber = string.Empty;
     private BlType _blType;
+    private bool _sansetiveDisable = false;
     private BlIssuanceType _issuanceType;
     private int _shipperCompanyId;
     private int _carrierCompanyId;
@@ -405,8 +405,9 @@
 
     protected override void OnParametersSet()
     {
-        if (ExistingBl is null) return;
-
+        if (ExistingBl is null) 
+            return;
+        _sansetiveDisable = true;
         _blNumber = ExistingBl.BlNumber ?? string.Empty;
         _shipperCompanyId = ExistingBl.ShipperCompany?.Id ?? 0;
         _carrierCompanyId = ExistingBl.CarrierCompany?.Id ?? 0;
@@ -431,6 +432,7 @@
         _placeOfIssue = ExistingBl.PlaceOfIssue;
         _originalCopiesCount = ExistingBl.OriginalCopiesCount ?? 3;
         _notes = ExistingBl.Notes;
+        _issuanceType = ExistingBl.IssuanceType;
 
         if (Enum.TryParse<BlType>(ExistingBl.BlType, out var bt)) _blType = bt;
         if (Enum.TryParse<FreightTerms>(ExistingBl.FreightTerms, out var ft)) _freightTerms = ft;

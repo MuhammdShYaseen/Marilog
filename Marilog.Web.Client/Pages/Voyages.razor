@@ -200,17 +200,37 @@
 
     private async Task OpenEditBillDialog(BillOfLadingResponse bl)
     {
+        var parameters = new DialogParameters
+        {
+            [nameof(BillOfLadingDialog.ExistingBl)] = bl,
+            [nameof(BillOfLadingDialog.Companies)] = await Companies(),
+            [nameof(BillOfLadingDialog.Ports)] = await Ports(),
 
+            [nameof(BillOfLadingDialog.VoyageId)] = _selectedVoyage?.VoyageId
+        };
+
+        var dialog = await DialogService.ShowAsync<BillOfLadingDialog>("New Bill of Lading", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: UpdateBillOfLadingRequest bill })
+        {
+             await BillOfLadingService.UpdateAsync(bl.Id, bill);
+            _bills = await BillOfLadingService.GetByVoyageAsync(bl.VoyageId);
+            Snackbar.Add("Bill Off Lading updated", Severity.Success);
+        }
     }
 
     private async Task OpenViewBillDialog(BillOfLadingResponse bl)
     {
         var parameters = new DialogParameters
         {
-
+            [nameof(BillOfLadingDialog.ExistingBl)] = bl,
+            [nameof(BillOfLadingDialog.Companies)] = await Companies(),
+            [nameof(BillOfLadingDialog.Ports)] = await Ports(),
         };
 
-        await DialogService.ShowAsync<BillOfLadingDialog>("Bill of Lading", parameters);
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        await DialogService.ShowAsync<BillOfLadingDialog>("Bill of Lading", parameters, options);
     }
 
     private async Task ConfirmDeleteBill(BillOfLadingResponse bl)
@@ -222,7 +242,7 @@
 
         if (confirmed is true)
         {
-            await BillOfLadingService.DeleteAsync(bl.Id!.Value);
+            await BillOfLadingService.DeleteAsync(bl.Id);
             _bills = await BillOfLadingService.GetByVoyageAsync(_selectedVoyage!.VoyageId);
             Snackbar.Add("Bill of Lading deleted", Severity.Success);
         }

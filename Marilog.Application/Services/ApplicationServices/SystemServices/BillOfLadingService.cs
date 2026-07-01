@@ -31,7 +31,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VoyageNumber = b.Voyage.VoyageNumber,
                 BlNumber = b.BlNumber,
                 BlType = b.BlType.ToString(),
-                IssuanceType = b.IssuanceType.ToString(),
+                IssuanceType = b.IssuanceType,
                 ShipperCompany = new CompanyResponse
                 {
                    Id =  b.ShipperCompany.Id,
