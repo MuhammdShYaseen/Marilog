@@ -2,6 +2,7 @@
 using Marilog.Contracts.DTOs.Reports.CrewContractReports;
 using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
 using Marilog.Contracts.DTOs.Reports.VoyageReports;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -80,6 +81,15 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             var report = await _documentService.GetFilteredDocsReportAsync(filterOptions, ct);
             return Ok(ApiResponse<DocumentReport>.Ok(report));
+        }
+
+        [HttpGet("payments")]
+        [ProducesResponseType(typeof(ApiResponse<PaymentsReport>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPaymentsReport([FromQuery] FilterPaymentOptionsRequest filterOptions,
+                    CancellationToken ct)
+        {
+            var report = await _documentService.GetPaymentsReportAsync(filterOptions, ct);
+            return Ok(ApiResponse<PaymentsReport>.Ok(report));
         }
     }
 }

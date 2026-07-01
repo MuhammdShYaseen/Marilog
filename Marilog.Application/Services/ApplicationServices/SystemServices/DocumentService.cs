@@ -657,11 +657,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             var documentsQuery = _repo.Query()
                 .AsNoTracking()
-                .Include(p => p.Payments)
-                .Include(v => v.Vessel)
-                .Include(vo => vo.Voyage)
-                .Include(b => b.Buyer)
-                .Include(s => s.Supplier)
                 .Where(p => p.IsActive && p.Side != FinancialSide.None);
 
             // ─── فلترة الكيانات (على مستوى المستند) ───────────────────────────────
