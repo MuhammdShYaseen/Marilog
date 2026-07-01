@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Reports.PaymentReports
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using MudBlazor
@@ -60,7 +61,7 @@
                        Class="mb-3"
                        Style="max-width:250px">
                 <MudSelectItem T="int?" Value="null">All Suppliers</MudSelectItem>
-                @foreach (var company in Suppliers)
+                @foreach (var company in Companies)
                 {
                     <MudSelectItem T="int?" Value="@((int?)company.Id)">@company.Name</MudSelectItem>
                 }
@@ -85,7 +86,7 @@
                                    Variant="Variant.Outlined"
                                    Margin="Margin.Dense"
                                    Clearable="true">
-                            @foreach (var c in Suppliers)
+                            @foreach (var c in Companies)
                             {
                                 <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
                             }
@@ -183,7 +184,7 @@
                                    OnClick="ClearFilter">
                             Clear
                         </MudButton>
-                        @if (_report is not null)
+                        @if (_documentReport is not null)
                         {
                             <MudButton Variant="Variant.Outlined"
                                        Color="Color.Secondary"
@@ -200,45 +201,45 @@
             </MudPaper>
 
             @* ── Loading ──────────────────────────────────────────── *@
-            @if (_loadingReport)
+            @if (_loadingDocumentReport)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
             }
 
             @* ── Report Results ───────────────────────────────────── *@
-            else if (_report is not null)
+            else if (_documentReport is not null)
             {
                 @* 1. KPI Cards ──────────────────────────────────────── *@
                 <MudGrid Spacing="2" Class="mb-4">
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Docs</MudText>
-                            <MudText Typo="Typo.h5">@_report.Count</MudText>
+                            <MudText Typo="Typo.h5">@_documentReport.Count</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Value</MudText>
-                            <MudText Typo="Typo.h5">@($"{_report.TotalValue + " "+ _report.BaseCurrencyCode:F2}")</MudText>
+                            <MudText Typo="Typo.h5">@($"{_documentReport.TotalValue + " " + _documentReport.BaseCurrencyCode:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Paid</MudText>
-                            <MudText Typo="Typo.h5" Color="Color.Success">@($"{_report.TotalPaid + " " + _report.BaseCurrencyCode:F2}")</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@($"{_documentReport.TotalPaid + " " + _documentReport.BaseCurrencyCode:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
                         <MudPaper Class="pa-3 text-center" Elevation="1">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Remaining</MudText>
-                            <MudText Typo="Typo.h5" Color="Color.Error">@($"{_report.TotalRemaining + " " + _report.BaseCurrencyCode:F2}")</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Error">@($"{_documentReport.TotalRemaining + " " + _documentReport.BaseCurrencyCode:F2}")</MudText>
                         </MudPaper>
                     </MudItem>
                 </MudGrid>
 
               
                 @* 2. Financial Overview (Revenue / Expense / Net) ───── *@
-                @if (_report.RevenueSideSummary?.Any() == true || _report.ExpenseSideSummary?.Any() == true)
+                @if (_documentReport.RevenueSideSummary?.Any() == true || _documentReport.ExpenseSideSummary?.Any() == true)
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Financial Overview</MudText>
                     <MudGrid Spacing="2" Class="mb-4">
@@ -247,11 +248,11 @@
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
                                 <MudText Typo="Typo.h6" Color="Color.Success">
-                                    @($"{_report.RevenueSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
+                                    @($"{_documentReport.RevenueSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}" + " " + _documentReport.BaseCurrencyCode)
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    Paid: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}" + " " + _report.BaseCurrencyCode) |
-                                    Due: @($"{_report.RevenueSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
+                                    Paid: @($"{_documentReport.RevenueSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}" + " " + _documentReport.BaseCurrencyCode) |
+                                    Due: @($"{_documentReport.RevenueSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}" + " " + _documentReport.BaseCurrencyCode)
                                 </MudText>
                             </MudPaper>
                         </MudItem>
@@ -260,11 +261,11 @@
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Expense</MudText>
                                 <MudText Typo="Typo.h6" Color="Color.Error">
-                                    @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
+                                    @($"{_documentReport.ExpenseSideSummary?.Sum(x => x.TotalValue) ?? 0:F2}" + " " + _documentReport.BaseCurrencyCode)
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    Paid: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}" + " " + _report.BaseCurrencyCode) |
-                                    Due: @($"{_report.ExpenseSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}" + " " + _report.BaseCurrencyCode)
+                                    Paid: @($"{_documentReport.ExpenseSideSummary?.Sum(x => x.TotalPaid) ?? 0:F2}" + " " + _documentReport.BaseCurrencyCode) |
+                                    Due: @($"{_documentReport.ExpenseSideSummary?.Sum(x => x.TotalRemain) ?? 0:F2}" + " " + _documentReport.BaseCurrencyCode)
                                 </MudText>
                             </MudPaper>
                         </MudItem>
@@ -273,8 +274,8 @@
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Net Position</MudText>
                                 <MudText Typo="Typo.h6"
-                                         Color="@(_report.NetPosition >= 0 ? Color.Success : Color.Error)">
-                                    @($"{_report.NetPosition + " " + _report.BaseCurrencyCode:F2}")
+                                         Color="@(_documentReport.NetPosition >= 0 ? Color.Success : Color.Error)">
+                                    @($"{_documentReport.NetPosition + " " + _documentReport.BaseCurrencyCode:F2}")
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue - Expense</MudText>
                             </MudPaper>
@@ -284,10 +285,10 @@
                 }
 
                 @* 3. Monthly Breakdown ──────────────────────────────── *@
-                @if (_report.MonthlySummary.Any())
+                @if (_documentReport.MonthlySummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Monthly Breakdown</MudText>
-                    <MudTable Items="_report.MonthlySummary"
+                    <MudTable Items="_documentReport.MonthlySummary"
                               Dense="true" Hover="true" Striped="true"
                               Elevation="1" Class="mb-4">
                         <HeaderContent>
@@ -319,10 +320,10 @@
                 }
 
                 @* 4. By Supplier ────────────────────────────────────── *@
-                @if (_report.SupplierSummary.Any())
+                @if (_documentReport.SupplierSummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">By Supplier</MudText>
-                    <MudTable Items="_report.SupplierSummary"
+                    <MudTable Items="_documentReport.SupplierSummary"
                               Dense="true" Hover="true" Striped="true"
                               Elevation="1" Class="mb-4">
                         <HeaderContent>
@@ -343,10 +344,10 @@
                 }
 
                 @* 5. By Vessel ──────────────────────────────────────── *@
-                @if (_report.VesselSummary.Any())
+                @if (_documentReport.VesselSummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">By Vessel</MudText>
-                    <MudTable Items="_report.VesselSummary"
+                    <MudTable Items="_documentReport.VesselSummary"
                               Dense="true" Hover="true" Striped="true"
                               Elevation="1" Class="mb-4">
                         <HeaderContent>
@@ -377,10 +378,10 @@
 
 
                 @* 5. By Voyage ──────────────────────────────────────── *@
-                @if (_report.VoyageSummary.Any())
+                @if (_documentReport.VoyageSummary.Any())
                 {
                     <MudText Typo="Typo.subtitle1" Class="mb-2">By Voyage</MudText>
-                    <MudTable Items="_report.VoyageSummary"
+                    <MudTable Items="_documentReport.VoyageSummary"
                               Dense="true" Hover="true" Striped="true"
                               Elevation="1" Class="mb-4">
                         <HeaderContent>
@@ -410,14 +411,434 @@
                 }
 
                 @* 6. Documents ──────────────────────────────────────── *@
-                <MudText Typo="Typo.subtitle1" Class="mb-2">Documents (@_report.Count)</MudText>
-                <DocumentTable Items="_report.Documents"
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Documents (@_documentReport.Count)</MudText>
+                <DocumentTable Items="_documentReport.Documents"
                                OnRowClick="OnDocumentClick"
                                OnEditClicked="OnEditClicked"
                                OnDeleteClicked="OnDeleteClicked" />
             }
 
         </MudTabPanel>
+
+        @* ── Payments Report Tab ─────────────────────────────────────── *@
+        <MudTabPanel Text="Payments Report">
+
+            @* ── Filter Bar ──────────────────────────────────────────────── *@
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2">
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?"
+                                   @bind-Value="_paymentFilter.SupplierId"
+                                   Label="Supplier"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var s in Companies)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?"
+                                   @bind-Value="_paymentFilter.BuyerId"
+                                   Label="Buyer"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var b in Companies)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)b.Id)">@b.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?"
+                                   @bind-Value="_paymentFilter.VesselId"
+                                   Label="Vessel"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var v in Vessels)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?"
+                                   @bind-Value="_paymentFilter.VoyageId"
+                                   Label="Voyage"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var vo in Voyages)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)vo.VoyageId)">@vo.VoyageNumber</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="FinancialSide?"
+                                   @bind-Value="_paymentFilter.Side"
+                                   Label="Financial Side"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var item in Enum.GetValues<FinancialSide>())
+                            {
+                                <MudSelectItem T="FinancialSide?" Value="@item">@item.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="PaymentMethod?"
+                                   @bind-Value="_paymentFilter.PaymentMethod"
+                                   Label="Payment Method"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var item in Enum.GetValues<PaymentMethod>())
+                            {
+                                <MudSelectItem T="PaymentMethod?" Value="@item">@item.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker Date="_paymentFromDateTime"
+                                       DateChanged="v => { _paymentFilter.FromDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; _paymentFromDateTime = v; }"
+                                       Label="From Date"
+                                       Editable="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker Date="_paymentToDateTime"
+                                       DateChanged="v => { _paymentFilter.ToDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; _paymentToDateTime = v; }"
+                                       Label="To Date"
+                                       Editable="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="int?"
+                                         @bind-Value="_paymentFilter.LastDays"
+                                         Label="Last N Days"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="decimal?"
+                                         @bind-Value="_paymentFilter.MinAmount"
+                                         Label="Min Amount"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudNumericField T="decimal?"
+                                         @bind-Value="_paymentFilter.MaxAmount"
+                                         Label="Max Amount"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="2" Class="d-flex align-center">
+                        <MudCheckBox T="bool"
+                                     Value="@(_paymentFilter.SwiftOnly ?? false)"
+                                     ValueChanged="@((bool v) => { _paymentFilter.SwiftOnly = v ? true : null; StateHasChanged(); })"
+                                     Label="SWIFT Only"
+                                     Color="Color.Primary" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   OnClick="RunPaymentReportAsync">
+                            Run Report
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   OnClick="ClearPaymentFilter">
+                            Clear
+                        </MudButton>
+                    </MudItem>
+
+                </MudGrid>
+            </MudPaper>
+
+            @* ── Loading ──────────────────────────────────────────────────── *@
+            @if (_loadingPaymentReport)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+            }
+
+            @* ── Report Results ───────────────────────────────────────────── *@
+            else if (_paymentReport is not null)
+            {
+                @* 1. KPI Cards ────────────────────────────────────────────── *@
+                <MudGrid Spacing="2" Class="mb-4">
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Payments</MudText>
+                            <MudText Typo="Typo.h5">@_paymentReport.Count</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Cash In</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">
+                                @($"{_paymentReport.CashIn:F2} {_paymentReport.BaseCurrencyCode}")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Cash Out</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Error">
+                                @($"{_paymentReport.CashOut:F2} {_paymentReport.BaseCurrencyCode}")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Net Cash Flow</MudText>
+                            <MudText Typo="Typo.h5"
+                                     Color="@(_paymentReport.NetCashFlow >= 0 ? Color.Success : Color.Error)">
+                                @($"{_paymentReport.NetCashFlow:F2} {_paymentReport.BaseCurrencyCode}")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                @* 2. By Payment Method ────────────────────────────────────── *@
+                @if (_paymentReport.MethodSummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Payment Method</MudText>
+                    <MudTable Items="_paymentReport.MethodSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Method</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Cash In</MudTh>
+                            <MudTh Style="text-align:right">Cash Out</MudTh>
+                            <MudTh Style="text-align:right">Total</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Method</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                            <MudTd Style="text-align:right">@($"{context.TotalBase:F2}")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* 3. Monthly Breakdown ────────────────────────────────────── *@
+                @if (_paymentReport.MonthlySummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Monthly Breakdown</MudText>
+                    <MudTable Items="_paymentReport.MonthlySummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Year</MudTh>
+                            <MudTh>Month</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Cash In</MudTh>
+                            <MudTh Style="text-align:right">Cash Out</MudTh>
+                            <MudTh Style="text-align:right">Net</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Year</MudTd>
+                            <MudTd>
+                                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(context.Month)
+                            </MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                            <MudTd Style="text-align:right"
+                                   Class="@(context.NetCashFlow >= 0 ? "mud-success-text" : "mud-error-text")">
+                                @($"{context.NetCashFlow:F2}")
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* 4. By Supplier ──────────────────────────────────────────── *@
+                @if (_paymentReport.SupplierSummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Supplier</MudText>
+                    <MudTable Items="_paymentReport.SupplierSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Supplier</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Total Paid</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.SupplierName</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">
+                                @($"{context.TotalPaidBase:F2}")
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* 5. By Buyer ─────────────────────────────────────────────── *@
+                @if (_paymentReport.BuyerSummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Buyer</MudText>
+                    <MudTable Items="_paymentReport.BuyerSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Buyer</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Total Received</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.BuyerName</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">
+                                @($"{context.TotalReceivedBase:F2}")
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* 6. By Vessel ────────────────────────────────────────────── *@
+                @if (_paymentReport.VesselSummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Vessel</MudText>
+                    <MudTable Items="_paymentReport.VesselSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Vessel</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Cash In</MudTh>
+                            <MudTh Style="text-align:right">Cash Out</MudTh>
+                            <MudTh Style="text-align:right">Net</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.VesselName</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                            <MudTd Style="text-align:right"
+                                   Class="@(context.NetCashFlow >= 0 ? "mud-success-text" : "mud-error-text")">
+                                @($"{context.NetCashFlow:F2}")
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* 7. By Voyage ────────────────────────────────────────────── *@
+                @if (_paymentReport.VoyageSummary?.Any() == true)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">By Voyage</MudText>
+                    <MudTable Items="_paymentReport.VoyageSummary"
+                              Dense="true" Hover="true" Striped="true"
+                              Elevation="1" Class="mb-4">
+                        <HeaderContent>
+                            <MudTh>Voyage</MudTh>
+                            <MudTh Style="text-align:right">Count</MudTh>
+                            <MudTh Style="text-align:right">Cash In</MudTh>
+                            <MudTh Style="text-align:right">Cash Out</MudTh>
+                            <MudTh Style="text-align:right">Net</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.VoyageNumber</MudTd>
+                            <MudTd Style="text-align:right">@context.Count</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
+                            <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                            <MudTd Style="text-align:right"
+                                   Class="@(context.NetCashFlow >= 0 ? "mud-success-text" : "mud-error-text")">
+                                @($"{context.NetCashFlow:F2}")
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @* 8. Payment Rows ─────────────────────────────────────────── *@
+                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                    Payments (@_paymentReport.Count)
+                </MudText>
+                <MudTable Items="_paymentReport.Payments"
+                          Dense="true" Hover="true" Striped="true"
+                          Elevation="1" Class="mb-4">
+                    <HeaderContent>
+                        <MudTh>Payment Date</MudTh>
+                        <MudTh>Document</MudTh>
+                        <MudTh>Supplier / Buyer</MudTh>
+                        <MudTh>Vessel</MudTh>
+                        <MudTh>Method</MudTh>
+                        <MudTh>Side</MudTh>
+                        <MudTh Style="text-align:right">Amount</MudTh>
+                        <MudTh Style="text-align:right">Amount (@_paymentReport.BaseCurrencyCode)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
+                        <MudTd>
+                            <MudText Typo="Typo.body2">@context.DocNumber</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @context.DocDate.ToString("dd MMM yyyy")
+                            </MudText>
+                        </MudTd>
+                        <MudTd>
+                            @if (!string.IsNullOrEmpty(context.SupplierName))
+                            {
+                                <MudText Typo="Typo.body2">@context.SupplierName</MudText>
+                            }
+                            else if (!string.IsNullOrEmpty(context.BuyerName))
+                            {
+                                <MudText Typo="Typo.body2">@context.BuyerName</MudText>
+                            }
+                        </MudTd>
+                        <MudTd>@(context.VesselName ?? "-")</MudTd>
+                        <MudTd>
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@(context.SwiftTransferId.HasValue ? Color.Info : Color.Default)">
+                                @context.PaymentMethod.ToString()
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@(context.Side == FinancialSide.Revenue ? Color.Success : Color.Error)">
+                                @context.Side.ToString()
+                            </MudChip>
+                        </MudTd>
+                        <MudTd Style="text-align:right">
+                            @($"{context.PaidAmount:F2} {context.CurrencyCode}")
+                        </MudTd>
+                        <MudTd Style="text-align:right"
+                               Class="@(context.Side == FinancialSide.Revenue ? "mud-success-text" : "mud-error-text")">
+                            @($"{context.PaidAmountBase:F2}")
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+        </MudTabPanel>
+
     </MudTabs>
 
 </MudPaper>
@@ -427,21 +848,23 @@
     [Parameter] public IReadOnlyList<DocumentResponse> ByVessel { get; set; } = [];
     [Parameter] public IReadOnlyList<DocumentResponse> BySupplier { get; set; } = [];
     [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
-    [Parameter] public IReadOnlyList<CompanyResponse> Suppliers { get; set; } = [];
+    [Parameter] public IReadOnlyList<VoyageResponse> Voyages { get; set; } = [];
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<int> OnDocumentSelected { get; set; }
     [Parameter] public EventCallback<int?> OnVesselSelected { get; set; }
     [Parameter] public EventCallback<int?> OnSupplierSelected { get; set; }
-    [Parameter] public EventCallback<DocumentFilterOptions> OnReportRequested { get; set; }
+    [Parameter] public EventCallback<DocumentFilterOptions> OnDocumentReportRequested { get; set; }
+    [Parameter] public EventCallback<FilterPaymentOptionsRequest> OnPaymentReportRequested { get; set; }
     [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdfRequested { get; set; }
 
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
     private DocumentFilterOptions _filter = new();
-    private DocumentReport? _report;
-    private bool _loadingReport;
+    private DocumentReport? _documentReport;
+    private bool _loadingDocumentReport;
     private bool _exportingPdf;
 
     private void OnDocumentClick(DocumentResponse doc) =>
@@ -467,23 +890,38 @@
 
     private async Task RunReportAsync()
     {
-        _loadingReport = true;
+        _loadingDocumentReport = true;
         StateHasChanged();
-        await OnReportRequested.InvokeAsync(_filter);
-        _loadingReport = false;
+        await OnDocumentReportRequested.InvokeAsync(_filter);
+        _loadingDocumentReport = false;
+    }
+
+    private async Task RunPaymentReportAsync()
+    {
+        _loadingPaymentReport = true;
+        StateHasChanged();
+         await OnPaymentReportRequested.InvokeAsync(_paymentFilter);
+        _loadingPaymentReport = false;
     }
 
     private void ClearFilter()
     {
         _filter = new();
-        _report = null;
+        _documentReport = null;
         StateHasChanged();
     }
 
-    public void SetReport(DocumentReport report)
+    public void SetDocumentReport(DocumentReport report)
     {
-        _report = report;
-        _loadingReport = false;
+        _documentReport = report;
+        _loadingDocumentReport = false;
+        StateHasChanged();
+    }
+
+    public void SetPaymentReport(PaymentsReport report)
+    {
+        _paymentReport = report;
+        _loadingPaymentReport = false;
         StateHasChanged();
     }
 
@@ -496,10 +934,10 @@
 
     private async Task ExportPdfAsync()
     {
-        if (_report is null) return;
+        if (_documentReport is null) return;
         _exportingPdf = true;
         StateHasChanged();
-        await OnExportPdfRequested.InvokeAsync((_report, BuildReportTitle(), BuildFileName()));
+        await OnExportPdfRequested.InvokeAsync((_documentReport, BuildReportTitle(), BuildFileName()));
         _exportingPdf = false;
         StateHasChanged();
     }
@@ -542,6 +980,25 @@
 
         parts.Add(DateTime.Now.ToString("yyyyMMdd_HHmm"));
         return string.Join("_", parts) + ".pdf";
+    }
+
+
+
+    // ─── Payment Report ──────────────────────────────────────────────────
+    private FilterPaymentOptionsRequest _paymentFilter = new();
+    private PaymentsReport? _paymentReport;
+    private bool _loadingPaymentReport;
+    private DateTime? _paymentFromDateTime;
+    private DateTime? _paymentToDateTime;
+
+    
+
+    private void ClearPaymentFilter()
+    {
+        _paymentFilter = new();
+        _paymentFromDateTime = null;
+        _paymentToDateTime = null;
+        _paymentReport = null;
     }
 
 }

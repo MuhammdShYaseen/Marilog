@@ -268,7 +268,8 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<PaymentsReport> GetPaymentsReportAsync(FilterPaymentOptionsRequest options, CancellationToken ct = default)
         {
             var query = BuildPaymentQueryString(options);
-            return await _http.GetApiAsync<PaymentsReport>($"api/reports/payments{query}", ct) ?? new PaymentsReport();
+            var response = await _http.GetApiAsync<PaymentsReport>($"api/reports/payments{query}", ct) ?? new PaymentsReport();
+            return response;
         }
 
         private static string BuildDocumentQueryString(DocumentFilterOptions options)
