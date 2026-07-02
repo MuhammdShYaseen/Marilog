@@ -19,12 +19,13 @@
     <DialogContent>
         <MudGrid>
 
-            @* BL Number *@
+            @* BL Number — locked after creation, must go through ChangeBlNumberAsync *@
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="_blNumber"
                               Label="B/L Number"
                               Required="true"
-                              Disabled="_sansetiveDisable"
+                              Disabled="@(ExistingBl is not null)"
+                              HelperText="@(ExistingBl is not null ? "Use 'Change BL Number' action to modify" : null)"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
@@ -44,13 +45,15 @@
                 </MudSelect>
             </MudItem>
 
-            
+            @* Issuance Type — create only, changed later via ChangeIssuanceTypeAsync *@
+            @if (ExistingBl is null)
+            {
                 <MudItem xs="12" sm="6">
                     <MudSelect T="BlIssuanceType"
-                               @bind-Value="_issuanceType"
+                               Value="_issuanceType"
+                               ValueChanged="OnIssuanceTypeChanged"
                                Label="Issuance Type"
                                Required="true"
-                               Disabled ="_sansetiveDisable"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense">
                         @foreach (BlIssuanceType t in Enum.GetValues<BlIssuanceType>())
@@ -59,6 +62,27 @@
                         }
                     </MudSelect>
                 </MudItem>
+
+                @* Master BL — required only when Issuance Type is House *@
+                @if (_issuanceType == BlIssuanceType.House)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?"
+                                   @bind-Value="_masterBlId"
+                                   Label="Master Bill of Lading"
+                                   Required="true"
+                                   RequiredError="House BL must reference a Master BL"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   HelperText="@(AvailableMasterBls.Count == 0 ? "No Master BLs available for this voyage" : null)">
+                            @foreach (var mbl in AvailableMasterBls)
+                            {
+                                <MudSelectItem T="int?" Value="(int?)mbl.Id">@mbl.BlNumber</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+            }
 
             @* Shipper *@
             <MudItem xs="12" sm="6">
@@ -93,11 +117,13 @@
             @* Consignee *@
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
-                           @bind-Value="_consigneeCompanyId"
+                           Value="_consigneeCompanyId"
+                           ValueChanged="OnConsigneeCompanyChanged"
                            Label="Consignee Company"
                            Clearable="true"
                            Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                           Margin="Margin.Dense"
+                           HelperText="@(_blType == BlType.Straight ? "Required for Straight B/L" : null)">
                     <MudSelectItem T="int?" Value="null">— To Order —</MudSelectItem>
                     @foreach (var c in Companies)
                     {
@@ -112,6 +138,7 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="_consigneeToOrder"
                                   Label="Consignee To Order"
+                                  HelperText="@(_blType == BlType.OrderBl ? "Required if no Consignee Company selected" : null)"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense" />
                 </MudItem>
@@ -363,11 +390,12 @@
     [Parameter] public int VoyageId { get; set; }
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> AvailableMasterBls { get; set; } = [];
 
     private string _blNumber = string.Empty;
     private BlType _blType;
-    private bool _sansetiveDisable = false;
     private BlIssuanceType _issuanceType;
+    private int? _masterBlId;
     private int _shipperCompanyId;
     private int _carrierCompanyId;
     private int? _consigneeCompanyId;
@@ -401,13 +429,15 @@
         _portOfDischargeId > 0 &&
         !string.IsNullOrWhiteSpace(_cargoDescription) &&
         _grossWeightMt > 0 &&
-        _issueDate is not null;
+        _issueDate is not null &&
+        (_blType != BlType.Straight || _consigneeCompanyId.HasValue) &&
+        (_blType != BlType.OrderBl || _consigneeCompanyId.HasValue || !string.IsNullOrWhiteSpace(_consigneeToOrder)) &&
+        (ExistingBl is not null || _issuanceType != BlIssuanceType.House || _masterBlId.HasValue);
 
     protected override void OnParametersSet()
     {
-        if (ExistingBl is null) 
-            return;
-        _sansetiveDisable = true;
+        if (ExistingBl is null) return;
+
         _blNumber = ExistingBl.BlNumber ?? string.Empty;
         _shipperCompanyId = ExistingBl.ShipperCompany?.Id ?? 0;
         _carrierCompanyId = ExistingBl.CarrierCompany?.Id ?? 0;
@@ -438,6 +468,20 @@
         if (Enum.TryParse<FreightTerms>(ExistingBl.FreightTerms, out var ft)) _freightTerms = ft;
     }
 
+    private void OnIssuanceTypeChanged(BlIssuanceType value)
+    {
+        _issuanceType = value;
+        if (value != BlIssuanceType.House)
+            _masterBlId = null;
+    }
+
+    private void OnConsigneeCompanyChanged(int? value)
+    {
+        _consigneeCompanyId = value;
+        if (value.HasValue)
+            _consigneeToOrder = null;
+    }
+
     private void Cancel() => MudDialog.Cancel();
 
     private void Submit()
@@ -449,6 +493,7 @@
                 BlNumber: _blNumber,
                 BlType: _blType,
                 IssuanceType: _issuanceType,
+                MasterBlId: _issuanceType == BlIssuanceType.House ? _masterBlId : null,
                 ShipperCompanyId: _shipperCompanyId,
                 CarrierCompanyId: _carrierCompanyId,
                 PortOfLoadingId: _portOfLoadingId,
