@@ -185,7 +185,8 @@
 
             [nameof(BillOfLadingDialog.Ports)] = await Ports(),
 
-            [nameof(BillOfLadingDialog.VoyageId)] = _selectedVoyage?.VoyageId
+            [nameof(BillOfLadingDialog.VoyageId)] = _selectedVoyage?.VoyageId,
+            [nameof(BillOfLadingDialog.AvailableMasterBls)] = _bills.Where(m => m.IssuanceType == Kernel.Enums.BlIssuanceType.Master).ToList(),
         };
 
         var dialog = await DialogService.ShowAsync<BillOfLadingDialog>("New Bill of Lading", parameters);

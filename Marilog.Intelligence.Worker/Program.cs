@@ -14,7 +14,7 @@ namespace Marilog.Intelligence.Worker
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            //builder.Services.AddOpenApi();
             builder.Services.AddHttpClient<AiProviderService>(client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["Urls:Presentation"]
@@ -40,7 +40,7 @@ namespace Marilog.Intelligence.Worker
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                //app.MapOpenApi();
             }
 
             app.UseHttpsRedirection();

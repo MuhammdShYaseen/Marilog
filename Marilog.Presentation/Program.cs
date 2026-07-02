@@ -17,11 +17,11 @@ namespace Marilog.Presentation
                 .AddApiServices();
 
             builder.Services.AddControllers();
-            builder.Services.AddOpenApi(options =>
-            {
+            //builder.Services.AddOpenApi(options =>
+            //{
                 // Specify the OpenAPI version to use
-                options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
-            });
+            //    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
+            //});
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowClient", policy =>
