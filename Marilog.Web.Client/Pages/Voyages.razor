@@ -2,6 +2,7 @@
 @using Marilog.Contracts.DTOs.Requests.VoyageDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
 @using Marilog.Shared.UI.Pages.Voyages
 @using Marilog.Shared.UI.Pages.BillOfLading
 @using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
@@ -14,6 +15,8 @@
 @inject ISnackbar Snackbar
 @inject IDocumentService DocumentService
 @inject ICompanyService CompanyService
+@inject IJSRuntime JS
+@inject IPdfFileGeneratorService PdfService
 <VoyagePage Voyages="_voyages"
             IsLoading="_loading"
             SelectedVoyage="_selectedVoyage"
@@ -214,7 +217,7 @@
         var result = await dialog.Result;
         if (result is { Canceled: false, Data: UpdateBillOfLadingRequest bill })
         {
-             await BillOfLadingService.UpdateAsync(bl.Id, bill);
+            await BillOfLadingService.UpdateAsync(bl.Id, bill);
             _bills = await BillOfLadingService.GetByVoyageAsync(bl.VoyageId);
             Snackbar.Add("Bill Off Lading updated", Severity.Success);
         }
@@ -224,14 +227,13 @@
     {
         var parameters = new DialogParameters
         {
-            [nameof(BillOfLadingDialog.ExistingBl)] = bl,
-            [nameof(BillOfLadingDialog.Companies)] = await Companies(),
-            [nameof(BillOfLadingDialog.Ports)] = await Ports(),
+            [nameof(BillOfLadingViewDialog.Bl)] = bl,
+            [nameof(BillOfLadingViewDialog.ExportPdfAsync)] = EventCallback.Factory.Create(this, () => ExportPdfAsync(bl)),
+            [nameof(BillOfLadingViewDialog.Print)] = EventCallback.Factory.Create(this, ()=> Print())
         };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var options = new DialogOptions { CloseOnEscapeKey = true };
-
-        await DialogService.ShowAsync<BillOfLadingDialog>("Bill of Lading", parameters, options);
+        await DialogService.ShowAsync<BillOfLadingViewDialog>("Bill of Lading", parameters, options);
     }
 
     private async Task ConfirmDeleteBill(BillOfLadingResponse bl)
@@ -254,5 +256,36 @@
     {
         _selectedVoyage = null;
         _bills = [];
+    }
+
+
+
+
+    private async Task Print()
+    {
+        await JS.InvokeVoidAsync("blPrint", "bl-print-area");
+    }
+
+
+
+    private async Task ExportPdfAsync(BillOfLadingResponse bl)
+    {
+        try
+        {
+            var bytes = await PdfService.GenerateBillOfLadingFile(bl);
+            if (bytes is { Length: > 0 })
+            {
+                var fileName = $"BL_{bl.BlNumber}.pdf";
+                await JS.InvokeVoidAsync("blDownloadFile", fileName, "application/pdf", bytes);
+            }
+            else
+            {
+                Snackbar.Add("Failed to generate PDF", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Export failed: {ex.Message}", Severity.Error);
+        }
     }
 }

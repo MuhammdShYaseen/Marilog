@@ -1,5 +1,7 @@
 ﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
+using Marilog.Kernel.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -588,6 +590,141 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                     }
                 }
             });
+        }
+//============BILL OF LADIN============================================================================================
+        public async Task<byte[]> GenerateBillOfLadingFile(BillOfLadingResponse bl, CancellationToken ct = default)
+        {
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(35);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Georgia"));
+
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("BILL OF LADING").FontSize(18).Bold();
+                                c.Item().Text($"B/L No. {bl.BlNumber}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                            });
+                            row.ConstantItem(150).AlignRight().Column(c =>
+                            {
+                                c.Item().Text("Issue Date").FontSize(8).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(bl.IssueDate?.ToString("dd MMM yyyy") ?? "—").FontSize(10);
+                            });
+                        });
+                        col.Item().PaddingTop(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+                    });
+
+                    page.Content().PaddingTop(15).Column(col =>
+                    {
+                        col.Spacing(12);
+
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new FieldBlock("Shipper", bl.ShipperCompany?.Name, bold: true));
+                            row.RelativeItem().Component(new FieldBlock("Carrier", bl.CarrierCompany?.Name, bold: true));
+                        });
+
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new FieldBlock("Consignee",
+                                bl.ConsigneeCompany?.Name ?? (string.IsNullOrWhiteSpace(bl.ConsigneeToOrder) ? "—" : $"To Order: {bl.ConsigneeToOrder}")));
+                            row.RelativeItem().Component(new FieldBlock("Notify Party", bl.NotifyPartyCompany?.Name ?? "—"));
+                        });
+
+                        col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                        col.Item().Text("VOYAGE & ROUTING").FontSize(9).Bold().FontColor(Colors.Grey.Darken2);
+
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new FieldBlock("Port of Loading", bl.PortOfLoading?.Name));
+                            row.RelativeItem().Component(new FieldBlock("Port of Discharge", bl.PortOfDischarge?.Name));
+                        });
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new FieldBlock("Place of Receipt", bl.PlaceOfReceipt?.Name ?? "—"));
+                            row.RelativeItem().Component(new FieldBlock("Place of Delivery", bl.PlaceOfDelivery?.Name ?? "—"));
+                        });
+
+                        if (bl.IssuanceType == BlIssuanceType.House && bl.MasterBlId is not null)
+                        {
+                            col.Item().Background(Colors.Blue.Lighten4).Padding(6)
+                               .Text($"House B/L linked to Master B/L: {bl.BlNumber}").FontSize(9);
+                        }
+
+                        col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                        col.Item().Text("CARGO DETAILS").FontSize(9).Bold().FontColor(Colors.Grey.Darken2);
+
+                        col.Item().Component(new FieldBlock("Description of Goods", bl.CargoDescription));
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new FieldBlock("HS Code", bl.HsCode ?? "—"));
+                            row.RelativeItem().Component(new FieldBlock("Gross Weight", $"{bl.GrossWeightMT:N3} MT"));
+                            row.RelativeItem().Component(new FieldBlock("Volume", bl.VolumeM3.HasValue ? $"{bl.VolumeM3:N3} M³" : "—"));
+                        });
+                        col.Item().Component(new FieldBlock("Marks & Numbers", bl.MarksAndNumbers ?? "—"));
+
+                        col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                        col.Item().Text("FREIGHT & TERMS").FontSize(9).Bold().FontColor(Colors.Grey.Darken2);
+
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new FieldBlock("Freight Terms", bl.FreightTerms));
+                            row.RelativeItem().Component(new FieldBlock("Freight Amount", bl.FreightAmount ?? "—"));
+                            row.RelativeItem().Component(new FieldBlock("Incoterms", bl.Incoterms ?? "—"));
+                        });
+
+                        if (!string.IsNullOrWhiteSpace(bl.Notes))
+                        {
+                            col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                            col.Item().Text("NOTES").FontSize(9).Bold().FontColor(Colors.Grey.Darken2);
+                            col.Item().Text(bl.Notes).FontSize(9);
+                        }
+                    });
+
+                    page.Footer().AlignCenter().Text(text =>
+                    {
+                        text.Span("Generated by Marilog — ").FontSize(7).FontColor(Colors.Grey.Darken1);
+                        text.Span(DateTime.UtcNow.ToString("dd MMM yyyy HH:mm")).FontSize(7).FontColor(Colors.Grey.Darken1);
+                    });
+                });
+            });
+
+            return document.GeneratePdf();
+        }
+
+        private sealed class FieldBlock(string label, string? value, bool bold = false) : IComponent
+        {
+            public void Compose(IContainer container)
+            {
+                if(bold == false)
+                {
+                    container.Column(col =>
+                    {
+                        col.Item().Text(label.ToUpperInvariant()).FontSize(7).FontColor(Colors.Grey.Darken1);
+                        col.Item().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
+                           .FontSize(10)
+                           .FontColor(Colors.Black);
+                    });
+                }
+                else
+                {
+                    container.Column(col =>
+                    {
+                        col.Item().Text(label.ToUpperInvariant()).FontSize(7).FontColor(Colors.Grey.Darken1);
+                        col.Item().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
+                           .FontSize(10)
+                           .FontColor(Colors.Black)
+                           .Bold();
+                    });
+                }
+                
+            }
         }
     }
 }

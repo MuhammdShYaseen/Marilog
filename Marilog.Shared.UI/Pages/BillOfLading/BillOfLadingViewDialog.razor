@@ -1,0 +1,196 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.BillOfLading
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="flex-grow-1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">Bill of Lading</MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                    @Bl.BlType
+                </MudChip>
+                <MudChip T="string" Size="Size.Small"
+                         Color="@(Bl.IssuanceType == BlIssuanceType.House ? Color.Warning : Color.Info)"
+                         Variant="Variant.Filled">
+                    @Bl.IssuanceType
+                </MudChip>
+            </MudStack>
+            <MudStack Row="true" Spacing="1">
+                <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="ExportPdfAsync"
+                           Disabled="_exporting">
+                    @(_exporting ? "Exporting..." : "Export PDF")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Print"
+                           Variant="Variant.Outlined"
+                           Size="Size.Small"
+                           OnClick="Print">
+                    Print
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudPaper Elevation="0" Class="pa-6" Style="border:1px solid var(--mud-palette-lines-default); font-family: 'Georgia', serif;" id="bl-print-area">
+
+            @* ===== Document Header ===== *@
+            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
+                <div>
+                    <MudText Typo="Typo.h5" Style="font-weight:700; letter-spacing:1px;">BILL OF LADING</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">B/L No. @Bl.BlNumber</MudText>
+                </div>
+                <div style="text-align:right">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Issue Date</MudText>
+                    <MudText Typo="Typo.body1">@(Bl.IssueDate?.ToString("dd MMM yyyy") ?? "—")</MudText>
+                </div>
+            </MudStack>
+
+            <MudDivider Class="mb-4" />
+
+            @* ===== Parties ===== *@
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <BlField Label="Shipper" Value="@Bl.ShipperCompany?.Name" Bold="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <BlField Label="Carrier" Value="@Bl.CarrierCompany?.Name" Bold="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <BlField Label="Consignee"
+                             Value="@(Bl.ConsigneeCompany?.Name ?? (string.IsNullOrWhiteSpace(Bl.ConsigneeToOrder) ? "—" : $"To Order: {Bl.ConsigneeToOrder}"))" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <BlField Label="Notify Party" Value="@(Bl.NotifyPartyCompany?.Name ?? "—")" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            @* ===== Voyage / Ports ===== *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">VOYAGE &amp; ROUTING</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Port of Loading" Value="@Bl.PortOfLoading?.Name" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Port of Discharge" Value="@Bl.PortOfDischarge?.Name" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Place of Receipt" Value="@(Bl.PlaceOfReceipt?.Name ?? "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Place of Delivery" Value="@(Bl.PlaceOfDelivery?.Name ?? "—")" />
+                </MudItem>
+            </MudGrid>
+
+            @if (Bl.IssuanceType == BlIssuanceType.House && Bl.MasterBlId is not null)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="my-2" Icon="@Icons.Material.Filled.Link">
+                    House B/L linked to Master B/L: <strong>@Bl.BlNumber</strong>
+                </MudAlert>
+            }
+
+            <MudDivider Class="my-4" />
+
+            @* ===== Cargo ===== *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">CARGO DETAILS</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12">
+                    <BlField Label="Description of Goods" Value="@Bl.CargoDescription" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="HS Code" Value="@(Bl.HsCode ?? "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Gross Weight" Value="@($"{Bl.GrossWeightMT:N3} MT")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Volume" Value="@(Bl.VolumeM3.HasValue ? $"{Bl.VolumeM3:N3} M³" : "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Packages" Value="@(Bl.PackageCount.HasValue ? $"{Bl.PackageCount} {Bl.PackageType}" : "—")" />
+                </MudItem>
+                <MudItem xs="12">
+                    <BlField Label="Marks &amp; Numbers" Value="@(Bl.MarksAndNumbers ?? "—")" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            @* ===== Freight / Commercial ===== *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">FREIGHT &amp; TERMS</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="4">
+                    <BlField Label="Freight Terms" Value="@Bl.FreightTerms" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <BlField Label="Freight Amount" Value="@(Bl.FreightAmount ?? "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <BlField Label="Incoterms" Value="@(Bl.Incoterms ?? "—")" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            @* ===== Issuance ===== *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">ISSUANCE</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Place of Issue" Value="@(Bl.PlaceOfIssue ?? "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="On Board Date" Value="@(Bl.OnBoardDate?.ToString("dd MMM yyyy") ?? "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Original Copies" Value="@(Bl.OriginalCopiesCount?.ToString() ?? "—")" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <BlField Label="Issuance Type" Value="@Bl.IssuanceType.ToString()" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrWhiteSpace(Bl.Notes))
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">NOTES</MudText>
+                <MudText Typo="Typo.body2" Style="white-space:pre-line">@Bl.Notes</MudText>
+            }
+
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Style="display:block">
+                This document is a system-generated representation of the Bill of Lading record.
+            </MudText>
+
+        </MudPaper>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]public EventCallback ExportPdfAsync { get; set; }
+
+    [Parameter] public EventCallback Print { get; set; }
+
+    [Parameter, EditorRequired] public BillOfLadingResponse Bl { get; set; } = default!;
+
+    private bool _exporting;
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    
+}
