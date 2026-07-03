@@ -1,15 +1,24 @@
-﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
-using Marilog.Contracts.DTOs.Responses;
+﻿
+using Marilog.Contracts.DTOs.Reports.DocumentReports;
+
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
+
 using Marilog.Kernel.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using Document = QuestPDF.Fluent.Document;
 
 namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
 {
     public class PdfFileGeneratorService : IPdfFileGeneratorService
     {
+        private readonly IBillOfLadingService _billService;
+        public PdfFileGeneratorService(IBillOfLadingService billService)
+        {
+            _billService = billService;
+        }
         public Task<byte[]> GenerateDocumentReportPdf(DocumentReport report, string title, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
@@ -592,8 +601,10 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
             });
         }
 //============BILL OF LADIN============================================================================================
-        public async Task<byte[]> GenerateBillOfLadingFile(BillOfLadingResponse bl, CancellationToken ct = default)
+        public async Task<byte[]> GenerateBillOfLadingFile(int blId, CancellationToken ct = default)
         {
+            var bl = await _billService.GetByIdAsync(blId, ct);
+            QuestPDF.Settings.License = LicenseType.Community;
             var document = Document.Create(container =>
             {
                 container.Page(page =>

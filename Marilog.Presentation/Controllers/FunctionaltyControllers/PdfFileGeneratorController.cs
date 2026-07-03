@@ -1,6 +1,7 @@
 ﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.FunctionaltyControllers
@@ -23,12 +24,11 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
 
             return File(pdfBytes, "application/pdf", fileName);
         }
-        [HttpPost("BillOfLading")]
-        public async Task<IActionResult> ExportBillOfLadingFile([FromBody] BillOfLadingResponse bl, CancellationToken ct = default)
+        [HttpGet("BillOfLadingPdf/{id:int}")]
+        public async Task<IActionResult> ExportBillOfLadingFile(int id, CancellationToken ct = default)
         {
-            var pdfBytes = await _pdfGeneratorService.GenerateBillOfLadingFile(bl, ct);
+            var pdfBytes = await _pdfGeneratorService.GenerateBillOfLadingFile(id, ct);
             var fileName = $"billOfLading_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
-
             return File(pdfBytes, "application/pdf", fileName);
         }
 

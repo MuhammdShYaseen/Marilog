@@ -228,7 +228,7 @@
         var parameters = new DialogParameters
         {
             [nameof(BillOfLadingViewDialog.Bl)] = bl,
-            [nameof(BillOfLadingViewDialog.ExportPdfAsync)] = EventCallback.Factory.Create(this, () => ExportPdfAsync(bl)),
+            [nameof(BillOfLadingViewDialog.ExportPdfAsync)] = EventCallback.Factory.Create(this, () => ExportPdfAsync(bl.Id, bl.BlNumber ?? "None")),
             [nameof(BillOfLadingViewDialog.Print)] = EventCallback.Factory.Create(this, ()=> Print())
         };
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
@@ -267,15 +267,15 @@
     }
 
 
-
-    private async Task ExportPdfAsync(BillOfLadingResponse bl)
+    
+    private async Task ExportPdfAsync(int bl, string blNumber)
     {
         try
         {
             var bytes = await PdfService.GenerateBillOfLadingFile(bl);
             if (bytes is { Length: > 0 })
             {
-                var fileName = $"BL_{bl.BlNumber}.pdf";
+                var fileName = $"BL_{blNumber}.pdf";
                 await JS.InvokeVoidAsync("blDownloadFile", fileName, "application/pdf", bytes);
             }
             else

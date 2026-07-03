@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
+﻿using Marilog.Client.Extensions;
+using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using System;
@@ -17,9 +18,10 @@ namespace Marilog.Client.Services.FunctionaltyServices
             _http = httpClient;
         }
 
-        public async Task<byte[]> GenerateBillOfLadingFile(BillOfLadingResponse model, CancellationToken ct = default)
+        public async Task<byte[]> GenerateBillOfLadingFile(int blId, CancellationToken ct = default)
         {
-            var response = await _http.PostAsJsonAsync("api/PdfFileGenerator/BillOfLading", model, ct);
+            using var response = await _http.GetAsync($"api/PdfFileGenerator/BillOfLadingPdf/{blId}",
+        ct);
 
             response.EnsureSuccessStatusCode();
 
