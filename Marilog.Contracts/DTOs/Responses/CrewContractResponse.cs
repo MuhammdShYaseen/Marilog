@@ -30,6 +30,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public RankResponse Rank { get;  set; } = new RankResponse();
         public PortResponse? SignOnPortNav { get;  set; } = new PortResponse();
         public PortResponse? SignOffPortNav { get;  set; } = new PortResponse();
+        public CrewContractStatus ContractStatus { get; set; }
         public string? Notes { get;  set; }
     }
 }

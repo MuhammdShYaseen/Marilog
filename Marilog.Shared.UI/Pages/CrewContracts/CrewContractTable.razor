@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewContracts
 
@@ -32,6 +33,17 @@
                          Size="Size.Small"
                          Variant="Variant.Filled">
                     @(context.Item.IsActive ? "Active" : "Signed Off")
+                </MudChip>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Validity" Sortable="false">
+            <CellTemplate>
+                <MudChip T="string"
+                         Color="@StatusColor(context.Item.ContractStatus)"
+                         Size="Size.Small"
+                         Variant="Variant.Filled">
+                    @context.Item.ContractStatus
                 </MudChip>
             </CellTemplate>
         </TemplateColumn>
@@ -76,4 +88,12 @@
         _selected = item;
         await OnRowSelected.InvokeAsync(item);
     }
+
+    private static Color StatusColor(CrewContractStatus s) => s switch
+    {
+        CrewContractStatus.Active => Color.Success,
+        CrewContractStatus.Expiring => Color.Warning,
+        CrewContractStatus.Expired => Color.Error,
+        _ => Color.Default
+    };
 }

@@ -9,6 +9,13 @@
         BearerBl       // Negotiable, no named consignee
     }
 
+    public enum CrewContractStatus
+    {
+        Active,
+        Expiring,
+        Expired
+    }
+
     public enum BlIssuanceType
     {
         Master,        // MBL - issued by the actual carrier/vessel owner

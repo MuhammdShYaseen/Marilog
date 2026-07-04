@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
 using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -33,93 +34,147 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<CrewContractResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo
+                .Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
                 .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
+            if (response != null)
+                SetCrewContractStatus(response);
+            return response;
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetByPersonAsync(int personId,
             CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo
+                .Query()
                 .AsNoTracking()
                 .Where(x => x.PersonID == personId)
                 .OrderByDescending(x => x.SignOnDate)
                 .Select(ToResponse())
                 .ToListAsync(ct);
+            SetCrewContractStatus(response);
+            return response;
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo
+                .Query()
                 .AsNoTracking()
                 .Where(x => x.VesselID == vesselId)
                 .OrderByDescending(x => x.SignOnDate)
                 .Select(ToResponse())
                 .ToListAsync(ct);
+            SetCrewContractStatus(response);
+            return response;
         }
         public async Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
-            return await _repo.Query()
+            var response = await _repo
+                .Query()
                 .AsNoTracking()
                 .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) < today && c.IsActive == true)
                 .Select(ToResponse())
                 .ToListAsync(ct);
+            SetCrewContractStatus(response);
+            return response;
+        }
+        private void SetCrewContractStatus(CrewContractResponse response)
+        {
+            if (!response.IsActive || !response.ContractDurationDays.HasValue)
+            {
+                response.ContractStatus = CrewContractStatus.Expired;
+                return;
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var expiryDate = response.SignOnDate.AddMonths(response.ContractDurationDays.Value / 30);
+
+            if (expiryDate < today)
+            {
+                response.ContractStatus = CrewContractStatus.Expired;
+            }
+            else if (expiryDate <= today.AddMonths(2))
+            {
+                response.ContractStatus = CrewContractStatus.Expiring;
+            }
+            else
+            {
+                response.ContractStatus = CrewContractStatus.Active;
+            }
         }
 
+        private void SetCrewContractStatus(List<CrewContractResponse> responses)
+        {
+            foreach (var res in responses)
+                SetCrewContractStatus(res);
+        }
         public async Task<IReadOnlyList<CrewContractResponse>> GetAboutExpireAsync(CancellationToken ct)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
             var nextTwoMonths = today.AddMonths(2);
 
-            return await _repo.Query()
+            var response = await _repo.Query()
                 .AsNoTracking()
                 .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) >= today && c.SignOnDate.AddMonths(c.DurationInMonth!.Value) <= nextTwoMonths && c.IsActive == true)
                 .Select(ToResponse())
                 .ToListAsync(ct);
+            SetCrewContractStatus(response);
+            return response;
         }
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId,
             CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.VesselID == vesselId && x.IsActive)
                 .OrderBy(x => x.Rank.Department)
                 .ThenBy(x => x.Person.FullName)
                 .Select(ToResponse())
                 .ToListAsync(ct);
+            SetCrewContractStatus(response);
+            return response;
         }
 
         public async Task<CrewContractResponse?> GetActiveMasterAsync(int vesselId,
             CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.VesselID == vesselId && x.IsActive && x.Rank.RankCode == "MASTER")
                 .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
+            if(response != null)
+                SetCrewContractStatus(response);
+            return response;
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveOnDateAsync(DateOnly date,
             CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.SignOnDate <= date && (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
                 .Select(ToResponse())
                 .ToListAsync(ct);
+                SetCrewContractStatus(response);
+            return response;
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var response = await _repo
+                              .Query()
                               .AsNoTracking()
                               .Select(ToResponse())
-                .ToListAsync(ct);
+                              .ToListAsync(ct);
+            SetCrewContractStatus(response);
+            return response;
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────
