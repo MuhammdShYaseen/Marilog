@@ -11,7 +11,7 @@
 
     public enum CrewContractStatus
     {
-        Active,
+        Valied,
         Expiring,
         Expired
     }

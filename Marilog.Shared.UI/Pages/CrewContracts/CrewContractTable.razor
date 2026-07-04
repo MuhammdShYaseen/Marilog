@@ -91,7 +91,7 @@
 
     private static Color StatusColor(CrewContractStatus s) => s switch
     {
-        CrewContractStatus.Active => Color.Success,
+        CrewContractStatus.Valied => Color.Success,
         CrewContractStatus.Expiring => Color.Warning,
         CrewContractStatus.Expired => Color.Error,
         _ => Color.Default

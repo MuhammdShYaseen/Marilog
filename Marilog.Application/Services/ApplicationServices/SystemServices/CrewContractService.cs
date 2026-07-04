@@ -105,7 +105,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             }
             else
             {
-                response.ContractStatus = CrewContractStatus.Active;
+                response.ContractStatus = CrewContractStatus.Valied;
             }
         }
 
