@@ -86,14 +86,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
         private void SetCrewContractStatus(CrewContractResponse response)
         {
-            if (!response.IsActive || !response.ContractDurationDays.HasValue)
+            if (!response.IsActive || !response.ContractDurationMonths.HasValue)
             {
                 response.ContractStatus = CrewContractStatus.Expired;
                 return;
             }
 
             var today = DateOnly.FromDateTime(DateTime.Today);
-            var expiryDate = response.SignOnDate.AddMonths(response.ContractDurationDays.Value / 30);
+            var expiryDate = response.SignOnDate.AddMonths(response.ContractDurationMonths.Value);
 
             if (expiryDate < today)
             {
@@ -332,6 +332,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 SignOnPortName = x.SignOnPortNav != null ? x.SignOnPortNav.PortName : null,   // ✅ آمن
                 SignOffPort = x.SignOffPort,
                 SignOffPortName = x.SignOffPortNav != null ? x.SignOffPortNav.PortName : null, // ✅ آمن
+                ContractDurationMonths = x.DurationInMonth != null ? x.DurationInMonth : null,
                 IsActive = x.IsActive
             }).ToListAsync(ct);
 
@@ -456,16 +457,23 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 SignOnPortName = x.SignOnPortNav != null ? x.SignOnPortNav.PortName : null,
                 SignOffPort = x.SignOffPort,
                 SignOffPortName = x.SignOffPortNav != null ? x.SignOffPortNav.PortName : null,
+                ContractDurationMonths = x.DurationInMonth != null ? x.DurationInMonth : null,
                 IsActive = x.IsActive,
                 Notes = x.Notes,
-
                 ContractDurationDays = x.SignOffDate.HasValue
                     ? x.SignOffDate.Value.DayNumber - x.SignOnDate.DayNumber
                     : today.DayNumber - x.SignOnDate.DayNumber,
 
                 TotalWageEarned = x.SignOffDate.HasValue
                     ? x.MonthlyWage / 30m * (x.SignOffDate.Value.DayNumber - x.SignOnDate.DayNumber)
-                    : x.MonthlyWage / 30m * (today.DayNumber - x.SignOnDate.DayNumber)
+                    : x.MonthlyWage / 30m * (today.DayNumber - x.SignOnDate.DayNumber),
+                Rank = new RankResponse
+                {
+                    Code = x.Rank.RankCode,
+                    Name = x.Rank.RankName,
+                    Department = x.Rank.Department,
+                    IsActive = x.Rank.IsActive
+                },
             };
         }
     }

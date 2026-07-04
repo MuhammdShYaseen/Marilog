@@ -159,7 +159,7 @@
     private int _vesselId;
     private int _rankId;
     private decimal _monthlyWage;
-    private int _durationInMonth = 6;
+    private int _durationInMonth;
     private DateTime? _signOnDate;
     private int? _signOnPort;
     private string? _notes;
@@ -188,6 +188,7 @@
         _signOnDate = Contract.SignOnDate.ToDateTime(TimeOnly.MinValue);
         _signOnPort = Contract.SignOnPort;
         _notes = Contract.Notes;
+        _durationInMonth = Contract.ContractDurationMonths ?? 6;
         // DurationInMonth غير موجود في Response → نتركه بالقيمة الافتراضية
     }
 

@@ -24,6 +24,7 @@ namespace Marilog.Contracts.DTOs.Responses
 
         // Domain-calculated fields → احسبها في الخدمة وليس هنا
         public int? ContractDurationDays { get; set; }
+        public int? ContractDurationMonths { get; set; }
         public decimal? TotalWageEarned { get; set; }
         public PersonResponse Person { get;  set; } = new PersonResponse();
         public VesselResponse Vessel { get;  set; } = new VesselResponse();
