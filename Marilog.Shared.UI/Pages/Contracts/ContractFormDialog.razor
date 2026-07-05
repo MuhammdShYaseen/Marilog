@@ -1,5 +1,6 @@
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enumerations
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Contracts
 
@@ -14,11 +15,26 @@
                               Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_type"
-                              Label="Type"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                <MudSelect T="ContractType"
+                           @bind-Value="_type"
+                           Label="Type"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    <MudSelectItem Value="ContractType.CharterParty">
+                        Charter Party
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="ContractType.Supplier">
+                        Supplier
+                    </MudSelectItem>
+
+                    <MudSelectItem Value="ContractType.Agency">
+                        Agency
+                    </MudSelectItem>
+
+                </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="_effectiveDate"
@@ -47,7 +63,7 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    OnClick="Submit"
-                   Disabled="@(string.IsNullOrWhiteSpace(_contractNumber) || string.IsNullOrWhiteSpace(_type) || _effectiveDate is null)">
+                   Disabled="@(string.IsNullOrWhiteSpace(_contractNumber) || _type == null || _effectiveDate is null)">
             Save
         </MudButton>
     </DialogActions>
@@ -58,7 +74,7 @@
     [Parameter] public int? ContractId { get; set; }
 
     private string _contractNumber = string.Empty;
-    private string _type = string.Empty;
+    private ContractType _type = ContractType.CharterParty;
     private DateTime? _effectiveDate;
     private DateTime? _expiryDate;
     private string? _notes;
@@ -69,7 +85,7 @@
         CreateContractRequest
         (
             _contractNumber,
-            _type,
+            _type.Name,
             DateOnly.FromDateTime(_effectiveDate!.Value),
             _expiryDate.HasValue ? DateOnly.FromDateTime(_expiryDate.Value) : null,
             _notes

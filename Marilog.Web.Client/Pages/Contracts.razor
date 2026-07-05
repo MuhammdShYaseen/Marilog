@@ -1,7 +1,6 @@
 ﻿@page "/contracts"
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
-@using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Contracts
@@ -17,27 +16,31 @@
 }
 else
 {
-    <SharedContractsPage Paged="_paged"
-                         Detail="_detail"
+    <SharedContractsPage @ref="_sharedPage"
+                         Paged="_paged"
+                         GetContractDetail="GetContractDetail"
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnActivateClicked="Activate"
                          OnSuspendClicked="Suspend"
                          OnTerminateClicked="Terminate"
-                         OnContractSelected="LoadDetail"
                          OnMarkExpiredClicked="MarkExpired"
                          OnPrevPage="PrevPage"
                          OnNextPage="NextPage" />
 }
+@code{
 
-@code {
-    private PagedResponse<ContractSummary>? _paged;
-    private ContractDetailResponse? _detail;
-    private bool _loading = true;
-    private int _page = 1;
+
     private const int PageSize = 15;
 
+    private SharedContractsPage _sharedPage = default!;
+    private PagedResponse<ContractSummary>? _paged;
+    private bool _loading = true;
+    private int _page = 1;
+
     protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    // ─── Load ──────────────────────────────────────────────────────────────
 
     private async Task LoadAsync()
     {
@@ -49,33 +52,39 @@ else
         });
         _loading = false;
     }
-    private async Task MarkExpired(int id)
+
+    private async Task RefreshSelected(int id)
     {
-        var result = await ContractService.MarkExpiredAsync(id);
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Contract marked as expired.", Severity.Info);
-            await LoadAsync();
-            await LoadDetail(id);
-        }
-        else
-            Snackbar.Add(result.Error!, Severity.Error);
-    }
-    private async Task LoadDetail(int id)
-    {
-        _detail = null;
-        _detail = await ContractService.GetByIdAsync(id);
+        var updated = await ContractService.GetByIdAsync(id);
+        if (updated is not null)
+            _sharedPage?.UpdateSelected(updated);
     }
 
+
+    private async Task <ContractDetailResponse> GetContractDetail(int contractId)
+    {
+        var response = await ContractService.GetByIdAsync(contractId);
+        return response ?? new();
+    }
     private async Task PrevPage()
     {
-        if (_page > 1) { _page--; await LoadAsync(); }
+        if (_page > 1)
+        {
+            _page--;
+            await LoadAsync();
+        }
     }
 
     private async Task NextPage()
     {
-        if (_paged?.HasNext == true) { _page++; await LoadAsync(); }
+        if (_paged?.HasNext == true)
+        {
+            _page++;
+            await LoadAsync();
+        }
     }
+
+    // ─── Dialogs ───────────────────────────────────────────────────────────
 
     private async Task OpenAddDialog()
     {
@@ -83,7 +92,7 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (CreateContractRequest)result.Data!;
+        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.CreateContractRequest)result.Data!;
         var outcome = await ContractService.CreateAsync(
             data.ContractNumber,
             data.Type,
@@ -108,7 +117,7 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (CreateContractRequest)result.Data!;
+        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.CreateContractRequest)result.Data!;
         var outcome = await ContractService.UpdateAsync(
             contract.Id,
             data.ContractNumber,
@@ -122,12 +131,13 @@ else
         {
             Snackbar.Add("Contract updated.", Severity.Success);
             await LoadAsync();
-            if (_detail?.Id == contract.Id)
-                await LoadDetail(contract.Id);
+            await RefreshSelected(contract.Id);
         }
         else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
+
+    // ─── Status Actions ────────────────────────────────────────────────────
 
     private async Task Activate(int id)
     {
@@ -136,7 +146,7 @@ else
         {
             Snackbar.Add("Contract activated.", Severity.Success);
             await LoadAsync();
-            await LoadDetail(id);
+            await RefreshSelected(id);
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
@@ -149,7 +159,7 @@ else
         {
             Snackbar.Add("Contract suspended.", Severity.Warning);
             await LoadAsync();
-            await LoadDetail(id);
+            await RefreshSelected(id);
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
@@ -162,7 +172,20 @@ else
         {
             Snackbar.Add("Contract terminated.", Severity.Error);
             await LoadAsync();
-            await LoadDetail(id);
+            await RefreshSelected(id);
+        }
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
+    }
+
+    private async Task MarkExpired(int id)
+    {
+        var result = await ContractService.MarkExpiredAsync(id);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Contract marked as expired.", Severity.Info);
+            await LoadAsync();
+            await RefreshSelected(id);
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
