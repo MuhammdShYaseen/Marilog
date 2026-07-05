@@ -1,6 +1,4 @@
-﻿using Marilog.Domain.Common;
-
-namespace Marilog.Domain.Enumerations
+﻿namespace Marilog.Domain.Enumerations
 {
     public class ContractType : Enumeration
     {

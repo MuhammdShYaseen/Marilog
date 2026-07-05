@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Marilog.Domain.Common
+namespace Marilog.Domain.Enumerations
 {
     public abstract class Enumeration : IComparable
     {
