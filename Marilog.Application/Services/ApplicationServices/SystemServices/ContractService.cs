@@ -27,21 +27,92 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // Queries
         // ══════════════════════════════════════════════════════════════════
 
+        // ── GetByIdAsync: مقسّم لـ 3 استعلامات صغيرة، مع احترام init-only properties ──
+
         public async Task<ContractDetailResponse?> GetByIdAsync(int id, CancellationToken ct = default)
-            => await _repository
+        {
+            var exists = await _repository
+                .Query()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == id, ct);
+
+            if (!exists)
+                return null;
+
+            var parties = await _repository
                 .Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToDetailResponse)
-                .FirstOrDefaultAsync(ct);
+                .SelectMany(x => x.Parties)
+                .Select(ToPartyResponse)
+                .ToListAsync(ct);
 
-        public async Task<ContractDetailResponse?> GetByNumberAsync(string number, CancellationToken ct = default)
-            => await _repository
+            var amendments = await _repository
                 .Query()
                 .AsNoTracking()
-                .Where(x => x.ContractNumber == number)
-                .Select(ToDetailResponse)
+                .Where(x => x.Id == id)
+                .SelectMany(x => x.Amendments.OrderBy(a => a.AmendmentNumber))
+                .Select(ToAmendmentResponse)
+                .ToListAsync(ct);
+
+            return await _repository
+                .Query()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(x => new ContractDetailResponse
+                {
+                    Id = x.Id,
+                    ContractNumber = x.ContractNumber,
+                    Type = x.Type.ToString(),
+                    Status = x.Status.Name,
+                    EffectiveDate = x.EffectiveDate,
+                    ExpiryDate = x.ExpiryDate,
+                    Notes = x.Notes,
+                    ContractFileUrl = x.ContractFileUrl,
+                    ContractFileName = x.ContractFileName,
+                    Parties = parties,
+                    Amendments = amendments
+                })
                 .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<ContractDetailResponse?> GetByNumberAsync(string number, CancellationToken ct = default)
+        {
+            var exists = await _repository.Query().AsNoTracking()
+                .AnyAsync(x => x.ContractNumber == number, ct);
+
+            if (!exists) return null;
+
+            var parties = await _repository.Query().AsNoTracking()
+                .Where(x => x.ContractNumber == number)
+                .SelectMany(x => x.Parties)
+                .Select(ToPartyResponse)
+                .ToListAsync(ct);
+
+            var amendments = await _repository.Query().AsNoTracking()
+                .Where(x => x.ContractNumber == number)
+                .SelectMany(x => x.Amendments.OrderBy(a => a.AmendmentNumber))
+                .Select(ToAmendmentResponse)
+                .ToListAsync(ct);
+
+            return await _repository.Query().AsNoTracking()
+                .Where(x => x.ContractNumber == number)
+                .Select(x => new ContractDetailResponse
+                {
+                    Id = x.Id,
+                    ContractNumber = x.ContractNumber,
+                    Type = x.Type.ToString(),
+                    Status = x.Status.Name,
+                    EffectiveDate = x.EffectiveDate,
+                    ExpiryDate = x.ExpiryDate,
+                    Notes = x.Notes,
+                    ContractFileUrl = x.ContractFileUrl,
+                    ContractFileName = x.ContractFileName,
+                    Parties = parties,
+                    Amendments = amendments
+                })
+                .FirstOrDefaultAsync(ct);
+        }
 
         public async Task<Contracts.Common.PagedResponse<ContractSummary>> GetPagedAsync(
             ContractFilter filter, CancellationToken ct = default)
@@ -319,9 +390,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // Private Helpers
         // ══════════════════════════════════════════════════════════════════
         
-        private Task<AContract?> GetOrFailAsync(int id, CancellationToken ct)
-            => _repository.GetByIdAsync(id, ct);
-
 
         // ─── Party ────────────────────────────────────────────────────────
         // مُعاد الاستخدام داخل كل projection تحتاج Parties
@@ -357,38 +425,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 AmendmentsCount = x.Amendments.Count
             };
 
-        // ─── Detail ───────────────────────────────────────────────────────
-        private static readonly Expression<Func<AContract, ContractDetailResponse>> ToDetailResponse =
-            x => new ContractDetailResponse
-            {
-                Id = x.Id,
-                ContractNumber = x.ContractNumber,
-                Type = x.Type.ToString(),
-                Status = x.Status.Name,
-                EffectiveDate = x.EffectiveDate,
-                ExpiryDate = x.ExpiryDate,
-                Notes = x.Notes,
-                ContractFileUrl = x.ContractFileUrl,
-                ContractFileName = x.ContractFileName,
-
-                Parties = x.Parties.Select(p => new ContractPartyResponse
-                {
-                    CompanyId = p.CompanyId,
-                    Role = p.Role.ToString(),
-                }).ToList(),
-
-                Amendments = x.Amendments
-                    .OrderBy(a => a.AmendmentNumber)
-                    .Select(a => new ContractAmendmentResponse
-                    {
-                        AmendmentNumber = a.AmendmentNumber,
-                        Description = a.Description,
-                        EffectiveDate = a.EffectiveDate,
-                        ChangedBy = a.ChangedBy,
-                        RecordedAtUtc = a.RecordedAtUtc
-                    }).ToList()
-            };
-
+        
 
     }
 }

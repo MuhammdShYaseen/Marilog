@@ -15,7 +15,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? ContractFileUrl { get; init; }
         public string? ContractFileName { get; init; }
 
-        public List<ContractPartyResponse> Parties { get; init; } = [];
-        public List<ContractAmendmentResponse> Amendments { get; init; } = [];
+        public List<ContractPartyResponse> Parties { get; set; } = [];
+        public List<ContractAmendmentResponse> Amendments { get; set; } = [];
     }
 }

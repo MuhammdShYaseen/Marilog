@@ -1,5 +1,5 @@
 ﻿
-using Marilog.Domain.Entities.SystemEntities;
+
 using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.ValueObjects.Contract
