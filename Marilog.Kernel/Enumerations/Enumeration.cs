@@ -1,6 +1,8 @@
-﻿
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace Marilog.Kernel.Enumerations
+namespace Marilog.Domain.Enumerations
 {
     public abstract class Enumeration : IComparable
     {

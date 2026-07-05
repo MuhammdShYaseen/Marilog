@@ -4,6 +4,7 @@ using Marilog.Infrastructure.DataAccess.ContextDb;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Marilog.Infrastructure.Migrations
 {
     [DbContext(typeof(MarilogContext))]
-    partial class MarilogContextModelSnapshot : ModelSnapshot
+    [Migration("20260705115019_CompanyNavToParty")]
+    partial class CompanyNavToParty
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2612,12 +2615,31 @@ namespace Marilog.Infrastructure.Migrations
                                 .HasMaxLength(30)
                                 .HasColumnType("nvarchar(30)");
 
+                            b1.Property<int?>("CompanyId1")
+                                .HasColumnType("int");
+
                             b1.HasKey("ContractId", "CompanyId", "Role");
+
+                            b1.HasIndex("CompanyId");
+
+                            b1.HasIndex("CompanyId1");
 
                             b1.ToTable("ContractParties", (string)null);
 
+                            b1.HasOne("Marilog.Domain.Entities.SystemEntities.Company", null)
+                                .WithMany()
+                                .HasForeignKey("CompanyId")
+                                .OnDelete(DeleteBehavior.Cascade)
+                                .IsRequired();
+
+                            b1.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "Company")
+                                .WithMany()
+                                .HasForeignKey("CompanyId1");
+
                             b1.WithOwner()
                                 .HasForeignKey("ContractId");
+
+                            b1.Navigation("Company");
                         });
 
                     b.Navigation("Amendments");

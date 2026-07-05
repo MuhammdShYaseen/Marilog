@@ -309,6 +309,9 @@ else
     }
 
     private async Task<ContractDetailResponse> GetContractDetail(int arg)
-        => await ContractService.GetByIdAsync(arg) ?? new();
+    {
+        var response = await ContractService.GetByIdAsync(arg);
+        return response ?? new();
+    }
 
 }

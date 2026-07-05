@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace Marilog.Infrastructure.Persistence.Configurations
+namespace Marilog.Infrastructure.DataAccess.Configurations
 {
     public class ContractConfiguration : IEntityTypeConfiguration<AContract>
     {

@@ -44,8 +44,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(contractNumber);
 
-            //if (!Enum.IsDefined(typeof(ContractType), type))
-             //   throw new ArgumentException("Invalid contract type.");
+            if (!Enum.IsDefined(typeof(ContractType), type))
+                throw new ArgumentException("Invalid contract type.");
 
             if (expiryDate.HasValue && expiryDate.Value <= effectiveDate)
                 throw new ArgumentException("ExpiryDate must be after EffectiveDate.");
