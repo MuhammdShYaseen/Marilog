@@ -152,7 +152,7 @@
                         {
                             <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
                                 <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
-                                <MudText Typo="Typo.body2">@party.CompanyName</MudText>
+                                <MudText Typo="Typo.body2">@_companyNames.GetValueOrDefault(party.CompanyId)</MudText>
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@party.Role</MudChip>
                                 <MudSpacer />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
@@ -279,7 +279,7 @@
 @code{
     [Parameter] public PagedResponse<ContractSummary>? Paged { get; set; }
     [Parameter] public Func<int, Task<ContractDetailResponse?>>? GetContractDetail { get; set; }
-
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<ContractSummary> OnEditClicked { get; set; }
     [Parameter] public EventCallback<int> OnActivateClicked { get; set; }
@@ -298,6 +298,11 @@
     private ContractSummary? _selectedRow;
     private ContractDetailResponse? _selected;
     private int? _lastSelectedId;
+    private Dictionary<int, string> _companyNames = new();
+    protected override void OnParametersSet()
+    {
+        _companyNames = Companies.ToDictionary(c => c.Id, c => c.Name);
+    }
 
     private async Task OnRowSelected(ContractSummary? row)
     {

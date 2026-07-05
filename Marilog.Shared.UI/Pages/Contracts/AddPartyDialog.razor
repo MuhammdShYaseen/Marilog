@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
+@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
@@ -7,11 +8,21 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_companyId"
-                              Label="Company ID"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                <MudSelect T="int"
+                           @bind-Value="_companyId"
+                           Label="Company"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var company in Companies)
+                    {
+                        <MudSelectItem Value="@company.Id">
+                            @company.Name
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
             </MudItem>
             <MudItem xs="12">
                 <MudSelect T="ContractRole"
@@ -45,7 +56,7 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     private int _companyId;
     private ContractRole _role = ContractRole.Owner;
 

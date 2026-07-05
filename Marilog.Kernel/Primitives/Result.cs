@@ -1,4 +1,6 @@
 ﻿
+using System.Text.Json.Serialization;
+
 namespace Marilog.Kernel.Primitives
 {
     public sealed class Result
@@ -6,8 +8,8 @@ namespace Marilog.Kernel.Primitives
         public bool IsSuccess { get; }
         public string? Error { get; }
         public bool IsFailure => !IsSuccess;
-
-        private Result(bool isSuccess, string? error)
+        [JsonConstructor]
+        public Result(bool isSuccess, string? error)
         {
             IsSuccess = isSuccess;
             Error = error;

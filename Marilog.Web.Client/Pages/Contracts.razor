@@ -16,7 +16,7 @@
 @inject IContractService ContractService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-
+@inject ICompanyService CompanyService
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -26,6 +26,7 @@ else
     <SharedContractsPage @ref="_sharedPage"
                          Paged="_paged"
                          GetContractDetail="GetContractDetail"
+                         Companies="AllCompanies"
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnActivateClicked="Activate"
@@ -43,7 +44,7 @@ else
 @code{
 
     private const int PageSize = 15;
-
+    private IReadOnlyList<CompanyResponse> AllCompanies = [];
     private SharedContractsPage _sharedPage = default!;
     private PagedResponse<ContractSummary>? _paged;
     private bool _loading = true;
@@ -61,6 +62,7 @@ else
             Page = _page,
             PageSize = PageSize
         });
+        AllCompanies = await CompanyService.GetAllAsync();
         _loading = false;
     }
 
@@ -200,7 +202,11 @@ else
 
     private async Task OpenAddPartyDialog(int contractId)
     {
-        var dialog = await DialogService.ShowAsync<AddPartyDialog>("Add Party");
+        var parameters = new DialogParameters
+        {
+            [nameof(AddPartyDialog.Companies)] = AllCompanies
+        };
+        var dialog = await DialogService.ShowAsync<AddPartyDialog>("Add Party", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
@@ -313,5 +319,7 @@ else
         var response = await ContractService.GetByIdAsync(arg);
         return response ?? new();
     }
+
+
 
 }
