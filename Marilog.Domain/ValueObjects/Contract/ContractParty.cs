@@ -1,17 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.ValueObjects.Contract
 {
-    public enum ContractRole
-    {
-        Owner,      // المالك
-        Charterer,  // المستأجر
-        Agent,      // الوكيل
-        Supplier,   // المورد
-        Guarantor,  // الضامن
-    }
+    
     public sealed class ContractParty
     {
         public int CompanyId { get; }

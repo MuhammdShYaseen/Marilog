@@ -8,7 +8,14 @@
         OrderBl,       // Negotiable, transferable by endorsement
         BearerBl       // Negotiable, no named consignee
     }
-
+    public enum ContractRole
+    {
+        Owner,      // المالك
+        Charterer,  // المستأجر
+        Agent,      // الوكيل
+        Supplier,   // المورد
+        Guarantor,  // الضامن
+    }
     public enum CrewContractStatus
     {
         Valied,

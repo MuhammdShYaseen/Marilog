@@ -4,7 +4,14 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Contracts
+@using Marilog.Contracts.DTOs.Requests.ContractDTOs
+@using Shared.UI.Pages.Contracts.Dialogs
 @using MudBlazor
+
+@inject IContractService ContractService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
 
 @inject IContractService ContractService
 @inject ISnackbar Snackbar
@@ -26,10 +33,14 @@ else
                          OnTerminateClicked="Terminate"
                          OnMarkExpiredClicked="MarkExpired"
                          OnPrevPage="PrevPage"
-                         OnNextPage="NextPage" />
+                         OnNextPage="NextPage"
+                         OnAddPartyClicked="OpenAddPartyDialog"
+                         OnRemovePartyClicked="OpenRemovePartyDialog"
+                         OnRecordAmendmentClicked="OpenRecordAmendmentDialog"
+                         OnExtendExpiryClicked="OpenExtendExpiryDialog"
+                         OnAttachFileClicked="OpenAttachFileDialog" />
 }
 @code{
-
 
     private const int PageSize = 15;
 
@@ -60,12 +71,6 @@ else
             _sharedPage?.UpdateSelected(updated);
     }
 
-
-    private async Task <ContractDetailResponse> GetContractDetail(int contractId)
-    {
-        var response = await ContractService.GetByIdAsync(contractId);
-        return response ?? new();
-    }
     private async Task PrevPage()
     {
         if (_page > 1)
@@ -92,7 +97,7 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.CreateContractRequest)result.Data!;
+        var data = (CreateContractRequest)result.Data!;
         var outcome = await ContractService.CreateAsync(
             data.ContractNumber,
             data.Type,
@@ -117,7 +122,7 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.CreateContractRequest)result.Data!;
+        var data = (CreateContractRequest)result.Data!;
         var outcome = await ContractService.UpdateAsync(
             contract.Id,
             data.ContractNumber,
@@ -190,4 +195,120 @@ else
         else
             Snackbar.Add(result.Error!, Severity.Error);
     }
+
+    // ─── Parties ───────────────────────────────────────────────────────────
+
+    private async Task OpenAddPartyDialog(int contractId)
+    {
+        var dialog = await DialogService.ShowAsync<AddPartyDialog>("Add Party");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var data = (PartyRequest)result.Data!;
+        var outcome = await ContractService.AddPartyAsync(contractId, data.CompanyId, data.Role);
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Party added.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(contractId);
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
+    }
+
+    private async Task OpenRemovePartyDialog((int ContractId, ContractPartyResponse Party) args)
+    {
+        var parameters = new DialogParameters
+        {
+            ["CompanyName"] = args.Party.CompanyName,
+            ["Role"] = args.Party.Role
+        };
+
+        var dialog = await DialogService.ShowAsync<Shared.UI.Pages.Contracts.Dialogs.RemovePartyDialog>("Remove Party", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var outcome = await ContractService.RemovePartyAsync(args.ContractId, args.Party.CompanyId, args.Party.Role);
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Party removed.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(args.ContractId);
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
+    }
+
+    // ─── Amendments ────────────────────────────────────────────────────────
+
+    private async Task OpenRecordAmendmentDialog(int contractId)
+    {
+        var dialog = await DialogService.ShowAsync<Shared.UI.Pages.Contracts.Dialogs.RecordAmendmentDialog>("Record Amendment");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.AmendmentRequest)result.Data!;
+        var outcome = await ContractService.RecordAmendmentAsync(
+            contractId,
+            data.Description,
+            data.EffectiveDate,
+            data.ChangedBy
+        );
+
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Amendment recorded.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(contractId);
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
+    }
+
+    private async Task OpenExtendExpiryDialog((int ContractId, int NextAmendmentNumber) args)
+    {
+        var parameters = new DialogParameters
+        {
+            ["AmendmentNumber"] = args.NextAmendmentNumber
+        };
+
+        var dialog = await DialogService.ShowAsync<Shared.UI.Pages.Contracts.Dialogs.ExtendExpiryDialog>("Extend Expiry", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.ExtendExpiryRequest)result.Data!;
+        var outcome = await ContractService.ExtendExpiryAsync(args.ContractId, data.NewExpiryDate, data.AmendmentNumber);
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("Expiry extended.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(args.ContractId);
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
+    }
+
+    // ─── Documents ─────────────────────────────────────────────────────────
+
+    private async Task OpenAttachFileDialog(int contractId)
+    {
+        var dialog = await DialogService.ShowAsync<AttachFileDialog>("Attach File");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var data = (AttachFileRequest)result.Data!;
+        var outcome = await ContractService.AttachFileAsync(contractId, data.FileUrl, data.FileName);
+        if (outcome.IsSuccess)
+        {
+            Snackbar.Add("File attached.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(contractId);
+        }
+        else
+            Snackbar.Add(outcome.Error!, Severity.Error);
+    }
+
+    private async Task<ContractDetailResponse> GetContractDetail(int arg)
+        => await ContractService.GetByIdAsync(arg) ?? new();
+
 }

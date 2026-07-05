@@ -8,6 +8,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Contract;
 using Marilog.Kernel.Enumerations;
+using Marilog.Kernel.Enums;
 using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;

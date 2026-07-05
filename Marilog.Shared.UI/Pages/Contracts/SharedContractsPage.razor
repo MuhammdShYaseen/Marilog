@@ -131,21 +131,21 @@
                                 <MudText Typo="Typo.body2">@_selected.Notes</MudText>
                             </MudItem>
                         }
-                        @if (!string.IsNullOrWhiteSpace(_selected.ContractFileName))
-                        {
-                            <MudItem xs="12">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">File</MudText>
-                                <MudLink Href="@_selected.ContractFileUrl" Target="_blank">
-                                    @_selected.ContractFileName
-                                </MudLink>
-                            </MudItem>
-                        }
                     </MudGrid>
 
                     <MudDivider Class="my-3" />
 
                     @* Parties *@
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Parties</MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.subtitle2">Parties</MudText>
+                        <MudSpacer />
+                        <MudTooltip Text="Add Party">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnAddPartyClicked.InvokeAsync(_selected!.Id)" />
+                        </MudTooltip>
+                    </MudStack>
                     @if (_selected.Parties.Any())
                     {
                         foreach (var party in _selected.Parties)
@@ -154,6 +154,11 @@
                                 <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
                                 <MudText Typo="Typo.body2">@party.CompanyName</MudText>
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@party.Role</MudChip>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="() => OnRemovePartyClicked.InvokeAsync((_selected!.Id, party))" />
                             </MudStack>
                         }
                     }
@@ -165,7 +170,22 @@
                     <MudDivider Class="my-3" />
 
                     @* Amendments *@
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Amendments</MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.subtitle2">Amendments</MudText>
+                        <MudSpacer />
+                        <MudTooltip Text="Extend Expiry">
+                            <MudIconButton Icon="@Icons.Material.Filled.DateRange"
+                                           Size="Size.Small"
+                                           Color="Color.Secondary"
+                                           OnClick="() => OnExtendExpiryClicked.InvokeAsync((_selected!.Id, _selected!.Amendments.Count + 1))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Record Amendment">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnRecordAmendmentClicked.InvokeAsync(_selected!.Id)" />
+                        </MudTooltip>
+                    </MudStack>
                     @if (_selected.Amendments.Any())
                     {
                         foreach (var amendment in _selected.Amendments)
@@ -181,6 +201,33 @@
                     else
                     {
                         <MudText Typo="Typo.body2" Color="Color.Secondary">No amendments.</MudText>
+                    }
+
+                    <MudDivider Class="my-3" />
+
+                    @* Document *@
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.subtitle2">Document</MudText>
+                        <MudSpacer />
+                        <MudTooltip Text="Attach File">
+                            <MudIconButton Icon="@Icons.Material.Filled.Upload"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnAttachFileClicked.InvokeAsync(_selected!.Id)" />
+                        </MudTooltip>
+                    </MudStack>
+                    @if (!string.IsNullOrWhiteSpace(_selected.ContractFileUrl))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Color="Color.Primary" />
+                            <MudLink Href="@_selected.ContractFileUrl" Target="_blank">
+                                @(_selected.ContractFileName ?? "Contract File")
+                            </MudLink>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">No file attached.</MudText>
                     }
 
                     <MudDivider Class="my-3" />
@@ -241,6 +288,12 @@
     [Parameter] public EventCallback<int> OnMarkExpiredClicked { get; set; }
     [Parameter] public EventCallback OnPrevPage { get; set; }
     [Parameter] public EventCallback OnNextPage { get; set; }
+
+    [Parameter] public EventCallback<int> OnAddPartyClicked { get; set; }
+    [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
+    [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }
+    [Parameter] public EventCallback<(int ContractId, int NextAmendmentNumber)> OnExtendExpiryClicked { get; set; }
+    [Parameter] public EventCallback<int> OnAttachFileClicked { get; set; }
 
     private ContractSummary? _selectedRow;
     private ContractDetailResponse? _selected;
