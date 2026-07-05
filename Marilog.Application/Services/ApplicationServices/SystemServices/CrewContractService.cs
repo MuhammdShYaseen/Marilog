@@ -40,8 +40,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.Id == id)
                 .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
-            if (response != null)
-                SetCrewContractStatus(response);
+            //if (response != null)
+                //SetCrewContractStatus(response);
             return response;
         }
 
@@ -55,7 +55,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .OrderByDescending(x => x.SignOnDate)
                 .Select(ToResponse())
                 .ToListAsync(ct);
-            SetCrewContractStatus(response);
+            //SetCrewContractStatus(response);
             return response;
         }
 
@@ -69,7 +69,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .OrderByDescending(x => x.SignOnDate)
                 .Select(ToResponse())
                 .ToListAsync(ct);
-            SetCrewContractStatus(response);
+            //SetCrewContractStatus(response);
             return response;
         }
         public async Task<IReadOnlyList<CrewContractResponse>> GetExpiredAsync(CancellationToken ct)
@@ -81,7 +81,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) < today && c.IsActive == true)
                 .Select(ToResponse())
                 .ToListAsync(ct);
-            SetCrewContractStatus(response);
+            //SetCrewContractStatus(response);
             return response;
         }
         private void SetCrewContractStatus(CrewContractResponse response)
@@ -124,7 +124,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(c => c.SignOnDate.AddMonths(c.DurationInMonth!.Value) >= today && c.SignOnDate.AddMonths(c.DurationInMonth!.Value) <= nextTwoMonths && c.IsActive == true)
                 .Select(ToResponse())
                 .ToListAsync(ct);
-            SetCrewContractStatus(response);
+            //SetCrewContractStatus(response);
             return response;
         }
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId,
@@ -137,7 +137,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ThenBy(x => x.Person.FullName)
                 .Select(ToResponse())
                 .ToListAsync(ct);
-            SetCrewContractStatus(response);
+            //SetCrewContractStatus(response);
             return response;
         }
 
@@ -149,8 +149,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.VesselID == vesselId && x.IsActive && x.Rank.RankCode == "MASTER")
                 .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
-            if(response != null)
-                SetCrewContractStatus(response);
+            //if(response != null)
+                //SetCrewContractStatus(response);
             return response;
         }
 
@@ -162,7 +162,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.SignOnDate <= date && (!x.SignOffDate.HasValue || x.SignOffDate.Value >= date))
                 .Select(ToResponse())
                 .ToListAsync(ct);
-                SetCrewContractStatus(response);
+                //SetCrewContractStatus(response);
             return response;
         }
 
@@ -173,7 +173,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                               .AsNoTracking()
                               .Select(ToResponse())
                               .ToListAsync(ct);
-            SetCrewContractStatus(response);
+            //SetCrewContractStatus(response);
             return response;
         }
 
@@ -474,6 +474,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Department = x.Rank.Department,
                     IsActive = x.Rank.IsActive
                 },
+                ContractStatus =
+                    !x.IsActive || !x.DurationInMonth.HasValue
+                        ? CrewContractStatus.Expired
+                            : x.SignOnDate.AddMonths(x.DurationInMonth.Value) < today
+                                ? CrewContractStatus.Expired
+                                    : x.SignOnDate.AddMonths(x.DurationInMonth.Value) <= today.AddMonths(2)
+                                        ? CrewContractStatus.Expiring
+                                            : CrewContractStatus.Valied,
             };
         }
     }
