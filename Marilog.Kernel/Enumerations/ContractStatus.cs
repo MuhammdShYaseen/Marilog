@@ -11,7 +11,7 @@ namespace Marilog.Kernel.Enumerations
         public static readonly ContractStatus Active = new(2, "Active", canBeSuspended: true, canBeTerminated: true);
         public static readonly ContractStatus Expired = new(3, "Expired", isClosed: true);
         public static readonly ContractStatus Terminated = new(4, "Terminated", isClosed: true);
-        public static readonly ContractStatus Suspended = new(5, "Suspended", canBeTerminated: true);
+        public static readonly ContractStatus Suspended = new(5, "Suspended", canBeActivated: true, canBeTerminated: true);
 
         // ─── الصلاحيات مدمجة داخل الحالة نفسها (بدل if/switch في كل مكان)
         public bool CanBeActivated { get; }
@@ -35,13 +35,13 @@ namespace Marilog.Kernel.Enumerations
 
         public static bool TryFromName(string name, out ContractStatus? result)
         {
-            result = name?.ToLower() switch
-            { 
+            result = name?.Trim().ToLower() switch
+            {
                 "draft" => Draft,
                 "active" => Active,
-                "Expired" => Expired,
-                "Terminated" => Terminated,
-                "Suspended" => Suspended,
+                "expired" => Expired,
+                "terminated" => Terminated,
+                "suspended" => Suspended,
                 _ => null
             };
 

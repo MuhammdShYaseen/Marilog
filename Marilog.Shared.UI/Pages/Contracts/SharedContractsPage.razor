@@ -234,7 +234,7 @@
 
                     @* Actions *@
                     <MudStack Row="true" Spacing="2" Class="flex-wrap">
-                        @if (_selected.Status == "Draft")
+                        @if (_selected.Status == "Draft" || _selected.Status == "Suspended")
                         {
                             <MudButton Variant="Variant.Outlined" Color="Color.Success"
                                        StartIcon="@Icons.Material.Filled.CheckCircle"
