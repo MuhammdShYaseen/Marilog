@@ -62,7 +62,7 @@ else
             Page = _page,
             PageSize = PageSize
         });
-        AllCompanies = await CompanyService.GetAllAsync();
+        //AllCompanies = await CompanyService.GetAllAsync();
         _loading = false;
     }
 
@@ -174,15 +174,19 @@ else
 
     private async Task Terminate(int id)
     {
-        var result = await ContractService.TerminateAsync(id, "Terminated by user");
-        if (result.IsSuccess)
+        var dialog = await DialogService.ShowAsync<TerminateContractDialog>("Terminate Contract");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var outcome = await ContractService.TerminateAsync(id, "Terminated by user");
+        if (outcome.IsSuccess)
         {
             Snackbar.Add("Contract terminated.", Severity.Error);
             await LoadAsync();
             await RefreshSelected(id);
         }
         else
-            Snackbar.Add(result.Error!, Severity.Error);
+            Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
     private async Task MarkExpired(int id)
@@ -202,6 +206,7 @@ else
 
     private async Task OpenAddPartyDialog(int contractId)
     {
+        AllCompanies = await CompanyService.GetActiveAsync();
         var parameters = new DialogParameters
         {
             [nameof(AddPartyDialog.Companies)] = AllCompanies

@@ -1,0 +1,48 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
+
+<MudDialog>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+            This action is permanent. A terminated contract cannot be reactivated —
+            you would need to create a new contract instead.
+        </MudAlert>
+
+        <MudText Class="mb-2">
+            Type <strong>TERMINATE</strong> to confirm.
+        </MudText>
+
+        <MudTextField @bind-Value="_confirmText"
+                      Placeholder="TERMINATE"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      AutoFocus="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   Disabled="@(!IsConfirmed)"
+                   OnClick="Confirm">
+            Terminate
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _confirmText = string.Empty;
+
+    private bool IsConfirmed =>
+        string.Equals(_confirmText.Trim(), "TERMINATE", StringComparison.OrdinalIgnoreCase);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm()
+    {
+        if (!IsConfirmed) return;
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}
