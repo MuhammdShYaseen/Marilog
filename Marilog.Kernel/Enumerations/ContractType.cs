@@ -1,4 +1,4 @@
-﻿namespace Marilog.Domain.Enumerations
+﻿namespace Marilog.Kernel.Enumerations
 {
     public class ContractType : Enumeration
     {

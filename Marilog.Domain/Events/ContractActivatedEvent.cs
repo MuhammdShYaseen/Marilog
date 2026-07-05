@@ -1,5 +1,5 @@
 ﻿using Marilog.Domain.Common;
-using Marilog.Domain.Enumerations;
+using Marilog.Kernel.Enumerations;
 
 
 namespace Marilog.Domain.Events

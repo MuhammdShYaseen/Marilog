@@ -1,7 +1,7 @@
 ﻿
 using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Domain.Entities.SystemEntities;
-using Marilog.Domain.Enumerations;
+using Marilog.Kernel.Enumerations;
 
 
 namespace Marilog.Application.Extensions

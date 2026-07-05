@@ -1,8 +1,8 @@
 ﻿// Infrastructure/Persistence/Configurations/ContractConfiguration.cs
 using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Entities.SystemEntities;
-using Marilog.Domain.Enumerations;
 using Marilog.Domain.ValueObjects.Contract;
+using Marilog.Kernel.Enumerations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;

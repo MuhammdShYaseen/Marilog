@@ -1,8 +1,8 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Entities.LaytimeEntities;
-using Marilog.Domain.Enumerations;
 using Marilog.Domain.Events;
 using Marilog.Domain.ValueObjects.Contract;
+using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Primitives;
 
 namespace Marilog.Domain.Entities.SystemEntities
