@@ -321,9 +321,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return result;
         }
 
-        public async Task<Result> RecordAmendmentAsync(
-            int id, string description, DateOnly effectiveDate,
-            string changedBy, CancellationToken ct = default)
+        public async Task<Result> RecordAmendmentAsync(int id, string description, DateOnly effectiveDate, string changedBy, CancellationToken ct = default)
         {
             var recordedDate = DateOnly.FromDateTime(DateTime.Today);
             var recordedDateTimeUtc = DateTime.UtcNow;
@@ -336,15 +334,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return result;
         }
 
-        public async Task<Result> ExtendExpiryAsync(
-            int id, DateOnly newExpiryDate, int amendmentNumber,
-            CancellationToken ct = default)
+        public async Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, string changeBy, CancellationToken ct = default)
         {
-            var result = await ExecuteOnContractAsync(
-                id,
-                c => c.ExtendExpiry(newExpiryDate, amendmentNumber, DateOnly.FromDateTime(DateTime.Today)),
-                ct);
-
+            var result = await ExecuteOnContractAsync(id, c => c.ChangeExpiry(newExpiryDate, changeBy, DateOnly.FromDateTime(DateTime.Today)), ct);
             return result;
         }
 
@@ -368,14 +360,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // Private Helper — يُلغي تكرار Load/Check/Save في كل دالة Write
         // ══════════════════════════════════════════════════════════════════
 
-        private async Task<Kernel.Primitives.Result> ExecuteOnContractAsync(
-            int id,
-            Func<AContract, Kernel.Primitives.Result> domainAction,
-            CancellationToken ct)
+        private async Task<Result> ExecuteOnContractAsync(int id, Func<AContract,Result> domainAction, CancellationToken ct)
         {
             var contract = await _repository.GetByIdAsync(id, ct);
             if (contract is null)
-                return Kernel.Primitives.Result.Fail($"Contract #{id} not found.");
+                return Result.Fail($"Contract #{id} not found.");
 
             var result = domainAction(contract);
             if (result.IsFailure)
@@ -383,7 +372,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             _repository.Update(contract);
             await _repository.SaveChangesAsync(ct);
-            return Kernel.Primitives.Result.Ok();
+            return Result.Ok();
         }
 
         // ══════════════════════════════════════════════════════════════════

@@ -6,12 +6,22 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12">
-                <MudDatePicker @bind-Date="_newExpiryDate"
+                <MudDatePicker @bind-Date="_ExpiryDate"
                                Label="New Expiry Date"
                                Required="true"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense" />
             </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_changeBy"
+                              Label="Change By:"
+                              Required="true"
+                              RequiredError="This field is required"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+               </MudItem>
+
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -19,23 +29,19 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    OnClick="Submit"
-                   Disabled="@(_newExpiryDate is null)">
-            Extend
+                   Disabled="@(_ExpiryDate is null || string.IsNullOrWhiteSpace(_changeBy))">
+            Change
         </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public int AmendmentNumber { get; set; }
 
-    private DateTime? _newExpiryDate;
-
+    [Parameter] public DateTime? _ExpiryDate { get; set; }
+    private string? _changeBy;
     private void Cancel() => MudDialog.Cancel();
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new ExtendExpiryRequest(
-            DateOnly.FromDateTime(_newExpiryDate!.Value),
-            AmendmentNumber
-        )));
+        new ChangeExpiryRequest(DateOnly.FromDateTime(_ExpiryDate!.Value), _changeBy ?? "")));
 }

@@ -38,7 +38,7 @@ else
                          OnAddPartyClicked="OpenAddPartyDialog"
                          OnRemovePartyClicked="OpenRemovePartyDialog"
                          OnRecordAmendmentClicked="OpenRecordAmendmentDialog"
-                         OnExtendExpiryClicked="OpenExtendExpiryDialog"
+                         OnChangeExpiryClicked="OpenChangeExpiryDialog"
                          OnAttachFileClicked="OpenAttachFileDialog" />
 }
 @code{
@@ -276,24 +276,25 @@ else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    private async Task OpenExtendExpiryDialog((int ContractId, int NextAmendmentNumber) args)
+    private async Task OpenChangeExpiryDialog((int ContractId, DateOnly CorrentExpiryDate)arg)
     {
+
         var parameters = new DialogParameters
         {
-            ["AmendmentNumber"] = args.NextAmendmentNumber
+            [nameof(ChangeExpiryDialog._ExpiryDate)] = arg.CorrentExpiryDate.ToDateTime(TimeOnly.MinValue)
         };
 
-        var dialog = await DialogService.ShowAsync<Shared.UI.Pages.Contracts.Dialogs.ExtendExpiryDialog>("Extend Expiry", parameters);
+        var dialog = await DialogService.ShowAsync<ChangeExpiryDialog>("Change Expiry", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.ExtendExpiryRequest)result.Data!;
-        var outcome = await ContractService.ExtendExpiryAsync(args.ContractId, data.NewExpiryDate, data.AmendmentNumber);
+        var data = (ChangeExpiryRequest)result.Data!;
+        var outcome = await ContractService.ChangeExpiryAsync(arg.ContractId, data.NewExpiryDate, data.ChangedBy);
         if (outcome.IsSuccess)
         {
             Snackbar.Add("Expiry extended.", Severity.Success);
             await LoadAsync();
-            await RefreshSelected(args.ContractId);
+            await RefreshSelected(arg.ContractId);
         }
         else
             Snackbar.Add(outcome.Error!, Severity.Error);

@@ -25,7 +25,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<Result> RemovePartyAsync(int id, int companyId, string role, CancellationToken ct = default);
         Task<Result> RemovePartyViaAmendmentAsync(int id, int companyId, string role, int amendmentNumber, CancellationToken ct = default);
         Task<Result> RecordAmendmentAsync(int id, string description, DateOnly effectiveDate, string changedBy, CancellationToken ct = default);
-        Task<Result> ExtendExpiryAsync(int id, DateOnly newExpiryDate, int amendmentNumber, CancellationToken ct = default);
+        Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, string changeBy, CancellationToken ct = default);
         Task<Result> AttachFileAsync(int id, string fileUrl, string fileName, CancellationToken ct = default);
     }
 }

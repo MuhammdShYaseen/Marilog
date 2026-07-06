@@ -245,41 +245,58 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (effectiveDate < today)
                 return Result.Fail("Amendment effective date cannot be in the past.");
 
-            var number = _amendments.Count + 1;
-
             var amendment = new ContractAmendment(
-                amendmentNumber: number,
                 description: description,
                 effectiveDate: effectiveDate,
                 changedBy: changedBy,
                 recordedAtUtc: recordedAtUtc);
 
             _amendments.Add(amendment);
-            AppendNote($"Amendment #{number}: {description}");
-            AddDomainEvent(new ContractAmendedEvent(Id, number, description, effectiveDate, changedBy));
+            AppendNote($"Amendment #{amendment.AmendmentNumber}: {description}");
+            AddDomainEvent(new ContractAmendedEvent(Id, amendment.AmendmentNumber, description, effectiveDate, changedBy));
             return Result.Ok();
         }
 
         /// <summary>
         /// تمديد تاريخ الانتهاء — يشترط ربطه بـ Amendment مسجَّل مسبقاً.
         /// </summary>
-        public Result ExtendExpiry(DateOnly newExpiryDate, int amendmentNumber, DateOnly today)
+        public Result ChangeExpiry(DateOnly newExpiryDate, string changedBy, DateOnly today)
         {
+            
             if (Status.IsClosed)
-                return Result.Fail("Cannot extend a closed contract.");
+                return Result.Fail("Cannot Change a closed contract Expiry Date.");
 
-            var amendment = _amendments.FirstOrDefault(a => a.AmendmentNumber == amendmentNumber);
-            if (amendment is null)
-                return Result.Fail($"Amendment #{amendmentNumber} not found.");
+            if (newExpiryDate <= EffectiveDate)
+                return Result.Fail("Cannot be Expiry Date < Effective Date");
 
-            if (ExpiryDate.HasValue && newExpiryDate <= ExpiryDate.Value)
-                return Result.Fail($"New expiry must be after current expiry ({ExpiryDate}).");
+            string amendmentDescription = string.Empty;
 
-            if (newExpiryDate <= today)
-                return Result.Fail("New expiry date must be in the future.");
+            if (ExpiryDate is null)
+            {
+                amendmentDescription = "Set contract expiry date";
+            }
+            else if (newExpiryDate > ExpiryDate.Value)
+            {
+                amendmentDescription = "Extended contract expiry date";
+            }
+            else if (newExpiryDate < ExpiryDate.Value)
+            {
+                amendmentDescription = "Reduced contract expiry date";
+            }
+            else
+            {
+                amendmentDescription = "Updated contract expiry date";
+            }
+            var amendment = new ContractAmendment(
+                description: amendmentDescription,
+                effectiveDate: today,
+                changedBy: changedBy,
+                recordedAtUtc: DateTime.UtcNow);
 
+            _amendments.Add(amendment);
+            AppendNote($"Amendment #{amendment.AmendmentNumber}: {amendmentDescription}");
             ExpiryDate = newExpiryDate;
-            AddDomainEvent(new ContractExpiryExtendedEvent(Id, ContractNumber, newExpiryDate, amendmentNumber));
+            AddDomainEvent(new ContractExpiryExtendedEvent(Id, ContractNumber, newExpiryDate, amendment.AmendmentNumber));
             return Result.Ok();
         }
 

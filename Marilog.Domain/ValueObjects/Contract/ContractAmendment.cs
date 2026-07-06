@@ -24,14 +24,11 @@ namespace Marilog.Domain.ValueObjects.Contract
 
         // Constructor
         internal ContractAmendment(
-            int amendmentNumber,
             string description,
             DateOnly effectiveDate,
             string changedBy,
             DateTime recordedAtUtc)
         {
-            if (amendmentNumber <= 0)
-                throw new ArgumentException("Invalid amendment number.");
 
             if (string.IsNullOrWhiteSpace(description))
                 throw new ArgumentException("Description is required.");
@@ -39,7 +36,6 @@ namespace Marilog.Domain.ValueObjects.Contract
             if (string.IsNullOrWhiteSpace(changedBy))
                 throw new ArgumentException("ChangedBy is required.");
 
-            AmendmentNumber = amendmentNumber;
             Description = description;
             EffectiveDate = effectiveDate;
             ChangedBy = changedBy;

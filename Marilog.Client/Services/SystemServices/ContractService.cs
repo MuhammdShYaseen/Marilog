@@ -158,10 +158,10 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<Result> ExtendExpiryAsync(int id, DateOnly newExpiryDate, int amendmentNumber, CancellationToken ct = default)
+        public async Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, string changeBy, CancellationToken ct = default)
         {
-            var request = new ExtendExpiryRequest (newExpiryDate, amendmentNumber);
-            var http = await _http.PostAsJsonAsync($"{Base}/{id}/extend-expiry", request, ct);
+            var request = new ChangeExpiryRequest(newExpiryDate, changeBy);
+            var http = await _http.PostAsJsonAsync($"{Base}/{id}/change-expiry", request, ct);
             http.EnsureSuccessStatusCode();
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;

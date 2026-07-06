@@ -144,23 +144,17 @@ public partial class ContractDetailPage
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    private async Task OpenExtendExpiryDialog()
+    private async Task OpenChangeExpiryDialog()
     {
-        var nextAmendmentNumber = (_detail?.Amendments.Count ?? 0) + 1;
-        var parameters = new DialogParameters
-        {
-            ["AmendmentNumber"] = nextAmendmentNumber
-        };
-
-        var dialog = await DialogService.ShowAsync<ExtendExpiryDialog>("Extend Expiry", parameters);
+        var dialog = await DialogService.ShowAsync<ChangeExpiryDialog>("Change Expiry");
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (ExtendExpiryRequest)result.Data!;
-        var outcome = await ContractService.ExtendExpiryAsync(Id, data.NewExpiryDate, data.AmendmentNumber);
+        var data = (ChangeExpiryRequest)result.Data!;
+        var outcome = await ContractService.ChangeExpiryAsync(Id, data.NewExpiryDate, data.ChangedBy);
         if (outcome.IsSuccess)
         {
-            Snackbar.Add("Expiry extended.", Severity.Success);
+            Snackbar.Add("Expiry changed.", Severity.Success);
             await LoadAsync();
         }
         else

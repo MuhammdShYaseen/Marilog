@@ -142,6 +142,7 @@
                         <MudTooltip Text="Add Party">
                             <MudIconButton Icon="@Icons.Material.Filled.Add"
                                            Size="Size.Small"
+                                           Disabled ="IsNotActive"
                                            Color="Color.Primary"
                                            OnClick="() => OnAddPartyClicked.InvokeAsync(_selected!.Id)" />
                         </MudTooltip>
@@ -156,6 +157,7 @@
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@party.Role</MudChip>
                                 <MudSpacer />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Disabled="IsNotActive"
                                                Size="Size.Small"
                                                Color="Color.Error"
                                                OnClick="() => OnRemovePartyClicked.InvokeAsync((_selected!.Id, party))" />
@@ -173,14 +175,16 @@
                     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
                         <MudText Typo="Typo.subtitle2">Amendments</MudText>
                         <MudSpacer />
-                        <MudTooltip Text="Extend Expiry">
+                        <MudTooltip Text="Change Expiry">
                             <MudIconButton Icon="@Icons.Material.Filled.DateRange"
+                                           Disabled="IsNotActive"
                                            Size="Size.Small"
                                            Color="Color.Secondary"
-                                           OnClick="() => OnExtendExpiryClicked.InvokeAsync((_selected!.Id, _selected!.Amendments.Count + 1))" />
+                                           OnClick="() => OnChangeExpiryClicked.InvokeAsync((_selected!.Id, _selected.ExpiryDate!.Value))" />
                         </MudTooltip>
                         <MudTooltip Text="Record Amendment">
                             <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Disabled="IsNotActive"
                                            Size="Size.Small"
                                            Color="Color.Primary"
                                            OnClick="() => OnRecordAmendmentClicked.InvokeAsync(_selected!.Id)" />
@@ -292,12 +296,13 @@
     [Parameter] public EventCallback<int> OnAddPartyClicked { get; set; }
     [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
     [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }
-    [Parameter] public EventCallback<(int ContractId, int NextAmendmentNumber)> OnExtendExpiryClicked { get; set; }
+    [Parameter] public EventCallback<(int ContractId, DateOnly CurrentExpiryDate)> OnChangeExpiryClicked { get; set; }
     [Parameter] public EventCallback<int> OnAttachFileClicked { get; set; }
 
     private ContractSummary? _selectedRow;
     private ContractDetailResponse? _selected;
     private int? _lastSelectedId;
+    private bool IsNotActive => _selected?.Status != "Active";
     private Dictionary<int, string> _companyNames = new();
     protected override void OnParametersSet()
     {

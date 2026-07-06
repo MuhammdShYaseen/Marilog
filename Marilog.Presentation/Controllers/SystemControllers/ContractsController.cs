@@ -1,5 +1,4 @@
-﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Contracts.DTOs.Requests.ContractDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -194,10 +193,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<Result>.Ok(result));
         }
 
-        [HttpPost("{id}/extend-expiry")]
-        public async Task<ActionResult<ApiResponse<Result>>> ExtendExpiry(int id, [FromBody] ExtendExpiryRequest request, CancellationToken ct)
+        [HttpPost("{id}/change-expiry")]
+        public async Task<ActionResult<ApiResponse<Result>>> ChangeExpiry(int id, [FromBody] ChangeExpiryRequest request, CancellationToken ct)
         {
-            var result = await _service.ExtendExpiryAsync(id, request.NewExpiryDate, request.AmendmentNumber, ct);
+            var result = await _service.ChangeExpiryAsync(id, request.NewExpiryDate, request.ChangedBy, ct);
 
             if (!result.IsSuccess)
                 throw new Exception(result.Error);
