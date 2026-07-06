@@ -6,6 +6,7 @@
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Contracts
 @using Marilog.Shared.UI.Pages.Contracts.Dialogs
+@using Marilog.Shared.UI.Components.Upload
 @using MudBlazor
 
 @inject IContractService ContractService
@@ -337,7 +338,7 @@ else
 
     private async Task OpenAttachFileDialog(int contractId)
     {
-        var dialog = await DialogService.ShowAsync<AttachFileDialog>("Attach File");
+        var dialog = await DialogService.ShowAsync<FileUploadDialog>("Attach File");
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 

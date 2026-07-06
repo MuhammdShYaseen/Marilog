@@ -1,0 +1,176 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+
+@namespace Marilog.Shared.UI.Components.Upload
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>"
+                       @bind-Files="_files"
+                       DragAndDrop="true"
+                       AppendMultipleFiles="true"
+                       MaximumFileCount="5">
+
+        </MudFileUpload>
+
+
+        @if (_files is { Count: > 0 })
+        {
+            <MudTable Items="_files"
+                      Dense="true"
+                      Hover="true"
+                      Class="mt-4">
+
+                <HeaderContent>
+                    <MudTh>#</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Size</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+
+
+                <RowTemplate Context="file">
+
+                    <MudTd DataLabel="#">
+                        @(IndexOf(file) + 1)
+                    </MudTd>
+
+
+                    <MudTd DataLabel="Name">
+
+                        <MudStack Row="true"
+                                  AlignItems="AlignItems.Center"
+                                  Spacing="1">
+
+                            <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile"
+                                     Size="Size.Small" />
+
+                            <MudText>
+                                @file.Name
+                            </MudText>
+
+                        </MudStack>
+
+                    </MudTd>
+
+
+                    <MudTd DataLabel="Size">
+                        @FormatSize(file.Size)
+                    </MudTd>
+
+
+                    <MudTd DataLabel="Type">
+                        @(string.IsNullOrWhiteSpace(file.ContentType)
+                            ? "-"
+                            : file.ContentType)
+                    </MudTd>
+
+
+                    <MudTd>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => RemoveFile(file))" />
+
+                    </MudTd>
+
+                </RowTemplate>
+
+            </MudTable>
+        }
+        else
+        {
+            <MudText Class="mt-4"
+                     Color="Color.Secondary"
+                     Align="Align.Center">
+
+                Drag & drop files here or click browse
+
+            </MudText>
+        }
+
+
+    </DialogContent>
+
+
+    <DialogActions>
+
+        <MudButton OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(_files is null || _files.Count == 0)"
+                   OnClick="Submit">
+
+            Attach
+
+        </MudButton>
+
+
+    </DialogActions>
+
+</MudDialog>
+
+
+@code {
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+
+    private IReadOnlyList<IBrowserFile>? _files;
+
+
+    private int IndexOf(IBrowserFile file)
+    {
+        return _files?.ToList().IndexOf(file) ?? -1;
+    }
+
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        if (_files is null)
+            return;
+
+
+        _files = _files
+            .Where(x => x != file)
+            .ToList();
+    }
+
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+
+        if (bytes < 1024 * 1024)
+            return $"{bytes / 1024d:F1} KB";
+
+        return $"{bytes / 1024d / 1024d:F1} MB";
+    }
+
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+
+    private void Submit()
+    {
+        if (_files is null || _files.Count == 0)
+            return;
+
+
+        MudDialog.Close(
+            DialogResult.Ok(_files));
+    }
+}
