@@ -154,7 +154,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.ExpiryDate.HasValue
                          && x.ExpiryDate.Value >= DateOnly.FromDateTime(DateTime.Today)
                          && x.ExpiryDate.Value <= threshold
-                         && x.Status.Id == ContractStatus.Active.Id)
+                         && x.Status == ContractStatus.Active)
                 .OrderBy(x => x.ExpiryDate)
                 .Select(ToSummaryResponse)
                 .ToListAsync(ct);
@@ -172,7 +172,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.ExpiryDate.HasValue
                          && x.ExpiryDate.Value >= today
                          && x.ExpiryDate.Value <= threshold
-                         && x.Status.Id == ContractStatus.Active.Id)
+                         && x.Status == ContractStatus.Active)
                 .OrderBy(x => x.ExpiryDate)
                 .Select(ToSummaryResponse)
                 .ToListAsync(ct);
@@ -191,11 +191,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(g => new
                 {
                     Total = g.Count(),
-                    Active = g.Count(x => x.Status.Id == ContractStatus.Active.Id),
-                    Draft = g.Count(x => x.Status.Id == ContractStatus.Draft.Id),
-                    Expired = g.Count(x => x.Status.Id == ContractStatus.Expired.Id),
-                    Terminated = g.Count(x => x.Status.Id == ContractStatus.Terminated.Id),
-                    Suspended = g.Count(x => x.Status.Id == ContractStatus.Suspended.Id)
+                    Active = g.Count(x => x.Status == ContractStatus.Active),
+                    Draft = g.Count(x => x.Status == ContractStatus.Draft),
+                    Expired = g.Count(x => x.Status == ContractStatus.Expired),
+                    Terminated = g.Count(x => x.Status == ContractStatus.Terminated),
+                    Suspended = g.Count(x => x.Status == ContractStatus.Suspended)
                 })
                 .FirstOrDefaultAsync(ct);
 

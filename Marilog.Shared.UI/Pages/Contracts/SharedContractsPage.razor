@@ -124,23 +124,37 @@
                     {
                         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
                     }
-                    else if (!Expiring.Any())
-                    {
-                        <MudText Color="Color.Secondary">No contracts expiring within 30 days.</MudText>
-                    }
                     else
                     {
-                        foreach (var c in Expiring)
-                        {
-                            <MudPaper Class="pa-2 mb-2" Outlined="true">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudText Typo="Typo.body2">@c.ContractNumber — @c.Type</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Warning">
-                                        Expires @c.ExpiryDate?.ToString("dd MMM yyyy")
-                                    </MudText>
-                                </MudStack>
-                            </MudPaper>
-                        }
+                        <MudTable Items="@Expiring"
+                                  Dense="true" Hover="true" Striped="true"
+                                  SelectedItem="_selectedRow"
+                                  SelectedItemChanged="OnRowSelected"
+                                  T="ContractSummary">
+                            <HeaderContent>
+                                <MudTh>Contract No.</MudTh>
+                                <MudTh>Type</MudTh>
+                                <MudTh>Status</MudTh>
+                                <MudTh>Effective</MudTh>
+                                <MudTh>Expiry</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.ContractNumber</MudTd>
+                                <MudTd>@context.Type</MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Color="@StatusColor(context.Status)" Size="Size.Small">
+                                        @context.Status
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>@context.EffectiveDate.ToString("dd MMM yyyy")</MudTd>
+                                <MudTd Style="color:var(--mud-palette-warning)">
+                                    @context.ExpiryDate?.ToString("dd MMM yyyy")
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText>No contracts expiring within 30 days.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
                     }
                 </MudTabPanel>
 
