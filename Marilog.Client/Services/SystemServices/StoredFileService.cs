@@ -67,16 +67,25 @@ namespace Marilog.Client.Services.SystemServices
         {
             using var content = new MultipartFormDataContent();
 
+            var first = requests.First();
+
             foreach (var request in requests)
             {
                 var streamContent = new StreamContent(request.FileStream);
                 streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
 
-                content.Add(streamContent, "files", request.FileName);
-                content.Add(new StringContent(((int)request.EntityType).ToString()), "entityTypes");
+                content.Add(streamContent, "Files", request.FileName);
+            }
 
-                if (request.EntityId is not null)
-                    content.Add(new StringContent(request.EntityId.ToString()!), "entityIds");
+            content.Add(
+                new StringContent(((int)first.EntityType).ToString()),
+                "EntityType");
+
+            if (first.EntityId is not null)
+            {
+                content.Add(
+                    new StringContent(first.EntityId.Value.ToString()),
+                    "EntityId");
             }
 
             var httpResponse = await _http.PostAsync(Base, content, ct);
