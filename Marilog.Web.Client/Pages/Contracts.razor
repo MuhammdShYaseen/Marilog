@@ -2,21 +2,17 @@
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Contracts
-@using Marilog.Contracts.DTOs.Requests.ContractDTOs
-@using Shared.UI.Pages.Contracts.Dialogs
+@using Marilog.Shared.UI.Pages.Contracts.Dialogs
 @using MudBlazor
 
 @inject IContractService ContractService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
-
-
-@inject IContractService ContractService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
 @inject ICompanyService CompanyService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -27,6 +23,13 @@ else
                          Paged="_paged"
                          GetContractDetail="GetContractDetail"
                          Companies="AllCompanies"
+                         Expiring="_expiring"
+                         Report="_report"
+                         SortColumn="_sortColumn"
+                         SortDescending="_sortDescending"
+                         OnSortClicked="OnSortClicked"
+                         OnSearchClicked="OnSearchClicked"
+                         OnTabChanged="OnTabChanged"
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnActivateClicked="Activate"
@@ -41,14 +44,21 @@ else
                          OnChangeExpiryClicked="OpenChangeExpiryDialog"
                          OnAttachFileClicked="OpenAttachFileDialog" />
 }
-@code{
 
+@code {
     private const int PageSize = 15;
+    private const int ExpiringWithinDays = 30;
+
     private IReadOnlyList<CompanyResponse> AllCompanies = [];
     private SharedContractsPage _sharedPage = default!;
     private PagedResponse<ContractSummary>? _paged;
+    private List<ContractSummary>? _expiring;
+    private ContractReport? _report;
     private bool _loading = true;
     private int _page = 1;
+    private string? _sortColumn;
+    private bool _sortDescending;
+    private string? _searchTerm;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -60,11 +70,17 @@ else
         _paged = await ContractService.GetPagedAsync(new ContractFilter
         {
             Page = _page,
-            PageSize = PageSize
+            PageSize = PageSize,
+            SortBy = _sortColumn ?? "ContractNumber",
+            Ascending = _sortDescending,
+            SearchTerm = _searchTerm
         });
-        //AllCompanies = await CompanyService.GetAllAsync();
+        AllCompanies = await CompanyService.GetActiveAsync();
         _loading = false;
     }
+
+    private async Task<ContractDetailResponse?> GetContractDetail(int id) =>
+        await ContractService.GetByIdAsync(id);
 
     private async Task RefreshSelected(int id)
     {
@@ -73,25 +89,56 @@ else
             _sharedPage?.UpdateSelected(updated);
     }
 
+    // ─── Sorting / Search ────────────────────────────────────────────────
+
+    private async Task OnSortClicked(string column)
+    {
+        if (_sortColumn == column)
+            _sortDescending = !_sortDescending;
+        else
+        {
+            _sortColumn = column;
+            _sortDescending = false;
+        }
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task OnSearchClicked(string term)
+    {
+        _searchTerm = string.IsNullOrWhiteSpace(term) ? null : term.Trim();
+        _page = 1;
+        await LoadAsync();
+    }
+
+    // ─── Tabs (Lazy load) ───────────────────────────────────────────────
+
+    private async Task OnTabChanged(int index)
+    {
+        switch (index)
+        {
+            case 1 when _expiring is null:
+                _expiring = await ContractService.GetExpiringAsync(ExpiringWithinDays);
+                break;
+            case 2 when _report is null:
+                _report = await ContractService.GetReportAsync();
+                break;
+        }
+    }
+
+    // ─── Pagination ──────────────────────────────────────────────────────
+
     private async Task PrevPage()
     {
-        if (_page > 1)
-        {
-            _page--;
-            await LoadAsync();
-        }
+        if (_page > 1) { _page--; await LoadAsync(); }
     }
 
     private async Task NextPage()
     {
-        if (_paged?.HasNext == true)
-        {
-            _page++;
-            await LoadAsync();
-        }
+        if (_paged?.HasNext == true) { _page++; await LoadAsync(); }
     }
 
-    // ─── Dialogs ───────────────────────────────────────────────────────────
+    // ─── Dialogs (Create/Edit) ───────────────────────────────────────────
 
     private async Task OpenAddDialog()
     {
@@ -101,17 +148,13 @@ else
 
         var data = (CreateContractRequest)result.Data!;
         var outcome = await ContractService.CreateAsync(
-            data.ContractNumber,
-            data.Type,
-            data.EffectiveDate,
-            data.ExpiryDate,
-            data.Notes
-        );
+            data.ContractNumber, data.Type, data.EffectiveDate, data.ExpiryDate, data.Notes);
 
         if (outcome.IsSuccess)
         {
             Snackbar.Add("Contract created.", Severity.Success);
             await LoadAsync();
+            _report = null;
         }
         else
             Snackbar.Add(outcome.Error!, Severity.Error);
@@ -126,13 +169,7 @@ else
 
         var data = (CreateContractRequest)result.Data!;
         var outcome = await ContractService.UpdateAsync(
-            contract.Id,
-            data.ContractNumber,
-            data.Type,
-            data.EffectiveDate,
-            data.ExpiryDate,
-            data.Notes
-        );
+            contract.Id, data.ContractNumber, data.Type, data.EffectiveDate, data.ExpiryDate, data.Notes);
 
         if (outcome.IsSuccess)
         {
@@ -144,7 +181,7 @@ else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    // ─── Status Actions ────────────────────────────────────────────────────
+    // ─── Status Actions ──────────────────────────────────────────────────
 
     private async Task Activate(int id)
     {
@@ -154,6 +191,7 @@ else
             Snackbar.Add("Contract activated.", Severity.Success);
             await LoadAsync();
             await RefreshSelected(id);
+            _report = null;
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
@@ -167,6 +205,7 @@ else
             Snackbar.Add("Contract suspended.", Severity.Warning);
             await LoadAsync();
             await RefreshSelected(id);
+            _report = null;
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
@@ -184,6 +223,7 @@ else
             Snackbar.Add("Contract terminated.", Severity.Error);
             await LoadAsync();
             await RefreshSelected(id);
+            _report = null;
         }
         else
             Snackbar.Add(outcome.Error!, Severity.Error);
@@ -197,20 +237,18 @@ else
             Snackbar.Add("Contract marked as expired.", Severity.Info);
             await LoadAsync();
             await RefreshSelected(id);
+            _report = null;
+            _expiring = null;
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
     }
 
-    // ─── Parties ───────────────────────────────────────────────────────────
+    // ─── Parties ─────────────────────────────────────────────────────────
 
     private async Task OpenAddPartyDialog(int contractId)
     {
-        AllCompanies = await CompanyService.GetActiveAsync();
-        var parameters = new DialogParameters
-        {
-            [nameof(AddPartyDialog.Companies)] = AllCompanies
-        };
+        var parameters = new DialogParameters { [nameof(AddPartyDialog.Companies)] = AllCompanies };
         var dialog = await DialogService.ShowAsync<AddPartyDialog>("Add Party", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
@@ -235,7 +273,7 @@ else
             ["Role"] = args.Party.Role
         };
 
-        var dialog = await DialogService.ShowAsync<Shared.UI.Pages.Contracts.Dialogs.RemovePartyDialog>("Remove Party", parameters);
+        var dialog = await DialogService.ShowAsync<RemovePartyDialog>("Remove Party", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
@@ -250,21 +288,17 @@ else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    // ─── Amendments ────────────────────────────────────────────────────────
+    // ─── Amendments ──────────────────────────────────────────────────────
 
     private async Task OpenRecordAmendmentDialog(int contractId)
     {
-        var dialog = await DialogService.ShowAsync<Shared.UI.Pages.Contracts.Dialogs.RecordAmendmentDialog>("Record Amendment");
+        var dialog = await DialogService.ShowAsync<RecordAmendmentDialog>("Record Amendment");
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var data = (Marilog.Contracts.DTOs.Requests.ContractDTOs.AmendmentRequest)result.Data!;
+        var data = (AmendmentRequest)result.Data!;
         var outcome = await ContractService.RecordAmendmentAsync(
-            contractId,
-            data.Description,
-            data.EffectiveDate,
-            data.ChangedBy
-        );
+            contractId, data.Description, data.EffectiveDate, data.ChangedBy);
 
         if (outcome.IsSuccess)
         {
@@ -276,12 +310,11 @@ else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    private async Task OpenChangeExpiryDialog((int ContractId, DateOnly CorrentExpiryDate)arg)
+    private async Task OpenChangeExpiryDialog((int ContractId, DateOnly? CurrentExpiryDate) arg)
     {
-
         var parameters = new DialogParameters
         {
-            [nameof(ChangeExpiryDialog._ExpiryDate)] = arg.CorrentExpiryDate.ToDateTime(TimeOnly.MinValue)
+            [nameof(ChangeExpiryDialog._ExpiryDate)] = arg.CurrentExpiryDate?.ToDateTime(TimeOnly.MinValue)
         };
 
         var dialog = await DialogService.ShowAsync<ChangeExpiryDialog>("Change Expiry", parameters);
@@ -292,7 +325,7 @@ else
         var outcome = await ContractService.ChangeExpiryAsync(arg.ContractId, data.NewExpiryDate, data.ChangedBy);
         if (outcome.IsSuccess)
         {
-            Snackbar.Add("Expiry extended.", Severity.Success);
+            Snackbar.Add("Expiry updated.", Severity.Success);
             await LoadAsync();
             await RefreshSelected(arg.ContractId);
         }
@@ -300,7 +333,7 @@ else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
 
-    // ─── Documents ─────────────────────────────────────────────────────────
+    // ─── Documents ───────────────────────────────────────────────────────
 
     private async Task OpenAttachFileDialog(int contractId)
     {
@@ -319,13 +352,4 @@ else
         else
             Snackbar.Add(outcome.Error!, Severity.Error);
     }
-
-    private async Task<ContractDetailResponse> GetContractDetail(int arg)
-    {
-        var response = await ContractService.GetByIdAsync(arg);
-        return response ?? new();
-    }
-
-
-
 }
