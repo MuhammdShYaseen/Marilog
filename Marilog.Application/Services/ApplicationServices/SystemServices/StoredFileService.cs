@@ -124,33 +124,45 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────
 
-        public async Task<StoredFileResponse> UploadAsync(
-            UploadFileRequest request,
+        public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable <UploadFileRequest> requests,
             CancellationToken ct = default)
         {
-            var checksum = await ComputeChecksumAsync(request.FileStream, ct);
+            var files = new List<StoredFile>();
 
-            // reset stream after checksum read
-            request.FileStream.Position = 0;
+            foreach (var request in requests)
+            {
+                var checksum = await ComputeChecksumAsync(request.FileStream, ct);
 
-            var storedFileName = $"{Guid.NewGuid()}{Path.GetExtension(request.FileName)}";
-            var relativePath = await _storage.SaveAsync(request.FileStream, storedFileName, ct);
+                // reset stream after checksum read
+                request.FileStream.Position = 0;
 
-            var file = StoredFile.Create(
-                originalFileName: request.FileName,
-                storedFileName: storedFileName,
-                relativePath: relativePath,
-                contentType: request.ContentType,
-                size: request.Size,
-                checksum: checksum,
-                entityType: request.EntityType,
-                entityId: request.EntityId);
+                var storedFileName = $"{Guid.NewGuid()}{Path.GetExtension(request.FileName)}";
+                var relativePath = await _storage.SaveAsync(request.FileStream, storedFileName, ct);
 
-            await _repoStoredFile.AddAsync(file, ct);
-            await _repoStoredFile.SaveChangesAsync(ct);
+                var file = StoredFile.Create(
+                    originalFileName: request.FileName,
+                    storedFileName: storedFileName,
+                    relativePath: relativePath,
+                    contentType: request.ContentType,
+                    size: request.Size,
+                    checksum: checksum,
+                    entityType: request.EntityType,
+                    entityId: request.EntityId);
 
-            return await GetByIdAsync(file.Id, ct)
-                ?? throw new InvalidOperationException("Failed to retrieve file after upload.");
+                await _repoStoredFile.AddAsync(file, ct);   // يضيف للـ context بس، من غير Save
+                files.Add(file);
+            }
+
+            await _repoStoredFile.SaveChangesAsync(ct);     // Save واحدة بس لكل الملفات مع بعض
+
+            var ids = files.Select(f => f.Id).ToList();
+
+            return await _repoStoredFile
+                .Query()
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(ToResponse)
+                .ToListAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)

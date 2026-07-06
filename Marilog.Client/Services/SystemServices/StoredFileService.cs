@@ -63,28 +63,29 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────
 
-        public async Task<StoredFileResponse> UploadAsync(
-            UploadFileRequest request,
-            CancellationToken ct = default)
+        public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable<UploadFileRequest> requests, CancellationToken ct = default)
         {
             using var content = new MultipartFormDataContent();
-            using var streamContent = new StreamContent(request.FileStream);
 
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
+            foreach (var request in requests)
+            {
+                var streamContent = new StreamContent(request.FileStream);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
 
-            content.Add(streamContent, "file", request.FileName);
-            content.Add(new StringContent(((int)request.EntityType).ToString()), "entityType");
+                content.Add(streamContent, "files", request.FileName);
+                content.Add(new StringContent(((int)request.EntityType).ToString()), "entityTypes");
 
-            if (request.EntityId is not null)
-                content.Add(new StringContent(request.EntityId.ToString()!), "entityId");
+                if (request.EntityId is not null)
+                    content.Add(new StringContent(request.EntityId.ToString()!), "entityIds");
+            }
 
             var httpResponse = await _http.PostAsync(Base, content, ct);
             httpResponse.EnsureSuccessStatusCode();
 
             var result = await httpResponse.Content
-                .ReadFromJsonAsync<ApiResponse<StoredFileResponse>>(cancellationToken: ct);
+                .ReadFromJsonAsync<IReadOnlyList<StoredFileResponse>>(cancellationToken: ct);
 
-            return result?.Data ?? throw new InvalidOperationException("Upload failed.");
+            return result ?? throw new InvalidOperationException("Upload failed.");
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)

@@ -4,7 +4,7 @@ namespace Marilog.Presentation.PresentationDTOs
 {
     public class FileUploadDto
     {
-        public IFormFile File { get; set; } = null!;
+        public List<IFormFile> Files { get; set; } = [];
         public EntityType EntityType { get; set; }
         public int? EntityId { get; set; }
     }

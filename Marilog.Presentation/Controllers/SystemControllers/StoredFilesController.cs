@@ -74,18 +74,24 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] FileUploadDto uploadDto, CancellationToken ct)
         {
-            var request = new UploadFileRequest
+            if (uploadDto.Files is null || uploadDto.Files.Count == 0)
+                return BadRequest("At least one file is required.");
+
+            if(uploadDto.Files.Count > 5)
+                return BadRequest("At 5 file is maximum to upload.");
+
+            var requests = uploadDto.Files.Select(file => new UploadFileRequest
             {
-                FileStream = uploadDto.File.OpenReadStream(),
-                FileName = uploadDto.File.FileName,
-                ContentType = uploadDto.File.ContentType,
-                Size = uploadDto.File.Length,
+                FileStream = file.OpenReadStream(),
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                Size = file.Length,
                 EntityType = uploadDto.EntityType,
                 EntityId = uploadDto.EntityId
-            };
+            });
 
-            var result = await _service.UploadAsync(request, ct);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            var results = await _service.UploadAsync(requests, ct);
+            return Ok(results);
         }
 
         [HttpDelete("{id:int}")]
