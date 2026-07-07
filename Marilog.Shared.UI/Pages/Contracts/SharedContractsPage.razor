@@ -1,6 +1,7 @@
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Contracts
 
@@ -328,7 +329,7 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Upload"
                                            Size="Size.Small"
                                            Color="Color.Primary"
-                                           OnClick="() => OnAttachFileClicked.InvokeAsync(_selected!.Id)" />
+                                           OnClick="() => OnAttachFileClicked.InvokeAsync((_selected!.Id, EntityType.AContract))" />
                         </MudTooltip>
                     </MudStack>
                     @if (!string.IsNullOrWhiteSpace(_selected.ContractFileUrl))
@@ -411,7 +412,7 @@
     [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
     [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }
     [Parameter] public EventCallback<(int ContractId, DateOnly? CurrentExpiryDate)> OnChangeExpiryClicked { get; set; }
-    [Parameter] public EventCallback<int> OnAttachFileClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnAttachFileClicked { get; set; }
 
     [Parameter] public string? SortColumn { get; set; }
     [Parameter] public bool SortDescending { get; set; }

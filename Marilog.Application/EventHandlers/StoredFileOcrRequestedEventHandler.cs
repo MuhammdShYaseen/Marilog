@@ -27,8 +27,11 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
         var request = new OcrRequest(
             @event.StoredFileId,
             @event.FilePath);
-
-        var response = await _httpClient.PostAsJsonAsync(_urlsOptions.Value.Ocr + "api/ocr/process", request, ct);
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(_urlsOptions.Value.Ocr + "api/ocr/process", request, ct);
+        
+        
 
         if (!response.IsSuccessStatusCode)
         {
@@ -41,7 +44,11 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
 
             response.EnsureSuccessStatusCode();
         }
+        }catch(Exception ex)
+        {
+            var exx = ex;
 
+        }
         _logger.LogInformation("OCR worker accepted request | DocumentId: {Id}", @event.StoredFileId);
     }
 }

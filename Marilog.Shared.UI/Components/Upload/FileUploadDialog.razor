@@ -8,7 +8,8 @@
     <DialogContent>
 
         <MudFileUpload T="IReadOnlyList<IBrowserFile>"
-                       @bind-Files="_files"
+                       Files="_files"
+                       FilesChanged="OnFilesChanged"
                        DragAndDrop="true"
                        AppendMultipleFiles="true"
                        MaximumFileCount="5">
@@ -126,6 +127,15 @@
 
 
     private IReadOnlyList<IBrowserFile>? _files;
+
+
+    private void OnFilesChanged(IReadOnlyList<IBrowserFile> incoming)
+    {
+        _files = incoming?
+            .GroupBy(f => (f.Name, f.Size))
+            .Select(g => g.First())
+            .ToList();
+    }
 
 
     private int IndexOf(IBrowserFile file)
