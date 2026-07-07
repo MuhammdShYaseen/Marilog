@@ -19,6 +19,6 @@ public sealed class OcrQueue
 
 public sealed record OcrRequest 
 {
-    public int DocumentId { get; set; }
+    public Guid DocumentId { get; set; }
     public string FilePath { get; set; } = string.Empty;
 }

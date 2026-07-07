@@ -115,7 +115,7 @@ namespace Marilog.Client.Services.SystemServices
         }
 
         public async Task UpdateContentFromOCRAsync(
-            int id,
+            Guid id,
             string content,
             CancellationToken ct = default)
         {

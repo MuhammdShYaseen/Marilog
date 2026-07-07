@@ -54,8 +54,7 @@ public sealed class Program
         // ── OCR Request ──
         app.MapPost("/api/ocr/process", async (OcrRequest request, OcrQueue queue, ILogger<Program> logger, CancellationToken ct) =>
         {
-            //if (request.DocumentId <= 0)
-             //   return Results.BadRequest("Invalid DocumentId");
+            
 
             if (string.IsNullOrWhiteSpace(request.FilePath))
                 return Results.BadRequest("FilePath is required");

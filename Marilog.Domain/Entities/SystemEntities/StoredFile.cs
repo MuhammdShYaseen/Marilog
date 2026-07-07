@@ -42,7 +42,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 EntityId = entityId,
                 EntityType = entityType
             };
-            storedfile.AddDomainEvent(new StoredFileOcrRequestedEvent(storedfile.Id, storedfile.RelativePath));
+            storedfile.AddDomainEvent(new StoredFileOcrRequestedEvent(storedfile.Guid, storedfile.RelativePath));
             return storedfile;
         }
 

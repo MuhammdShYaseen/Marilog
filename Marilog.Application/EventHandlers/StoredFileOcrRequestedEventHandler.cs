@@ -1,6 +1,7 @@
 ﻿using Marilog.Application.Interfaces.Events;
 using Marilog.Contracts.DTOs.OCR;
 using Marilog.Contracts.Options;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,9 +27,11 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
     {
         _logger.LogInformation("OCR requested | DocumentId: {Id} | File: {File}", @event.StoredFileId, Path.GetFileName(@event.FilePath));
 
-        var request = new OcrRequest(
-            @event.StoredFileId,
-            @event.FilePath);
+        var request = new OcrRequest 
+        {
+            DocumentId =@event.StoredFileId,
+            FilePath = @event.FilePath
+        };
 
         try
         {

@@ -186,11 +186,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         public async Task UpdateContentFromOCRAsync(
-            int id,
+            Guid id,
             string content,
             CancellationToken ct = default)
         {
-            var file = await _repoStoredFile.GetByIdAsync(id, ct)
+            var file = await _repoStoredFile.Query().Where(x => x.Guid == id).FirstOrDefaultAsync(ct)
                 ?? throw new ArgumentNullException(nameof(StoredFile)+ id.ToString());
 
             file.UpdateContentFromOCR(content);

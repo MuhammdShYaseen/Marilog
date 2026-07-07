@@ -18,7 +18,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable<UploadFileRequest> requests, CancellationToken ct = default);
         Task DeleteAsync(int id, CancellationToken ct = default);
         Task UpdateEntityLinkAsync(int id, EntityType entityType, int? entityId, CancellationToken ct = default);
-        Task UpdateContentFromOCRAsync(int id, string content, CancellationToken ct = default);
+        Task UpdateContentFromOCRAsync(Guid id, string content, CancellationToken ct = default);
 
         // Tags
         Task AddTagAsync(int storedFileId, string name, string color, CancellationToken ct = default);
