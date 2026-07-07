@@ -42,6 +42,10 @@ namespace Marilog.Presentation
                             .Get<UrlsOptions>()
                             ?? throw new InvalidOperationException("Urls configuration is missing.");
 
+                        var apiKeys = builder.Configuration
+                                .GetSection("WorkersApiKeys")
+                                .Get<WorkersApiKeysOptions>()
+                                ?? throw new InvalidOperationException("WorkersApiKeys configuration is missing.");
                         policy
                             .WithOrigins(urls.Frontend.TrimEnd('/'))
                             .AllowAnyHeader()

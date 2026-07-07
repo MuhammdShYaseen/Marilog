@@ -29,10 +29,12 @@ public sealed class Program
 
         // ── Background Worker ──
         builder.Services.AddHostedService<Worker>();
-
+        var _basePath = builder.Configuration["FileStorage:BasePath"]
+           ?? throw new InvalidOperationException("FileStorage:BasePath not configured.");
         builder.Services.AddHttpClient<ICallBackService, CallBackService>((sp, client) =>
         {
             var urls = sp.GetRequiredService<IOptions<UrlsOptions>>().Value;
+            
             var apiKey = builder.Configuration["InternalApiKey"]
                 ?? throw new InvalidOperationException("InternalApiKey is not configured.");
             client.BaseAddress = new Uri(urls.Presentation);
@@ -52,11 +54,13 @@ public sealed class Program
         // ── OCR Request ──
         app.MapPost("/api/ocr/process", async (OcrRequest request, OcrQueue queue, ILogger<Program> logger, CancellationToken ct) =>
         {
-            if (request.DocumentId <= 0)
-                return Results.BadRequest("Invalid DocumentId");
+            //if (request.DocumentId <= 0)
+             //   return Results.BadRequest("Invalid DocumentId");
 
             if (string.IsNullOrWhiteSpace(request.FilePath))
                 return Results.BadRequest("FilePath is required");
+
+            request.FilePath = Path.Combine(_basePath, request.FilePath);
 
             if (!File.Exists(request.FilePath))
                 return Results.NotFound($"File not found: {request.FilePath}");

@@ -13,11 +13,13 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
     private readonly ILogger<StoredFileOcrRequestedEventHandler> _logger;
     private readonly HttpClient _httpClient;
     private readonly IOptions<UrlsOptions> _urlsOptions;
-    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient, IOptions<UrlsOptions> urlOptions)
+    private readonly IOptions<WorkersApiKeysOptions> _apiKeysOptions;
+    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient, IOptions<UrlsOptions> urlOptions, IOptions<WorkersApiKeysOptions> apiKeyOptions)
     {
         _logger = logger;
         _httpClient = httpClient;
         _urlsOptions = urlOptions;
+        _apiKeysOptions = apiKeyOptions;
     }
 
     public async Task HandleAsync(StoredFileOcrRequestedEvent @event, CancellationToken ct = default)
@@ -27,28 +29,35 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
         var request = new OcrRequest(
             @event.StoredFileId,
             @event.FilePath);
+
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(_urlsOptions.Value.Ocr + "api/ocr/process", request, ct);
-        
-        
+            using var message = new HttpRequestMessage(HttpMethod.Post, _urlsOptions.Value.Ocr + "api/ocr/process")
+            {
+                Content = JsonContent.Create(request)
+            };
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync(ct);
+            message.Headers.Add("X-Internal-Api-Key", _apiKeysOptions.Value.OcrWorkerKey); // ← عدّل اسم الـ header هون إذا مختلف
 
-            _logger.LogError(
-                "OCR worker request failed | Status: {Status} | Error: {Error}",
-                response.StatusCode,
-                error);
+            var response = await _httpClient.SendAsync(message, ct);
 
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(ct);
+
+                _logger.LogError(
+                    "OCR worker request failed | Status: {Status} | Error: {Error}",
+                    response.StatusCode,
+                    error);
+
+                response.EnsureSuccessStatusCode();
+            }
         }
-        }catch(Exception ex)
+        catch (Exception ex)
         {
-            var exx = ex;
-
+            _logger.LogError(ex, "Failed to call OCR worker | DocumentId: {Id}", @event.StoredFileId);
         }
+
         _logger.LogInformation("OCR worker accepted request | DocumentId: {Id}", @event.StoredFileId);
     }
 }
