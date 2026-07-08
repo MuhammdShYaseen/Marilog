@@ -92,8 +92,7 @@ public sealed class Worker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex,
-                "Compression step failed, continuing | DocumentId: {Id}", documentId);
+            _logger.LogWarning(ex, "Compression step failed, continuing | DocumentId: {Id}", documentId);
         }
 
         // حذف نسخة الـ backup
