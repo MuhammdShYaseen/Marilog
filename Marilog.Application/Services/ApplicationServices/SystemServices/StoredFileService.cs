@@ -190,7 +190,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             string content,
             CancellationToken ct = default)
         {
-            var file = await _repoStoredFile.Query().Where(x => x.Guid == id).FirstOrDefaultAsync(ct)
+            var file = await _repoStoredFile.Query()
+    .IgnoreQueryFilters()
+    .FirstOrDefaultAsync(x => x.Guid == id, ct)
                 ?? throw new ArgumentNullException(nameof(StoredFile)+ id.ToString());
 
             file.UpdateContentFromOCR(content);
