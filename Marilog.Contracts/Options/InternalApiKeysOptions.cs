@@ -2,7 +2,7 @@
 
 namespace Marilog.Contracts.Options
 {
-    public class WorkersApiKeysOptions
+    public class InternalApiKeysOptions
     {
         public string OcrWorkerKey { get; set; } = string.Empty;
     }

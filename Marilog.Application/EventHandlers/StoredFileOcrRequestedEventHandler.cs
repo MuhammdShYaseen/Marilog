@@ -14,8 +14,8 @@ public sealed class StoredFileOcrRequestedEventHandler : IEventHandler<StoredFil
     private readonly ILogger<StoredFileOcrRequestedEventHandler> _logger;
     private readonly HttpClient _httpClient;
     private readonly IOptions<UrlsOptions> _urlsOptions;
-    private readonly IOptions<WorkersApiKeysOptions> _apiKeysOptions;
-    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient, IOptions<UrlsOptions> urlOptions, IOptions<WorkersApiKeysOptions> apiKeyOptions)
+    private readonly IOptions<InternalApiKeysOptions> _apiKeysOptions;
+    public StoredFileOcrRequestedEventHandler(ILogger<StoredFileOcrRequestedEventHandler> logger, HttpClient httpClient, IOptions<UrlsOptions> urlOptions, IOptions<InternalApiKeysOptions> apiKeyOptions)
     {
         _logger = logger;
         _httpClient = httpClient;

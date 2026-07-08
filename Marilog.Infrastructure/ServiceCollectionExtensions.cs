@@ -60,7 +60,7 @@ namespace Marilog.Infrastructure
 
             //options
             services.Configure<UrlsOptions>(configuration.GetSection("Urls"));
-            services.Configure<WorkersApiKeysOptions>(configuration.GetSection("WorkersApiKeys"));
+            services.Configure<InternalApiKeysOptions>(configuration.GetSection("InternalApiKeys"));
             return services;
         }
     }
