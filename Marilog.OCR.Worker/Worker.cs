@@ -11,16 +11,19 @@ public sealed class Worker : BackgroundService
     private readonly OcrQueue _queue;
     private readonly ISearchablePdfService _pdfService;
     private readonly ICallBackService _callbackService;
+    private readonly IPdfCompressionService _compressionService;
     public Worker(
         ILogger<Worker> logger,
         OcrQueue queue,
         ISearchablePdfService pdfService,
+        IPdfCompressionService compressionService,
         ICallBackService callBack)
     {
         _logger = logger;
         _queue = queue;
         _pdfService = pdfService;
         _callbackService = callBack;
+        _compressionService = compressionService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -65,6 +68,7 @@ public sealed class Worker : BackgroundService
                 result.Duration.TotalSeconds
             );
 
+            await CleanupAsync(request.FilePath, request.DocumentId);
 
             var extractedContent = string.Join(" ",
             result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
@@ -76,6 +80,39 @@ public sealed class Worker : BackgroundService
         {
             _logger.LogError(ex,
                 "OCR failed | DocumentId: {Id}", request.DocumentId);
+        }
+    }
+
+    private async Task CleanupAsync(string filePath, Guid documentId)
+    {
+        // كمبريس — best-effort، ما لازم يفشل الـ job لو صار خطأ هنا
+        try
+        {
+            await _compressionService.CompressAsync(filePath, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Compression step failed, continuing | DocumentId: {Id}", documentId);
+        }
+
+        // حذف نسخة الـ backup
+        var backupPath = filePath + ".original.bak";
+        try
+        {
+            if (File.Exists(backupPath))
+            {
+                File.Delete(backupPath);
+                _logger.LogInformation(
+                    "Backup deleted | DocumentId: {Id} | File: {File}",
+                    documentId, Path.GetFileName(backupPath));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to delete backup | DocumentId: {Id} | File: {File}",
+                documentId, Path.GetFileName(backupPath));
         }
     }
 }

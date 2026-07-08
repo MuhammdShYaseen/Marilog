@@ -89,3 +89,8 @@ public sealed record OcrProgress(
 {
     public double Percentage => TotalPages == 0 ? 0 : (CurrentPage / (double)TotalPages) * 100;
 }
+
+public interface IPdfCompressionService
+{
+    Task<bool> CompressAsync(string pdfPath, CancellationToken ct = default);
+}

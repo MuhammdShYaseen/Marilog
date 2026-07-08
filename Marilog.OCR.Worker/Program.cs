@@ -1,6 +1,8 @@
 using Marilog.OCR.Worker;
+using Marilog.OCR.Worker.Abstractions;
 using Marilog.OCR.Worker.Extensions;
 using Marilog.OCR.Worker.Filters;
+using Marilog.OCR.Worker.Infrastructure;
 using Marilog.OCR.Worker.Options;
 using Marilog.OCR.Worker.Services;
 using Microsoft.Extensions.Logging;
@@ -23,6 +25,9 @@ public sealed class Program
         {
             // opts.TessDataPath = @"C:\MyApp\tessdata";
         });
+
+        //-----CompressService--------------
+        builder.Services.AddSingleton<IPdfCompressionService, GhostscriptPdfCompressionService>();
 
         // ── OCR Queue ──
         builder.Services.AddSingleton<OcrQueue>();
