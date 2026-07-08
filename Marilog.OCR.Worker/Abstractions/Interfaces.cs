@@ -94,3 +94,7 @@ public interface IPdfCompressionService
 {
     Task<bool> CompressAsync(string pdfPath, CancellationToken ct = default);
 }
+
+public interface IFallbackSearchablePdfService : ISearchablePdfService
+{
+}

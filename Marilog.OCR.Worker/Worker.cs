@@ -12,18 +12,21 @@ public sealed class Worker : BackgroundService
     private readonly ISearchablePdfService _pdfService;
     private readonly ICallBackService _callbackService;
     private readonly IPdfCompressionService _compressionService;
+    private readonly IFallbackSearchablePdfService _fallBackpdfService;
     public Worker(
         ILogger<Worker> logger,
         OcrQueue queue,
         ISearchablePdfService pdfService,
         IPdfCompressionService compressionService,
-        ICallBackService callBack)
+        ICallBackService callBack,
+        IFallbackSearchablePdfService fallbackSearchablePdf)
     {
         _logger = logger;
         _queue = queue;
         _pdfService = pdfService;
         _callbackService = callBack;
         _compressionService = compressionService;
+        _fallBackpdfService = fallbackSearchablePdf;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -39,48 +42,45 @@ public sealed class Worker : BackgroundService
 
     private async Task ProcessAsync(OcrRequest request, CancellationToken ct)
     {
-        _logger.LogInformation(
-            "OCR started | DocumentId: {Id} | File: {File}",
-            request.DocumentId,
-            Path.GetFileName(request.FilePath)
-        );
+        _logger.LogInformation("OCR started | DocumentId: {Id} | File: {File}", request.DocumentId, Path.GetFileName(request.FilePath));
+
+        OcrDocumentResult result;
+
+        var ocrOptions = new OcrOptions
+        {
+            Languages = "eng+ara",
+            RenderDpi = 300,
+            MinConfidence = 35f,
+            KeepOriginalBackup = true
+        };
+
+        
 
         try
         {
-            var result = await _pdfService.ProcessAsync(
-                inputPdfPath: request.FilePath,
-                outputPdfPath: request.FilePath,
-                options: new OcrOptions
-                {
-                    Languages = "eng+ara",
-                    RenderDpi = 300,
-                    MinConfidence = 35f,
-                    KeepOriginalBackup = true
-                },
-                ct: ct
-            );
-
-            _logger.LogInformation(
-                "OCR completed | DocumentId: {Id} | Pages: {Pages} | Words: {Words} | Duration: {Duration:F1}s",
-                request.DocumentId,
-                result.TotalPages,
-                result.Pages.Sum(p => p.Words.Count),
-                result.Duration.TotalSeconds
-            );
-
-            await CleanupAsync(request.FilePath, request.DocumentId);
-
-            var extractedContent = string.Join(" ",
-            result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
-
-            await _callbackService.NotifyOcrCompletedAsync(
-                request.DocumentId, extractedContent, ct);
+            result = await _pdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, ocrOptions, ct: ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "OCR failed | DocumentId: {Id}", request.DocumentId);
+            _logger.LogError(ex, "Primary OCR failed | DocumentId: {Id}", request.DocumentId);
+            try
+            {
+                result = await _fallBackpdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, options: ocrOptions, ct: ct);
+
+                _logger.LogInformation("Fallback pipeline succeeded | DocumentId: {Id}", request.DocumentId);
+            }
+            catch (Exception fallbackEx)
+            {
+                _logger.LogError(fallbackEx, "Both primary and fallback OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
+                return;
+            }
         }
+
+        await CleanupAsync(request.FilePath, request.DocumentId);
+
+        var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
+
+        await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, ct);
     }
 
     private async Task CleanupAsync(string filePath, Guid documentId)
