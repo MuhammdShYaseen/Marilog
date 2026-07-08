@@ -28,6 +28,7 @@ public sealed class Program
 
         //-----CompressService--------------
         builder.Services.AddSingleton<IPdfCompressionService, GhostscriptPdfCompressionService>();
+        builder.Services.AddSingleton<IPdfDirectTextExtractor, PdfDirectTextExtractor>();
 
         // ── OCR Queue ──
         builder.Services.AddSingleton<OcrQueue>();

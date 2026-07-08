@@ -26,7 +26,10 @@ public interface IPdfRenderer : IDisposable
         CancellationToken ct = default
     );
 }
-
+public interface IPdfDirectTextExtractor
+{
+    string ExtractText(string filePath, CancellationToken cancellationToken = default);
+}
 /// <summary>
 /// يُشغّل OCR على صورة ويعيد الكلمات مع إحداثياتها
 /// </summary>

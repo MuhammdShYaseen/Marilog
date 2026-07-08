@@ -13,12 +13,14 @@ public sealed class Worker : BackgroundService
     private readonly ICallBackService _callbackService;
     private readonly IPdfCompressionService _compressionService;
     private readonly IFallbackSearchablePdfService _fallBackpdfService;
+    private readonly IPdfDirectTextExtractor _pdfDirectText;
     public Worker(
         ILogger<Worker> logger,
         OcrQueue queue,
         ISearchablePdfService pdfService,
         IPdfCompressionService compressionService,
         ICallBackService callBack,
+        IPdfDirectTextExtractor pdfDirectText,
         IFallbackSearchablePdfService fallbackSearchablePdf)
     {
         _logger = logger;
@@ -27,6 +29,7 @@ public sealed class Worker : BackgroundService
         _callbackService = callBack;
         _compressionService = compressionService;
         _fallBackpdfService = fallbackSearchablePdf;
+        _pdfDirectText = pdfDirectText;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -78,8 +81,8 @@ public sealed class Worker : BackgroundService
 
         await CleanupAsync(request.FilePath, request.DocumentId);
 
-        var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
-
+        //var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
+        var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
         await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, ct);
     }
 
