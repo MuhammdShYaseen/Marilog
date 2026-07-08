@@ -61,7 +61,7 @@ public sealed class Worker : BackgroundService
 
         try
         {
-            result = await _pdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, ocrOptions, ct: ct);
+            result = await _fallBackpdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, ocrOptions, ct: ct);
         }
         catch (Exception ex)
         {
@@ -81,8 +81,8 @@ public sealed class Worker : BackgroundService
 
         await CleanupAsync(request.FilePath, request.DocumentId);
 
-        //var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
-        var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
+        var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
+        //var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
         await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, ct);
     }
 
