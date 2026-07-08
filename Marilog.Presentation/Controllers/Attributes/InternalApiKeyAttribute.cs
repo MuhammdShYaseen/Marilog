@@ -5,7 +5,7 @@
 
     public sealed class InternalApiKeyAttribute : Attribute, IAsyncActionFilter
     {
-        private const string HeaderName = "X-Internal-Key";
+        private const string HeaderName = "X-Internal-Api-Key";
 
         public async Task OnActionExecutionAsync(
             ActionExecutingContext context,

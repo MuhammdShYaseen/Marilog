@@ -111,7 +111,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
-        [HttpPut("{id:int}/ocr-content")]
+        [HttpPut("{id:Guid}/ocr-content")]
         [InternalApiKey]
         public async Task<IActionResult> UpdateOcrContent(Guid id, [FromBody] UpdateOcrContentRequest request, CancellationToken ct)
         {

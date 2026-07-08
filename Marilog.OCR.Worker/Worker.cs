@@ -65,8 +65,8 @@ public sealed class Worker : BackgroundService
                 result.Duration.TotalSeconds
             );
 
-            // ── لاحقاً: إخبار Marilog.Presentation بالنتيجة ──
-            var extractedContent = string.Join("\n",
+
+            var extractedContent = string.Join(" ",
             result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
 
             await _callbackService.NotifyOcrCompletedAsync(
