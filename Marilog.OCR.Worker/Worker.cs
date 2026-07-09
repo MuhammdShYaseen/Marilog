@@ -79,11 +79,23 @@ public sealed class Worker : BackgroundService
             }
         }
 
-        await CleanupAsync(request.FilePath, request.DocumentId);
+       
 
         var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
-        //var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
-        await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, ct);
+        if(string.IsNullOrWhiteSpace(extractedContent) || extractedContent.Length < 29)
+        {
+            extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
+        }
+        if (!string.IsNullOrWhiteSpace(extractedContent))
+        {
+            await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, ct);
+        }
+        else
+        {
+            _logger.LogError( "extracted content failed | DocumentId: {Id}", request.DocumentId);
+        }
+
+        await CleanupAsync(request.FilePath, request.DocumentId);
     }
 
     private async Task CleanupAsync(string filePath, Guid documentId)

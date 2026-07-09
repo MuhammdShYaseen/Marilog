@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BidiReshapeSharp" Version="1.2.0" />
     <PackageReference Include="itext" Version="9.6.0" />
 
     <PackageReference Include="itext.bouncy-castle-adapter" Version="9.6.0" />
@@ -29,5 +30,9 @@
     <None Update="tessdata\osd.traineddata">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Infrastructure\Helpers\" />
   </ItemGroup>
 </Project>

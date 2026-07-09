@@ -15,10 +15,18 @@ namespace Marilog.OCR.Worker.Infrastructure
             foreach (var page in document.GetPages())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                builder.AppendLine(page.Text);
+                builder.AppendLine(NormalizeArabicPresentationForms(page.Text));
             }
 
             return builder.ToString();
+        }
+
+        public static string NormalizeArabicPresentationForms(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            return text.Normalize(NormalizationForm.FormKC);
         }
     }
 }
