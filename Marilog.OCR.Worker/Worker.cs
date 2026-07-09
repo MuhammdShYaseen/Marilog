@@ -79,13 +79,8 @@ public sealed class Worker : BackgroundService
             }
         }
 
-       
+         var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
 
-        var extractedContent = string.Join(" ", result.Pages.SelectMany(p => p.Words.Select(w => w.Text)));
-        if(string.IsNullOrWhiteSpace(extractedContent) || extractedContent.Length < 29)
-        {
-            extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
-        }
         if (!string.IsNullOrWhiteSpace(extractedContent))
         {
             await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, ct);
