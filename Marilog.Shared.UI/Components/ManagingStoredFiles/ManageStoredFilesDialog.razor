@@ -267,6 +267,11 @@
     [Parameter, EditorRequired]
     public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
 
+
+    [Parameter, EditorRequired]
+    public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
+
+
     private enum ViewMode { List, Grid }
 
     private ViewMode _viewMode = ViewMode.Grid;

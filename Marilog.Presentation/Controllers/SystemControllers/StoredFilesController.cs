@@ -72,12 +72,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<IActionResult> GetFileThumbnailStream(int id, CancellationToken ct)
         {
             var stream = await _service.GetThumbnailStreamAsync(id, ct);
-            var file = await _service.GetByIdAsync(id, ct);
-            if(stream == null)
-            {
-                return NotFound();
-            }
-            return File(stream, file!.ContentType, file.OriginalFileName);
+            return stream is null ? NotFound() : File(stream, "image/png");
         }
 
         // ── Commands ─────────────────────────────────────────────────────────
