@@ -139,6 +139,10 @@
                                 {
                                     <img src="@BuildDownloadUrl(file)" alt="@file.OriginalFileName" />
                                 }
+                                else if (file.HasThumbnail)
+                                {
+                                    <img src="@BuildThumbnailUrl(file)" alt="@file.OriginalFileName" />
+                                }
                                 else
                                 {
                                     <MudIcon Icon="@GetFileIcon(file)" Color="Color.Primary" Class="file-thumb-icon" />

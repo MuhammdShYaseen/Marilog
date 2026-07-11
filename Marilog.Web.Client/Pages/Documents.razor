@@ -370,6 +370,7 @@ else
         { x => x.AddTagFunc, (id, name, color, ct) => StoredFileService.AddTagAsync(id, name, color, ct) },
         { x => x.RemoveTagFunc, (id, tagId, ct) => StoredFileService.RemoveTagAsync(id, tagId, ct) },
         { x => x.BuildDownloadUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
+        { x => x.BuildThumbnailUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream" },
         { x => x.UploadFilesFunc, async (files, ct) =>
             {
                 var requests = files.Select(f => new UploadFileRequest
