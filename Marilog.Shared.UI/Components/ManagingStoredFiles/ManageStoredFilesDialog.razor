@@ -1,0 +1,484 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using MudBlazor
+@using Marilog.Shared.UI.Components.Upload
+@namespace Marilog.Shared.UI.Components.ManagingStoredFiles
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-grow-1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">Attached Files Management</MudText>
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+
+                <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                    <MudIconButton Icon="@Icons.Material.Filled.ViewList"
+                                   Color="@(_viewMode == ViewMode.List ? Color.Primary : Color.Default)"
+                                   OnClick="@(() => _viewMode = ViewMode.List)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.GridView"
+                                   Color="@(_viewMode == ViewMode.Grid ? Color.Primary : Color.Default)"
+                                   OnClick="@(() => _viewMode = ViewMode.Grid)" />
+                </MudButtonGroup>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Size="Size.Small"
+                           OnClick="OpenUploadDialogAsync">
+                    Add Files
+                </MudButton>
+
+            </MudStack>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+
+        @if (_isLoading)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </MudStack>
+        }
+        else if (_files.Count == 0)
+        {
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-8">
+                <MudIcon Icon="@Icons.Material.Filled.FolderOff" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Color="Color.Secondary">There Are No Attached Files</MudText>
+            </MudStack>
+        }
+        else if (_viewMode == ViewMode.List)
+        {
+            <MudTable Items="_files" Hover="true" Class="manage-files-table">
+
+                <HeaderContent>
+                    <MudTh>File</MudTh>
+                    <MudTh>Size</MudTh>
+                    <MudTh>Tags</MudTh>
+                    <MudTh>Added Date</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="file">
+
+                    <MudTd DataLabel="File">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@GetFileIcon(file)" Size="Size.Small" Color="Color.Primary" />
+                            <MudText>@file.OriginalFileName</MudText>
+                        </MudStack>
+                    </MudTd>
+
+                    <MudTd DataLabel="Size">
+                        @FormatSize(file.Size)
+                    </MudTd>
+
+                    <MudTd DataLabel="Tags">
+                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" AlignItems="AlignItems.Center">
+                            @if (file.Tags != null)
+                            {
+                                foreach (var tag in file.Tags)
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="@ParseColor(tag.Color)"
+                                             Variant="Variant.Filled"
+                                             OnClose="@(() => RemoveTagAsync(file, tag))">
+                                        @tag.Name
+                                    </MudChip>
+                                }
+                            }
+                            <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
+                                @TagPickerContent(file)
+                            </MudMenu>
+
+                        </MudStack>
+                    </MudTd>
+
+                    <MudTd DataLabel="Date">
+                        @file.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                    </MudTd>
+
+                    <MudTd>
+                        <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => DownloadAsync(file))" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteAsync(file))" />
+
+                        </MudStack>
+                    </MudTd>
+
+                </RowTemplate>
+
+            </MudTable>
+        }
+        else
+        {
+            <MudGrid Spacing="3" Class="mt-1">
+
+                @foreach (var file in _files)
+                {
+                    <MudItem xs="6" sm="4" md="3">
+
+                        <MudPaper Class="file-card pa-0" Outlined="true">
+
+                            <div class="file-thumb">
+
+                                @if (IsImage(file))
+                                {
+                                    <img src="@BuildDownloadUrl(file)" alt="@file.OriginalFileName" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@GetFileIcon(file)" Color="Color.Primary" Class="file-thumb-icon" />
+                                }
+
+                                <div class="file-thumb-actions">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                                   Size="Size.Small"
+                                                   Color="Color.Inherit"
+                                                   OnClick="@(() => DownloadAsync(file))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Inherit"
+                                                   OnClick="@(() => DeleteAsync(file))" />
+                                </div>
+
+                            </div>
+
+                            <div class="pa-2">
+                                <MudText Typo="Typo.body2" Class="file-card-name">
+                                    @file.OriginalFileName
+                                </MudText>
+
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @FormatSize(file.Size)
+                                </MudText>
+
+                                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1">
+
+                                    @if (file.Tags != null)
+                                    {
+                                        foreach (var tag in file.Tags)
+                                        {
+                                            <MudChip T="string"
+                                                     Size="Size.Small"
+                                                     Color="@ParseColor(tag.Color)"
+                                                     Variant="Variant.Filled"
+                                                     OnClose="@(() => RemoveTagAsync(file, tag))">
+                                                @tag.Name
+                                            </MudChip>
+                                        }
+                                    }
+
+                                    <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
+                                        @TagPickerContent(file)
+                                    </MudMenu>
+
+                                </MudStack>
+                            </div>
+
+                        </MudPaper>
+
+                    </MudItem>
+                }
+
+            </MudGrid>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    private RenderFragment TagPickerContent(StoredFileResponse file) => @<MudStack Spacing="2" Class="pa-3" Style="min-width:240px">
+
+        <MudTextField T="string"
+                      @bind-Value="_newTagName"
+                      Label="Tag Name"
+                      Immediate="true" />
+
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+            @foreach (var color in _presetColors)
+            {
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@color.Value"
+                         Variant="@(color.Name == _newTagColor ? Variant.Filled : Variant.Outlined)"
+                         OnClick="@(() => _newTagColor = color.Name)">
+                    @color.Name
+                </MudChip>
+            }
+        </MudStack>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   Disabled="@string.IsNullOrWhiteSpace(_newTagName)"
+                   OnClick="@(() => AddTagAsync(file))">
+            Add
+        </MudButton>
+
+    </MudStack>;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
+    [Inject]
+    private IJSRuntime JsRuntime { get; set; } = default!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    // ── all client-service dependencies come from the host via Parameters ──
+
+    [Parameter, EditorRequired]
+    public Func<CancellationToken, Task<IReadOnlyList<StoredFileResponse>>> LoadFilesFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<int, CancellationToken, Task> DeleteFileFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<int, string, string, CancellationToken, Task> AddTagFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<int, int, CancellationToken, Task> RemoveTagFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<IReadOnlyList<IBrowserFile>, CancellationToken, Task<bool>> UploadFilesFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
+
+    private enum ViewMode { List, Grid }
+
+    private ViewMode _viewMode = ViewMode.Grid;
+
+    private IReadOnlyList<StoredFileResponse> _files = Array.Empty<StoredFileResponse>();
+    private bool _isLoading;
+
+    private string _newTagName = string.Empty;
+    private string _newTagColor = nameof(Color.Primary);
+
+    private readonly (string Name, Color Value)[] _presetColors =
+    {
+        (nameof(Color.Primary), Color.Primary),
+        (nameof(Color.Secondary), Color.Secondary),
+        (nameof(Color.Tertiary), Color.Tertiary),
+        (nameof(Color.Success), Color.Success),
+        (nameof(Color.Warning), Color.Warning),
+        (nameof(Color.Error), Color.Error),
+        (nameof(Color.Info), Color.Info),
+        (nameof(Color.Dark), Color.Dark),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        _files = await LoadFilesFunc(CancellationToken.None);
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenUploadDialogAsync()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<FileUploadDialog>("Attach Files", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var files = (IReadOnlyList<IBrowserFile>)result.Data!;
+
+        var success = await UploadFilesFunc(files, CancellationToken.None);
+
+        if (success)
+        {
+            Snackbar.Add("Files attached successfully.", Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add("An error occurred while uploading files.", Severity.Error);
+        }
+    }
+
+    private async Task DownloadAsync(StoredFileResponse file)
+    {
+        var url = BuildDownloadUrl(file);
+        await JsRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private async Task DeleteAsync(StoredFileResponse file)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete \"{file.OriginalFileName}\"?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        await DeleteFileFunc(file.Id, CancellationToken.None);
+        Snackbar.Add("File deleted.", Severity.Success);
+        await ReloadAsync();
+    }
+
+    private async Task AddTagAsync(StoredFileResponse file)
+    {
+        if (string.IsNullOrWhiteSpace(_newTagName))
+            return;
+
+        await AddTagFunc(file.Id, _newTagName.Trim(), _newTagColor, CancellationToken.None);
+
+        _newTagName = string.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task RemoveTagAsync(StoredFileResponse file, TagResponse tag)
+    {
+        await RemoveTagFunc(file.Id, tag.Id, CancellationToken.None);
+        await ReloadAsync();
+    }
+
+    private static Color ParseColor(string? colorName)
+    {
+        return Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed)
+            ? parsed
+            : Color.Default;
+    }
+
+    private static bool IsImage(StoredFileResponse file)
+    {
+        return !string.IsNullOrWhiteSpace(file.ContentType)
+            && file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetFileIcon(StoredFileResponse file)
+    {
+        var ext = System.IO.Path.GetExtension(file.OriginalFileName).ToLowerInvariant();
+
+        return ext switch
+        {
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".doc" or ".docx" => Icons.Material.Filled.Description,
+            ".xls" or ".xlsx" or ".csv" => Icons.Material.Filled.TableChart,
+            ".ppt" or ".pptx" => Icons.Material.Filled.Slideshow,
+            ".zip" or ".rar" or ".7z" => Icons.Material.Filled.FolderZip,
+            ".txt" => Icons.Material.Filled.Article,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+
+        if (bytes < 1024 * 1024)
+            return $"{bytes / 1024d:F1} KB";
+
+        return $"{bytes / 1024d / 1024d:F1} MB";
+    }
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+
+
+}
+
+<style>
+    .manage-files-table .mud-table-head {
+        background-color: var(--mud-palette-background-grey);
+    }
+
+    .file-card {
+        border-radius: 8px;
+        overflow: hidden;
+        transition: box-shadow 0.15s ease;
+    }
+
+    .file-card:hover {
+        box-shadow: var(--mud-elevation-4);
+    }
+
+    .file-thumb {
+        position: relative;
+        height: 110px;
+        background-color: var(--mud-palette-background-grey);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .file-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .file-thumb-icon {
+        font-size: 3rem;
+        opacity: 0.6;
+    }
+
+    .file-thumb-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: flex;
+        gap: 2px;
+        background-color: rgba(0, 0, 0, 0.55);
+        border-radius: 6px;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+
+    .file-thumb:hover .file-thumb-actions {
+        opacity: 1;
+    }
+
+    .file-card-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>

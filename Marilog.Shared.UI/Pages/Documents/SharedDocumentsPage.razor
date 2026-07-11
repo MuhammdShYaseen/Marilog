@@ -25,7 +25,8 @@
             <DocumentTable Items="Unpaid"
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
-                           OnDeleteClicked="OnDeleteClicked" />
+                           OnDeleteClicked="OnDeleteClicked"
+                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
         </MudTabPanel>
 
         @* ── By Vessel ─────────────────────────────────────────── *@
@@ -47,7 +48,8 @@
             <DocumentTable Items="ByVessel"
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
-                           OnDeleteClicked="OnDeleteClicked" />
+                           OnDeleteClicked="OnDeleteClicked"
+                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
         </MudTabPanel>
 
         @* ── By Supplier ───────────────────────────────────────── *@
@@ -69,6 +71,7 @@
             <DocumentTable Items="BySupplier"
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
+                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
                            OnDeleteClicked="OnDeleteClicked" />
         </MudTabPanel>
 
@@ -415,6 +418,7 @@
                 <DocumentTable Items="_documentReport.Documents"
                                OnRowClick="OnDocumentClick"
                                OnEditClicked="OnEditClicked"
+                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
                                OnDeleteClicked="OnDeleteClicked" />
             }
 
@@ -853,6 +857,7 @@
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     [Parameter] public EventCallback<int> OnDocumentSelected { get; set; }
     [Parameter] public EventCallback<int?> OnVesselSelected { get; set; }
     [Parameter] public EventCallback<int?> OnSupplierSelected { get; set; }

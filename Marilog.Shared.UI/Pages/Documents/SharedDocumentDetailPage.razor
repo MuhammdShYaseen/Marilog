@@ -1,6 +1,7 @@
 
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
+@using Kernel.Enums
 @namespace Marilog.Shared.UI.Pages.Documents
 
 @if (Document is null)
@@ -217,6 +218,14 @@ else
                                OnClick="() => OnDeleteClicked.InvokeAsync(Document)">
                         Delete
                     </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Inherit"
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))">
+                        Managing Attached Files
+                    </MudButton>
+
                 </MudStack>
 
             </MudPaper>
@@ -337,4 +346,5 @@ else
     [Parameter] public EventCallback<DocumentResponse> OnAddItemClicked { get; set; }
     [Parameter] public EventCallback<(int DocumentId, DocumentItemResponse Item)> OnEditItemClicked { get; set; }
     [Parameter] public EventCallback<(int DocumentId, int ItemId)> OnRemoveItemClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 }

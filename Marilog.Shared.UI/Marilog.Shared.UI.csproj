@@ -20,6 +20,7 @@
   <ItemGroup>
     <Folder Include="Components\Navigation\" />
     <Folder Include="Base\" />
+    <Folder Include="Components\ManagingStoredFiles\" />
     <Folder Include="Pages\Dashboard\" />
     <Folder Include="Pages\Companies\" />
     <Folder Include="Pages\Countries\" />

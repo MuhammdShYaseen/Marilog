@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
 <MudTr>
@@ -52,6 +53,11 @@
                            Size="Size.Small"
                            Color="Color.Error"
                            OnClick="() => OnDeleteClicked.InvokeAsync(Item)" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                           Size="Size.Small"
+                           Color="Color.Secondary"
+                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Item.Id, EntityType.Document))" />
         </MudStack>
     </MudTd>
 </MudTr>
@@ -63,6 +69,7 @@
         <DocumentTreeRow Item="child"
                          OnRowClick="OnRowClick"
                          OnEditClicked="OnEditClicked"
+                         OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
                          OnDeleteClicked="OnDeleteClicked" />
     }
 }
@@ -80,4 +87,7 @@
 
     [Parameter]
     public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+
+    [Parameter] 
+    public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 }
