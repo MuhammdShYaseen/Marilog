@@ -10,7 +10,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public int? EntityId { get; private set; }
         public string OriginalFileName { get; private set; } = null!;// from user machine
         public string StoredFileName { get; private set; } = null!; //saved as GUID this GUID Come from File its self couse of it has GUID property inheret from Entity;
-        public string RelativePath { get; private set; } = null!; 
+        public string RelativePath { get; private set; } = null!;
+        public string? ThumbnailRelativePath { get; private set; }
         public string ContentType { get; private set; } = null!;
         public string? Content {  get; private set; } = null;
         public long Size { get; private set; }
@@ -77,6 +78,13 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             var tag = _tags.FirstOrDefault(t => t.Id == tagId);
             if (tag is not null) _tags.Remove(tag);
+        }
+
+
+        //------Thumbnail----------------------------------------------------------------------
+        public void SetThumbnail(string? relativePath)
+        {
+            ThumbnailRelativePath = relativePath;
         }
 
     }

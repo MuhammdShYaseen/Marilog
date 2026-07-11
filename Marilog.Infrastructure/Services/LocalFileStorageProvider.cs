@@ -46,5 +46,13 @@ namespace Marilog.Infrastructure.Services
 
             return Task.CompletedTask;
         }
+
+        public string? GetRelativePath(string? fullPath)
+        {
+            if (string.IsNullOrWhiteSpace(fullPath))
+                return fullPath;
+
+            return Path.GetRelativePath(_basePath, fullPath);
+        }
     }
 }

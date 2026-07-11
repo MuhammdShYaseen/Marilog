@@ -30,6 +30,10 @@ public sealed class Program
         builder.Services.AddSingleton<IPdfCompressionService, GhostscriptPdfCompressionService>();
         builder.Services.AddSingleton<IPdfDirectTextExtractor, PdfDirectTextExtractor>();
 
+        #pragma warning disable CA1416 // known deployment targets are Windows/Linux/macOS
+        builder.Services.AddSingleton<IThumbnailGenerator, PdfThumbnailGenerator>();
+        #pragma warning restore CA1416
+
         // ── OCR Queue ──
         builder.Services.AddSingleton<OcrQueue>();
 

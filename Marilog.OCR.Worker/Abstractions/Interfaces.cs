@@ -26,6 +26,12 @@ public interface IPdfRenderer : IDisposable
         CancellationToken ct = default
     );
 }
+
+public interface IThumbnailGenerator
+{
+    bool CanGenerate(string contentType);
+    Task <string?> GenerateAsync(string sourceFullPath, CancellationToken ct = default);
+}
 public interface IPdfDirectTextExtractor
 {
     string ExtractText(string filePath, CancellationToken cancellationToken = default);

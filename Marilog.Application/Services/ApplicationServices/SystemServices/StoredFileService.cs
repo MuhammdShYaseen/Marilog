@@ -33,6 +33,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             EntityId = f.EntityId,
             CreatedAt = f.CreatedAt,
             Content = f.Content,
+            HasThumbnail = f.ThumbnailRelativePath != null,
             Tags = f.Tags.Select(t => new TagResponse
             {
                 Id = t.Id,
@@ -122,6 +123,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _storage.ReadAsync(file.RelativePath, ct);
         }
 
+        public async Task<Stream?> GetThumbnailStreamAsync(int id, CancellationToken ct = default)
+        {
+            var thumbnailPath = await _repoStoredFile.Query()
+                .AsNoTracking()
+                .Where(f => f.Id == id)
+                .Select(f => f.ThumbnailRelativePath)
+                .FirstOrDefaultAsync(ct);
+
+            if (string.IsNullOrWhiteSpace(thumbnailPath))
+                return null;
+
+            return await _storage.ReadAsync(thumbnailPath, ct);
+        }
+
         // ── Commands ─────────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable <UploadFileRequest> requests,
@@ -185,16 +200,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repoStoredFile.SaveChangesAsync(ct);
         }
 
-        public async Task UpdateContentFromOCRAsync(
-            Guid id,
-            string content,
-            CancellationToken ct = default)
+        public async Task UpdateContentFromOCRAsync(Guid id, string content, string? thumbnailPath, CancellationToken ct = default)
         {
             var file = await _repoStoredFile.Query()
-    .IgnoreQueryFilters()
-    .FirstOrDefaultAsync(x => x.Guid == id, ct)
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(x => x.Guid == id, ct)
                 ?? throw new ArgumentNullException(nameof(StoredFile)+ id.ToString());
-
+            if(thumbnailPath != null)
+            {
+                file.SetThumbnail(_storage.GetRelativePath(thumbnailPath));
+            }
             file.UpdateContentFromOCR(content);
             await _repoStoredFile.SaveChangesAsync(ct);
         }

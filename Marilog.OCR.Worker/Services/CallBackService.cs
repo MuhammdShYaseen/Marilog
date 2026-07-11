@@ -12,11 +12,9 @@
             _logger = logger;
         }
 
-        public async Task NotifyOcrCompletedAsync(Guid documentId, string extractedContent, CancellationToken ct = default)
+        public async Task NotifyOcrCompletedAsync(Guid documentId, string extractedContent, string? thumbnailPath, CancellationToken ct = default)
         {
-            var response = await _httpClient.PutAsJsonAsync(
-                $"/api/StoredFiles/{documentId}/ocr-content",
-                new { Content = extractedContent },
+            var response = await _httpClient.PutAsJsonAsync($"/api/StoredFiles/{documentId}/ocr-content", new { Content = extractedContent, thumbnailPath },
                 ct);
 
             if (!response.IsSuccessStatusCode)

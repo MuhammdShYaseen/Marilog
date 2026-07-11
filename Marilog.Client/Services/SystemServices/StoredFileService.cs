@@ -61,6 +61,11 @@ namespace Marilog.Client.Services.SystemServices
             return await _http.GetStreamAsync($"{Base}/{id}/stream", ct);
         }
 
+        public async Task<Stream?> GetThumbnailStreamAsync(int id, CancellationToken ct = default)
+        {
+            return await _http.GetStreamAsync($"{Base}/{id}/thumbnailStream", ct);
+        }
+
         // ── Commands ─────────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable<UploadFileRequest> requests, CancellationToken ct = default)
@@ -139,6 +144,13 @@ namespace Marilog.Client.Services.SystemServices
         {
             var httpResponse = await _http.DeleteAsync($"{Base}/{storedFileId}/tags/{tagId}", ct);
             httpResponse.EnsureSuccessStatusCode();
+        }
+
+        
+
+        public Task UpdateContentFromOCRAsync(Guid id, string content, string? thumbnailPath, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -2,6 +2,6 @@
 {
     public interface ICallBackService
     {
-        Task NotifyOcrCompletedAsync(Guid documentId, string extractedContent, CancellationToken ct = default);
+        Task NotifyOcrCompletedAsync(Guid documentId, string extractedContent, string? thumbnailPath, CancellationToken ct = default);
     }
 }

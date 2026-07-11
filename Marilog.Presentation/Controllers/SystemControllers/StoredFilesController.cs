@@ -68,6 +68,18 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return File(stream, file!.ContentType, file.OriginalFileName);
         }
 
+        [HttpGet("{id:int}/thumbnailStream")]
+        public async Task<IActionResult> GetFileThumbnailStream(int id, CancellationToken ct)
+        {
+            var stream = await _service.GetThumbnailStreamAsync(id, ct);
+            var file = await _service.GetByIdAsync(id, ct);
+            if(stream == null)
+            {
+                return NotFound();
+            }
+            return File(stream, file!.ContentType, file.OriginalFileName);
+        }
+
         // ── Commands ─────────────────────────────────────────────────────────
 
         [HttpPost]
@@ -113,9 +125,11 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
         [HttpPut("{id:Guid}/ocr-content")]
         [InternalApiKey]
+        [HttpPut("{id:guid}/ocr-content")]
         public async Task<IActionResult> UpdateOcrContent(Guid id, [FromBody] UpdateOcrContentRequest request, CancellationToken ct)
         {
-            await _service.UpdateContentFromOCRAsync(id, request.Content, ct);
+            await _service.UpdateContentFromOCRAsync(id, request.Content, request.ThumbnailPath, ct);
+
             return NoContent();
         }
 

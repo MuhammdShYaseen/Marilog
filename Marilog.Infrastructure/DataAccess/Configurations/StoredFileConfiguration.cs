@@ -50,7 +50,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasForeignKey(t => t.StoredFileId)
                    .OnDelete(DeleteBehavior.Cascade);
 
-
+            builder.Property(f => f.ThumbnailRelativePath)
+                   .HasMaxLength(500);
             // ── OCR Content (optional large text) ───────────────
             builder.Property(x => x.Content)
                 .HasColumnType("nvarchar(max)");
