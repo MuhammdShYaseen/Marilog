@@ -70,7 +70,7 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<SwiftTransferResponse> CreateAsync(string swiftReference, DateOnly transactionDate,
             int currencyId, decimal amount, int? senderCompanyId = null, int? receiverCompanyId = null,
-            string? senderBank = null, string? receiverBank = null,
+            int? senderBankId = null, int? receiverBankId = null,
             string? paymentReference = null, string? rawMessage = null,
             CancellationToken ct = default)
         {
@@ -82,8 +82,8 @@ namespace Marilog.Client.Services.SystemServices
                 Amount = amount,
                 SenderCompanyId = senderCompanyId,
                 ReceiverCompanyId = receiverCompanyId,
-                SenderBank = senderBank,
-                ReceiverBank = receiverBank,
+                SenderBankId = senderBankId,
+                ReceiverBankId = receiverBankId,
                 PaymentReference = paymentReference,
                 RawMessage = rawMessage
             };
@@ -103,7 +103,7 @@ namespace Marilog.Client.Services.SystemServices
         }
 
         public async Task UpdateAsync(int id, int currencyId, decimal amount,
-            string? senderBank, string? receiverBank,
+            int? senderBankId, int? receiverBankId,
             string? paymentReference, string? rawMessage,
             CancellationToken ct = default)
         {
@@ -111,8 +111,8 @@ namespace Marilog.Client.Services.SystemServices
             {
                 CurrencyId = currencyId,
                 Amount = amount,
-                SenderBank = senderBank,
-                ReceiverBank = receiverBank,
+                SenderBankId = senderBankId,
+                ReceiverBankId = receiverBankId,
                 PaymentReference = paymentReference,
                 RawMessage = rawMessage
             };

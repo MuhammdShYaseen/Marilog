@@ -19,11 +19,13 @@
         public int? ReceiverCompanyId { get; set; }
         public string? ReceiverCompanyName { get; set; }
 
-        public string? SenderBank { get; set; } = null!;
-        public string? ReceiverBank { get; set; } = null!;
+        public int? SenderBankId { get; set; } = null!;
+        public int? ReceiverBankId { get; set; } = null!;
         public string? PaymentReference { get; set; }
 
         public List<PaymentResponse>? Payments { get; set; } = new();
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
+        public BankResponse? SenderBankNav { get; set; }
+        public BankResponse? ReceiverBankNav { get; set; }
     }
 }

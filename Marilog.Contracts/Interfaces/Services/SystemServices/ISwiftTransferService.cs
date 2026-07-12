@@ -21,7 +21,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<SwiftTransferResponse> CreateAsync(string swiftReference, DateOnly transactionDate,
                                         int currencyId, decimal amount,
                                         int? senderCompanyId = null, int? receiverCompanyId = null,
-                                        string? senderBank = null, string? receiverBank = null,
+                                        int? senderBankId = null, int? receiverBankId = null,
                                         string? paymentReference = null, string? rawMessage = null,
                                         CancellationToken ct = default);
 
@@ -30,7 +30,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         CancellationToken ct = default);
 
         Task                UpdateAsync(int id, int currencyId, decimal amount,
-                                        string? senderBank, string? receiverBank,
+                                        int? senderBankId, int? receiverBankId,
                                         string? paymentReference, string? rawMessage,
                                         CancellationToken ct = default);
         Task                ActivateAsync(int id, CancellationToken ct = default);

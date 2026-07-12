@@ -161,8 +161,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 AllocatedAmount = x.AllocatedAmount,
                 UnallocatedAmount = x.UnallocatedAmount,
                 IsFullyAllocated = x.IsFullyAllocated,
-                SenderBank = x.SenderBank,
-                ReceiverBank = x.ReceiverBank,
+                SenderBankId = x.ReceiverBankId,
+                ReceiverBankId = x.ReceiverBankId,
                 PaymentReference = x.PaymentReference,
                 CurrencyCode = x.Currency.CurrencyCode,
                 CurrencyId = x.CurrencyId,
@@ -246,7 +246,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<SwiftTransferResponse> CreateAsync(string swiftReference,
             DateOnly transactionDate, int currencyId, decimal amount,
             int? senderCompanyId = null, int? receiverCompanyId = null,
-            string? senderBank = null, string? receiverBank = null,
+            int? senderBankId = null, int? receiverBankId = null,
             string? paymentReference = null, string? rawMessage = null,
             CancellationToken ct = default)
         {
@@ -254,20 +254,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             var transfer = SwiftTransfer.Create(swiftReference, transactionDate, currencyId,
                                                 amount, senderCompanyId, receiverCompanyId,
-                                                senderBank, receiverBank,
+                                                senderBankId, receiverBankId,
                                                 paymentReference, rawMessage);
             await _repo.AddAsync(transfer, ct);
             await _repo.SaveChangesAsync(ct);
             return new SwiftTransferResponse
             {
-                SwiftReference = swiftReference,
-                SenderBank = senderBank,
-                TransactionDate = transactionDate,
-                SenderCompanyId = senderCompanyId,
-                Amount = amount,
-                ReceiverCompanyId = receiverCompanyId,
-                ReceiverBank = receiverBank,
-                PaymentReference = paymentReference
+                SwiftReference = transfer.SwiftReference,
+                SenderBankId = transfer.SenderBankId,
+                TransactionDate = transfer.TransactionDate,
+                SenderCompanyId = transfer.SenderCompanyId,
+                Amount = transfer.Amount,
+                ReceiverCompanyId = transfer.ReceiverCompanyId,
+                ReceiverBankId = transfer.ReceiverBankId,
+                PaymentReference = transfer.PaymentReference
             };
         }
 
@@ -308,8 +308,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     c.Amount,
                     c.SenderCompanyId,
                     c.ReceiverCompanyId,
-                    c.SenderBank,
-                    c.ReceiverBank,
+                    c.SenderBankId,
+                    c.ReceiverBankId,
                     c.PaymentReference,
                     c.RawMessage))
                 .ToList();
@@ -327,20 +327,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Amount = transfer.Amount,
                     SenderCompanyId = transfer.SenderCompanyId,
                     ReceiverCompanyId = transfer.ReceiverCompanyId,
-                    SenderBank = transfer.SenderBank,
-                    ReceiverBank = transfer.ReceiverBank,
+                    SenderBankId = transfer.SenderBankId,
+                    ReceiverBankId = transfer.ReceiverBankId,
                     PaymentReference = transfer.PaymentReference
                 })
                 .ToList();
         }
 
         public async Task UpdateAsync(int id, int currencyId, decimal amount,
-            string? senderBank, string? receiverBank,
+            int? senderBankId, int? receiverBankId,
             string? paymentReference, string? rawMessage,
             CancellationToken ct = default)
         {
             var transfer = await GetOrThrowAsync(id, ct);
-            transfer.Update(currencyId, amount, senderBank, receiverBank,
+            transfer.Update(currencyId, amount, senderBankId, receiverBankId,
                             paymentReference, rawMessage);
             _repo.Update(transfer);
             await _repo.SaveChangesAsync(ct);
@@ -420,9 +420,60 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ? x.ReceiverCompany.CompanyName
                 : null,
 
-            SenderBank = x.SenderBank,
-            ReceiverBank = x.ReceiverBank,
+            SenderBankId = x.SenderBankId,
+            SenderBankNav = new BankResponse 
+            { 
+                BankName = x.SenderBank !=null ? x.SenderBank.Name : null ,
+                LegalName = x.SenderBank !=null ? x.SenderBank.LegalName : null,
+                ShortName = x.SenderBank != null ? x.SenderBank.ShortName : null,
+                Country = x.SenderBank != null ? x.SenderBank.Country.CountryName : null,
+                SwiftBic = x.SenderBank != null ? x.SenderBank.SwiftBic : null,
+                CountryId = x.SenderBank != null ?  x.SenderBank.CountryId : null,
+                CountryName = x.SenderBank != null ? x.SenderBank.Country.CountryName : null,
+                Phones = x.SenderBank != null ? x.SenderBank.Phones.Select(ph => new PhonesResponse
+                {
+                    Label = ph.Label,
+                    IsPrimary = ph.IsPrimary,
+                    Number = ph.Number,
+                    Type = ph.Type
+                }).ToList() : null,
+                Emails =  x.SenderBank != null ? x.SenderBank.Emails.Select(e => new EmailsResponse
+                {
+                    Address = e.Address,
+                    IsPrimary = e.IsPrimary,
+                    Label = e.Label,
+                    Role = e.Role
+                }).ToList() : null,
+            },
+
+            ReceiverBankNav = new BankResponse
+            {
+                BankName = x.ReceiverBank != null ? x.ReceiverBank.Name : null,
+                LegalName = x.ReceiverBank != null ? x.ReceiverBank.LegalName : null,
+                ShortName = x.ReceiverBank != null ? x.ReceiverBank.ShortName : null,
+                Country = x.ReceiverBank != null ? x.ReceiverBank.Country.CountryName : null,
+                SwiftBic = x.ReceiverBank != null ? x.ReceiverBank.SwiftBic : null,
+                CountryId = x.ReceiverBank != null ? x.ReceiverBank.CountryId : null,
+                CountryName = x.ReceiverBank != null ? x.ReceiverBank.Country.CountryName : null,
+                Phones = x.ReceiverBank != null ? x.ReceiverBank.Phones.Select(ph => new PhonesResponse
+                {
+                    Label = ph.Label,
+                    IsPrimary = ph.IsPrimary,
+                    Number = ph.Number,
+                    Type = ph.Type
+                }).ToList() : null,
+                Emails = x.ReceiverBank != null ? x.ReceiverBank.Emails.Select(e => new EmailsResponse
+                {
+                    Address = e.Address,
+                    IsPrimary = e.IsPrimary,
+                    Label = e.Label,
+                    Role = e.Role
+                }).ToList() : null,
+            },
+
+            ReceiverBankId = x.ReceiverBankId,
             PaymentReference = x.PaymentReference,
+
             IsActive = x.IsActive
         };
     }

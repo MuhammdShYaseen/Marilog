@@ -81,8 +81,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.Amount,
                 request.SenderCompanyId,
                 request.ReceiverCompanyId,
-                request.SenderBank,
-                request.ReceiverBank,
+                request.SenderBankId,
+                request.ReceiverBankId,
                 request.PaymentReference,
                 request.RawMessage,
                 ct
@@ -103,8 +103,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 Amount = r.Amount,
                 SenderCompanyId = r.SenderCompanyId,
                 ReceiverCompanyId = r.ReceiverCompanyId,
-                SenderBank = r.SenderBank,
-                ReceiverBank = r.ReceiverBank,
+                SenderBankId = r.SenderBankId,
+                ReceiverBankId = r.ReceiverBankId,
                 PaymentReference = r.PaymentReference,
                 RawMessage = r.RawMessage
             });
@@ -120,8 +120,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 id,
                 request.CurrencyId,
                 request.Amount,
-                request.SenderBank,
-                request.ReceiverBank,
+                request.SenderBankId,
+                request.ReceiverBankId,
                 request.PaymentReference,
                 request.RawMessage,
                 ct
