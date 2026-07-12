@@ -52,153 +52,249 @@
                 <MudText Color="Color.Secondary">There Are No Attached Files</MudText>
             </MudStack>
         }
-        else if (_viewMode == ViewMode.List)
-        {
-            <MudTable Items="_files" Hover="true" Class="manage-files-table">
-
-                <HeaderContent>
-                    <MudTh>File</MudTh>
-                    <MudTh>Size</MudTh>
-                    <MudTh>Tags</MudTh>
-                    <MudTh>Added Date</MudTh>
-                    <MudTh></MudTh>
-                </HeaderContent>
-
-                <RowTemplate Context="file">
-
-                    <MudTd DataLabel="File">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@GetFileIcon(file)" Size="Size.Small" Color="Color.Primary" />
-                            <MudText>@file.OriginalFileName</MudText>
-                        </MudStack>
-                    </MudTd>
-
-                    <MudTd DataLabel="Size">
-                        @FormatSize(file.Size)
-                    </MudTd>
-
-                    <MudTd DataLabel="Tags">
-                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" AlignItems="AlignItems.Center">
-                            @if (file.Tags != null)
-                            {
-                                foreach (var tag in file.Tags)
-                                {
-                                    <MudChip T="string"
-                                             Size="Size.Small"
-                                             Color="@ParseColor(tag.Color)"
-                                             Variant="Variant.Filled"
-                                             OnClose="@(() => RemoveTagAsync(file, tag))">
-                                        @tag.Name
-                                    </MudChip>
-                                }
-                            }
-                            <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
-                                @TagPickerContent(file)
-                            </MudMenu>
-
-                        </MudStack>
-                    </MudTd>
-
-                    <MudTd DataLabel="Date">
-                        @file.CreatedAt.ToString("yyyy-MM-dd HH:mm")
-                    </MudTd>
-
-                    <MudTd>
-                        <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
-
-                            <MudIconButton Icon="@Icons.Material.Filled.Download"
-                                           Size="Size.Small"
-                                           Color="Color.Primary"
-                                           OnClick="@(() => DownloadAsync(file))" />
-
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="@(() => DeleteAsync(file))" />
-
-                        </MudStack>
-                    </MudTd>
-
-                </RowTemplate>
-
-            </MudTable>
-        }
         else
         {
-            <MudGrid Spacing="3" Class="mt-1">
+            @if (_viewMode == ViewMode.List)
+            {
+                <MudTable T="StoredFileResponse"
+                          Items="_files"
+                          Hover="true"
+                          Class="manage-files-table"
+                          OnRowClick="OnTableRowClick"
+                          RowClassFunc="@((f, index) => f.Id == _selectedFile?.Id ? "selected-row" : string.Empty)">
 
-                @foreach (var file in _files)
-                {
-                    <MudItem xs="6" sm="4" md="3">
+                    <HeaderContent>
+                        <MudTh>File</MudTh>
+                        <MudTh>Size</MudTh>
+                        <MudTh>Tags</MudTh>
+                        <MudTh>Added Date</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
 
-                        <MudPaper Class="file-card pa-0" Outlined="true">
+                    <RowTemplate Context="file">
 
-                            <div class="file-thumb">
+                        <MudTd DataLabel="File">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@GetFileIcon(file)" Size="Size.Small" Color="Color.Primary" />
+                                <MudText>@file.OriginalFileName</MudText>
+                            </MudStack>
+                        </MudTd>
 
-                                @if (IsImage(file))
+                        <MudTd DataLabel="Size">
+                            @FormatSize(file.Size)
+                        </MudTd>
+
+                        <MudTd DataLabel="Tags" @onclick:stopPropagation="true">
+                            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" AlignItems="AlignItems.Center">
+                                @if (file.Tags != null)
                                 {
-                                    <img src="@BuildDownloadUrl(file)" alt="@file.OriginalFileName" />
+                                    foreach (var tag in file.Tags)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="@ParseColor(tag.Color)"
+                                                 Variant="Variant.Filled"
+                                                 OnClose="@(() => RemoveTagAsync(file, tag))">
+                                            @tag.Name
+                                        </MudChip>
+                                    }
                                 }
-                                else if (file.HasThumbnail)
-                                {
-                                    <img src="@BuildThumbnailUrl(file)" alt="@file.OriginalFileName" />
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@GetFileIcon(file)" Color="Color.Primary" Class="file-thumb-icon" />
-                                }
+                                <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
+                                    @TagPickerContent(file)
+                                </MudMenu>
 
-                                <div class="file-thumb-actions">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Download"
-                                                   Size="Size.Small"
-                                                   Color="Color.Inherit"
-                                                   OnClick="@(() => DownloadAsync(file))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   Size="Size.Small"
-                                                   Color="Color.Inherit"
-                                                   OnClick="@(() => DeleteAsync(file))" />
-                                </div>
+                            </MudStack>
+                        </MudTd>
+
+                        <MudTd DataLabel="Date">
+                            @file.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                        </MudTd>
+
+                        <MudTd @onclick:stopPropagation="true">
+                            <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                               Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => DownloadAsync(file))" />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteAsync(file))" />
+
+                            </MudStack>
+                        </MudTd>
+
+                    </RowTemplate>
+
+                </MudTable>
+            }
+            else
+            {
+                <MudGrid Spacing="3" Class="mt-1">
+
+                    @foreach (var file in _files)
+                    {
+                        <MudItem xs="6" sm="4" md="3">
+
+                            <div class="file-card-wrapper" @onclick="() => SelectFile(file)">
+
+                                <MudPaper Class="@GetCardClass(file)" Outlined="true">
+
+                                    <div class="file-thumb">
+
+                                        @if (IsImage(file))
+                                        {
+                                            <img src="@BuildDownloadUrl(file)" alt="@file.OriginalFileName" />
+                                        }
+                                        else if (file.HasThumbnail)
+                                        {
+                                            <img src="@BuildThumbnailUrl(file)" alt="@file.OriginalFileName" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@GetFileIcon(file)" Color="Color.Primary" Class="file-thumb-icon" />
+                                        }
+
+                                        <div class="file-thumb-actions" @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                                           Size="Size.Small"
+                                                           Color="Color.Inherit"
+                                                           OnClick="@(() => DownloadAsync(file))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Inherit"
+                                                           OnClick="@(() => DeleteAsync(file))" />
+                                        </div>
+
+                                    </div>
+
+                                    <div class="pa-2">
+                                        <MudText Typo="Typo.body2" Class="file-card-name">
+                                            @file.OriginalFileName
+                                        </MudText>
+
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @FormatSize(file.Size)
+                                        </MudText>
+
+                                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1" @onclick:stopPropagation="true">
+
+                                            @if (file.Tags != null)
+                                            {
+                                                foreach (var tag in file.Tags)
+                                                {
+                                                    <MudChip T="string"
+                                                             Size="Size.Small"
+                                                             Color="@ParseColor(tag.Color)"
+                                                             Variant="Variant.Filled"
+                                                             OnClose="@(() => RemoveTagAsync(file, tag))">
+                                                        @tag.Name
+                                                    </MudChip>
+                                                }
+                                            }
+
+                                            <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
+                                                @TagPickerContent(file)
+                                            </MudMenu>
+
+                                        </MudStack>
+                                    </div>
+
+                                </MudPaper>
 
                             </div>
 
-                            <div class="pa-2">
-                                <MudText Typo="Typo.body2" Class="file-card-name">
-                                    @file.OriginalFileName
+                        </MudItem>
+                    }
+
+                </MudGrid>
+            }
+
+            @if (_selectedFile is not null)
+            {
+                <MudPaper Class="detail-panel mt-4 pa-3" Outlined="true">
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@GetFileIcon(_selectedFile)" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle1">@_selectedFile.OriginalFileName</MudText>
+                        </MudStack>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       OnClick="ClearSelection" />
+
+                    </MudStack>
+
+                    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-3">
+
+                        <MudTabPanel Text="Text" Icon="@Icons.Material.Filled.Description">
+
+                            @if (string.IsNullOrEmpty(_selectedFile.Content))
+                            {
+                                <MudText Color="Color.Secondary" Class="py-4">
+                                    No text content available for this file yet.
                                 </MudText>
+                            }
+                            else
+                            {
+                                <MudStack Spacing="2">
 
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @FormatSize(file.Size)
-                                </MudText>
+                                    <MudTextField T="string"
+                                                  @bind-Value="_editableContent"
+                                                  Lines="12"
+                                                  Variant="Variant.Outlined"
+                                                  FullWidth="true" />
 
-                                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1">
+                                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                                        <MudButton Variant="Variant.Text"
+                                                   Disabled="@(!_isContentDirty)"
+                                                   OnClick="ResetContent">
+                                            Discard
+                                        </MudButton>
 
-                                    @if (file.Tags != null)
-                                    {
-                                        foreach (var tag in file.Tags)
-                                        {
-                                            <MudChip T="string"
-                                                     Size="Size.Small"
-                                                     Color="@ParseColor(tag.Color)"
-                                                     Variant="Variant.Filled"
-                                                     OnClose="@(() => RemoveTagAsync(file, tag))">
-                                                @tag.Name
-                                            </MudChip>
-                                        }
-                                    }
-
-                                    <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
-                                        @TagPickerContent(file)
-                                    </MudMenu>
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.Save"
+                                                   Disabled="@(!_isContentDirty || _isSavingContent)"
+                                                   OnClick="SaveContentAsync">
+                                            @(_isSavingContent ? "Saving..." : "Save")
+                                        </MudButton>
+                                    </MudStack>
 
                                 </MudStack>
-                            </div>
+                            }
 
-                        </MudPaper>
+                        </MudTabPanel>
 
-                    </MudItem>
-                }
+                        <MudTabPanel Text="PDF" Icon="@Icons.Material.Filled.PictureAsPdf">
 
-            </MudGrid>
+                            @if (IsPdf(_selectedFile))
+                            {
+                                <iframe src="@BuildDownloadUrl(_selectedFile)" class="pdf-preview-frame"></iframe>
+                            }
+                            else
+                            {
+                                <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-8">
+                                    <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Large" Color="Color.Secondary" />
+                                    <MudText Color="Color.Secondary">Preview is only available for PDF files.</MudText>
+                                    <MudButton Variant="Variant.Outlined"
+                                               StartIcon="@Icons.Material.Filled.Download"
+                                               OnClick="@(() => DownloadAsync(_selectedFile))">
+                                        Download instead
+                                    </MudButton>
+                                </MudStack>
+                            }
+
+                        </MudTabPanel>
+
+                    </MudTabs>
+
+                </MudPaper>
+            }
         }
 
     </DialogContent>
@@ -239,6 +335,7 @@
         </MudButton>
 
     </MudStack>;
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -271,10 +368,13 @@
     [Parameter, EditorRequired]
     public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
 
-
     [Parameter, EditorRequired]
     public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
 
+    // Optional: not wired by the host yet until the update-content endpoint exists.
+    // When null, the Save button still works in the UI but informs the user it's not available yet.
+    [Parameter]
+    public Func<int, string, CancellationToken, Task<bool>>? SaveContentFunc { get; set; }
 
     private enum ViewMode { List, Grid }
 
@@ -282,6 +382,13 @@
 
     private IReadOnlyList<StoredFileResponse> _files = Array.Empty<StoredFileResponse>();
     private bool _isLoading;
+
+    private StoredFileResponse? _selectedFile;
+    private string _editableContent = string.Empty;
+    private bool _isSavingContent;
+
+    private bool _isContentDirty =>
+        _selectedFile is not null && _editableContent != (_selectedFile.Content ?? string.Empty);
 
     private string _newTagName = string.Empty;
     private string _newTagColor = nameof(Color.Primary);
@@ -312,6 +419,67 @@
 
         _isLoading = false;
         StateHasChanged();
+    }
+
+    private void SelectFile(StoredFileResponse file)
+    {
+
+        _selectedFile = file;
+        _editableContent = file.Content ?? string.Empty;
+    }
+
+    private void ClearSelection()
+    {
+        _selectedFile = null;
+        _editableContent = string.Empty;
+    }
+
+    private void ResetContent()
+    {
+        if (_selectedFile is not null)
+            _editableContent = _selectedFile.Content ?? string.Empty;
+    }
+
+    private void OnTableRowClick(TableRowClickEventArgs<StoredFileResponse> args)
+    {
+        if (args.Item is null)
+            return;
+
+        SelectFile(args.Item);
+    }
+
+    private async Task SaveContentAsync()
+    {
+        if (_selectedFile is null)
+            return;
+
+        if (SaveContentFunc is null)
+        {
+            Snackbar.Add("Saving content is not available yet — the server endpoint isn't implemented.", Severity.Info);
+            return;
+        }
+
+        _isSavingContent = true;
+        StateHasChanged();
+
+        var success = await SaveContentFunc(_selectedFile.Id, _editableContent, CancellationToken.None);
+
+        _isSavingContent = false;
+
+        if (success)
+        {
+            Snackbar.Add("Content saved.", Severity.Success);
+            await ReloadAsync();
+
+            // keep the same file selected with the freshly reloaded data
+            var refreshed = _files.FirstOrDefault(f => f.Id == _selectedFile.Id);
+            if (refreshed is not null)
+                SelectFile(refreshed);
+        }
+        else
+        {
+            Snackbar.Add("Failed to save content.", Severity.Error);
+        }
     }
 
     private async Task OpenUploadDialogAsync()
@@ -364,6 +532,10 @@
             return;
 
         await DeleteFileFunc(file.Id, CancellationToken.None);
+
+        if (_selectedFile?.Id == file.Id)
+            ClearSelection();
+
         Snackbar.Add("File deleted.", Severity.Success);
         await ReloadAsync();
     }
@@ -398,6 +570,18 @@
             && file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsPdf(StoredFileResponse file)
+    {
+        return string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetCardClass(StoredFileResponse file)
+    {
+        return file.Id == _selectedFile?.Id
+            ? "file-card pa-0 file-card-selected"
+            : "file-card pa-0";
+    }
+
     private static string GetFileIcon(StoredFileResponse file)
     {
         var ext = System.IO.Path.GetExtension(file.OriginalFileName).ToLowerInvariant();
@@ -429,8 +613,6 @@
     {
         MudDialog.Close();
     }
-
-
 }
 
 <style>
@@ -438,14 +620,23 @@
         background-color: var(--mud-palette-background-grey);
     }
 
+    .manage-files-table .selected-row {
+        background-color: var(--mud-palette-primary-hover) !important;
+    }
+
     .file-card {
         border-radius: 8px;
         overflow: hidden;
-        transition: box-shadow 0.15s ease;
+        cursor: pointer;
+        transition: box-shadow 0.15s ease, border-color 0.15s ease;
     }
 
-    .file-card:hover {
-        box-shadow: var(--mud-elevation-4);
+        .file-card:hover {
+            box-shadow: var(--mud-elevation-4);
+        }
+
+    .file-card-selected {
+        border: 2px solid var(--mud-palette-primary);
     }
 
     .file-thumb {
@@ -458,11 +649,11 @@
         overflow: hidden;
     }
 
-    .file-thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+        .file-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
     .file-thumb-icon {
         font-size: 3rem;
@@ -489,5 +680,16 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    .detail-panel {
+        border-radius: 8px;
+    }
+
+    .pdf-preview-frame {
+        width: 100%;
+        height: 500px;
+        border: none;
+        border-radius: 4px;
     }
 </style>
