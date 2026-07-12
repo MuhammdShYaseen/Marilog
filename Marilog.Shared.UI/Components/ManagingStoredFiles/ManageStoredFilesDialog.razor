@@ -137,75 +137,16 @@
                     @foreach (var file in _files)
                     {
                         <MudItem xs="6" sm="4" md="3">
-
-                            <div class="file-card-wrapper" @onclick="() => SelectFile(file)">
-
-                                <MudPaper Class="@GetCardClass(file)" Outlined="true">
-
-                                    <div class="file-thumb">
-
-                                        @if (IsImage(file))
-                                        {
-                                            <img src="@BuildDownloadUrl(file)" alt="@file.OriginalFileName" />
-                                        }
-                                        else if (file.HasThumbnail)
-                                        {
-                                            <img src="@BuildThumbnailUrl(file)" alt="@file.OriginalFileName" />
-                                        }
-                                        else
-                                        {
-                                            <MudIcon Icon="@GetFileIcon(file)" Color="Color.Primary" Class="file-thumb-icon" />
-                                        }
-
-                                        <div class="file-thumb-actions" @onclick:stopPropagation="true">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Download"
-                                                           Size="Size.Small"
-                                                           Color="Color.Inherit"
-                                                           OnClick="@(() => DownloadAsync(file))" />
-                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                           Size="Size.Small"
-                                                           Color="Color.Inherit"
-                                                           OnClick="@(() => DeleteAsync(file))" />
-                                        </div>
-
-                                    </div>
-
-                                    <div class="pa-2">
-                                        <MudText Typo="Typo.body2" Class="file-card-name">
-                                            @file.OriginalFileName
-                                        </MudText>
-
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @FormatSize(file.Size)
-                                        </MudText>
-
-                                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1" @onclick:stopPropagation="true">
-
-                                            @if (file.Tags != null)
-                                            {
-                                                foreach (var tag in file.Tags)
-                                                {
-                                                    <MudChip T="string"
-                                                             Size="Size.Small"
-                                                             Color="@ParseColor(tag.Color)"
-                                                             Variant="Variant.Filled"
-                                                             OnClose="@(() => RemoveTagAsync(file, tag))">
-                                                        @tag.Name
-                                                    </MudChip>
-                                                }
-                                            }
-
-                                            <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
-                                                @TagPickerContent(file)
-                                            </MudMenu>
-
-                                        </MudStack>
-                                    </div>
-
-                                </MudPaper>
-
-                            </div>
-
+                            <StoredFileCard File="file"
+                                            IsSelected="@(file.Id == _selectedFile?.Id)"
+                                            DownloadUrl="@BuildDownloadUrl(file)"
+                                            ThumbnailUrl="@BuildThumbnailUrl(file)"
+                                            PresetColors="_presetColors"
+                                            OnSelect="SelectFile"
+                                            OnDownload="DownloadAsync"
+                                            OnDelete="DeleteAsync"
+                                            OnAddTag="HandleCardAddTag"
+                                            OnRemoveTag="HandleCardRemoveTag" />
                         </MudItem>
                     }
 
@@ -274,6 +215,7 @@
 
                             @if (IsPdf(_selectedFile))
                             {
+                                @* MudBlazor has no iframe-equivalent component; this raw tag is a required exception. *@
                                 <iframe src="@BuildDownloadUrl(_selectedFile)" class="pdf-preview-frame"></iframe>
                             }
                             else
@@ -372,7 +314,6 @@
     public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
 
     // Optional: not wired by the host yet until the update-content endpoint exists.
-    // When null, the Save button still works in the UI but informs the user it's not available yet.
     [Parameter]
     public Func<int, string, CancellationToken, Task<bool>>? SaveContentFunc { get; set; }
 
@@ -423,7 +364,6 @@
 
     private void SelectFile(StoredFileResponse file)
     {
-
         _selectedFile = file;
         _editableContent = file.Content ?? string.Empty;
     }
@@ -446,6 +386,18 @@
             return;
 
         SelectFile(args.Item);
+    }
+
+    private async Task HandleCardAddTag((StoredFileResponse File, string Name, string Color) args)
+    {
+        await AddTagFunc(args.File.Id, args.Name, args.Color, CancellationToken.None);
+        await ReloadAsync();
+    }
+
+    private async Task HandleCardRemoveTag((StoredFileResponse File, TagResponse Tag) args)
+    {
+        await RemoveTagFunc(args.File.Id, args.Tag.Id, CancellationToken.None);
+        await ReloadAsync();
     }
 
     private async Task SaveContentAsync()
@@ -471,7 +423,6 @@
             Snackbar.Add("Content saved.", Severity.Success);
             await ReloadAsync();
 
-            // keep the same file selected with the freshly reloaded data
             var refreshed = _files.FirstOrDefault(f => f.Id == _selectedFile.Id);
             if (refreshed is not null)
                 SelectFile(refreshed);
@@ -564,22 +515,9 @@
             : Color.Default;
     }
 
-    private static bool IsImage(StoredFileResponse file)
-    {
-        return !string.IsNullOrWhiteSpace(file.ContentType)
-            && file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static bool IsPdf(StoredFileResponse file)
     {
         return string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private string GetCardClass(StoredFileResponse file)
-    {
-        return file.Id == _selectedFile?.Id
-            ? "file-card pa-0 file-card-selected"
-            : "file-card pa-0";
     }
 
     private static string GetFileIcon(StoredFileResponse file)
@@ -627,7 +565,6 @@
     .file-card {
         border-radius: 8px;
         overflow: hidden;
-        cursor: pointer;
         transition: box-shadow 0.15s ease, border-color 0.15s ease;
     }
 
@@ -637,49 +574,7 @@
 
     .file-card-selected {
         border: 2px solid var(--mud-palette-primary);
-    }
-
-    .file-thumb {
-        position: relative;
-        height: 110px;
-        background-color: var(--mud-palette-background-grey);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
-
-        .file-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-    .file-thumb-icon {
-        font-size: 3rem;
-        opacity: 0.6;
-    }
-
-    .file-thumb-actions {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        display: flex;
-        gap: 2px;
-        background-color: rgba(0, 0, 0, 0.55);
-        border-radius: 6px;
-        opacity: 0;
-        transition: opacity 0.15s ease;
-    }
-
-    .file-thumb:hover .file-thumb-actions {
-        opacity: 1;
-    }
-
-    .file-card-name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        cursor: pointer;
     }
 
     .detail-panel {

@@ -1,0 +1,128 @@
+
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.ManagingStoredFiles
+
+<MudPaper Class="@CardClass" Outlined="true" onclick="@(EventCallback.Factory.Create(this, HandleCardClick))">
+    <div class="file-thumb">
+
+        @if (IsImage)
+        {
+            <MudImage Src="@DownloadUrl" Alt="@File.OriginalFileName" ObjectFit="ObjectFit.Cover" Fluid="true" Class="file-thumb-image" />
+        }
+        else if (File.HasThumbnail)
+        {
+            <MudImage Src="@ThumbnailUrl" Alt="@File.OriginalFileName" ObjectFit="ObjectFit.Cover" Fluid="true" Class="file-thumb-image" />
+        }
+        else
+        {
+            <MudIcon Icon="@FileIcon" Color="Color.Primary" Class="file-thumb-icon" />
+        }
+
+        <div class="file-thumb-actions" @onclick:stopPropagation="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Download" Size="Size.Small" Color="Color.Inherit" OnClick="HandleDownloadClick" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Inherit" OnClick="HandleDeleteClick" />
+        </div>
+
+    </div>
+
+    <div class="pa-2">
+        <MudText Typo="Typo.body2" Class="file-card-name">@File.OriginalFileName</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@FormattedSize</MudText>
+
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1" @onclick:stopPropagation="true">
+
+            @if (File.Tags != null)
+            {
+                foreach (var tag in File.Tags)
+                {
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Color="@ParseColor(tag.Color)"
+                             Variant="Variant.Filled"
+                             OnClose="@(() => OnRemoveTag.InvokeAsync((File, tag)))">
+                        @tag.Name
+                    </MudChip>
+                }
+            }
+
+            <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
+                <MudStack Spacing="2" Class="pa-3" Style="min-width:240px">
+
+                    <MudTextField T="string" @bind-Value="_newTagName" Label="Tag Name" Immediate="true" />
+
+                    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                        @foreach (var color in PresetColors)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@color.Value"
+                                     Variant="@(color.Name == _newTagColor ? Variant.Filled : Variant.Outlined)"
+                                     OnClick="@(() => _newTagColor = color.Name)">
+                                @color.Name
+                            </MudChip>
+                        }
+                    </MudStack>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@string.IsNullOrWhiteSpace(_newTagName)"
+                               OnClick="HandleAddTagClick">
+                        Add
+                    </MudButton>
+
+                </MudStack>
+            </MudMenu>
+
+        </MudStack>
+    </div>
+
+</MudPaper>
+
+<style>
+    .file-card-wrapper {
+        cursor: pointer;
+    }
+
+    .file-thumb {
+        position: relative;
+        height: 110px;
+        background-color: var(--mud-palette-background-grey);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .file-thumb-image {
+        width: 100%;
+        height: 100%;
+    }
+
+    .file-thumb-icon {
+        font-size: 3rem;
+        opacity: 0.6;
+    }
+
+    .file-thumb-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: flex;
+        gap: 2px;
+        background-color: rgba(0, 0, 0, 0.55);
+        border-radius: 6px;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+
+    .file-thumb:hover .file-thumb-actions {
+        opacity: 1;
+    }
+
+    .file-card-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
