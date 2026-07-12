@@ -40,6 +40,16 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasForeignKey(x => x.ReceiverCompanyId)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.SenderBank)
+                .WithMany()
+                .HasForeignKey(x => x.SenderBankId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ReceiverBank)
+               .WithMany()
+               .HasForeignKey(x => x.ReceiverBankId)
+               .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(x => x.Payments)
                    .WithOne(x => x.SwiftTransfer)
                    .HasForeignKey(x => x.SwiftTransferId)
