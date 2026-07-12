@@ -27,5 +27,7 @@
         public bool IsActive { get; set; } = true;
         public BankResponse? SenderBankNav { get; set; }
         public BankResponse? ReceiverBankNav { get; set; }
+        public string? SenderBankName { get; set; }
+        public string? ReceiverBankName { get; set; }
     }
 }

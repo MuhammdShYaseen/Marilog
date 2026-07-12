@@ -1471,6 +1471,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     {
                         AllocatedAmount = p.SwiftTransfer!.AllocatedAmount,
                         SenderBankId = p.SwiftTransfer.SenderBankId,
+                        SenderBankName = p.SwiftTransfer.SenderBank != null ? p.SwiftTransfer.SenderBank.Name : null,
                         SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
                         SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
                         SwiftReference = p.SwiftTransfer.SwiftReference,
@@ -1482,6 +1483,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
                         PaymentReference = p.SwiftTransfer.PaymentReference,
                         ReceiverBankId = p.SwiftTransfer.ReceiverBankId,
+                        ReceiverBankName = p.SwiftTransfer.ReceiverBank != null ? p.SwiftTransfer.ReceiverBank.Name : null,
                         ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
                         ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
                         TransactionDate = p.SwiftTransfer.TransactionDate,
