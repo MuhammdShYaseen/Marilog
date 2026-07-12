@@ -1,6 +1,4 @@
 ﻿
-using System.Security.Cryptography.X509Certificates;
-
 namespace Marilog.Contracts.DTOs.Responses
 {
     public class BankResponse
@@ -11,8 +9,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? SwiftBic { get; set; }
         public string? ShortName { get; set; }
         public int ParentBankId { get; set; }
-
-
         public string? BranchCode { get; set; }
         public string? ClearingCode { get; set; }
         public string? NationalBankCode{ get; set; }
@@ -25,5 +21,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public List<PhonesResponse>? Phones { get; set; }
         public List<EmailsResponse>? Emails { get; set; }
         public string? CountryName { get; set; }
+        public IReadOnlyList<BankResponse>? Branchs { get; set; }
     }
 }
