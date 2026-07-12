@@ -1,4 +1,5 @@
 ﻿
+using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
@@ -60,12 +61,21 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         [HttpGet("{id:int}/stream")]
-        public async Task<IActionResult> GetFileStream(int id, CancellationToken ct)
+        public async Task<IActionResult> GetFileStream(int id, CancellationToken ct, [FromQuery] bool inline = false)
         {
             var stream = await _service.GetFileStreamAsync(id, ct);
             var file = await _service.GetByIdAsync(id, ct);
 
-            return File(stream, file!.ContentType, file.OriginalFileName);
+            if (file is null)
+                return NotFound();
+
+            if (inline)
+            {
+                Response.Headers.Append("Content-Disposition", $"inline; filename=\"{file.OriginalFileName}\"");
+                return File(stream, file.ContentType);
+            }
+
+            return File(stream, file.ContentType, file.OriginalFileName);
         }
 
         [HttpGet("{id:int}/thumbnailStream")]

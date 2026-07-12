@@ -216,7 +216,7 @@
                             @if (IsPdf(_selectedFile))
                             {
                                 @* MudBlazor has no iframe-equivalent component; this raw tag is a required exception. *@
-                                <iframe src="@BuildDownloadUrl(_selectedFile)" class="pdf-preview-frame"></iframe>
+                                <iframe src="@($"{BuildDownloadUrl(_selectedFile)}?inline=true")" class="pdf-preview-frame"></iframe>
                             }
                             else
                             {
