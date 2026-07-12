@@ -60,6 +60,14 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Touch();
             }
 
+        public void SetRawMessage(string swiftRowMessge)
+        {
+            if (string.IsNullOrWhiteSpace(RawMessage)) 
+                throw new ArgumentNullException("RawMessage is empty");
+
+            RawMessage = swiftRowMessge;
+        }
+
         // ── Computed ────────────────────────────────────────────────────────────
         public decimal AllocatedAmount => _payments.Sum(p => p.PaidAmount);
         public decimal UnallocatedAmount => Amount - AllocatedAmount;

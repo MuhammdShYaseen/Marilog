@@ -1,9 +1,6 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.ValueObjects.ReusableValueObjects;
 using Marilog.Kernel.Primitives;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -25,10 +22,13 @@ namespace Marilog.Domain.Entities.SystemEntities
         private readonly List<ContactEmail> _emails = new();
         public IReadOnlyCollection<ContactEmail> Emails => _emails.AsReadOnly();
 
+
         private readonly List<ContactPhone> _phones = new();
         public IReadOnlyCollection<ContactPhone> Phones => _phones.AsReadOnly();
+
         private readonly List<Vessel> _vessels = new();
         public IReadOnlyCollection<Vessel> Vessels => _vessels.AsReadOnly();
+        
 
         // ── Convenience accessors ─────────────────────────────────────
         public BankAccount? PrimaryBankAccount => _bankAccounts.FirstOrDefault(b => b.IsPrimary);
