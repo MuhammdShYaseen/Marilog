@@ -61,7 +61,9 @@ namespace Marilog.Domain.Entities.SystemEntities
                                   string clearingCode, string nationalBankCode, int countryId,
                                   string city, string address, string website, string note)
         {
-            return new Bank
+            
+
+                return new Bank
             {
                 Name = name,
                 ShortName = shortName,
@@ -80,11 +82,13 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
 
-        public  void Update(string name, string shortName, string legalName,
+        public void Update(string name, string shortName, string legalName,
                                   int? parentBankId, string swiftBic, string branchCode,
                                   string clearingCode, string nationalBankCode, int countryId,
                                   string city, string address, string website, string note)
         {
+            if (parentBankId.HasValue == true && parentBankId.Value == Id) 
+                    throw new InvalidOperationException("cannot bind it with it self");
 
             Name = name;
             ShortName = shortName;
@@ -99,7 +103,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             Address = address;
             Website = website;
             Notes = note;
-            
+            Touch();
+
         }
 
         // ── Emails ────────────────────────────────────────────────────
@@ -112,6 +117,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ClearPrimaryEmails();
 
             _emails.Add(email);
+            Touch();
             return Result.Ok();
         }
 
@@ -121,6 +127,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (email == null)
                 return Result.Fail("Email Address not found.");
             _emails.Remove(email);
+            Touch();
             return Result.Ok();
         }
 
@@ -134,6 +141,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ClearPrimaryPhones();
 
             _phones.Add(phone);
+            Touch();
             return Result.Ok();
         }
 
@@ -144,6 +152,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 return Result.Fail("Phone number not found");
 
             _phones.Remove(phone);
+            Touch();
             return Result.Ok();
         }
         //----------HELPERS----------------------------------------------
