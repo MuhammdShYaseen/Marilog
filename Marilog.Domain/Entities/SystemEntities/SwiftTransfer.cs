@@ -13,8 +13,10 @@ namespace Marilog.Domain.Entities.SystemEntities
             public Company? SenderCompany { get; private set; }
             public int? ReceiverCompanyId { get; private set; }
             public Company? ReceiverCompany { get; private set; }
-            public string? SenderBank { get; private set; }
-            public string? ReceiverBank { get; private set; }
+            public int? SenderBankId { get; private set; }
+            public Bank? SenderBank { get; private set; }
+            public int? ReceiverBankId { get; private set; }
+            public Bank? ReceiverBank { get; private set; }
             public string? PaymentReference { get; private set; }
             public string? RawMessage { get; private set; }
 
@@ -24,8 +26,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             private SwiftTransfer() { }
             public static SwiftTransfer Create(string swiftReference, DateOnly transactionDate,
                 int currencyId, decimal amount, int? senderCompanyId = null,
-                int? receiverCompanyId = null, string? senderBank = null,
-                string? receiverBank = null, string? paymentReference = null,
+                int? receiverCompanyId = null, int? senderBankId = null,
+                int? receiverBankId = null, string? paymentReference = null,
                 string? rawMessage = null)
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(swiftReference);
@@ -39,22 +41,22 @@ namespace Marilog.Domain.Entities.SystemEntities
                     Amount = amount,
                     SenderCompanyId = senderCompanyId,
                     ReceiverCompanyId = receiverCompanyId,
-                    SenderBank = senderBank,
-                    ReceiverBank = receiverBank,
+                    SenderBankId = senderBankId,
+                    ReceiverBankId = receiverBankId,
                     PaymentReference = paymentReference,
                     RawMessage = rawMessage
                 };
             }
 
-            public void Update(int currencyId, decimal amount, string? senderBank,
-                string? receiverBank, string? paymentReference, string? rawMessage)
+            public void Update(int currencyId, decimal amount, int? senderBankId,
+                int? receiverBankId, string? paymentReference, string? rawMessage)
             {
                 if (amount <= 0) throw new ArgumentException("Amount must be positive.");
 
                 CurrencyId = currencyId;
                 Amount = amount;
-                SenderBank = senderBank;
-                ReceiverBank = receiverBank;
+                SenderBankId = senderBankId;
+                ReceiverBankId = receiverBankId;
                 PaymentReference = paymentReference;
                 RawMessage = rawMessage;
                 Touch();
