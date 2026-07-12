@@ -18,8 +18,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.TransactionDate).IsRequired().HasColumnType("date");
             builder.Property(x => x.CurrencyId).IsRequired();
             builder.Property(x => x.Amount).IsRequired().HasColumnType("decimal(18,2)");
-            builder.Property(x => x.SenderBank).HasMaxLength(200);
-            builder.Property(x => x.ReceiverBank).HasMaxLength(200);
             builder.Property(x => x.PaymentReference).HasMaxLength(200);
             builder.Property(x => x.RawMessage).HasColumnType("nvarchar(max)");
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
