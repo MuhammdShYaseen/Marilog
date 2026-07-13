@@ -42,7 +42,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToResponse)
+                .Select(ToResponseWithDisbursement)
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -74,7 +74,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.ContractId == contractId)
                 .OrderByDescending(x => x.PayrollMonth)
-                .Select(ToResponse)
+                .Select(ToResponseWithDisbursement)
                 .ToListAsync(ct);
         }
 
@@ -87,7 +87,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.PayrollMonth == firstDay)
                 .OrderBy(x => x.Contract.Person.FullName)
-                .Select(ToResponse)
+                .Select(ToResponseWithDisbursement)
                 .ToListAsync(ct);
         }
 
@@ -98,7 +98,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.Status == status)
                 .OrderByDescending(x => x.PayrollMonth)
-                .Select(ToResponse)
+                .Select(ToResponseWithDisbursement)
                 .ToListAsync(ct);
         }
 
@@ -111,7 +111,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                             x.Status == PayrollStatus.PartiallyPaid)
                 .OrderBy(x => x.PayrollMonth)
                 .ThenBy(x => x.Contract.Person.FullName)
-                .Select(ToResponse)
+                .Select(ToResponseWithDisbursement)
                 .ToListAsync(ct);
         }
 

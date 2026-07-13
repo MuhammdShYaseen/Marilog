@@ -1,7 +1,5 @@
 ﻿using Marilog.Domain.Entities.SystemEntities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+
 
 namespace Marilog.Application.Interfaces.Services.Domain
 {
