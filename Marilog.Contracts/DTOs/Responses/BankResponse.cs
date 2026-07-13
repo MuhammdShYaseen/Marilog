@@ -3,6 +3,7 @@ namespace Marilog.Contracts.DTOs.Responses
 {
     public class BankResponse
     {
+        public int? BankId { get; set; }
         public string? BankName { get; set; }
         public string? LegalName { get; set; }
         public string? Country { get; set; }

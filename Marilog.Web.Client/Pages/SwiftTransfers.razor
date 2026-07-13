@@ -1,0 +1,199 @@
+@page "/finance/swift-transfers"
+@using MudBlazor
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Pages.SwiftTransfer
+@using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
+@inject ISwiftTransferService SwiftTransferService
+@inject ICompanyService CompanyService
+@inject IBankService BankService
+@inject ICurrencyService CurrencyService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host. Only file with @page and the only file that references
+   the concrete client services. Loads reference data (companies/banks/
+   currencies for the dropdowns) and the initial transfer list, wires every
+   delegate/EventCallback SharedSwiftTransferPage needs, and renders exactly
+   one component.
+
+   Initial list load: ISwiftTransferService has no "get all" query, so this
+   defaults to GetByDateRangeAsync over a wide rolling window (today back
+   5 years). Swap this for the real filter/report screen once
+   SwiftTransferFilterOptions / GetSwiftTransfersReportAsync are wired up.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedSwiftTransferPage @ref="_sharedPage"
+                          Items="@_transfers"
+                          IsLoading="@_isLoading"
+                          LoadDetailFunc="@LoadDetailAsync"
+                          OnAddClicked="@HandleAddClickedAsync"
+                          OnEditClicked="@HandleEditClickedAsync"
+                          OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    SharedSwiftTransferPage _sharedPage = null!;
+
+    List<SwiftTransferResponse> _transfers = new();
+    List<CompanyResponse> _companies = new();
+    List<BankResponse> _banks = new();
+    List<CurrencyResponse> _currencies = new();
+    bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(
+            LoadReferenceDataAsync(),
+            LoadTransfersAsync());
+    }
+
+    async Task LoadReferenceDataAsync()
+    {
+        var companiesTask = CompanyService.GetActiveAsync();
+        var banksTask = BankService.GetAllActiveAsync();
+        var currenciesTask = CurrencyService.GetActiveAsync();
+
+        await Task.WhenAll(companiesTask, banksTask, currenciesTask);
+
+        _companies = companiesTask.Result.ToList();
+        _banks = banksTask.Result.ToList();
+        _currencies = currenciesTask.Result.ToList();
+    }
+
+    async Task LoadTransfersAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var from = DateOnly.FromDateTime(DateTime.Today.AddYears(-5));
+            var to = DateOnly.FromDateTime(DateTime.Today);
+            var result = await SwiftTransferService.GetByDateRangeAsync(from, to);
+            _transfers = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load SWIFT transfers: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    Task<SwiftTransferResponse?> LoadDetailAsync(int id, CancellationToken ct) =>
+        SwiftTransferService.GetWithPaymentsAsync(id, ct);
+
+    async Task HandleAddClickedAsync()
+    {
+        var parameters = new DialogParameters<SwiftTransferEditDialog>
+        {
+            { x => x.Existing, null },
+            { x => x.Companies, _companies },
+            { x => x.Banks, _banks },
+            { x => x.Currencies, _currencies },
+            { x => x.OnCreateAsync, CreateAsync },
+            { x => x.OnUpdateAsync, UpdateAsync }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<SwiftTransferEditDialog>("New SWIFT Transfer", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadTransfersAsync();
+    }
+
+    async Task HandleEditClickedAsync(SwiftTransferResponse transfer)
+    {
+        var parameters = new DialogParameters<SwiftTransferEditDialog>
+        {
+            { x => x.Existing, transfer },
+            { x => x.Companies, _companies },
+            { x => x.Banks, _banks },
+            { x => x.Currencies, _currencies },
+            { x => x.OnCreateAsync, CreateAsync },
+            { x => x.OnUpdateAsync, UpdateAsync }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<SwiftTransferEditDialog>("Edit SWIFT Transfer", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadTransfersAsync();
+            await _sharedPage.RefreshSelectedIfOpenAsync();
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(SwiftTransferResponse transfer)
+    {
+        if (transfer.Id is null)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete SWIFT Transfer",
+            $"Delete transfer '{transfer.SwiftReference}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await SwiftTransferService.DeleteAsync(transfer.Id.Value);
+            Snackbar.Add("SWIFT transfer deleted.", Severity.Success);
+            await LoadTransfersAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete transfer: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // ── Delegates wired into the dialog (rule 2/3: only this host touches the service) ──
+
+    Task<SwiftTransferResponse> CreateAsync(CreateSwiftTransferRequest request, CancellationToken ct) =>
+        SwiftTransferService.CreateAsync(
+            request.SwiftReference,
+            request.TransactionDate,
+            request.CurrencyId,
+            request.Amount,
+            request.SenderCompanyId,
+            request.ReceiverCompanyId,
+            request.SenderBankId,
+            request.ReceiverBankId,
+            request.PaymentReference,
+            request.RawMessage,
+            ct);
+
+    async Task<bool> UpdateAsync(int id, UpdateSwiftTransferRequest request, CancellationToken ct)
+    {
+        await SwiftTransferService.UpdateAsync(
+            id,
+            request.CurrencyId,
+            request.Amount,
+            request.SenderBankId,
+            request.ReceiverBankId,
+            request.PaymentReference,
+            request.RawMessage,
+            ct);
+        return true;
+    }
+}

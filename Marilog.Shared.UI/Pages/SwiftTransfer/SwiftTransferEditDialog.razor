@@ -1,3 +1,8 @@
+@using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+
 @* ────────────────────────────────────────────────────────────────────────────
    SwiftTransferEditDialog
    One dialog for both Create and Edit. Fields that don't exist on the target
@@ -77,7 +82,7 @@
                     <MudSelect T="int?" Label="Sender Bank" @bind-Value="_senderBankId" Clearable="true">
                         @foreach (var bank in Banks)
                         {
-                            <MudSelectItem T="int?" Value="@((int?)bank.Id)">@bank.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)bank.BankId)">@bank.BankName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -86,7 +91,7 @@
                     <MudSelect T="int?" Label="Receiver Bank" @bind-Value="_receiverBankId" Clearable="true">
                         @foreach (var bank in Banks)
                         {
-                            <MudSelectItem T="int?" Value="@((int?)bank.Id)">@bank.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)bank.BankId)">@bank.BankName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -166,7 +171,7 @@
 
     async Task SubmitAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid)
             return;
 
