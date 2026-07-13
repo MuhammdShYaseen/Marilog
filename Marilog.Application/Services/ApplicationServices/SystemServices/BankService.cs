@@ -147,7 +147,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return created!;
         }
         public async Task<IReadOnlyList<BankResponse>> CreateRangAsync(
-    List<CreateBankRequest> requests, CancellationToken cancellationToken = default)
+            List<CreateBankRequest> requests, CancellationToken cancellationToken = default)
         {
             if (requests is null || requests.Count == 0)
                 return new List<BankResponse>();
@@ -164,6 +164,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var ids = banks.Select(b => b.Id).ToList();
 
             var created = await _repo.Query()
+                .AsNoTracking()
                 .Include(b => b.Country)
                 .Include(b => b.Branches)
                 .Include(b => b.ParentBank)
