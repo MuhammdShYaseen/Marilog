@@ -1,0 +1,76 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Offices
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedOfficeTable
+   Stateless list rendering with a client-side search box (name/city/contact).
+   No service refs — every action bubbles up via EventCallback.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudTextField T="string" Value="@_searchText" ValueChanged="@((string v) => _searchText = v)"
+              Placeholder="Search by name, city, or contact..." Adornment="Adornment.Start"
+              AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+<MudTable Items="@FilteredItems" Hover="true" Dense="true" Loading="@IsLoading" T="OfficeResponse">
+    <HeaderContent>
+        <MudTh>Office</MudTh>
+        <MudTh>City</MudTh>
+        <MudTh>Country</MudTh>
+        <MudTh>Contact</MudTh>
+        <MudTh>Phone</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh Style="text-align:right">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Office">@context.Name</MudTd>
+        <MudTd DataLabel="City">@context.City</MudTd>
+        <MudTd DataLabel="Country">@(context.CountryName ?? "—")</MudTd>
+        <MudTd DataLabel="Contact">@(context.ContactName ?? "—")</MudTd>
+        <MudTd DataLabel="Phone">@(context.Phone ?? "—")</MudTd>
+        <MudTd DataLabel="Status">
+            @if (context.IsActive)
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Default" Size="Size.Small">Inactive</MudChip>
+            }
+        </MudTd>
+        <MudTd Style="text-align:right">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
+            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                            Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnToggleActiveClicked.InvokeAsync(context)))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context)))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No offices found.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading offices...</MudText>
+    </LoadingContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<OfficeResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<OfficeResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<OfficeResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<OfficeResponse> OnDeleteClicked { get; set; }
+
+    string _searchText = string.Empty;
+
+    IEnumerable<OfficeResponse> FilteredItems =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? Items
+            : Items.Where(o =>
+                o.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                o.City.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                (o.ContactName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+}

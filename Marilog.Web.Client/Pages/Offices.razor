@@ -1,0 +1,169 @@
+@page "/admin/offices"
+@using Marilog.Contracts.DTOs.Requests.OfficeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Offices
+@inject IOfficeService OfficeService
+@inject ICountryService CountryService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for Offices. Loads the office list (GetAllAsync — no
+   date-range workaround needed here, unlike SwiftTransfer) plus the active
+   country list for the dropdown, wires every EventCallback, and renders
+   exactly one component.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedOfficePage Items="@_offices"
+                  IsLoading="@_isLoading"
+                  OnAddClicked="@HandleAddClickedAsync"
+                  OnEditClicked="@HandleEditClickedAsync"
+                  OnToggleActiveClicked="@HandleToggleActiveClickedAsync"
+                  OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    List<OfficeResponse> _offices = [];
+    List<CountryResponse> _countries = [];
+    bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadCountriesAsync(), LoadOfficesAsync());
+    }
+
+    async Task LoadCountriesAsync()
+    {
+        var result = await CountryService.GetActiveAsync();
+        _countries = result.ToList();
+    }
+
+    async Task LoadOfficesAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await OfficeService.GetAllAsync();
+            _offices = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load offices: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    async Task HandleAddClickedAsync()
+    {
+        var parameters = new DialogParameters<OfficeEditDialog>
+        {
+            { x => x.Existing, null },
+            { x => x.Countries, _countries }
+        };
+
+        var dialog = await DialogService.ShowAsync<OfficeEditDialog>("New Office", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: CreateOfficeRequest request })
+            await CreateOfficeAsync(request);
+    }
+
+    async Task HandleEditClickedAsync(OfficeResponse office)
+    {
+        var parameters = new DialogParameters<OfficeEditDialog>
+        {
+            { x => x.Existing, office },
+            { x => x.Countries, _countries }
+        };
+
+        var dialog = await DialogService.ShowAsync<OfficeEditDialog>("Edit Office", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: UpdateOfficeRequest request })
+            await UpdateOfficeAsync(office.Id, request);
+    }
+
+    async Task CreateOfficeAsync(CreateOfficeRequest request)
+    {
+        try
+        {
+            await OfficeService.CreateAsync(
+                request.OfficeName, request.City, request.CountryId,
+                request.Address, request.Phone, request.ContactName);
+            Snackbar.Add("Office created.", Severity.Success);
+            await LoadOfficesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to create office: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task UpdateOfficeAsync(int id, UpdateOfficeRequest request)
+    {
+        try
+        {
+            await OfficeService.UpdateAsync(
+                id, request.OfficeName, request.City, request.CountryId,
+                request.Address, request.Phone, request.ContactName);
+            Snackbar.Add("Office updated.", Severity.Success);
+            await LoadOfficesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update office: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleToggleActiveClickedAsync(OfficeResponse office)
+    {
+        try
+        {
+            if (office.IsActive)
+                await OfficeService.DeactivateAsync(office.Id);
+            else
+                await OfficeService.ActivateAsync(office.Id);
+
+            Snackbar.Add(office.IsActive ? "Office deactivated." : "Office activated.", Severity.Success);
+            await LoadOfficesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update office status: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(OfficeResponse office)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Office",
+            $"Delete office '{office.Name}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await OfficeService.DeleteAsync(office.Id);
+            Snackbar.Add("Office deleted.", Severity.Success);
+            await LoadOfficesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete office: {ex.Message}", Severity.Error);
+        }
+    }
+
+    static DialogOptions DefaultDialogOptions() => new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true,
+        Position = DialogPosition.Center
+    };
+}

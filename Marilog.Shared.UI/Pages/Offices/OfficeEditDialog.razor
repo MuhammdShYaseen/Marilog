@@ -1,0 +1,140 @@
+@using Marilog.Contracts.DTOs.Requests.OfficeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Offices
+
+@* ────────────────────────────────────────────────────────────────────────────
+   OfficeEditDialog
+   One dialog for Create and Edit. CreateOfficeRequest / UpdateOfficeRequest
+   have identical shapes, so — unlike SwiftTransfer/CrewPayroll — no field
+   needs to be disabled between modes. Dialog just builds the matching
+   request DTO and closes; the Platform host makes the actual service call.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? $"Edit Office — {Existing!.Name}" : "New Office")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" Model="@this">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_officeName" Label="Office Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="Office name is required" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_city" Label="City"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="City is required" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_countryId" Label="Country"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Required="true" RequiredError="Country is required">
+                        @foreach (var country in Countries)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)country.Id)">@country.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_phone" Label="Phone"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_contactName" Label="Contact Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_address" Label="Address"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
+    [Parameter] public OfficeResponse? Existing { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
+
+    MudForm _form = default!;
+    bool _isEdit;
+
+    string _officeName = string.Empty;
+    string _city = string.Empty;
+    int? _countryId;
+    string? _address;
+    string? _phone;
+    string? _contactName;
+
+    protected override void OnParametersSet()
+    {
+        if (Existing is null)
+            return;
+
+        _isEdit = true;
+        _officeName = Existing.Name;
+        _city = Existing.City;
+        _countryId = Existing.CountryId;
+        _address = Existing.Address;
+        _phone = Existing.Phone;
+        _contactName = Existing.ContactName;
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        if (_countryId is null)
+        {
+            Snackbar.Add("Country is required.", Severity.Warning);
+            return;
+        }
+
+        if (!_isEdit)
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new CreateOfficeRequest
+                {
+                    OfficeName = _officeName,
+                    City = _city,
+                    CountryId = _countryId.Value,
+                    Address = _address,
+                    Phone = _phone,
+                    ContactName = _contactName
+                }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new UpdateOfficeRequest
+                {
+                    OfficeName = _officeName,
+                    City = _city,
+                    CountryId = _countryId.Value,
+                    Address = _address,
+                    Phone = _phone,
+                    ContactName = _contactName
+                }));
+        }
+    }
+}

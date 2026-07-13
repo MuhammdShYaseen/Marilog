@@ -1,0 +1,35 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Offices
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedOfficePage
+   Header + Add button + table. No detail panel — Office has no child
+   collections worth drilling into, unlike SwiftTransfer/CrewPayroll.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">Offices</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New Office
+        </MudButton>
+    </div>
+
+    <SharedOfficeTable Items="@Items"
+                       IsLoading="@IsLoading"
+                       OnEditClicked="@OnEditClicked"
+                       OnToggleActiveClicked="@OnToggleActiveClicked"
+                       OnDeleteClicked="@OnDeleteClicked" />
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<OfficeResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<OfficeResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<OfficeResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<OfficeResponse> OnDeleteClicked { get; set; }
+}
