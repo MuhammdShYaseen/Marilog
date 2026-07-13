@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.SwiftTransfer
 @* ────────────────────────────────────────────────────────────────────────────
@@ -85,24 +86,65 @@
         <MudList T="PaymentResponse" Dense="true">
             @foreach (var payment in _orderedPayments)
             {
-                <MudListItem T="PaymentResponse">
-                    <div class="d-flex justify-space-between align-center" style="width:100%">
-                        <div>
-                            <MudText Typo="Typo.body1">@(payment.Id.ToString() ?? $"Payment #{payment.Id}")</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @payment.PaymentDate.ToString("yyyy-MM-dd")
-                            </MudText>
-                        </div>
-                        <div class="d-flex align-center gap-2">
-                            @if (!payment.IsActive)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">Inactive</MudChip>
-                            }
-                            <MudText Typo="Typo.body1">@payment.PaidAmount.ToString("N2")</MudText>
-                        </div>
-                    </div>
+                <MudListItem T="PaymentResponse" Class="py-2">
+                    <MudPaper Class="pa-3 w-100" Elevation="0" Outlined="true">
+                        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+
+                            <MudItem xs="12" sm="6">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2">
+                                        Payment #@payment.Id
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @payment.PaymentDate.ToString("yyyy-MM-dd")
+                                    </MudText>
+                                </MudStack>
+                            </MudItem>
+
+                            <MudItem xs="12" sm="6">
+                                <MudStack Row="true"
+                                          Justify="Justify.FlexEnd"
+                                          AlignItems="AlignItems.Center"
+                                          Spacing="2">
+
+                                    <MudChip T="PaymentMethod"
+                                             Size="Size.Small"
+                                             Color="Color.Info"
+                                             Variant="Variant.Outlined">
+                                       Method : @payment.PaymentMethod
+                                    </MudChip>
+
+                                    <MudChip Size="Size.Small"
+                                             Color="Color.Info"
+                                             Variant="Variant.Outlined">
+                                      Document ID :  @payment.DocumentId
+                                    </MudChip>
+
+                                    @if (!payment.IsActive)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="Color.Error"
+                                                 Variant="Variant.Filled">
+                                            Inactive
+                                        </MudChip>
+                                    }
+
+                                    <MudText Typo="Typo.h6" Class="ml-2">
+                                        @payment.PaidAmount.ToString("N2") @Transfer.CurrencyCode
+                                    </MudText>
+
+                                    
+
+                                </MudStack>
+                            </MudItem>
+
+                        </MudGrid>
+                    </MudPaper>
                 </MudListItem>
-                <MudDivider />
+
+                <MudDivider Class="my-1" />
             }
         </MudList>
     }

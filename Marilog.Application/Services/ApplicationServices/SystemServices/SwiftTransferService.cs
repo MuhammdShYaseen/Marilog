@@ -499,6 +499,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocumentId = p.DocumentId,
                 IsActive = p.IsActive,
                 PaymentDate = p.PaymentDate,
+                PaymentMethod = p.PaymentMethod,
+                Id = p.Id,
             }).ToList(),
         };
     }
