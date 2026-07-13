@@ -1394,6 +1394,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     Id = p.Id,
                     SwiftTransferId = p.SwiftTransferId,
+                    IsActive = p.IsActive,
                     DocumentId = p.DocumentId,
                     PaidAmount = p.PaidAmount,
                     PaymentMethod = p.PaymentMethod,
@@ -1462,6 +1463,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Payments = x.Payments.Select(p => new PaymentResponse
                 {
                     Id = p.Id,
+                    IsActive = p.IsActive,
                     PaymentMethod = p.PaymentMethod,
                     SwiftTransferId = p.SwiftTransferId,
                     DocumentId = p.DocumentId,

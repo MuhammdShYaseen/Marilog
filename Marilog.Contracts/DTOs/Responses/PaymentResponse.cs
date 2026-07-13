@@ -11,5 +11,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public decimal PaidAmount { get;  set; }
         public DateOnly PaymentDate { get;  set; }
         public PaymentMethod PaymentMethod { get; set; }
+        public bool IsActive {  get; set; }
     }
 }

@@ -473,8 +473,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             ReceiverBankId = x.ReceiverBankId,
             PaymentReference = x.PaymentReference,
-
-            IsActive = x.IsActive
+            IsActive = x.IsActive,
+            Payments = x.Payments.Select(p => new PaymentResponse
+            {
+                PaidAmount = p.PaidAmount,
+                DocumentId = p.DocumentId,
+                IsActive = p.IsActive,
+                PaymentDate = p.PaymentDate,
+            }).ToList(),
         };
     }
 }

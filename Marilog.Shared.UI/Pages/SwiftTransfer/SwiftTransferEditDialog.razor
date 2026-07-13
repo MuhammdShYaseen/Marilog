@@ -1,0 +1,243 @@
+@* ────────────────────────────────────────────────────────────────────────────
+   SwiftTransferEditDialog
+   One dialog for both Create and Edit. Fields that don't exist on the target
+   operation (UpdateSwiftTransferRequest has no SwiftReference / TransactionDate
+   / SenderCompanyId / ReceiverCompanyId, and ISwiftTransferService.UpdateAsync
+   never accepts them) are shown for context but Disabled in edit mode, never
+   hidden — the user can still see what they're editing against.
+
+   Rule 2: no concrete client service injected here. Companies/Banks/Currencies
+   arrive as parameters (loaded by the Platform host), and Create/Update are
+   delegates the host wires to the real ISwiftTransferService calls.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" />
+            @(IsEditMode ? $"Edit SWIFT Transfer — {Existing!.SwiftReference}" : "New SWIFT Transfer")
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" Model="@this">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="SWIFT Reference" @bind-Value="_swiftReference"
+                                  Required="true" RequiredError="SWIFT reference is required"
+                                  Disabled="@IsEditMode"
+                                  HelperText="@(IsEditMode ? "Not editable after creation" : null)" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Transaction Date" @bind-Date="_transactionDateTime"
+                                   Required="true" RequiredError="Transaction date is required"
+                                   Disabled="@IsEditMode"
+                                   Editable="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Currency" @bind-Value="_currencyId"
+                               Required="true" RequiredError="Currency is required">
+                        @foreach (var currency in Currencies)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)currency.Id)">@currency.Code — @currency.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" Label="Amount" @bind-Value="_amount"
+                                     Required="true" RequiredError="Amount is required"
+                                     Min="0.01m" Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Sender Company" @bind-Value="_senderCompanyId"
+                               Disabled="@IsEditMode" Clearable="true"
+                               HelperText="@(IsEditMode ? "Not editable after creation" : null)">
+                        @foreach (var company in Companies)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)company.Id)">@company.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Receiver Company" @bind-Value="_receiverCompanyId"
+                               Disabled="@IsEditMode" Clearable="true"
+                               HelperText="@(IsEditMode ? "Not editable after creation" : null)">
+                        @foreach (var company in Companies)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)company.Id)">@company.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Sender Bank" @bind-Value="_senderBankId" Clearable="true">
+                        @foreach (var bank in Banks)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)bank.Id)">@bank.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Receiver Bank" @bind-Value="_receiverBankId" Clearable="true">
+                        @foreach (var bank in Banks)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)bank.Id)">@bank.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Payment Reference" @bind-Value="_paymentReference" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Raw Message" @bind-Value="_rawMessage"
+                                  Lines="4" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@_isSaving" OnClick="SubmitAsync">
+            @(_isSaving ? "Saving..." : (IsEditMode ? "Save Changes" : "Create"))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
+    [Parameter] public SwiftTransferResponse? Existing { get; set; }
+
+    [Parameter, EditorRequired] public IReadOnlyList<CompanyResponse> Companies { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<BankResponse> Banks { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = null!;
+
+    /// <summary>Host wires this to ISwiftTransferService.CreateAsync(...).</summary>
+    [Parameter, EditorRequired]
+    public Func<CreateSwiftTransferRequest, CancellationToken, Task<SwiftTransferResponse>> OnCreateAsync { get; set; } = null!;
+
+    /// <summary>Host wires this to ISwiftTransferService.UpdateAsync(...); returns success/failure.</summary>
+    [Parameter, EditorRequired]
+    public Func<int, UpdateSwiftTransferRequest, CancellationToken, Task<bool>> OnUpdateAsync { get; set; } = null!;
+
+    bool IsEditMode => Existing?.Id is not null;
+
+    MudForm _form = null!;
+    bool _isSaving;
+
+    string _swiftReference = string.Empty;
+    DateTime? _transactionDateTime;
+    int? _currencyId;
+    decimal _amount;
+    int? _senderCompanyId;
+    int? _receiverCompanyId;
+    int? _senderBankId;
+    int? _receiverBankId;
+    string? _paymentReference;
+    string? _rawMessage;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+            return;
+
+        _swiftReference = Existing.SwiftReference;
+        _transactionDateTime = Existing.TransactionDate.ToDateTime(TimeOnly.MinValue);
+        _currencyId = Existing.CurrencyId;
+        _amount = Existing.Amount;
+        _senderCompanyId = Existing.SenderCompanyId;
+        _receiverCompanyId = Existing.ReceiverCompanyId;
+        _senderBankId = Existing.SenderBankId;
+        _receiverBankId = Existing.ReceiverBankId;
+        _paymentReference = Existing.PaymentReference;
+        // RawMessage isn't on SwiftTransferResponse — left blank in edit mode by design.
+    }
+
+    async Task SubmitAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid)
+            return;
+
+        if (_currencyId is null)
+        {
+            Snackbar.Add("Currency is required.", Severity.Warning);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            if (!IsEditMode)
+            {
+                if (string.IsNullOrWhiteSpace(_swiftReference) || _transactionDateTime is null)
+                {
+                    Snackbar.Add("SWIFT reference and transaction date are required.", Severity.Warning);
+                    return;
+                }
+
+                var request = new CreateSwiftTransferRequest
+                {
+                    SwiftReference = _swiftReference,
+                    TransactionDate = DateOnly.FromDateTime(_transactionDateTime.Value),
+                    CurrencyId = _currencyId.Value,
+                    Amount = _amount,
+                    SenderCompanyId = _senderCompanyId,
+                    ReceiverCompanyId = _receiverCompanyId,
+                    SenderBankId = _senderBankId,
+                    ReceiverBankId = _receiverBankId,
+                    PaymentReference = _paymentReference,
+                    RawMessage = _rawMessage
+                };
+
+                var created = await OnCreateAsync(request, CancellationToken.None);
+                Snackbar.Add($"SWIFT transfer {created.SwiftReference} created.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(created));
+            }
+            else
+            {
+                var request = new UpdateSwiftTransferRequest
+                {
+                    CurrencyId = _currencyId.Value,
+                    Amount = _amount,
+                    SenderBankId = _senderBankId,
+                    ReceiverBankId = _receiverBankId,
+                    PaymentReference = _paymentReference,
+                    RawMessage = _rawMessage
+                };
+
+                var success = await OnUpdateAsync(Existing!.Id!.Value, request, CancellationToken.None);
+                if (success)
+                {
+                    Snackbar.Add("SWIFT transfer updated.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to update SWIFT transfer.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

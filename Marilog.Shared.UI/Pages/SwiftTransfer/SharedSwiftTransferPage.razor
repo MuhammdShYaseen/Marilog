@@ -1,0 +1,83 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedSwiftTransferPage
+   Overall page shell: header + Add button, table, detail panel below on
+   selection. Owns local UI-only state (selected id, detail-loading flag) —
+   never fetches business data itself. Add/Edit/Delete bubble up unchanged
+   to the Platform host, which is the only place that owns a service ref.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">SWIFT Transfers</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New Transfer
+        </MudButton>
+    </div>
+
+    <SharedSwiftTransferTable Items="@Items"
+                               IsLoading="@IsLoading"
+                               SelectedItem="@_selectedSummary"
+                               OnRowSelected="@HandleRowSelectedAsync"
+                               OnEditClicked="@OnEditClicked"
+                               OnDeleteClicked="@OnDeleteClicked" />
+
+    @if (_selectedDetail is not null)
+    {
+        <SharedSwiftTransferDetailPanel Transfer="@_selectedDetail"
+                                         IsLoadingPayments="@_isLoadingDetail" />
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<SwiftTransferResponse> Items { get; set; } = null!;
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>Host wires this to ISwiftTransferService.GetWithPaymentsAsync(id, ct).</summary>
+    [Parameter, EditorRequired]
+    public Func<int, CancellationToken, Task<SwiftTransferResponse?>> LoadDetailFunc { get; set; } = null!;
+
+    [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
+
+    SwiftTransferResponse? _selectedSummary;
+    SwiftTransferResponse? _selectedDetail;
+    bool _isLoadingDetail;
+
+    async Task HandleRowSelectedAsync(SwiftTransferResponse item)
+    {
+        if (item.Id is null)
+            return;
+
+        // Toggle off if clicking the already-selected row.
+        if (_selectedSummary?.Id == item.Id)
+        {
+            _selectedSummary = null;
+            _selectedDetail = null;
+            return;
+        }
+
+        _selectedSummary = item;
+        _isLoadingDetail = true;
+        StateHasChanged();
+
+        _selectedDetail = await LoadDetailFunc(item.Id.Value, CancellationToken.None) ?? item;
+        _isLoadingDetail = false;
+    }
+
+    /// <summary>Lets the Platform host refresh the open panel after an edit closes.</summary>
+    public async Task RefreshSelectedIfOpenAsync()
+    {
+        if (_selectedSummary?.Id is int id)
+        {
+            _isLoadingDetail = true;
+            StateHasChanged();
+            _selectedDetail = await LoadDetailFunc(id, CancellationToken.None);
+            _isLoadingDetail = false;
+        }
+    }
+}

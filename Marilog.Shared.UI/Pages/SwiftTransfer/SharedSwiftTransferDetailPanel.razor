@@ -1,0 +1,123 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedSwiftTransferDetailPanel
+   Rule 15: appears below the table when a row is selected, not a dialog.
+   Shows the transfer's core fields plus its allocated Payments, sorted with
+   the most recent first and an allocation summary at the top.
+
+   ASSUMPTION (not supplied): PaymentResponse is assumed to expose
+   Id, Amount, PaymentDate (DateOnly), Reference/Description (string?), and
+   IsActive (bool). Adjust the bindings in the payments loop below if the
+   real shape differs — everything else in this component is independent
+   of that assumption.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4 mt-4" Outlined="true">
+    @if (IsLoadingPayments)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6">@Transfer.SwiftReference</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @Transfer.TransactionDate.ToString("yyyy-MM-dd") · @Transfer.CurrencyCode
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="6" Class="d-flex justify-end align-center gap-2">
+            @if (Transfer.IsFullyAllocated)
+            {
+                <MudChip T="string" Color="Color.Success">Fully Allocated</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Warning">Partially Allocated</MudChip>
+            }
+        </MudItem>
+
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Amount</MudText>
+            <MudText Typo="Typo.body1">@Transfer.Amount.ToString("N2")</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Allocated</MudText>
+            <MudText Typo="Typo.body1">@Transfer.AllocatedAmount.ToString("N2")</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Unallocated</MudText>
+            <MudText Typo="Typo.body1">@Transfer.UnallocatedAmount.ToString("N2")</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Payment Reference</MudText>
+            <MudText Typo="Typo.body1">@(Transfer.PaymentReference ?? "—")</MudText>
+        </MudItem>
+
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Sender</MudText>
+            <MudText Typo="Typo.body1">@(Transfer.SenderCompanyName ?? "—")</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Sender Bank</MudText>
+            <MudText Typo="Typo.body1">@(Transfer.SenderBankName ?? "—")</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Receiver</MudText>
+            <MudText Typo="Typo.body1">@(Transfer.ReceiverCompanyName ?? "—")</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Receiver Bank</MudText>
+            <MudText Typo="Typo.body1">@(Transfer.ReceiverBankName ?? "—")</MudText>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle1" Class="mb-2">Payments (@_orderedPayments.Count)</MudText>
+
+    @if (_orderedPayments.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">No payments allocated against this transfer yet.</MudText>
+    }
+    else
+    {
+        <MudList T="PaymentResponse" Dense="true">
+            @foreach (var payment in _orderedPayments)
+            {
+                <MudListItem T="PaymentResponse">
+                    <div class="d-flex justify-space-between align-center" style="width:100%">
+                        <div>
+                            <MudText Typo="Typo.body1">@(payment.Id.ToString() ?? $"Payment #{payment.Id}")</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @payment.PaymentDate.ToString("yyyy-MM-dd")
+                            </MudText>
+                        </div>
+                        <div class="d-flex align-center gap-2">
+                            @if (!payment.IsActive)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default">Inactive</MudChip>
+                            }
+                            <MudText Typo="Typo.body1">@payment.PaidAmount.ToString("N2")</MudText>
+                        </div>
+                    </div>
+                </MudListItem>
+                <MudDivider />
+            }
+        </MudList>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public SwiftTransferResponse Transfer { get; set; } = null!;
+    [Parameter] public bool IsLoadingPayments { get; set; }
+
+    List<PaymentResponse> _orderedPayments = new();
+
+    protected override void OnParametersSet()
+    {
+        _orderedPayments = (Transfer.Payments ?? new())
+            .OrderByDescending(p => p.PaymentDate)
+            .ToList();
+    }
+}
