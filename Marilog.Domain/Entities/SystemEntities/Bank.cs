@@ -56,10 +56,10 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private Bank(){ } //EF
 
-        public static Bank Create(string name, string shortName, string legalName,
-                                  int? parentBankId, string swiftBic, string branchCode,
-                                  string clearingCode, string nationalBankCode, int countryId,
-                                  string city, string address, string website, string note)
+        public static Bank Create(string name, string? shortName, string? legalName,
+                                  int? parentBankId, string? swiftBic, string? branchCode,
+                                  string? clearingCode, string? nationalBankCode, int countryId,
+                                  string? city, string? address, string? website, string? note)
         {
             
 
@@ -82,10 +82,10 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
 
-        public void Update(string name, string shortName, string legalName,
-                                  int? parentBankId, string swiftBic, string branchCode,
-                                  string clearingCode, string nationalBankCode, int countryId,
-                                  string city, string address, string website, string note)
+        public void Update(string name, string? shortName, string? legalName,
+                                  int? parentBankId, string? swiftBic, string? branchCode,
+                                  string? clearingCode, string? nationalBankCode, int countryId,
+                                  string? city, string? address, string? website, string? note)
         {
             if (parentBankId.HasValue == true && parentBankId.Value == Id) 
                     throw new InvalidOperationException("cannot bind it with it self");
@@ -121,7 +121,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             return Result.Ok();
         }
 
-        public Result RemoveEmail(string address)
+        public Result RemoveEmail(string? address)
         {
             var email = _emails.FirstOrDefault(e => e.Address == address);
             if (email == null)
@@ -145,7 +145,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             return Result.Ok();
         }
 
-        public Result RemovePhone(string phoneNumber)
+        public Result RemovePhone(string? phoneNumber)
         {
             var phone = _phones.FirstOrDefault(p => p.Number == phoneNumber);
             if (phone == null)

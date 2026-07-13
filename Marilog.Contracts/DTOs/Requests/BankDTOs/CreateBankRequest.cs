@@ -12,7 +12,7 @@ namespace Marilog.Contracts.DTOs.Requests.BankDTOs
 
         public int? ParentBankId { get; set; }
 
-        public string? SwiftBic { get; set; }
+        public string? SwiftBic { get; set; } 
 
         public string? BranchCode { get; set; }
 

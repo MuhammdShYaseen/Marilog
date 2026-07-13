@@ -13,10 +13,13 @@ namespace Marilog.Domain.ValueObjects.ReusableValueObjects
 
         private ContactEmail() { }
 
-        public static ContactEmail Create(string address, EmailRole role, string label, bool isPrimary)
+        public static ContactEmail Create(string address, EmailRole role, string? label, bool isPrimary)
         {
             if(string.IsNullOrWhiteSpace(address))
                 throw new ArgumentNullException(nameof(address));
+
+            if(string.IsNullOrWhiteSpace(label))
+                label = "Not set";
             return new ContactEmail
             {
 

@@ -9,7 +9,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? Country { get; set; }
         public string? SwiftBic { get; set; }
         public string? ShortName { get; set; }
-        public int ParentBankId { get; set; }
+        public int? ParentBankId { get; set; }
         public string? BranchCode { get; set; }
         public string? ClearingCode { get; set; }
         public string? NationalBankCode{ get; set; }
@@ -18,10 +18,11 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? Address { get; set; }
         public string? Website { get; set; }
         public string? Notes { get; set; }
-        public string? Branches { get; set; }
         public List<PhonesResponse>? Phones { get; set; }
         public List<EmailsResponse>? Emails { get; set; }
         public string? CountryName { get; set; }
-        public IReadOnlyList<BankResponse>? Branchs { get; set; }
+        public IReadOnlyList<BankResponse>? Branches { get; set; }
+        public string? ParentBankName { get; set; }
+        public bool IsActive { get; set; }
     }
 }
