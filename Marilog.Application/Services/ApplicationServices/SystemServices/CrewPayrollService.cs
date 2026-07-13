@@ -597,9 +597,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
            Allowances = x.Allowances,
            Deductions = x.Deductions,
            GrossAmount = x.GrossAmount,
-           TotalDisbursed = x.TotalDisbursed,
-           RemainingBalance = x.RemainingBalance,
-           IsFullyPaid = x.IsFullyPaid,
+           TotalDisbursed = x.Disbursements
+            .Where(d => d.Status != DisbursementStatus.Cancelled)
+            .Sum(d => d.Amount),
+           RemainingBalance = x.GrossAmount - x.Disbursements
+            .Where(d => d.Status != DisbursementStatus.Cancelled)
+            .Sum(d => d.Amount),
+           IsFullyPaid = x.GrossAmount - x.Disbursements
+            .Where(d => d.Status != DisbursementStatus.Cancelled)
+            .Sum(d => d.Amount) <= 0,
            Status = x.Status,
            Notes = x.Notes,
            Disbursements = x.Disbursements
@@ -639,9 +645,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
            Allowances = x.Allowances,
            Deductions = x.Deductions,
            GrossAmount = x.GrossAmount,
-           TotalDisbursed = x.TotalDisbursed,
-           RemainingBalance = x.RemainingBalance,
-           IsFullyPaid = x.IsFullyPaid,
+           TotalDisbursed = x.Disbursements
+            .Where(d => d.Status != DisbursementStatus.Cancelled)
+            .Sum(d => d.Amount),
+           RemainingBalance = x.GrossAmount - x.Disbursements
+            .Where(d => d.Status != DisbursementStatus.Cancelled)
+            .Sum(d => d.Amount),
+           IsFullyPaid = x.GrossAmount - x.Disbursements
+            .Where(d => d.Status != DisbursementStatus.Cancelled)
+            .Sum(d => d.Amount) <= 0,
            Status = x.Status,
            Notes = x.Notes
            
