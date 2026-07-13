@@ -1,12 +1,13 @@
+using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Contracts.DTOs.Reports.CrewPayrollReports;
 using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Marilog.Kernel.Enums;
-using Marilog.Application.Interfaces.Services.Domain;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -41,26 +42,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(x => new CrewPayrollResponse
-                {
-                    Id = x.Id,
-                    ContractId = x.ContractId,
-                    PersonId = x.Contract.PersonID,
-                    PersonFullName = x.Contract.Person.FullName,
-                    VesselId = x.Contract.VesselID,
-                    VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth,
-                    WorkingDays = x.WorkingDays,
-                    BasicWage = x.BasicWage,
-                    Allowances = x.Allowances,
-                    Deductions = x.Deductions,
-                    GrossAmount = x.GrossAmount,
-                    TotalDisbursed = x.TotalDisbursed,
-                    RemainingBalance = x.RemainingBalance,
-                    IsFullyPaid = x.IsFullyPaid,
-                    Status = x.Status,
-                    Notes = x.Notes
-                })
+                .Select(ToResponse)
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -70,47 +52,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(x => new CrewPayrollResponse
-                    {
-                        Id = x.Id,
-                        ContractId = x.ContractId,
-                        PersonId = x.Contract.PersonID,
-                        PersonFullName = x.Contract.Person.FullName,
-                        VesselId = x.Contract.VesselID,
-                        VesselName = x.Contract.Vessel.VesselName,
-                        PayrollMonth = x.PayrollMonth,
-                        WorkingDays = x.WorkingDays,
-                        BasicWage = x.BasicWage,
-                        Allowances = x.Allowances,
-                        Deductions = x.Deductions,
-                        GrossAmount = x.GrossAmount,
-                        TotalDisbursed = x.TotalDisbursed,
-                        RemainingBalance = x.RemainingBalance,
-                        IsFullyPaid = x.IsFullyPaid,
-                        Status = x.Status,
-                        Notes = x.Notes,
-                        Disbursements = x.Disbursements
-                .Select(d => new DisbursementResponse
-                {
-                        Id = d.Id,
-                        Amount = d.Amount,
-                        Status = d.Status,
-                        VoyageId = d.Voyage!.Id,
-                        OfficeName = d.Office!.OfficeName,
-                        SwiftReference = d.SwiftTransfer!.SwiftReference,
-                        CancelReason = d.CancelReason,
-                        SwiftTransferId = d.SwiftTransferId,
-                        Method = d.Method,
-                        Notes = d.Notes,
-                        OfficeId = d.OfficeId,
-                        PaidOn = d.PaidOn,
-                        RecipientIdNumber = d.RecipientIdNumber,
-                        RecipientName = d.RecipientName,
-                        VoyageNumber = d.Voyage.VoyageNumber
-                })
-                .ToList()
-        })
-        .FirstOrDefaultAsync(ct);
+                .Select(ToResponseWithDisbursement)
+                .FirstOrDefaultAsync(ct);
 }
         public async Task<CrewPayrollResponse?> GetByContractAndMonthAsync(int contractId,
             DateOnly month, CancellationToken ct = default)
@@ -120,27 +63,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.ContractId == contractId && x.PayrollMonth == firstDay)
-                .Select(x => new CrewPayrollResponse
-                {
-                    Id = x.Id,
-                    ContractId = x.ContractId,
-                    PersonId = x.Contract.PersonID,
-                    PersonFullName = x.Contract.Person.FullName,
-                    VesselId = x.Contract.VesselID,
-                    VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth,
-                    TotalDisbursed = x.TotalDisbursed,
-                    RemainingBalance = x.RemainingBalance,
-                    Status = x.Status,
-
-                    Disbursements = x.Disbursements
-                        .Select(d => new DisbursementResponse
-                        {
-                            Id = d.Id,
-                            Amount = d.Amount
-                        })
-                        .ToList()
-                })
+                .Select(ToResponseWithDisbursement)
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -151,14 +74,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.ContractId == contractId)
                 .OrderByDescending(x => x.PayrollMonth)
-                .Select(x => new CrewPayrollResponse
-                {
-                    Id = x.Id,
-                    PayrollMonth = x.PayrollMonth,
-                    TotalDisbursed = x.TotalDisbursed,
-                    RemainingBalance = x.RemainingBalance,
-                    Status = x.Status
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
         }
 
@@ -171,14 +87,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.PayrollMonth == firstDay)
                 .OrderBy(x => x.Contract.Person.FullName)
-                .Select(x => new CrewPayrollResponse
-                {
-                    Id = x.Id,
-                    PersonFullName = x.Contract.Person.FullName,
-                    VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth,
-                    Status = x.Status
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
         }
 
@@ -189,13 +98,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.Status == status)
                 .OrderByDescending(x => x.PayrollMonth)
-                .Select(x => new CrewPayrollResponse
-                {
-                    Id = x.Id,
-                    PersonFullName = x.Contract.Person.FullName,
-                    PayrollMonth = x.PayrollMonth,
-                    Status = x.Status
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
         }
 
@@ -208,15 +111,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                             x.Status == PayrollStatus.PartiallyPaid)
                 .OrderBy(x => x.PayrollMonth)
                 .ThenBy(x => x.Contract.Person.FullName)
-                .Select(x => new CrewPayrollResponse
-                {
-                    Id = x.Id,
-                    PersonFullName = x.Contract.Person.FullName,
-                    VesselName = x.Contract.Vessel.VesselName,
-                    PayrollMonth = x.PayrollMonth,
-                    RemainingBalance = x.RemainingBalance,
-                    Status = x.Status
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
         }
 
@@ -686,5 +581,70 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new KeyNotFoundException(
                     $"SwiftTransfer {swiftTransferId} not found or inactive.");
         }
+
+        public static readonly Expression<Func<CrewPayroll, CrewPayrollResponse>> ToResponseWithDisbursement =
+       x => new CrewPayrollResponse
+       {
+           Id = x.Id,
+           ContractId = x.ContractId,
+           PersonId = x.Contract.PersonID,
+           PersonFullName = x.Contract.Person.FullName,
+           VesselId = x.Contract.VesselID,
+           VesselName = x.Contract.Vessel.VesselName,
+           PayrollMonth = x.PayrollMonth,
+           WorkingDays = x.WorkingDays,
+           BasicWage = x.BasicWage,
+           Allowances = x.Allowances,
+           Deductions = x.Deductions,
+           GrossAmount = x.GrossAmount,
+           TotalDisbursed = x.TotalDisbursed,
+           RemainingBalance = x.RemainingBalance,
+           IsFullyPaid = x.IsFullyPaid,
+           Status = x.Status,
+           Notes = x.Notes,
+           Disbursements = x.Disbursements
+               .Select(d => new DisbursementResponse
+               {
+                   Id = d.Id,
+                   Amount = d.Amount,
+                   Status = d.Status,
+                   VoyageId = d.Voyage != null ? d.Voyage.Id : null,
+                   OfficeName = d.Office != null ? d.Office.OfficeName : null,
+                   SwiftReference = d.SwiftTransfer != null ? d.SwiftTransfer.SwiftReference : null,
+                   CancelReason = d.CancelReason,
+                   SwiftTransferId = d.SwiftTransferId,
+                   Method = d.Method,
+                   Notes = d.Notes,
+                   OfficeId = d.OfficeId,
+                   PaidOn = d.PaidOn,
+                   RecipientIdNumber = d.RecipientIdNumber,
+                   RecipientName = d.RecipientName,
+                   VoyageNumber = d.Voyage != null ? d.Voyage.VoyageNumber : null
+               })
+               .ToList()
+       };
+
+        public static readonly Expression<Func<CrewPayroll, CrewPayrollResponse>> ToResponse =
+       x => new CrewPayrollResponse
+       {
+           Id = x.Id,
+           ContractId = x.ContractId,
+           PersonId = x.Contract.PersonID,
+           PersonFullName = x.Contract.Person.FullName,
+           VesselId = x.Contract.VesselID,
+           VesselName = x.Contract.Vessel.VesselName,
+           PayrollMonth = x.PayrollMonth,
+           WorkingDays = x.WorkingDays,
+           BasicWage = x.BasicWage,
+           Allowances = x.Allowances,
+           Deductions = x.Deductions,
+           GrossAmount = x.GrossAmount,
+           TotalDisbursed = x.TotalDisbursed,
+           RemainingBalance = x.RemainingBalance,
+           IsFullyPaid = x.IsFullyPaid,
+           Status = x.Status,
+           Notes = x.Notes
+           
+       };
     }
 }
