@@ -82,9 +82,12 @@
         }
     }
 
-    Task<SwiftTransferResponse?> LoadDetailAsync(int id, CancellationToken ct) =>
-        SwiftTransferService.GetWithPaymentsAsync(id, ct);
-
+    async Task<SwiftTransferResponse?> LoadDetailAsync(int id, CancellationToken ct)
+    {
+        var details = await SwiftTransferService.GetByIdAsync(id, ct);
+        return details;
+    }
+    
     async Task HandleAddClickedAsync()
     {
         var parameters = new DialogParameters<SwiftTransferEditDialog>

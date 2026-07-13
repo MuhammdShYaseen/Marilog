@@ -423,7 +423,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CurrencyCode = x.Currency.CurrencyCode,
 
             Amount = x.Amount,
-
+            ReceiverBankName = x.ReceiverBank!.Name,
+            SenderBankName = x.SenderBank!.Name,
             AllocatedAmount = x.Payments.Sum(p => p.PaidAmount),
             UnallocatedAmount = x.Amount - x.Payments.Sum(p => p.PaidAmount),
             IsFullyAllocated = x.Amount == x.Payments.Sum(p => p.PaidAmount),
@@ -437,7 +438,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             ReceiverCompanyName = x.ReceiverCompany != null
                 ? x.ReceiverCompany.CompanyName
                 : null,
-
+            RawMessage = x.RawMessage,
             SenderBankId = x.SenderBankId,
             SenderBankNav = new BankResponse 
             { 
