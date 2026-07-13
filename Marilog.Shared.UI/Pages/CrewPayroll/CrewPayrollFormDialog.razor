@@ -3,141 +3,192 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewPayroll
 
+@* ────────────────────────────────────────────────────────────────────────────
+   CrewPayrollEditDialog
+   One dialog for Create and Edit. WorkingDays/BasicWage are never user
+   input — CrewPayrollService computes them server-side from the contract
+   in both CreateAsync and UpdateAsync — so they're hidden in Create mode
+   and shown read-only (with a recalculation notice) in Edit mode.
+   ContractId is only meaningful at creation: UpdateCrewPayrollRequest
+   carries it but CrewPayroll.Update never actually reassigns it, so it's
+   disabled in Edit mode until that's resolved on the backend.
+   ──────────────────────────────────────────────────────────────────────── *@
 <MudDialog>
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_workingDays"
-                                 Label="Working Days"
-                                 Min="0" Max="31"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" 
-                                 Disabled ="true"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_basicWage"
-                                 Label="Basic Wage"
-                                 Required="true"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense"
-                                 Disabled="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_allowances"
-                                 Label="Allowances"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_deductions"
-                                 Label="Deductions"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField @bind-Value="_notes"
-                              Label="Notes"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              Lines="2" />
-            </MudItem>
-
-            <MudItem>
-                <MudDatePicker @bind-Value="_payrollMonth"
-                               Label="Payroll Month"
+        <MudForm @ref="_form" Model="@this">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-Value="_contractId"
+                               Label="Contract"
                                Variant="Variant.Outlined"
-                               Margin="Margin.Dense" 
-                               Disabled="@IsEdit" />
-            </MudItem>
+                               Margin="Margin.Dense"
+                               Required="true"
+                               RequiredError="Contract is required"
+                               Disabled="@_isEdit"
+                               HelperText="@(_isEdit ? "Not editable after creation" : null)"
+                               ToStringFunc="@(id => Contracts.FirstOrDefault(c => c.ContractId == id)?.PersonFullName ?? id.ToString())">
+                        @foreach (var contract in Contracts)
+                        {
+                            <MudSelectItem Value="@contract.ContractId">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">@contract.PersonFullName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @contract.Rank · @contract.VesselName
+                                    </MudText>
+                                </MudStack>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_contractId"
-                           Label="Contract"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Required="true"
-                           ToStringFunc="@(id => Contracts.FirstOrDefault(c => c.ContractId == id)
-                                                                                ?.PersonFullName ?? id.ToString())">
-                    @foreach (var contract in Contracts)
-                    {
-                        <MudSelectItem Value="@contract.ContractId">
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.body2">@contract.PersonFullName</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @contract.Rank · @contract.VesselName
-                                </MudText>
-                            </MudStack>
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-        </MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_payrollMonthDate"
+                                   Label="Payroll Month"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true"
+                                   RequiredError="Payroll month is required"
+                                   Disabled="@_isEdit"
+                                   Editable="true"
+                                   HelperText="@(_isEdit ? "Not editable after creation" : "Any day in the target month works")" />
+                </MudItem>
+
+                @if (_isEdit)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int" Value="_workingDays" Label="Working Days"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Disabled="true"
+                                         HelperText="Recalculated automatically from the contract on save" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal" Value="_basicWage" Label="Basic Wage"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Format="N2" Disabled="true"
+                                         HelperText="Recalculated automatically from the contract on save" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            Working days and basic wage are calculated automatically from the contract once this payroll is created.
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" @bind-Value="_allowances" Label="Allowances"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Min="0" Format="N2" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" @bind-Value="_deductions" Label="Deductions"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Min="0" Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_notes" Label="Notes"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
     </DialogContent>
+
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="Submit"
-                   Disabled="@(_basicWage <= 0)">
-            Save
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@_isSaving" OnClick="SubmitAsync">
+            @(_isSaving ? "Saving..." : "Save")
         </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
     [Parameter] public CrewPayrollResponse? Payroll { get; set; }
     [Parameter] public IReadOnlyList<CrewContractResponse> Contracts { get; set; } = [];
-    private int _workingDays;
-    private decimal _basicWage;
-    private decimal _allowances;
-    private decimal _deductions;
-    private string? _notes;
-    private DateOnly _payrollMonth;
-    private int _contractId;
-    private bool IsEdit => Payroll is not null;
+
+    MudForm _form = default!;
+    bool _isEdit;
+    bool _isSaving;
+
+    int _workingDays;
+    decimal _basicWage;
+    decimal _allowances;
+    decimal _deductions;
+    string? _notes;
+    DateTime? _payrollMonthDate;
+    int _contractId;
+
     protected override void OnParametersSet()
     {
-        if (Payroll is null) return;
+        if (Payroll is null)
+            return;
+
+        _isEdit = true;
         _workingDays = Payroll.WorkingDays;
         _basicWage = Payroll.BasicWage;
         _allowances = Payroll.Allowances;
         _deductions = Payroll.Deductions;
         _notes = Payroll.Notes;
-
-        _payrollMonth = Payroll.PayrollMonth;
+        _payrollMonthDate = Payroll.PayrollMonth.ToDateTime(TimeOnly.MinValue);
         _contractId = Payroll.ContractId;
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    void Cancel() => MudDialog.Cancel();
 
-    private void Submit()
+    async Task SubmitAsync()
     {
-        if (Payroll is null)
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        if (!_isEdit && _payrollMonthDate is null)
         {
-            MudDialog.Close(DialogResult.Ok(
-                new CreateCrewPayrollRequest
-                {
-                    WorkingDays = _workingDays,
-                    BasicWage = _basicWage,
-                    Allowances = _allowances,
-                    Deductions = _deductions,
-                    Notes = _notes,
-                    ContractId = _contractId,
-                    PayrollMonth = _payrollMonth
-                }));
+            Snackbar.Add("Payroll month is required.", Severity.Warning);
+            return;
         }
-        else
+
+        _isSaving = true;
+        try
         {
-            MudDialog.Close(DialogResult.Ok(
-                new UpdateCrewPayrollRequest
-                {
-                    Allowances = _allowances,
-                    Deductions = _deductions,
-                    Notes = _notes,
-                    ContractId = _contractId
-                }));
+            if (!_isEdit)
+            {
+                var monthDate = _payrollMonthDate!.Value;
+                MudDialog.Close(DialogResult.Ok(
+                    new CreateCrewPayrollRequest
+                    {
+                        ContractId = _contractId,
+                        PayrollMonth = new DateOnly(monthDate.Year, monthDate.Month, 1),
+                        Allowances = _allowances,
+                        Deductions = _deductions,
+                        Notes = _notes
+                        // WorkingDays / BasicWage intentionally omitted — the server
+                        // computes both from the contract; CreateAsync doesn't accept
+                        // them as parameters, so sending them here would be dead data.
+                    }));
+            }
+            else
+            {
+                MudDialog.Close(DialogResult.Ok(
+                    new UpdateCrewPayrollRequest
+                    {
+                        ContractId = _contractId,
+                        Allowances = _allowances,
+                        Deductions = _deductions,
+                        Notes = _notes
+                    }));
+            }
+        }
+        finally
+        {
+            _isSaving = false;
         }
     }
 }
