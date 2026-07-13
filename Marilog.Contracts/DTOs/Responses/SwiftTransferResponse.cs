@@ -29,5 +29,6 @@
         public BankResponse? ReceiverBankNav { get; set; }
         public string? SenderBankName { get; set; }
         public string? ReceiverBankName { get; set; }
+        public string? RawMessage { get; set; }
     }
 }

@@ -91,7 +91,7 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             http.EnsureSuccessStatusCode();
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<SwiftTransferResponse>>(ct);
-            return response!.Data!;
+            return response!.Data ?? new SwiftTransferResponse();
         }
 
         public async Task<IReadOnlyList<SwiftTransferResponse>> CreateRangeAsync(IEnumerable<CreateSwiftTransferRequest> commands, CancellationToken ct = default)

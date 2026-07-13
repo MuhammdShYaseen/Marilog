@@ -88,7 +88,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 ct
             );
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<SwiftTransferResponse>.Ok(result));
+            return Created($"api/swifttransfers/{result.Id}", ApiResponse<SwiftTransferResponse>.Ok(result));
         }
 
         [HttpPost("batch")]

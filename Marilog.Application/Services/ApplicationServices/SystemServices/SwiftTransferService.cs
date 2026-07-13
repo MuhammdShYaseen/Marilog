@@ -160,6 +160,23 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 IsActive = x.IsActive,
                 AllocatedAmount = x.AllocatedAmount,
                 UnallocatedAmount = x.UnallocatedAmount,
+                RawMessage = x.RawMessage,
+                ReceiverBankName = x.ReceiverBank!.Name,
+                SenderBankName = x.SenderBank!.Name,
+                ReceiverBankNav = new BankResponse
+                {
+                    BankId = x.ReceiverBankId,
+                    BankName = x.ReceiverBank.Name,
+                    CountryName = x.ReceiverBank.Country.CountryName,
+                    City = x.ReceiverBank.City
+                },
+                SenderBankNav = new BankResponse
+                {
+                    BankId = x.SenderBankId,
+                    BankName = x.SenderBank.Name,
+                    CountryName = x.SenderBank.Country.CountryName,
+                    City = x.SenderBank.City
+                },
                 IsFullyAllocated = x.IsFullyAllocated,
                 SenderBankId = x.ReceiverBankId,
                 ReceiverBankId = x.ReceiverBankId,
@@ -267,7 +284,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Amount = transfer.Amount,
                 ReceiverCompanyId = transfer.ReceiverCompanyId,
                 ReceiverBankId = transfer.ReceiverBankId,
-                PaymentReference = transfer.PaymentReference
+                PaymentReference = transfer.PaymentReference,
+                RawMessage = transfer.RawMessage,
             };
         }
 
