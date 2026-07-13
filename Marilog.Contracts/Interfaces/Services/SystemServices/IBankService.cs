@@ -20,7 +20,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         // Commands
         Task<BankResponse> CreateAsync(CreateBankRequest request, CancellationToken cancellationToken = default);
-
+        Task<IReadOnlyList<BankResponse>> CreateRangAsync(List<CreateBankRequest> requests , CancellationToken cancellationToken = default);
         Task<Result> UpdateAsync(UpdateBankRequest request, CancellationToken cancellationToken = default);
         Task<Result> DeactivateAsync(int id, CancellationToken cancellationToken = default);
         Task<Result> ActivateAsync(int id, CancellationToken cancellationToken = default);

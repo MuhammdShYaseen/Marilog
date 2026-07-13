@@ -58,7 +58,14 @@ namespace Marilog.Client.Services.SystemServices
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<BankResponse>(cancellationToken))!;
         }
-
+        public async Task<IReadOnlyList<BankResponse>> CreateRangAsync(
+            List<CreateBankRequest> requests, CancellationToken cancellationToken = default)
+        {
+            var response = await _http.PostAsJsonAsync($"{BaseRoute}/batch", requests, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<BankResponse>>(cancellationToken)
+                   ?? new List<BankResponse>();
+        }
         public async Task<Result> UpdateAsync(UpdateBankRequest request, CancellationToken cancellationToken = default)
         {
             var response = await _http.PutAsJsonAsync($"{BaseRoute}/{request.Id}", request, cancellationToken);

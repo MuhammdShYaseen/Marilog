@@ -146,7 +146,32 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var created = await GetByIdAsync(bank.Id, cancellationToken);
             return created!;
         }
+        public async Task<IReadOnlyList<BankResponse>> CreateRangAsync(
+    List<CreateBankRequest> requests, CancellationToken cancellationToken = default)
+        {
+            if (requests is null || requests.Count == 0)
+                return new List<BankResponse>();
 
+            var banks = requests.Select(request => Bank.Create(
+                request.Name, request.ShortName, request.LegalName, request.ParentBankId,
+                request.SwiftBic, request.BranchCode, request.ClearingCode, request.NationalBankCode,
+                request.CountryId, request.City, request.Address, request.Website, request.Note)
+            ).ToList();
+
+            await _repo.AddRangeAsync(banks, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+
+            var ids = banks.Select(b => b.Id).ToList();
+
+            var created = await _repo.Query()
+                .Include(b => b.Country)
+                .Include(b => b.Branches)
+                .Include(b => b.ParentBank)
+                .Where(b => ids.Contains(b.Id))
+                .ToListAsync(cancellationToken);
+
+            return created.Select(b => Map(b, includeBranches: true)).ToList();
+        }
         public async Task<Result> UpdateAsync(UpdateBankRequest request, CancellationToken cancellationToken = default)
         {
             var bank = await _repo.Query().FirstOrDefaultAsync(b => b.Id == request.Id, cancellationToken);

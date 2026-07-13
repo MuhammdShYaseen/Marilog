@@ -54,6 +54,14 @@ namespace Marilog.Presentation.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.BankId }, created);
         }
 
+        [HttpPost("batch")]
+        public async Task<ActionResult<IReadOnlyList<BankResponse>>> CreateRange(
+            List<CreateBankRequest> requests, CancellationToken ct)
+        {
+            var created = await _bankService.CreateRangAsync(requests, ct);
+            return Ok(created);
+        }
+
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, UpdateBankRequest request, CancellationToken ct)
         {
