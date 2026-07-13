@@ -9,7 +9,7 @@ using Marilog.Domain.ValueObjects.ReusableValueObjects;
 using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Application.Services.Banks
+namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class BankService : IBankService
     {
