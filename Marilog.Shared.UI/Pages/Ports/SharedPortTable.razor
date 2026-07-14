@@ -1,0 +1,72 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Ports
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedPortTable
+   Stateless list rendering with a client-side search box. No service refs —
+   every action bubbles up via EventCallback.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudTextField T="string" Value="@_searchText" ValueChanged="@((string v) => _searchText = v)"
+              Placeholder="Search by code, name, or country..." Adornment="Adornment.Start"
+              AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+<MudTable Items="@FilteredItems" Hover="true" Dense="true" Loading="@IsLoading" T="PortResponse">
+    <HeaderContent>
+        <MudTh>Code</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Country</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh Style="text-align:right">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Code">@context.Code</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Country">@(context.CountryName ?? "—")</MudTd>
+        <MudTd DataLabel="Status">
+            @if (context.IsActive)
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Default" Size="Size.Small">Inactive</MudChip>
+            }
+        </MudTd>
+        <MudTd Style="text-align:right">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
+            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                            Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnToggleActiveClicked.InvokeAsync(context)))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context)))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No ports found.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading ports...</MudText>
+    </LoadingContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PortResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<PortResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<PortResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<PortResponse> OnDeleteClicked { get; set; }
+
+    string _searchText = string.Empty;
+
+    IEnumerable<PortResponse> FilteredItems =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? Items
+            : Items.Where(p =>
+                p.Code.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                (p.CountryName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+}

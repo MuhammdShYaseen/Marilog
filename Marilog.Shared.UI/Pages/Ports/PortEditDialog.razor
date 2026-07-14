@@ -1,0 +1,141 @@
+@using Marilog.Contracts.DTOs.Requests.PortDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Ports
+
+@* ────────────────────────────────────────────────────────────────────────────
+   PortEditDialog
+   One dialog for Create and Edit. CreatePortRequest / UpdatePortRequest have
+   identical shapes, so nothing is disabled between modes.
+
+   PortCode is uppercased server-side (Port.Create/Update), so the field is
+   forced to uppercase as the user types to avoid surprises, and — in Create
+   mode only — is checked for uniqueness on blur via a delegate the host
+   wires to IPortService.ExistsByCodeAsync (rule 2: this component never
+   injects a concrete service itself).
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? $"Edit Port — {Existing!.Code}" : "New Port")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" Model="@this">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Value="@_portCode" ValueChanged="@OnPortCodeChanged"
+                                  Label="Port Code" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="Port code is required"
+                                  Error="@_codeTaken" ErrorText="This port code is already in use"
+                                  OnBlur="@CheckCodeAvailabilityAsync"
+                                  HelperText="Stored uppercase automatically" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_portName" Label="Port Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="Port name is required" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_countryId" Label="Country"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                        @foreach (var country in Countries)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)country.Id)">@country.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
+    [Parameter] public PortResponse? Existing { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
+
+    /// <summary>Host wires this to IPortService.ExistsByCodeAsync(code, ct).</summary>
+    [Parameter, EditorRequired] public Func<string, CancellationToken, Task<bool>> CheckCodeExistsAsync { get; set; } = default!;
+
+    MudForm _form = default!;
+    bool _isEdit;
+    bool _codeTaken;
+
+    string _portCode = string.Empty;
+    string _portName = string.Empty;
+    int? _countryId;
+
+    protected override void OnParametersSet()
+    {
+        if (Existing is null)
+            return;
+
+        _isEdit = true;
+        _portCode = Existing.Code;
+        _portName = Existing.Name;
+        _countryId = Existing.CountryId;
+    }
+
+    void OnPortCodeChanged(string value)
+    {
+        _portCode = value?.ToUpperInvariant() ?? string.Empty;
+        _codeTaken = false;
+    }
+
+    async Task CheckCodeAvailabilityAsync()
+    {
+        // Editing an existing port keeps its own code — nothing to check against itself.
+        if (_isEdit || string.IsNullOrWhiteSpace(_portCode))
+            return;
+
+        _codeTaken = await CheckCodeExistsAsync(_portCode, CancellationToken.None);
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        if (!_isEdit)
+        {
+            await CheckCodeAvailabilityAsync();
+            if (_codeTaken)
+            {
+                Snackbar.Add("This port code is already in use.", Severity.Warning);
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(
+                new CreatePortRequest
+                {
+                    PortCode = _portCode,
+                    PortName = _portName,
+                    CountryId = _countryId
+                }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new UpdatePortRequest
+                {
+                    PortCode = _portCode,
+                    PortName = _portName,
+                    CountryId = _countryId
+                }));
+        }
+    }
+}

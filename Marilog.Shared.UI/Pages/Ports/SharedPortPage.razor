@@ -1,0 +1,35 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Ports
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedPortPage
+   Header + Add button + table. No detail panel — Port has no child
+   collections worth drilling into.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">Ports</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New Port
+        </MudButton>
+    </div>
+
+    <SharedPortTable Items="@Items"
+                     IsLoading="@IsLoading"
+                     OnEditClicked="@OnEditClicked"
+                     OnToggleActiveClicked="@OnToggleActiveClicked"
+                     OnDeleteClicked="@OnDeleteClicked" />
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PortResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<PortResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<PortResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<PortResponse> OnDeleteClicked { get; set; }
+}

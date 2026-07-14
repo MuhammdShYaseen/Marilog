@@ -1,0 +1,170 @@
+@page "/admin/ports"
+@using Marilog.Contracts.DTOs.Requests.PortDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Ports
+@inject IPortService PortService
+@inject ICountryService CountryService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for Ports. Loads the port list (GetAllAsync) plus the
+   active country list for the dropdown, wires every EventCallback and the
+   ExistsByCodeAsync delegate used by the dialog's uniqueness check, and
+   renders exactly one component.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedPortPage Items="@_ports"
+                IsLoading="@_isLoading"
+                OnAddClicked="@HandleAddClickedAsync"
+                OnEditClicked="@HandleEditClickedAsync"
+                OnToggleActiveClicked="@HandleToggleActiveClickedAsync"
+                OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    List<PortResponse> _ports = [];
+    List<CountryResponse> _countries = [];
+    bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadCountriesAsync(), LoadPortsAsync());
+    }
+
+    async Task LoadCountriesAsync()
+    {
+        var result = await CountryService.GetActiveAsync();
+        _countries = result.ToList();
+    }
+
+    async Task LoadPortsAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await PortService.GetAllAsync();
+            _ports = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load ports: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    Task<bool> CheckCodeExistsAsync(string code, CancellationToken ct) =>
+        PortService.ExistsByCodeAsync(code, ct);
+
+    async Task HandleAddClickedAsync()
+    {
+        var parameters = new DialogParameters<PortEditDialog>
+        {
+            { x => x.Existing, null },
+            { x => x.Countries, _countries },
+            { x => x.CheckCodeExistsAsync, CheckCodeExistsAsync }
+        };
+
+        var dialog = await DialogService.ShowAsync<PortEditDialog>("New Port", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: CreatePortRequest request })
+            await CreatePortAsync(request);
+    }
+
+    async Task HandleEditClickedAsync(PortResponse port)
+    {
+        var parameters = new DialogParameters<PortEditDialog>
+        {
+            { x => x.Existing, port },
+            { x => x.Countries, _countries },
+            { x => x.CheckCodeExistsAsync, CheckCodeExistsAsync }
+        };
+
+        var dialog = await DialogService.ShowAsync<PortEditDialog>("Edit Port", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: UpdatePortRequest request })
+            await UpdatePortAsync(port.Id, request);
+    }
+
+    async Task CreatePortAsync(CreatePortRequest request)
+    {
+        try
+        {
+            await PortService.CreateAsync(request.PortCode, request.PortName, request.CountryId);
+            Snackbar.Add("Port created.", Severity.Success);
+            await LoadPortsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to create port: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task UpdatePortAsync(int id, UpdatePortRequest request)
+    {
+        try
+        {
+            await PortService.UpdateAsync(id, request.PortCode, request.PortName, request.CountryId);
+            Snackbar.Add("Port updated.", Severity.Success);
+            await LoadPortsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update port: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleToggleActiveClickedAsync(PortResponse port)
+    {
+        try
+        {
+            if (port.IsActive)
+                await PortService.DeactivateAsync(port.Id);
+            else
+                await PortService.ActivateAsync(port.Id);
+
+            Snackbar.Add(port.IsActive ? "Port deactivated." : "Port activated.", Severity.Success);
+            await LoadPortsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update port status: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(PortResponse port)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Port",
+            $"Delete port '{port.Code} — {port.Name}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await PortService.DeleteAsync(port.Id);
+            Snackbar.Add("Port deleted.", Severity.Success);
+            await LoadPortsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete port: {ex.Message}", Severity.Error);
+        }
+    }
+
+    static DialogOptions DefaultDialogOptions() => new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true,
+        Position = DialogPosition.Center
+    };
+}
