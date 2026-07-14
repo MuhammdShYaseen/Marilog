@@ -22,11 +22,13 @@ namespace Marilog.Presentation.Controllers
             var bank = await _bankService.GetByIdAsync(id, ct);
             return bank is null ? NotFound() : Ok(bank);
         }
-
         [HttpGet]
         public async Task<ActionResult<PagedResponse<BankResponse>>> GetPaged(
-            [FromQuery] bool treeMode = false, CancellationToken ct = default)
-            => Ok(await _bankService.GetPagedAsync(treeMode, ct));
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] bool treeMode = false,
+            CancellationToken ct = default)
+            => Ok(await _bankService.GetPagedAsync(page, pageSize, treeMode, ct));
 
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<BankResponse>>> GetAllActive(

@@ -19,10 +19,11 @@ namespace Marilog.Client.Services.SystemServices
             => await _http.GetFromJsonAsync<BankResponse>($"{BaseRoute}/{id}", cancellationToken);
 
         public async Task<PagedResponse<BankResponse>> GetPagedAsync(
-            bool treeMode = false, CancellationToken cancellationToken = default)
-            => await _http.GetFromJsonAsync<PagedResponse<BankResponse>>(
-                   $"{BaseRoute}?treeMode={treeMode}", cancellationToken)
-               ?? new PagedResponse<BankResponse>();
+     int page = 1, int pageSize = 20, bool treeMode = false,
+     CancellationToken cancellationToken = default)
+     => await _http.GetFromJsonAsync<PagedResponse<BankResponse>>(
+            $"{BaseRoute}?page={page}&pageSize={pageSize}&treeMode={treeMode}", cancellationToken)
+        ?? new PagedResponse<BankResponse>();
 
         public async Task<IReadOnlyList<BankResponse>> GetAllActiveAsync(
             bool treeMode = false, CancellationToken cancellationToken = default)

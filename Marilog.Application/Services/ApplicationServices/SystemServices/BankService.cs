@@ -33,27 +33,39 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return bank is null ? null : Map(bank, includeBranches: true);
         }
 
-        public async Task<PagedResponse<BankResponse>> GetPagedAsync(
-            bool treeMode = false, CancellationToken cancellationToken = default)
+        public async Task<PagedResponse<BankResponse>> GetPagedAsync(int page = 1, int pageSize = 20, bool treeMode = false, CancellationToken cancellationToken = default)
         {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 20;
+
             var query = _repo.Query()
                 .AsNoTracking()
                 .Include(b => b.Country)
-                .Include(b => b.Branches)
                 .AsQueryable();
 
             if (treeMode)
-                query = query.Where(b => b.ParentBankId == null);
+            {
+                query = query
+                    .Where(b => b.ParentBankId == null)
+                    .Include(b => b.Branches);
+            }
 
-            var banks = await query.OrderBy(b => b.Name).ToListAsync(cancellationToken);
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var banks = await query
+                .OrderBy(b => b.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
             var items = banks.Select(b => Map(b, includeBranches: treeMode)).ToList();
 
             return new PagedResponse<BankResponse>
             {
                 Items = items,
-                TotalCount = items.Count,
-                Page = 1,
-                PageSize = items.Count
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
             };
         }
 

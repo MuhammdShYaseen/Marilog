@@ -89,6 +89,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             if (parentBankId.HasValue == true && parentBankId.Value == Id) 
                     throw new InvalidOperationException("cannot bind it with it self");
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            if (countryId <= 0) throw new ArgumentException("Invalid CountryId.");
 
             Name = name;
             ShortName = shortName;

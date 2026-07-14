@@ -11,7 +11,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
     {
         // Query
         Task<BankResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
-        Task<PagedResponse<BankResponse>> GetPagedAsync(bool treeMode = false, CancellationToken cancellationToken = default);
+        Task<PagedResponse<BankResponse>> GetPagedAsync(int page = 1, int pageSize = 20, bool treeMode = false, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<BankResponse>> GetAllActiveAsync(bool treeMode = false, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<BankResponse>> GetByCountryIdAsync(int countryId, bool treeMode = false, CancellationToken cancellationToken = default);
         Task<List<LookupItem<int>>> GetLookupAsync(CancellationToken cancellationToken = default);
