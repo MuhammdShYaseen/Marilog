@@ -22,6 +22,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public List<EmailsResponse>? Emails { get; set; }
         public string? CountryName { get; set; }
         public IReadOnlyList<BankResponse>? Branches { get; set; }
+        public int Depth { get; set; }
         public string? ParentBankName { get; set; }
         public bool IsActive { get; set; }
     }

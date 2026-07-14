@@ -1,0 +1,92 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Banks
+
+<MudTr>
+
+    <MudTd />
+
+    <MudTd>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+
+            <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight"
+                     Size="Size.Small"
+                     Color="Color.Primary"
+                     Style="@($"margin-left:{Item.Depth * 16}px")" />
+
+            <MudText>
+                @Item.BankName
+            </MudText>
+
+        </MudStack>
+
+    </MudTd>
+
+    <MudTd>@Item.ShortName</MudTd>
+    <MudTd>@Item.CountryName</MudTd>
+    <MudTd>@Item.SwiftBic</MudTd>
+    <MudTd>@Item.City</MudTd>
+
+    <MudTd>
+
+        <MudChip T="string"
+                 Size="Size.Small"
+                 Color="@(Item.IsActive ? Color.Success : Color.Default)">
+            @(Item.IsActive ? "Active" : "Inactive")
+        </MudChip>
+
+    </MudTd>
+
+    <MudTd>
+
+        <MudStack Row="true" Spacing="1">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Size="Size.Small"
+                           OnClick="() => OnEditClicked.InvokeAsync(Item)" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.ContactMail"
+                           Size="Size.Small"
+                           OnClick="() => OnManageContactsClicked.InvokeAsync(Item)" />
+
+            <MudIconButton Icon="@(Item.IsActive
+                                    ? Icons.Material.Filled.ToggleOn
+                                    : Icons.Material.Filled.ToggleOff)"
+                           Size="Size.Small"
+                           Color="@(Item.IsActive
+                                    ? Color.Success
+                                    : Color.Default)"
+                           OnClick="() => OnToggleActiveClicked.InvokeAsync(Item)" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(Item)" />
+
+        </MudStack>
+
+    </MudTd>
+
+</MudTr>
+
+@if (Item.Branches?.Any() == true)
+{
+    @foreach (var child in Item.Branches)
+    {
+        <BankTreeRow Item="child"
+                     OnEditClicked="OnEditClicked"
+                     OnManageContactsClicked="OnManageContactsClicked"
+                     OnToggleActiveClicked="OnToggleActiveClicked"
+                     OnDeleteClicked="OnDeleteClicked" />
+    }
+}
+@code {
+    [Parameter, EditorRequired] public BankResponse Item { get; set; } = new();
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnManageContactsClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnDeleteClicked { get; set; }
+}
