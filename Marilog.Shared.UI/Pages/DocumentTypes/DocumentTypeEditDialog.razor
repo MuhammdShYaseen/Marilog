@@ -1,0 +1,102 @@
+@using Marilog.Contracts.DTOs.Requests.DocumentTypeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.DocumentTypes
+
+@* ────────────────────────────────────────────────────────────────────────────
+   DocumentTypeEditDialog
+   One dialog for Create and Edit. Code is only on CreateDocumentTypeRequest —
+   UpdateDocumentTypeRequest and IDocumentTypeService.UpdateAsync never touch
+   it — so it's shown for context but Disabled in edit mode.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? $"Edit Document Type — {Existing!.Code}" : "New Document Type")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" Model="@this">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Value="@_code" ValueChanged="@((string v) => _code = v?.ToUpperInvariant() ?? string.Empty)"
+                                  Label="Code" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="Code is required"
+                                  Disabled="@_isEdit"
+                                  HelperText="@(_isEdit ? "Not editable after creation" : "Stored uppercase automatically")" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_name" Label="Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="Name is required" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="_sortOrder" Label="Sort Order"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     HelperText="Lower numbers appear first in lists" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
+    [Parameter] public DocumentTypeResponse? Existing { get; set; }
+
+    MudForm _form = default!;
+    bool _isEdit;
+
+    string _code = string.Empty;
+    string _name = string.Empty;
+    int _sortOrder;
+
+    protected override void OnParametersSet()
+    {
+        if (Existing is null)
+            return;
+
+        _isEdit = true;
+        _code = Existing.Code ?? string.Empty;
+        _name = Existing.Name ?? string.Empty;
+        _sortOrder = Existing.SortOrder;
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        if (!_isEdit)
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new CreateDocumentTypeRequest
+                {
+                    Code = _code,
+                    Name = _name,
+                    SortOrder = _sortOrder
+                }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new UpdateDocumentTypeRequest
+                {
+                    Name = _name,
+                    SortOrder = _sortOrder
+                }));
+        }
+    }
+}

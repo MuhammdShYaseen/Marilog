@@ -1,0 +1,37 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.DocumentTypes
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedDocumentTypePage
+   Header + Add button + table. No detail panel — DocumentType has no child
+   collections worth drilling into.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">Document Types</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New Document Type
+        </MudButton>
+    </div>
+
+    <SharedDocumentTypeTable Items="@Items"
+                             IsLoading="@IsLoading"
+                             OnEditClicked="@OnEditClicked"
+                             OnActivateClicked="@OnActivateClicked"
+                             OnDeactivateClicked="@OnDeactivateClicked"
+                             OnDeleteClicked="@OnDeleteClicked" />
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<DocumentTypeResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnActivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnDeactivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnDeleteClicked { get; set; }
+}

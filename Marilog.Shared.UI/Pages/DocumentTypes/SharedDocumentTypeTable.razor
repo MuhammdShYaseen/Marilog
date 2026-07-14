@@ -1,0 +1,53 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.DocumentTypes
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedDocumentTypeTable
+   Stateless list rendering, sorted client-side by SortOrder as a safety net.
+   No IsActive on DocumentTypeResponse, so Activate/Deactivate are exposed as
+   two explicit menu actions rather than a status-aware toggle — there's no
+   way to know which one currently applies. No service refs — every action
+   bubbles up via EventCallback.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudTable Items="@SortedItems" Hover="true" Dense="true" Loading="@IsLoading" T="DocumentTypeResponse">
+    <HeaderContent>
+        <MudTh>Code</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh Style="text-align:right">Sort Order</MudTh>
+        <MudTh Style="text-align:right">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Code">@context.Code</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Sort Order" Style="text-align:right">@context.SortOrder</MudTd>
+        <MudTd Style="text-align:right">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                <MudMenuItem OnClick="@(() => OnActivateClicked.InvokeAsync(context))">Activate</MudMenuItem>
+                <MudMenuItem OnClick="@(() => OnDeactivateClicked.InvokeAsync(context))">Deactivate</MudMenuItem>
+            </MudMenu>
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                            onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context)))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No document types found.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading document types...</MudText>
+    </LoadingContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<DocumentTypeResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnActivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnDeactivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTypeResponse> OnDeleteClicked { get; set; }
+
+    IEnumerable<DocumentTypeResponse> SortedItems => Items.OrderBy(d => d.SortOrder);
+}

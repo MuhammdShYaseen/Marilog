@@ -1,0 +1,161 @@
+@page "/admin/document-types"
+@using Marilog.Contracts.DTOs.Requests.DocumentTypeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.DocumentTypes
+@inject IDocumentTypeService DocumentTypeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for Document Types. Loads the full list (GetAllAsync)
+   and wires every EventCallback. Only this file touches IDocumentTypeService.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedDocumentTypePage Items="@_documentTypes"
+                        IsLoading="@_isLoading"
+                        OnAddClicked="@HandleAddClickedAsync"
+                        OnEditClicked="@HandleEditClickedAsync"
+                        OnActivateClicked="@HandleActivateClickedAsync"
+                        OnDeactivateClicked="@HandleDeactivateClickedAsync"
+                        OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    List<DocumentTypeResponse> _documentTypes = [];
+    bool _isLoading;
+
+    protected override Task OnInitializedAsync() => LoadDocumentTypesAsync();
+
+    async Task LoadDocumentTypesAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await DocumentTypeService.GetAllAsync();
+            _documentTypes = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load document types: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    async Task HandleAddClickedAsync()
+    {
+        var parameters = new DialogParameters<DocumentTypeEditDialog>
+        {
+            { x => x.Existing, null }
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentTypeEditDialog>("New Document Type", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: CreateDocumentTypeRequest request })
+            await CreateDocumentTypeAsync(request);
+    }
+
+    async Task HandleEditClickedAsync(DocumentTypeResponse documentType)
+    {
+        var parameters = new DialogParameters<DocumentTypeEditDialog>
+        {
+            { x => x.Existing, documentType }
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentTypeEditDialog>("Edit Document Type", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: UpdateDocumentTypeRequest request })
+            await UpdateDocumentTypeAsync(documentType.Id, request);
+    }
+
+    async Task CreateDocumentTypeAsync(CreateDocumentTypeRequest request)
+    {
+        try
+        {
+            await DocumentTypeService.CreateAsync(request.Code, request.Name, request.SortOrder);
+            Snackbar.Add("Document type created.", Severity.Success);
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to create document type: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task UpdateDocumentTypeAsync(int id, UpdateDocumentTypeRequest request)
+    {
+        try
+        {
+            await DocumentTypeService.UpdateAsync(id, request.Name, request.SortOrder);
+            Snackbar.Add("Document type updated.", Severity.Success);
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update document type: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleActivateClickedAsync(DocumentTypeResponse documentType)
+    {
+        try
+        {
+            await DocumentTypeService.ActivateAsync(documentType.Id);
+            Snackbar.Add("Document type activated.", Severity.Success);
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to activate document type: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeactivateClickedAsync(DocumentTypeResponse documentType)
+    {
+        try
+        {
+            await DocumentTypeService.DeactivateAsync(documentType.Id);
+            Snackbar.Add("Document type deactivated.", Severity.Success);
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to deactivate document type: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(DocumentTypeResponse documentType)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Document Type",
+            $"Delete document type '{documentType.Code} — {documentType.Name}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await DocumentTypeService.DeleteAsync(documentType.Id);
+            Snackbar.Add("Document type deleted.", Severity.Success);
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete document type: {ex.Message}", Severity.Error);
+        }
+    }
+
+    static DialogOptions DefaultDialogOptions() => new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true,
+        Position = DialogPosition.Center
+    };
+}
