@@ -1,0 +1,74 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Banks
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedBankTable
+   Hierarchy grid: head banks as root rows, Branches expand as child rows.
+   Per rule 4, this component recurses into ITSELF for the child rows rather
+   than duplicating row markup/actions at a second level — every EventCallback
+   flows down unchanged no matter how deep the branch nesting goes.
+   No service refs — every action bubbles up via EventCallback.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDataGrid Items="@Items" Hover="true" Dense="true" Loading="@IsLoading" T="BankResponse">
+    <Columns>
+        <HierarchyColumn T="BankResponse" />
+        <PropertyColumn Property="x => x.BankName" Title="Bank" />
+        <PropertyColumn Property="x => x.ShortName" Title="Short Name" />
+        <PropertyColumn Property="x => x.CountryName" Title="Country" />
+        <PropertyColumn Property="x => x.SwiftBic" Title="SWIFT / BIC" />
+        <PropertyColumn Property="x => x.City" Title="City" />
+        <TemplateColumn Title="Status">
+            <CellTemplate>
+                @if (context.Item.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Inactive</MudChip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context.Item)))" />
+                <MudIconButton Icon="@Icons.Material.Filled.ContactMail" Size="Size.Small"
+                                onclick="@(EventCallback.Factory.Create(this, () => OnManageContactsClicked.InvokeAsync(context.Item)))" />
+                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                Size="Size.Small" Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                onclick="@(EventCallback.Factory.Create(this, () => OnToggleActiveClicked.InvokeAsync(context.Item)))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context.Item)))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <ChildRowContent>
+        @if (context.Item.Branches is { Count: > 0 })
+        {
+            <SharedBankTable Items="@context.Item.Branches"
+                             IsLoading="false"
+                             OnEditClicked="@OnEditClicked"
+                             OnManageContactsClicked="@OnManageContactsClicked"
+                             OnToggleActiveClicked="@OnToggleActiveClicked"
+                             OnDeleteClicked="@OnDeleteClicked" />
+        }
+    </ChildRowContent>
+    <NoRecordsContent>
+        <MudText>No banks found.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading banks...</MudText>
+    </LoadingContent>
+</MudDataGrid>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<BankResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnManageContactsClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnDeleteClicked { get; set; }
+}

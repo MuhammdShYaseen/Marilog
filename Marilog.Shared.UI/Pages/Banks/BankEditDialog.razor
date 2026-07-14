@@ -1,0 +1,210 @@
+@using Marilog.Contracts.DTOs.Requests.BankDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Banks
+
+@* ────────────────────────────────────────────────────────────────────────────
+   BankEditDialog
+   One dialog for Create and Edit. CreateBankRequest / UpdateBankRequest have
+   identical fields apart from Id, so nothing needs disabling between modes.
+
+   ParentBankOptions must already exclude the bank being edited (the host
+   fetches it fresh via GetParentBanksLookupAsync(excludeBankId) each time
+   this dialog is opened) — Bank.Update throws if ParentBankId == Id, so the
+   self-reference is prevented at the data-source level rather than by
+   filtering client-side.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? $"Edit Bank — {Existing!.BankName}" : "New Bank")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" Model="@this">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_name" Label="Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Required="true" RequiredError="Name is required" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_shortName" Label="Short Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_legalName" Label="Legal Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_parentBankId" Label="Parent Bank"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                               HelperText="Leave empty if this is a head bank, not a branch">
+                        @foreach (var option in ParentBankOptions)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)option.Id)">@option.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_swiftBic" Label="SWIFT / BIC"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_branchCode" Label="Branch Code"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_clearingCode" Label="Clearing Code"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_nationalBankCode" Label="National Bank Code"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_countryId" Label="Country"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Required="true" RequiredError="Country is required">
+                        @foreach (var country in Countries)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)country.Id)">@country.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_city" Label="City"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_address" Label="Address"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_website" Label="Website"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_note" Label="Notes"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
+    [Parameter] public BankResponse? Existing { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<LookupItem<int>> ParentBankOptions { get; set; } = [];
+
+    MudForm _form = default!;
+    bool _isEdit;
+
+    string _name = string.Empty;
+    string? _shortName;
+    string? _legalName;
+    int? _parentBankId;
+    string? _swiftBic;
+    string? _branchCode;
+    string? _clearingCode;
+    string? _nationalBankCode;
+    int? _countryId;
+    string? _city;
+    string? _address;
+    string? _website;
+    string? _note;
+
+    protected override void OnParametersSet()
+    {
+        if (Existing is null)
+            return;
+
+        _isEdit = true;
+        _name = Existing.BankName ?? string.Empty;
+        _shortName = Existing.ShortName;
+        _legalName = Existing.LegalName;
+        _parentBankId = Existing.ParentBankId;
+        _swiftBic = Existing.SwiftBic;
+        _branchCode = Existing.BranchCode;
+        _clearingCode = Existing.ClearingCode;
+        _nationalBankCode = Existing.NationalBankCode;
+        _countryId = Existing.CountryId;
+        _city = Existing.City;
+        _address = Existing.Address;
+        _website = Existing.Website;
+        _note = Existing.Notes;
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        if (_countryId is null)
+        {
+            Snackbar.Add("Country is required.", Severity.Warning);
+            return;
+        }
+
+        if (!_isEdit)
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new CreateBankRequest
+                {
+                    Name = _name,
+                    ShortName = _shortName,
+                    LegalName = _legalName,
+                    ParentBankId = _parentBankId,
+                    SwiftBic = _swiftBic,
+                    BranchCode = _branchCode,
+                    ClearingCode = _clearingCode,
+                    NationalBankCode = _nationalBankCode,
+                    CountryId = _countryId.Value,
+                    City = _city,
+                    Address = _address,
+                    Website = _website,
+                    Note = _note
+                }));
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(
+                new UpdateBankRequest
+                {
+                    Id = Existing!.BankId!.Value,
+                    Name = _name,
+                    ShortName = _shortName,
+                    LegalName = _legalName,
+                    ParentBankId = _parentBankId,
+                    SwiftBic = _swiftBic,
+                    BranchCode = _branchCode,
+                    ClearingCode = _clearingCode,
+                    NationalBankCode = _nationalBankCode,
+                    CountryId = _countryId.Value,
+                    City = _city,
+                    Address = _address,
+                    Website = _website,
+                    Note = _note
+                }));
+        }
+    }
+}

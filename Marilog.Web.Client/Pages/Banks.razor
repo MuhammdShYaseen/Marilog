@@ -1,0 +1,231 @@
+@page "/admin/banks"
+@using Marilog.Contracts.DTOs.Requests.BankDTOs
+@using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Banks
+@inject IBankService BankService
+@inject ICountryService CountryService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for Banks. Loads active banks in tree mode (GetPagedAsync
+   has no page-size/page-number parameters, so it's not usable as a real list
+   endpoint yet — see rule 23; GetAllActiveAsync(treeMode: true) is the
+   narrowest usable default, meaning inactive banks won't appear until real
+   paging/filtering is wired up) plus active countries, and wires every
+   delegate/EventCallback the shared components need.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedBankPage Items="@_banks"
+                IsLoading="@_isLoading"
+                OnAddClicked="@HandleAddClickedAsync"
+                OnEditClicked="@HandleEditClickedAsync"
+                OnManageContactsClicked="@HandleManageContactsClickedAsync"
+                OnToggleActiveClicked="@HandleToggleActiveClickedAsync"
+                OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    List<BankResponse> _banks = [];
+    List<CountryResponse> _countries = [];
+    bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadCountriesAsync(), LoadBanksAsync());
+    }
+
+    async Task LoadCountriesAsync()
+    {
+        var result = await CountryService.GetActiveAsync();
+        _countries = result.ToList();
+    }
+
+    async Task LoadBanksAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await BankService.GetAllActiveAsync(treeMode: true);
+            _banks = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load banks: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    async Task HandleAddClickedAsync()
+    {
+        var parentOptions = await BankService.GetParentBanksLookupAsync(excludeBankId: null);
+
+        var parameters = new DialogParameters<BankEditDialog>
+        {
+            { x => x.Existing, null },
+            { x => x.Countries, _countries },
+            { x => x.ParentBankOptions, parentOptions }
+        };
+
+        var dialog = await DialogService.ShowAsync<BankEditDialog>("New Bank", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: CreateBankRequest request })
+            await CreateBankAsync(request);
+    }
+
+    async Task HandleEditClickedAsync(BankResponse bank)
+    {
+        var parentOptions = await BankService.GetParentBanksLookupAsync(excludeBankId: bank.BankId);
+
+        var parameters = new DialogParameters<BankEditDialog>
+        {
+            { x => x.Existing, bank },
+            { x => x.Countries, _countries },
+            { x => x.ParentBankOptions, parentOptions }
+        };
+
+        var dialog = await DialogService.ShowAsync<BankEditDialog>("Edit Bank", parameters, DefaultDialogOptions());
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: UpdateBankRequest request })
+            await UpdateBankAsync(request);
+    }
+
+    async Task CreateBankAsync(CreateBankRequest request)
+    {
+        try
+        {
+            await BankService.CreateAsync(request);
+            Snackbar.Add("Bank created.", Severity.Success);
+            await LoadBanksAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to create bank: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task UpdateBankAsync(UpdateBankRequest request)
+    {
+        try
+        {
+            var result = await BankService.UpdateAsync(request);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Bank updated.", Severity.Success);
+                await LoadBanksAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Error ?? "Failed to update bank.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update bank: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleToggleActiveClickedAsync(BankResponse bank)
+    {
+        if (bank.BankId is not int id)
+            return;
+
+        try
+        {
+            var result = bank.IsActive
+                ? await BankService.DeactivateAsync(id)
+                : await BankService.ActivateAsync(id);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add(bank.IsActive ? "Bank deactivated." : "Bank activated.", Severity.Success);
+                await LoadBanksAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Error ?? "Failed to update bank status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update bank status: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(BankResponse bank)
+    {
+        if (bank.BankId is not int id)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Bank",
+            $"Delete bank '{bank.BankName}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            var result = await BankService.DeleteAsync(id);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Bank deleted.", Severity.Success);
+                await LoadBanksAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Error ?? "Failed to delete bank.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete bank: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleManageContactsClickedAsync(BankResponse bank)
+    {
+        if (bank.BankId is not int id)
+            return;
+
+        var parameters = new DialogParameters<BankContactsDialog>
+        {
+            { x => x.Bank, bank },
+            { x => x.OnAddEmailAsync, (AddEmailRequest req, CancellationToken ct) => BankService.AddEmailAsync(id, req, ct) },
+            { x => x.OnRemoveEmailAsync, (string address, CancellationToken ct) => BankService.RemoveEmailAsync(id, address, ct) },
+            { x => x.OnAddPhoneAsync, (AddPhoneRequest req, CancellationToken ct) => BankService.AddPhoneAsync(id, req, ct) },
+            { x => x.OnRemovePhoneAsync, (string number, CancellationToken ct) => BankService.RemovePhoneAsync(id, number, ct) },
+            { x => x.ReloadBankFunc, (CancellationToken ct) => BankService.GetByIdAsync(id, ct) }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            Position = DialogPosition.Center
+        };
+
+        await DialogService.ShowAsync<BankContactsDialog>($"Contacts — {bank.BankName}", parameters, options);
+
+        // Contacts don't affect the tree structure, but reload anyway for consistency
+        // in case counts/labels are ever surfaced in the main table later.
+        await LoadBanksAsync();
+    }
+
+    static DialogOptions DefaultDialogOptions() => new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseButton = true,
+        Position = DialogPosition.Center
+    };
+}

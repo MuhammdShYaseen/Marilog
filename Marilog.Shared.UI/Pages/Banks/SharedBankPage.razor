@@ -1,0 +1,59 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Banks
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedBankPage
+   Header + Add button + client-side search over root-level banks + the
+   hierarchy table. No detail panel (rule 25) — contacts management is a
+   dedicated dialog instead, since email/phone Add/Remove is a live-editing
+   task, not a read-only drill-down.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">Banks</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New Bank
+        </MudButton>
+    </div>
+
+    <MudTextField T="string" Value="@_searchText" ValueChanged="@((string v) => _searchText = v)"
+                  Placeholder="Search by name, SWIFT/BIC, or country..." Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+    <SharedBankTable Items="@FilteredItems"
+                     IsLoading="@IsLoading"
+                     OnEditClicked="@OnEditClicked"
+                     OnManageContactsClicked="@OnManageContactsClicked"
+                     OnToggleActiveClicked="@OnToggleActiveClicked"
+                     OnDeleteClicked="@OnDeleteClicked" />
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<BankResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnManageContactsClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnToggleActiveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<BankResponse> OnDeleteClicked { get; set; }
+
+    string _searchText = string.Empty;
+
+    // Filters root banks only — a matching branch keeps its parent visible via
+    // the hierarchy grid rather than being pulled out of context.
+    IReadOnlyList<BankResponse> FilteredItems =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? Items
+            : Items.Where(Matches).ToList();
+
+    bool Matches(BankResponse bank) =>
+        (bank.BankName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (bank.SwiftBic?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (bank.CountryName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (bank.Branches?.Any(Matches) ?? false);
+}

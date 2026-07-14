@@ -1,0 +1,282 @@
+@using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Kernel.Primitives
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Banks
+
+@* ────────────────────────────────────────────────────────────────────────────
+   BankContactsDialog
+   Live-editing dialog (rule 2): every Add/Remove calls a host-wired delegate
+   immediately and reloads the bank in place rather than closing — there is
+   no "Save" step, matching how the interface only exposes Add/Remove (no
+   Update) for Emails/Phones. To change which contact is primary, remove and
+   re-add with IsPrimary set, since there's no dedicated "set primary" call.
+
+   ASSUMPTION (AddEmailRequest/AddPhoneRequest not supplied): shaped the same
+   way as ICompanyService's positional Add(Email/Phone)Async parameters —
+   Address/Role/Label/IsPrimary and Number/Type/Label/IsPrimary, with
+   EmailRole/PhoneType from Marilog.Kernel.Enums. Adjust field names below if
+   the real DTOs differ. Same assumption applies to EmailsResponse/PhonesResponse.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Contacts — @Bank.BankName</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true">
+            <MudTabPanel Text="Emails">
+                <MudForm @ref="_emailForm" Model="@this" Class="mb-3">
+                    <MudGrid>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField T="string" @bind-Value="_newEmailAddress" Label="Email Address"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          Required="true" RequiredError="Address is required" />
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudSelect T="EmailRole" @bind-Value="_newEmailRole" Label="Role"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                                @foreach (var role in Enum.GetValues<EmailRole>())
+                                {
+                                    <MudSelectItem Value="@role">@role</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudTextField T="string" @bind-Value="_newEmailLabel" Label="Label"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="2" Class="d-flex align-center">
+                            <MudCheckBox T="bool" @bind-Value="_newEmailIsPrimary" Label="Primary" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       Disabled="@_isBusy" OnClick="AddEmailAsync">
+                                Add Email
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+
+                <MudList T="EmailsResponse" Dense="true">
+                    @foreach (var email in _bank.Emails ?? [])
+                    {
+                        <MudListItem T="EmailsResponse">
+                            <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div>
+                                    <MudText Typo="Typo.body1">
+                                        @email.Address
+                                        @if (email.IsPrimary)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">Primary</MudChip>
+                                        }
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @email.Role @(string.IsNullOrWhiteSpace(email.Label) ? "" : $"· {email.Label}")
+                                    </MudText>
+                                </div>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                Disabled="@_isBusy"
+                                                OnClick="@(() => RemoveEmailAsync(email.Address))" />
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Phones">
+                <MudForm @ref="_phoneForm" Model="@this" Class="mb-3">
+                    <MudGrid>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField T="string" @bind-Value="_newPhoneNumber" Label="Phone Number"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          Required="true" RequiredError="Number is required" />
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudSelect T="PhoneType" @bind-Value="_newPhoneType" Label="Type"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                                @foreach (var type in Enum.GetValues<PhoneType>())
+                                {
+                                    <MudSelectItem Value="@type">@type</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudTextField T="string" @bind-Value="_newPhoneLabel" Label="Label"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="2" Class="d-flex align-center">
+                            <MudCheckBox T="bool" @bind-Value="_newPhoneIsPrimary" Label="Primary" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       Disabled="@_isBusy" OnClick="AddPhoneAsync">
+                                Add Phone
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+
+                <MudList T="PhonesResponse" Dense="true">
+                    @foreach (var phone in _bank.Phones ?? [])
+                    {
+                        <MudListItem T="PhonesResponse">
+                            <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div>
+                                    <MudText Typo="Typo.body1">
+                                        @phone.Number
+                                        @if (phone.IsPrimary)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">Primary</MudChip>
+                                        }
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @phone.Type @(string.IsNullOrWhiteSpace(phone.Label) ? "" : $"· {phone.Label}")
+                                    </MudText>
+                                </div>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                Disabled="@_isBusy"
+                                                OnClick="@(() => RemovePhoneAsync(phone.Number))" />
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    [Parameter, EditorRequired] public BankResponse Bank { get; set; } = default!;
+
+    /// <summary>Host wires these to IBankService.*, bankId already baked in.</summary>
+    [Parameter, EditorRequired] public Func<AddEmailRequest, CancellationToken, Task<Result>> OnAddEmailAsync { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string, CancellationToken, Task<Result>> OnRemoveEmailAsync { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<AddPhoneRequest, CancellationToken, Task<Result>> OnAddPhoneAsync { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string, CancellationToken, Task<Result>> OnRemovePhoneAsync { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<CancellationToken, Task<BankResponse?>> ReloadBankFunc { get; set; } = default!;
+
+    MudForm _emailForm = default!;
+    MudForm _phoneForm = default!;
+    BankResponse _bank = default!;
+    bool _isBusy;
+
+    string _newEmailAddress = string.Empty;
+    EmailRole _newEmailRole;
+    string? _newEmailLabel;
+    bool _newEmailIsPrimary;
+
+    string _newPhoneNumber = string.Empty;
+    PhoneType _newPhoneType;
+    string? _newPhoneLabel;
+    bool _newPhoneIsPrimary;
+
+    protected override void OnParametersSet() => _bank = Bank;
+
+    async Task AddEmailAsync()
+    {
+        await _emailForm.ValidateAsync();
+        if (!_emailForm.IsValid)
+            return;
+
+        await RunAsync(async ct =>
+        {
+            var request = new AddEmailRequest
+            {
+                Address = _newEmailAddress,
+                Role = _newEmailRole,
+                Label = _newEmailLabel,
+                IsPrimary = _newEmailIsPrimary
+            };
+            return await OnAddEmailAsync(request, ct);
+        }, "Email added.");
+
+        _newEmailAddress = string.Empty;
+        _newEmailLabel = null;
+        _newEmailIsPrimary = false;
+    }
+
+    async Task RemoveEmailAsync(string address)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Email", $"Remove '{address}' from this bank?", yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true)
+            return;
+
+        await RunAsync(ct => OnRemoveEmailAsync(address, ct), "Email removed.");
+    }
+
+    async Task AddPhoneAsync()
+    {
+        await _phoneForm.ValidateAsync();
+        if (!_phoneForm.IsValid)
+            return;
+
+        await RunAsync(async ct =>
+        {
+            var request = new AddPhoneRequest
+            {
+                Number = _newPhoneNumber,
+                Type = _newPhoneType,
+                Label = _newPhoneLabel,
+                IsPrimary = _newPhoneIsPrimary
+            };
+            return await OnAddPhoneAsync(request, ct);
+        }, "Phone added.");
+
+        _newPhoneNumber = string.Empty;
+        _newPhoneLabel = null;
+        _newPhoneIsPrimary = false;
+    }
+
+    async Task RemovePhoneAsync(string number)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Phone", $"Remove '{number}' from this bank?", yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true)
+            return;
+
+        await RunAsync(ct => OnRemovePhoneAsync(number, ct), "Phone removed.");
+    }
+
+    async Task RunAsync(Func<CancellationToken, Task<Result>> action, string successMessage)
+    {
+        _isBusy = true;
+        try
+        {
+            var result = await action(CancellationToken.None);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add(successMessage, Severity.Success);
+                _bank = await ReloadBankFunc(CancellationToken.None) ?? _bank;
+            }
+            else
+            {
+                Snackbar.Add(result.Error ?? "Operation failed.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Operation failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    void Close() => MudDialog.Close(DialogResult.Ok(true));
+}
