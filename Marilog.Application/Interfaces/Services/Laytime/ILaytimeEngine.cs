@@ -14,11 +14,15 @@ namespace Marilog.Application.Interfaces.Services.Laytime
         /// </summary>
         LaytimeResult Calculate(
             LaytimeCalculation calculation,
+            IReadOnlyList<LaytimeSegment> segments,
             decimal loadingRateMtPerDay,
             decimal demurrageRateUsdPerDay,
             decimal despatchRateUsdPerDay);
 
         /// <summary>يبني الـ Segments فقط بدون حساب النتيجة</summary>
-        IReadOnlyList<LaytimeSegment> BuildSegments(LaytimeCalculation calculation);
+        IReadOnlyList<LaytimeSegment> BuildSegments(
+            LaytimeCalculation calculation,
+            CargoOperationTerms operationTerms,
+            LaytimeRuleOptions ruleOptions);
     }
 }

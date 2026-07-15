@@ -72,13 +72,11 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                     lo.Property(p => p.IsReversible)
                       .HasColumnName("Loading_IsReversible");
 
-                    lo.Property(p => p.IsWeatherWorkingDay)
-                      .HasColumnName("Loading_IsWeatherWorkingDay");
-
                     lo.Property(p => p.OperationType)
                       .HasConversion<string>()
                       .HasColumnName("Loading_OperationType")
                       .HasMaxLength(20);
+
                     lo.Ignore(p => p.IsWeatherWorkingDay);
                 });
 
@@ -99,9 +97,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
                     di.Property(p => p.IsReversible)
                       .HasColumnName("Discharging_IsReversible");
-
-                    di.Property(p => p.IsWeatherWorkingDay)
-                      .HasColumnName("Discharging_IsWeatherWorkingDay");
 
                     di.Property(p => p.OperationType)
                       .HasConversion<string>()
@@ -144,8 +139,18 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                     ro.Property(p => p.HolidaysIncluded)
                       .HasColumnName("Rules_HolidaysIncluded");
 
-                    ro.Property(p => p.SundaysIncluded)
-                      .HasColumnName("Rules_SundaysIncluded");
+                    ro.Property(p => p.WeekendIncluded)
+                      .HasColumnName("Rules_WeekendIncluded");
+
+                    ro.Property(p => p.WeekendDay1)
+                      .HasConversion<string>()
+                      .HasColumnName("Rules_WeekendDay1")
+                      .HasMaxLength(20);
+
+                    ro.Property(p => p.WeekendDay2)
+                      .HasConversion<string>()
+                      .HasColumnName("Rules_WeekendDay2")
+                      .HasMaxLength(20);
 
                     ro.Property(p => p.TimeReversible)
                       .HasColumnName("Rules_TimeReversible");

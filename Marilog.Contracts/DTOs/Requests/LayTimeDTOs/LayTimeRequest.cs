@@ -41,6 +41,9 @@ namespace Marilog.Contracts.DTOs.Requests.LayTimeDTOs
     public record LaytimeRuleOptionsRequest(
         bool DraftSurveyCounts,
         bool HolidaysIncluded,
+        bool WeekendIncluded,
+        DayOfWeek WeekendDay1,
+        DayOfWeek WeekendDay2,
         bool SundaysIncluded,
         bool TimeReversible,
         bool AllowShiftingTime);

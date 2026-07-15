@@ -79,16 +79,18 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                     "Charter Terms are not ready for calculation. Ensure Loading/Discharging and Demurrage are configured.");
 
             var operationTerms = _laytimeHelpper.GetOperationTerms(charterTerms, calculation.OperationType);
+            var ruleOptions = charterTerms.LaytimeTerms.RuleOptions;
 
-            // بناء Segments
+            // بناء Segments — مع تطبيق CalendarType (SHEX/PWWD) و NoticeHours و RuleOptions
             calculation.ClearSegments();
-            var segments = _engine.BuildSegments(calculation);
+            var segments = _engine.BuildSegments(calculation, operationTerms, ruleOptions);
             foreach (var segment in segments)
                 calculation.AddSegment(segment);
 
-            // حساب النتيجة
+            // حساب النتيجة من نفس الـ Segments المبنية أعلاه (بدون إعادة بنائها)
             var result = _engine.Calculate(
                 calculation,
+                segments,
                 operationTerms.RateMtPerDay,
                 charterTerms.LaytimeTerms.Demurrage.RateUsdPerDay,
                 charterTerms.LaytimeTerms.Despatch?.RateUsdPerDay ?? 0);

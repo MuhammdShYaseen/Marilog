@@ -90,7 +90,9 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             LaytimeRuleOptions.Create(
                 r.DraftSurveyCounts,
                 r.HolidaysIncluded,
-                r.SundaysIncluded,
+                r.WeekendIncluded,
+                r.WeekendDay1,
+                r.WeekendDay2,
                 r.TimeReversible,
                 r.AllowShiftingTime);
 
@@ -120,8 +122,8 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             new(d.RateUsdPerDay, d.Basis);
 
         public LaytimeRuleOptionsResponse MapRuleOptionsResponse(LaytimeRuleOptions r) =>
-            new(r.DraftSurveyCounts, r.HolidaysIncluded, r.SundaysIncluded,
-                r.TimeReversible, r.AllowShiftingTime);
+            new(r.DraftSurveyCounts, r.HolidaysIncluded, r.WeekendIncluded,
+                r.WeekendDay1, r.WeekendDay2, r.TimeReversible, r.AllowShiftingTime);
 
         public LaytimeCalculationResponse MapCalculationResponse(LaytimeCalculation c) =>
             new(
