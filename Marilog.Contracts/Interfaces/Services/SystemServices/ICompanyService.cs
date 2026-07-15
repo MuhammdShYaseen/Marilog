@@ -14,16 +14,10 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<CompanyResponse>> SearchByNameAsync(string name, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<CompanyResponse> CreateAsync(string? registrationNumber, string? website, string companyName, int? countryId = null,
-                                  string? contactName = null,
-                                  string? address = null,
-                                  CancellationToken ct = default);
+        Task<CompanyResponse> CreateAsync(CreateCompanyRequest request, CancellationToken ct = default);
 
         Task<IReadOnlyList<CompanyResponse>> CreateRangeAsync(IEnumerable<CreateCompanyRequest> commands, CancellationToken ct = default);
-        Task          UpdateAsync(int id, string? registrationNumber, string? website, string companyName, int? countryId = null,
-                                  string? contactName = null, 
-                                  string? address = null,
-                                  CancellationToken ct = default);
+        Task          UpdateAsync(int id, UpdateCompanyRequest request, CancellationToken ct = default);
         Task          ActivateAsync(int id, CancellationToken ct = default);
         Task          DeactivateAsync(int id, CancellationToken ct = default);
         Task          DeleteAsync(int id, CancellationToken ct = default);

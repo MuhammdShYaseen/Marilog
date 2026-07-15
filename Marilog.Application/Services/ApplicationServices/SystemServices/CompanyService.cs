@@ -6,6 +6,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.ReusableValueObjects;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -21,41 +22,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var companyDto = await _repo.Query()
                .AsNoTracking()
-               .Select(x => new CompanyResponse
-               {
-                   Id = x.Id,
-                   Address = x.Address,
-                   IsActive = x.IsActive,
-                   BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
-                   {
-                       IBAN = b.IBAN,
-                       BankName = b.BankName,
-                       SwiftCode = b.SwiftCode,
-                       CurrencyId = b.CurrencyId,
-                       AccountHolderName = b.AccountHolderName,
-                       IsPrimary = b.IsPrimary
-                   }).ToList(),
-
-                   Emails = x.Emails.Select(e => new EmailsResponse
-                   {
-                       Address = e.Address,
-                       Role = e.Role,
-                       Label = e.Label,
-                       IsPrimary = e.IsPrimary
-                   }).ToList(),
-
-                   Phones = x.Phones.Select(p => new PhonesResponse
-                   {
-                       Number = p.Number,
-                       Type = p.Type,
-                       Label = p.Label,
-                       IsPrimary = p.IsPrimary
-                   }).ToList(),
-                   ContactName = x.ContactName,
-                   RegistrationNumber = x.RegistrationNumber,
-                   Name = x.CompanyName,
-                   CountryId = x.CountryId,
-               }).FirstOrDefaultAsync(c => c.Id == id, ct);
+               .Select(ToResponse)
+               .FirstOrDefaultAsync(c => c.Id == id, ct);
             return companyDto;
         }
 
@@ -64,52 +32,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var companyDto = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(x => new CompanyResponse
-                {
-                    Id = x.Id,
-                    Address = x.Address,
-                    IsActive = x.IsActive,
-                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
-                    {
-                        IBAN = b.IBAN,
-                        BankName = b.BankName,
-                        SwiftCode = b.SwiftCode,
-                        CurrencyId = b.CurrencyId,
-                        AccountHolderName = b.AccountHolderName,
-                        IsPrimary = b.IsPrimary
-                    }).ToList(),
-
-                    Emails = x.Emails.Select(e => new EmailsResponse
-                    {
-                        Address = e.Address,
-                        Role = e.Role,
-                        Label = e.Label,
-                        IsPrimary = e.IsPrimary
-                    }).ToList(),
-
-                    Phones = x.Phones.Select(p => new PhonesResponse
-                    {
-                        Number = p.Number,
-                        Type = p.Type,
-                        Label = p.Label,
-                        IsPrimary = p.IsPrimary
-                    }).ToList(),
-                    ContactName = x.ContactName,
-                    RegistrationNumber = x.RegistrationNumber,
-                    Name = x.CompanyName,
-                    Vessels = x.Vessels
-                .Select(v => new VesselResponse
-                {
-                    Id = v.Id,
-                    Name = v.VesselName,
-                    IMONumber = v.IMONumber,
-                    FlagCountryId = v.FlagCountryID,
-                    FlagCountryName = v.FlagCountry!.CountryName,
-                    IsActive = v.IsActive,
-                    GrossTonnage = v.GrossTonnage
-                })
-                .ToList()
-                })
+                .Select(ToResponse)
                 .FirstOrDefaultAsync(ct);
 
             return companyDto;
@@ -120,40 +43,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var companies = await _repo.Query()
                 .AsNoTracking()
                 .OrderBy(x => x.CompanyName)   // ترتيب في SQL
-                .Select(x => new CompanyResponse
-                {
-                    Id = x.Id,
-                    Name = x.CompanyName,
-                    Address = x.Address,
-                    IsActive = x.IsActive,
-                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
-                    {
-                        IBAN = b.IBAN,
-                        BankName = b.BankName,
-                        SwiftCode = b.SwiftCode,
-                        CurrencyId = b.CurrencyId,
-                        AccountHolderName = b.AccountHolderName,
-                        IsPrimary = b.IsPrimary
-                    }).ToList(),
-
-                    Emails = x.Emails.Select(e => new EmailsResponse
-                    {
-                        Address = e.Address,
-                        Role = e.Role,
-                        Label = e.Label,
-                        IsPrimary = e.IsPrimary
-                    }).ToList(),
-
-                    Phones = x.Phones.Select(p => new PhonesResponse
-                    {
-                        Number = p.Number,
-                        Type = p.Type,
-                        Label = p.Label,
-                        IsPrimary = p.IsPrimary
-                    }).ToList(),
-                    ContactName = x.ContactName,
-                    RegistrationNumber = x.RegistrationNumber
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
 
             return companies;
@@ -165,44 +55,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.IsActive)                // تصفية في SQL
                 .OrderBy(x => x.CompanyName)           // ترتيب في SQL
-                .Select(x => new CompanyResponse       // projection مباشر إلى DTO
-                {
-                    Id = x.Id,
-                    Name = x.CompanyName,
-                    Address = x.Address,
-                    IsActive = x.IsActive,
-
-
-
-                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
-                    {
-                        IBAN = b.IBAN,
-                        BankName = b.BankName,
-                        SwiftCode = b.SwiftCode,
-                        CurrencyId = b.CurrencyId,
-                        AccountHolderName = b.AccountHolderName,
-                        IsPrimary = b.IsPrimary
-                    }).ToList(),
-                    Emails = x.Emails.Select(e => new EmailsResponse
-                    {
-                        Address = e.Address,
-                        Role = e.Role,
-                        Label = e.Label,
-                        IsPrimary = e.IsPrimary
-                    }).ToList(),
-                    Phones = x.Phones.Select(p => new PhonesResponse
-                    {
-                        Number = p.Number,
-                        Type = p.Type,
-                        Label = p.Label,
-                        IsPrimary = p.IsPrimary
-                    }).ToList(),
-
-
-
-                    ContactName = x.ContactName,
-                    RegistrationNumber = x.RegistrationNumber
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
 
             return companies;
@@ -214,40 +67,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.IsActive && x.CompanyName.Contains(name)) // تصفية في SQL
                 .OrderBy(x => x.CompanyName)                            // ترتيب في SQL
-                .Select(x => new CompanyResponse                         // projection مباشر
-                {
-                    Id = x.Id,
-                    Name = x.CompanyName,
-                    Address = x.Address,
-                    IsActive = x.IsActive,
-                    BankAccounts = x.BankAccounts.Select(b => new BankAccountResponse
-                    {
-                        IBAN = b.IBAN,
-                        BankName = b.BankName,
-                        SwiftCode = b.SwiftCode,
-                        CurrencyId = b.CurrencyId,
-                        AccountHolderName = b.AccountHolderName,
-                        IsPrimary = b.IsPrimary
-                    }).ToList(),
-
-                    Emails = x.Emails.Select(e => new EmailsResponse
-                    {
-                        Address = e.Address,
-                        Role = e.Role,
-                        Label = e.Label,
-                        IsPrimary = e.IsPrimary
-                    }).ToList(),
-
-                    Phones = x.Phones.Select(p => new PhonesResponse
-                    {
-                        Number = p.Number,
-                        Type = p.Type,
-                        Label = p.Label,
-                        IsPrimary = p.IsPrimary
-                    }).ToList(),
-                    ContactName = x.ContactName,
-                    RegistrationNumber = x.RegistrationNumber
-                })
+                .Select(ToResponse)
                 .ToListAsync(ct);
 
             return companies;
@@ -255,9 +75,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CompanyResponse> CreateAsync(string? webSite, string? registrationNumber, string companyName, int? countryId = null, string? contactName = null, string? address = null,  CancellationToken ct = default)
+        public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request, CancellationToken ct = default)
         {
-            var company = Company.Create(webSite, registrationNumber, companyName, countryId, contactName, address);
+            var company = Company.Create(request.WebSite, request.RegistrationNumber, request.CompanyName, request.CountryId, request.ContactName, request.Address);
             await _repo.AddAsync(company, ct);
             await _repo.SaveChangesAsync(ct);
             return new CompanyResponse
@@ -295,7 +115,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Name = company.CompanyName,
                     Address = company.Address,
                     IsActive = company.IsActive,
-                    
+
                     WebSite = company.Website,
                     ContactName = company.ContactName,
                     RegistrationNumber = company.RegistrationNumber
@@ -303,13 +123,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, string? registrationNumber,string? webSite, string companyName, int? countryId = null,
-            string? contactName = null,
-            string? address = null,
+        public async Task UpdateAsync(int id, UpdateCompanyRequest request,
             CancellationToken ct = default)
         {
             var company = await GetOrThrowAsync(id, ct);
-            company.Update(webSite, registrationNumber, companyName, countryId, contactName, address);
+            company.Update(request.WebSite, request.RegistrationNumber, request.CompanyName, request.CountryId, request.ContactName, request.Address);
             _repo.Update(company);
             await _repo.SaveChangesAsync(ct);
         }
@@ -479,5 +297,78 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(a => a.Id == id)
                 .FirstOrDefaultAsync(ct)
                ?? throw new KeyNotFoundException($"Company {id} not found.");
-    }
+
+    //----mapping--------------
+
+        private static readonly Expression<Func<BankAccount, BankAccountResponse>> BankAccountToResponse =
+        b => new BankAccountResponse
+        {
+            IBAN = b.IBAN,
+            BankName = b.BankName,
+            SwiftCode = b.SwiftCode,
+            CurrencyId = b.CurrencyId,
+            AccountHolderName = b.AccountHolderName,
+            IsPrimary = b.IsPrimary
+        };
+
+        private static readonly Expression<Func<ContactEmail, EmailsResponse>> EmailToResponse =
+            e => new EmailsResponse
+            {
+                Address = e.Address,
+                Role = e.Role,
+                Label = e.Label,
+                IsPrimary = e.IsPrimary
+            };
+
+        public static readonly Expression<Func<ContactPhone, PhonesResponse>> PhoneToResponse =
+            p => new PhonesResponse
+            {
+                Number = p.Number,
+                Type = p.Type,
+                Label = p.Label,
+                IsPrimary = p.IsPrimary
+            };
+
+        public static readonly Expression<Func<Vessel, VesselResponse>> VesselToResponse =
+            v => new VesselResponse
+            {
+                Name = v.VesselName,
+                IMONumber = v.IMONumber,
+                Id = v.Id,
+                FlagCountryName = v.FlagCountry != null ? v.FlagCountry.CountryName : null
+            };
+
+        public static readonly Expression<Func<Company, CompanyResponse>> ToResponse =
+            x => new CompanyResponse
+            {
+                Id = x.Id,
+                Address = x.Address,
+                IsActive = x.IsActive,
+                ContactName = x.ContactName,
+                RegistrationNumber = x.RegistrationNumber,
+                Name = x.CompanyName,
+                CountryId = x.CountryId,
+                WebSite = x.Website,
+
+                BankAccounts = x.BankAccounts
+                    .AsQueryable()
+                    .Select(BankAccountToResponse)
+                    .ToList(),
+
+                Emails = x.Emails
+                    .AsQueryable()
+                    .Select(EmailToResponse)
+                    .ToList(),
+
+                Phones = x.Phones
+                    .AsQueryable()
+                    .Select(PhoneToResponse)
+                    .ToList(),
+
+                Vessels = x.Vessels
+                    .AsQueryable()
+                    .Select(VesselToResponse)
+                    .ToList()
+            };
+    } 
 }

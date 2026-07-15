@@ -121,7 +121,7 @@ else
             return;
         }
 
-        _byVessel = await DocumentService.GetByVesselAsync(vesselId.Value);
+        _byVessel = await DocumentService.GetByVesselAsync(vesselId.Value, true);
     }
 
     private async Task LoadBySupplier(int? supplierId)
@@ -134,7 +134,7 @@ else
             return;
         }
 
-        _bySupplier = await DocumentService.GetBySupplierAsync(supplierId.Value);
+        _bySupplier = await DocumentService.GetBySupplierAsync(supplierId.Value, true);
     }
 
     private async Task LoadDetail(int id)

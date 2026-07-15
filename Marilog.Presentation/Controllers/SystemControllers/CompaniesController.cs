@@ -71,14 +71,7 @@
         [HttpPost]
         public async Task<ActionResult<CompanyResponse>> Create([FromBody] CreateCompanyRequest request, CancellationToken ct)
         {
-            var company = await _service.CreateAsync(
-                request.RegistrationNumber,
-                request.WebSite,
-                request.CompanyName,
-                request.CountryId,
-                request.ContactName,
-                request.Address,
-                ct);
+            var company = await _service.CreateAsync(request, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = company.Id }, ApiResponse<CompanyResponse>.Ok(company));
         }
@@ -108,15 +101,7 @@
         {
             
 
-            await  _service.UpdateAsync(
-                id,
-                request.RegistrationNumber,
-                request.WebSite,
-                request.CompanyName,
-                request.CountryId,
-                request.ContactName,
-                request.Address,
-                ct);
+            await  _service.UpdateAsync(id, request, ct);
 
             return NoContent();
 

@@ -46,19 +46,9 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<CompanyResponse> CreateAsync(string? registrationNumber, string? webSite, string companyName, int? countryId = null,
-            string? contactName = null, string? address = null,
-            CancellationToken ct = default)
+        public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request,
+                                  CancellationToken ct = default)
         {
-            var request = new CreateCompanyRequest
-            {
-                RegistrationNumber = registrationNumber,
-                CompanyName = companyName,
-                CountryId = countryId,
-                ContactName = contactName,
-                Address = address,
-                WebSite = webSite,
-            };
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             http.EnsureSuccessStatusCode();
@@ -76,21 +66,9 @@ namespace Marilog.Client.Services.SystemServices
             return response ?? [];
         }
 
-        public async Task UpdateAsync(int id, string? registerationNumber, string? website, string companyName, int? countryId = null,
-            string? contactName = null, string? address = null,
+        public async Task UpdateAsync(int id, UpdateCompanyRequest request,
             CancellationToken ct = default)
         {
-            var request = new UpdateCompanyRequest
-            {
-                CompanyName = companyName,
-                CountryId = countryId,
-                ContactName = contactName,
-                Address = address,
-                RegistrationNumber = registerationNumber,
-                WebSite = website,
-                
-            };
-
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             http.EnsureSuccessStatusCode();
         }

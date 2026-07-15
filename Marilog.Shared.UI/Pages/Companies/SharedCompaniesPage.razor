@@ -112,9 +112,6 @@
         </MudPaper>
 
     </MudItem>
-
-    @* ── Detail Panel ──────────────────────────────────────────── *@
-    @if (_selected is not null)
         @* ── Detail Panel ──────────────────────────────────────────── *@
         @if (_selected is not null)
         {
@@ -125,8 +122,8 @@
                         <MudText Typo="Typo.h6">@_selected.Name</MudText>
                         <MudSpacer />
                         <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                       Size="Size.Small"
-                                       OnClick="ClosePanel" />
+                        Size="Size.Small"
+                        OnClick="ClosePanel" />
                     </MudStack>
 
                     <MudDivider Class="mb-3" />
@@ -143,8 +140,8 @@
                                 <MudItem xs="6">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
                                     <MudChip T="string"
-                                             Color="@(_selected.IsActive ? Color.Success : Color.Default)"
-                                             Size="Size.Small">
+                                    Color="@(_selected.IsActive ? Color.Success : Color.Default)"
+                                    Size="Size.Small">
                                         @(_selected.IsActive ? "Active" : "Inactive")
                                     </MudChip>
                                 </MudItem>
@@ -171,9 +168,9 @@
                                 <MudText Typo="Typo.subtitle2">Emails</MudText>
                                 <MudSpacer />
                                 <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                               Size="Size.Small"
-                                               Color="Color.Primary"
-                                               OnClick="() => OnAddEmailClicked.InvokeAsync(_selected)" />
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                OnClick="() => OnAddEmailClicked.InvokeAsync(_selected)" />
                             </MudStack>
 
                             @if (_selected.Emails.Any())
@@ -184,8 +181,8 @@
                                         <MudListItem T="EmailsResponse" Dense="true">
                                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                                 <MudIcon Icon="@Icons.Material.Filled.Email"
-                                                         Size="Size.Small"
-                                                         Color="Color.Secondary" />
+                                                Size="Size.Small"
+                                                Color="Color.Secondary" />
                                                 <MudStack Spacing="0">
                                                     <MudText Typo="Typo.body2">@email.Address</MudText>
                                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -195,12 +192,12 @@
                                                 </MudStack>
                                                 <MudSpacer />
                                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                               Size="Size.Small"
-                                                               OnClick="() => OnEditEmailClicked.InvokeAsync((_selected, email))" />
+                                                Size="Size.Small"
+                                                OnClick="() => OnEditEmailClicked.InvokeAsync((_selected, email))" />
                                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                               Size="Size.Small"
-                                                               Color="Color.Error"
-                                                               OnClick="() => OnDeleteEmailClicked.InvokeAsync((_selected, email))" />
+                                                Size="Size.Small"
+                                                Color="Color.Error"
+                                                OnClick="() => OnDeleteEmailClicked.InvokeAsync((_selected, email))" />
                                             </MudStack>
                                         </MudListItem>
                                     }
@@ -218,9 +215,9 @@
                                 <MudText Typo="Typo.subtitle2">Phones</MudText>
                                 <MudSpacer />
                                 <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                               Size="Size.Small"
-                                               Color="Color.Primary"
-                                               OnClick="() => OnAddPhoneClicked.InvokeAsync(_selected)" />
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                OnClick="() => OnAddPhoneClicked.InvokeAsync(_selected)" />
                             </MudStack>
 
                             @if (_selected.Phones.Any())
@@ -231,8 +228,8 @@
                                         <MudListItem T="PhonesResponse" Dense="true">
                                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                                 <MudIcon Icon="@Icons.Material.Filled.Phone"
-                                                         Size="Size.Small"
-                                                         Color="Color.Secondary" />
+                                                Size="Size.Small"
+                                                Color="Color.Secondary" />
                                                 <MudStack Spacing="0">
                                                     <MudText Typo="Typo.body2">@phone.Number</MudText>
                                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -242,12 +239,12 @@
                                                 </MudStack>
                                                 <MudSpacer />
                                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                               Size="Size.Small"
-                                                               OnClick="() => OnEditPhoneClicked.InvokeAsync((_selected, phone))" />
+                                                Size="Size.Small"
+                                                OnClick="() => OnEditPhoneClicked.InvokeAsync((_selected, phone))" />
                                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                               Size="Size.Small"
-                                                               Color="Color.Error"
-                                                               OnClick="() => OnDeletePhoneClicked.InvokeAsync((_selected, phone))" />
+                                                Size="Size.Small"
+                                                Color="Color.Error"
+                                                OnClick="() => OnDeletePhoneClicked.InvokeAsync((_selected, phone))" />
                                             </MudStack>
                                         </MudListItem>
                                     }
@@ -267,9 +264,9 @@
                                 <MudText Typo="Typo.subtitle2">Bank Accounts</MudText>
                                 <MudSpacer />
                                 <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                               Size="Size.Small"
-                                               Color="Color.Primary"
-                                               OnClick="() => OnAddBankAccountClicked.InvokeAsync(_selected)" />
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                OnClick="() => OnAddBankAccountClicked.InvokeAsync(_selected)" />
                             </MudStack>
 
                             @if (_selected.BankAccounts.Any())
@@ -280,8 +277,8 @@
                                         <MudListItem T="BankAccountResponse" Dense="true">
                                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                                 <MudIcon Icon="@Icons.Material.Filled.CreditCard"
-                                                         Size="Size.Small"
-                                                         Color="Color.Secondary" />
+                                                Size="Size.Small"
+                                                Color="Color.Secondary" />
                                                 <MudStack Spacing="0">
                                                     <MudText Typo="Typo.body2">@bank.IBAN</MudText>
                                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -291,12 +288,12 @@
                                                 </MudStack>
                                                 <MudSpacer />
                                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                               Size="Size.Small"
-                                                               OnClick="() => OnEditBankAccountClicked.InvokeAsync((_selected, bank))" />
+                                                Size="Size.Small"
+                                                OnClick="() => OnEditBankAccountClicked.InvokeAsync((_selected, bank))" />
                                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                               Size="Size.Small"
-                                                               Color="Color.Error"
-                                                               OnClick="() => OnDeleteBankAccountClicked.InvokeAsync((_selected, bank))" />
+                                                Size="Size.Small"
+                                                Color="Color.Error"
+                                                OnClick="() => OnDeleteBankAccountClicked.InvokeAsync((_selected, bank))" />
                                             </MudStack>
                                         </MudListItem>
                                     }
@@ -316,11 +313,11 @@
                                 foreach (var vessel in _selected.Vessels)
                                 {
                                     <MudChip T="string"
-                                             Icon="@Icons.Material.Filled.DirectionsBoat"
-                                             Color="Color.Primary"
-                                             Size="Size.Small"
-                                             Class="mr-1 mb-1"
-                                             OnClick="() => OnVesselClick.InvokeAsync(vessel.Id)">
+                                    Icon="@Icons.Material.Filled.DirectionsBoat"
+                                    Color="Color.Primary"
+                                    Size="Size.Small"
+                                    Class="mr-1 mb-1"
+                                    OnClick="() => OnVesselClick.InvokeAsync(vessel.Id)">
                                         @vessel.Name
                                     </MudChip>
                                 }
@@ -338,33 +335,33 @@
                     @* Actions *@
                     <MudStack Row="true" Spacing="2">
                         <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                        Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.Edit"
+                        OnClick="() => OnEditClicked.InvokeAsync(_selected)">
                             Edit
                         </MudButton>
                         @if (_selected.IsActive)
                         {
                             <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Warning"
-                                       StartIcon="@Icons.Material.Filled.PauseCircle"
-                                       OnClick="() => OnDeactivateClicked.InvokeAsync(_selected)">
+                            Color="Color.Warning"
+                            StartIcon="@Icons.Material.Filled.PauseCircle"
+                            OnClick="() => OnDeactivateClicked.InvokeAsync(_selected)">
                                 Deactivate
                             </MudButton>
                         }
                         else
                         {
                             <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Success"
-                                       StartIcon="@Icons.Material.Filled.PlayCircle"
-                                       OnClick="() => OnActivateClicked.InvokeAsync(_selected)">
+                            Color="Color.Success"
+                            StartIcon="@Icons.Material.Filled.PlayCircle"
+                            OnClick="() => OnActivateClicked.InvokeAsync(_selected)">
                                 Activate
                             </MudButton>
                         }
                         <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Error"
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
+                        Color="Color.Error"
+                        StartIcon="@Icons.Material.Filled.Delete"
+                        OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
                             Delete
                         </MudButton>
                     </MudStack>
@@ -373,7 +370,7 @@
             </MudItem>
         }
 
-    }
+    
 
 </MudGrid>
 

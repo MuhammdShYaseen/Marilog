@@ -27,7 +27,7 @@
                               Margin="Margin.Dense" />
             </MudItem>
 
-            <MudItem xs="6">
+            <MudItem xs="12">
                 <MudTextField @bind-Value="_contactName"
                               Label="Contact Name"
                               Variant="Variant.Outlined"
@@ -72,7 +72,8 @@
     </DialogActions>
 </MudDialog>
 
-@code {
+@code 
+{
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public CompanyResponse? Company { get; set; }
     [Parameter] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];

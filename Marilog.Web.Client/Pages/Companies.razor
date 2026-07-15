@@ -75,13 +75,7 @@ else
         if (result is null || result.Canceled) return;  // ← check null first
 
         var request = (CreateCompanyRequest)result.Data!;
-        await CompanyService.CreateAsync(
-            request.RegistrationNumber,
-            request.WebSite,
-            request.CompanyName,
-            request.CountryId,
-            request.ContactName,
-            request.Address);
+        await CompanyService.CreateAsync(request);
 
         Snackbar.Add("Company created.", Severity.Success);
         await LoadAsync();
@@ -99,14 +93,7 @@ else
         if (result is null || result.Canceled) return;  // ← check null first
 
         var request = (UpdateCompanyRequest)result.Data!;
-        await CompanyService.UpdateAsync(
-            company.Id,
-            request.RegistrationNumber,
-            request.ContactName,
-            request.CompanyName,
-            request.CountryId,
-            request.WebSite,
-            request.Address);
+        await CompanyService.UpdateAsync(company.Id, request);
 
         Snackbar.Add("Company updated.", Severity.Success);
         await LoadAsync();
