@@ -1,12 +1,10 @@
 ﻿using Marilog.Application.Interfaces.DataManagment;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.BackRestorControllers
 {
     [ApiController]
     [Route("api/backup")]
-    [Authorize(Roles = "Admin")] // عملية حساسة جداً (قاعدة بيانات + كل الملفات) - ما تفتحها لأي دور
     public class BackupController : ControllerBase
     {
         private readonly IFullBackupService _backupService;
