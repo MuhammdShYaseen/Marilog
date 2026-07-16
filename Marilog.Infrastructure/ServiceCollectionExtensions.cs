@@ -75,7 +75,11 @@ namespace Marilog.Infrastructure
                     _ => throw new NotSupportedException($"Provider not supported: {provider}")
                 };
             });
+
+            services.AddSingleton<IFileStorageBackupService, FileStorageBackupService>();
             return services;
+
+
         }
     }
 }
