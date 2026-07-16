@@ -12,7 +12,6 @@ using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
-using Marilog.Infrastructure.Services.Marilog.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
