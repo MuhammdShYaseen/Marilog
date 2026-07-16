@@ -1,4 +1,5 @@
 ﻿using Marilog.Application.EventHandlers;
+using Marilog.Application.Interfaces.DataManagment;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
@@ -61,6 +62,19 @@ namespace Marilog.Infrastructure
             //options
             services.Configure<UrlsOptions>(configuration.GetSection("Urls"));
             services.Configure<InternalApiKeysOptions>(configuration.GetSection("InternalApiKeys"));
+
+
+            //backup
+            services.AddScoped<IDatabaseBackupService>(sp =>
+            {
+                var provider = configuration["Database:Provider"];
+                return provider switch
+                {
+                    "SqlServer" => ActivatorUtilities.CreateInstance<SqlServerBackupService>(sp),
+                    //"PostgreSql" => ActivatorUtilities.CreateInstance<PostgreSqlBackupService>(sp),
+                    _ => throw new NotSupportedException($"Provider not supported: {provider}")
+                };
+            });
             return services;
         }
     }
