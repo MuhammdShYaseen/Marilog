@@ -1,12 +1,9 @@
 ﻿@page "/contracts"
-@using Kernel.Enums
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
-@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
-@using Marilog.Shared.UI.Components.Upload
 @using Marilog.Shared.UI.Pages.Contracts
 @using Marilog.Shared.UI.Pages.Contracts.Dialogs
 @using Marilog.Web.Client.Services.Interfaces
@@ -341,47 +338,5 @@ else
 
     // ─── Documents ───────────────────────────────────────────────────────
 
-    private async Task OpenAttachFileDialog((int entityId, EntityType entityType)arg)
-    {
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,      // أكبر من الافتراضي (Small)
-            FullWidth = true,
-            //DragMode = MudDialogDragMode.Simple,   // هذا يفعّل السحب فعليًا
-            CloseButton = true,
-            Position = DialogPosition.Center
-        };
-        var dialog = await DialogService.ShowAsync<FileUploadDialog>("Attach Files", options);
-        var result = await dialog.Result;
-        if (result is null || result.Canceled) return;
-
-        var data = (IReadOnlyList<IBrowserFile>)result.Data!;
-        IEnumerable<UploadFileRequest> request()
-        {
-            List<UploadFileRequest> lines = new();
-            foreach(var file in data)
-            {
-                var uploadRequest = new UploadFileRequest
-                {
-                    ContentType = file.ContentType,
-                    EntityId = arg.entityId,
-                    EntityType = arg.entityType,
-                    FileName = file.Name,
-                    FileStream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024),
-                    Size = file.Size
-                };
-                lines.Add(uploadRequest);
-            }
-            return lines;
-        }
-        var outcome = await StoredFileService.UploadAsync(request());
-        if (outcome.Count > 0)
-        {
-            Snackbar.Add("File attached.", Severity.Success);
-            await LoadAsync();
-            await RefreshSelected(arg.entityId);
-        }
-        else
-            Snackbar.Add("Error while uploading files", Severity.Error);
-    }
+    
 }
