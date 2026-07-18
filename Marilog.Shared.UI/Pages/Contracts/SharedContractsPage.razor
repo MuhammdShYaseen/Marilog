@@ -102,6 +102,9 @@
                             <MudTd>
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                                OnClick="() => OnEditClicked.InvokeAsync(context)" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Receipt" Size="Size.Small"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Id, EntityType.AContract))" />
                             </MudTd>
                         </RowTemplate>
                         <NoRecordsContent>
@@ -326,25 +329,15 @@
                         <MudText Typo="Typo.subtitle2">Document</MudText>
                         <MudSpacer />
                         <MudTooltip Text="Attach File">
-                            <MudIconButton Icon="@Icons.Material.Filled.Upload"
+                            <MudIconButton Icon="@Icons.Material.Filled.Receipt"
                                            Size="Size.Small"
                                            Color="Color.Primary"
-                                           OnClick="() => OnAttachFileClicked.InvokeAsync((_selected!.Id, EntityType.AContract))" />
+                                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected!.Id, EntityType.AContract))">
+                                           Files
+                            </MudIconButton>
                         </MudTooltip>
                     </MudStack>
-                    @if (!string.IsNullOrWhiteSpace(_selected.ContractFileUrl))
-                    {
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Color="Color.Primary" />
-                            <MudLink Href="@_selected.ContractFileUrl" Target="_blank">
-                                @(_selected.ContractFileName ?? "Contract File")
-                            </MudLink>
-                        </MudStack>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">No file attached.</MudText>
-                    }
+                   
 
                     <MudDivider Class="my-3" />
 
@@ -412,7 +405,7 @@
     [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
     [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }
     [Parameter] public EventCallback<(int ContractId, DateOnly? CurrentExpiryDate)> OnChangeExpiryClicked { get; set; }
-    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnAttachFileClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
     [Parameter] public string? SortColumn { get; set; }
     [Parameter] public bool SortDescending { get; set; }

@@ -45,7 +45,7 @@ else
                          OnRemovePartyClicked="OpenRemovePartyDialog"
                          OnRecordAmendmentClicked="OpenRecordAmendmentDialog"
                          OnChangeExpiryClicked="OpenChangeExpiryDialog"
-                         OnAttachFileClicked="arg => ManageStoredFiles.OpenUploadFilesDialogAsync(arg, LoadAsync, () => RefreshSelected(arg.entityId))" />
+                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 }
 
 @code {
@@ -150,8 +150,7 @@ else
         if (result is null || result.Canceled) return;
 
         var data = (CreateContractRequest)result.Data!;
-        var outcome = await ContractService.CreateAsync(
-            data.ContractNumber, data.Type, data.EffectiveDate, data.ExpiryDate, data.Notes);
+        var outcome = await ContractService.CreateAsync(data.ContractNumber, data.Type, data.EffectiveDate, data.ExpiryDate, data.Notes);
 
         if (outcome.IsSuccess)
         {
