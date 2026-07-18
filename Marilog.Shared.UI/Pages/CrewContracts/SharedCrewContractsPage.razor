@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewContracts
 
@@ -39,7 +40,8 @@
                                        Selected="_selected"
                                        OnRowSelected="OnRowSelected"
                                        OnEditClicked="OnEditClicked"
-                                       OnDeleteClicked="OnDeleteClicked" />
+                                       OnDeleteClicked="OnDeleteClicked"
+                                       OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="Active">
@@ -47,7 +49,8 @@
                                        Selected="_selected"
                                        OnRowSelected="OnRowSelected"
                                        OnEditClicked="OnEditClicked"
-                                       OnDeleteClicked="OnDeleteClicked" />
+                                       OnDeleteClicked="OnDeleteClicked"
+                                       OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="Expiring Soon">
@@ -55,7 +58,8 @@
                                        Selected="_selected"
                                        OnRowSelected="OnRowSelected"
                                        OnEditClicked="OnEditClicked"
-                                       OnDeleteClicked="OnDeleteClicked" />
+                                       OnDeleteClicked="OnDeleteClicked"
+                                       OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="By Vessel">
@@ -75,7 +79,8 @@
                                        Selected="_selected"
                                        OnRowSelected="OnRowSelected"
                                        OnEditClicked="OnEditClicked"
-                                       OnDeleteClicked="OnDeleteClicked" />
+                                       OnDeleteClicked="OnDeleteClicked"
+                                       OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
             </MudTabs>
@@ -179,6 +184,14 @@
                                OnClick="() => OnEditClicked.InvokeAsync(_selected)">
                         Edit
                     </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected.ContractId, EntityType.CrewContract))">
+                        Files
+                    </MudButton>
+
                     @if (_selected.IsActive)
                     {
                         <MudButton Variant="Variant.Outlined"
@@ -210,6 +223,7 @@
     [Parameter] public EventCallback<CrewContractResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<CrewContractResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<CrewContractResponse> OnSignOffClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
     private CrewContractResponse? _selected;
     private string _search = string.Empty;

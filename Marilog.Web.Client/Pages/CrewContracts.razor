@@ -3,6 +3,7 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.CrewContracts
+@using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 
 @inject ICrewContractService CrewContractService
@@ -12,6 +13,7 @@
 @inject IPortService         PortService
 @inject ISnackbar            Snackbar
 @inject IDialogService       DialogService
+@inject IManageStoredFiles ManageStoredFiles
 
 @if (_loading)
 {
@@ -25,7 +27,8 @@ else
                       OnAddClicked="OpenAddDialog"
                       OnEditClicked="OpenEditDialog"
                       OnDeleteClicked="ConfirmDelete"
-                      OnSignOffClicked="OpenSignOffDialog" />
+                      OnSignOffClicked="OpenSignOffDialog"
+                      OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 }
 
 @code {

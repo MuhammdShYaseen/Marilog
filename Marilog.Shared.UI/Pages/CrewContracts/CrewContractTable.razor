@@ -54,6 +54,10 @@
                                    Size="Size.Small"
                                    Color="Color.Primary"
                                    OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.ContractId, EntityType.CrewContract))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                    Size="Size.Small"
                                    Color="Color.Error"
@@ -77,7 +81,7 @@
     [Parameter] public EventCallback<CrewContractResponse> OnRowSelected { get; set; }
     [Parameter] public EventCallback<CrewContractResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<CrewContractResponse> OnDeleteClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     private CrewContractResponse? _selected;
 
     protected override void OnParametersSet() => _selected = Selected;
