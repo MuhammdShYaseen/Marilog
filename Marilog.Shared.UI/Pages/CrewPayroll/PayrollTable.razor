@@ -40,6 +40,10 @@
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
                            Size="Size.Small"
                            OnClick="() => OnEditClicked.InvokeAsync(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Id, EntityType.CrewPayroll))" />
             <MudIconButton Icon="@Icons.Material.Filled.Delete"
                            Size="Size.Small"
                            Color="Color.Error"
@@ -57,6 +61,7 @@
     [Parameter] public EventCallback<CrewPayrollResponse> OnRowSelected { get; set; }
     [Parameter] public EventCallback<CrewPayrollResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<CrewPayrollResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
     private static Color StatusColor(PayrollStatus status) => status switch
     {

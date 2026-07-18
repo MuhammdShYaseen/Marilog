@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Persons
 
@@ -117,20 +118,20 @@
                                                Color="Color.Primary"
                                                OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
 
-                                <MudIconButton Icon="@(context.Item.IsActive
-                                                                                           ? Icons.Material.Filled.ToggleOff
-                                                                                       : Icons.Material.Filled.ToggleOn)"
+                                <MudIconButton Icon="@Icons.Material.Filled.Receipt"
                                                Size="Size.Small"
-                                               Color="@(context.Item.IsActive
-                                                                                           ? Color.Warning
-                                                                                           : Color.Success)"
-                                               OnClick="() =>
-                                                                                  {
-                                                                                      if (context.Item.IsActive)
-                                                                                          OnDeactivateClicked.InvokeAsync(context.Item);
-                                                                                      else
-                                                                                          OnActivateClicked.InvokeAsync(context.Item);
-                                                                                  }" />
+                                               Color="Color.Primary"
+                                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Person))" />
+
+                                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                                               Size="Size.Small"
+                                               Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
+                                               OnClick="() =>{
+                                                                if (context.Item.IsActive)
+                                                                   OnDeactivateClicked.InvokeAsync(context.Item);
+                                                                else
+                                                                   OnActivateClicked.InvokeAsync(context.Item);
+                                                              }" />
 
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                Size="Size.Small"
@@ -384,6 +385,13 @@
                                OnClick="() => OnEditClicked.InvokeAsync(_selected)">
                         Edit
                     </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected.Id, EntityType.Person))">
+                        Files
+                    </MudButton>
                     @if (_selected.IsActive)
                     {
                         <MudButton Variant="Variant.Outlined"
@@ -429,7 +437,7 @@
 
     // ← يرسل القائمة الجاهزة للـ parent ليفتح الـ Dialog
     [Parameter] public EventCallback<List<PersonResponse>> OnShowExpiringCertificatesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse, PersonCertificateResponse)> OnEditCertificateClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse, PersonCertificateResponse)> OnRemoveCertificateClicked { get; set; }

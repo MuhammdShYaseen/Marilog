@@ -46,7 +46,8 @@
                                   Selected="_selected"
                                   OnRowSelected="OnRowSelected"
                                   OnEditClicked="OnEditClicked"
-                                  OnDeleteClicked="OnDeleteClicked" />
+                                  OnDeleteClicked="OnDeleteClicked"
+                                  OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 @* ── By Status ─────────────────────────────────── *@
@@ -68,7 +69,8 @@
                                   Selected="_selected"
                                   OnRowSelected="OnRowSelected"
                                   OnEditClicked="OnEditClicked"
-                                  OnDeleteClicked="OnDeleteClicked" />
+                                  OnDeleteClicked="OnDeleteClicked"
+                                  OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 @* ── Outstanding ───────────────────────────────── *@
@@ -77,7 +79,8 @@
                                   Selected="_selected"
                                   OnRowSelected="OnRowSelected"
                                   OnEditClicked="OnEditClicked"
-                                  OnDeleteClicked="OnDeleteClicked" />
+                                  OnDeleteClicked="OnDeleteClicked"
+                                  OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
             </MudTabs>
@@ -240,6 +243,7 @@
     [Parameter] public EventCallback<CrewPayrollResponse> OnPayClicked { get; set; }
     [Parameter] public EventCallback<PayrollStatus?> OnStatusChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> OnMonthSelected { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
     private CrewPayrollResponse? _selected;
     private string _search = string.Empty;

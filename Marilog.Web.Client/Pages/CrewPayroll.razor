@@ -5,7 +5,7 @@
 @using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.CrewPayroll
 @using MudBlazor
-
+@using Marilog.Web.Client.Services.Interfaces
 @inject ICrewPayrollService PayrollService
 @inject ICrewContractService CrewContractService
 @inject IVoyageService VoyageService
@@ -13,6 +13,8 @@
 @inject ISwiftTransferService SwiftTransferService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IManageStoredFiles StoredFiles
+
 
 @if (_loading)
 {
@@ -30,7 +32,8 @@ else
                            OnCancelClicked="Cancel"
                            OnPayClicked="OpenPayDialog"
                            OnMonthSelected="LoadByMonth"
-                           OnStatusChanged="LoadByStatus" />
+                           OnStatusChanged="LoadByStatus"
+                           OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" />
 }
 
 @code {

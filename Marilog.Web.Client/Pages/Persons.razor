@@ -1,14 +1,16 @@
 ﻿@page "/persons"
-@using Marilog.Contracts.Interfaces.Services.SystemServices
-@using Marilog.Contracts.DTOs.Responses
-@using Marilog.Shared.UI.Pages.Persons
 @using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Persons
+@using Marilog.Web.Client.Services.Interfaces
 @inject ICountryService CountryService
 @inject IPersonService PersonService
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IRankService RankService
+@inject IManageStoredFiles StoredFiles
 @if (_loading == true)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -25,7 +27,8 @@
                    OnEditCertificateClicked="OpenEditCertificateDialog"
                    OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
                    OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
-                   OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog" />
+                   OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
+                  OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" />
 @code {
 
     private IReadOnlyList<PersonResponse> _persons = [];
