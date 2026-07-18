@@ -4,11 +4,12 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Banks
+@using Marilog.Web.Client.Services.Interfaces
 @inject IBankService BankService
 @inject ICountryService CountryService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-
+@inject IManageStoredFiles ManageStoredFiles
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host for Banks. Loads active banks in tree mode (GetPagedAsync
    has no page-size/page-number parameters, so it's not usable as a real list
@@ -24,7 +25,8 @@
                 OnEditClicked="@HandleEditClickedAsync"
                 OnManageContactsClicked="@HandleManageContactsClickedAsync"
                 OnToggleActiveClicked="@HandleToggleActiveClickedAsync"
-                OnDeleteClicked="@HandleDeleteClickedAsync" />
+                OnDeleteClicked="@HandleDeleteClickedAsync"
+                OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 
 @code {
     List<BankResponse> _banks = [];

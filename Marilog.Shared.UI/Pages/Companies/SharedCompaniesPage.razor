@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Companies
 
@@ -72,20 +73,21 @@
                                                Color="Color.Primary"
                                                OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
 
-                                <MudIconButton Icon="@(context.Item.IsActive
-                                                                                           ? Icons.Material.Filled.ToggleOff
-                                                                                       : Icons.Material.Filled.ToggleOn)"
+                                <MudIconButton Icon="@Icons.Material.Filled.Receipt"
                                                Size="Size.Small"
-                                               Color="@(context.Item.IsActive
-                                                                                           ? Color.Warning
-                                                                                           : Color.Success)"
+                                               Color="Color.Primary"
+                                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Company))" />
+
+                                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                                               Size="Size.Small"
+                                               Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
                                                OnClick="() =>
-                                                                                  {
-                                                                                      if (context.Item.IsActive)
-                                                                                          OnDeactivateClicked.InvokeAsync(context.Item);
-                                                                                      else
-                                                                                          OnActivateClicked.InvokeAsync(context.Item);
-                                                                                  }" />
+                                                             {
+                                                                  if (context.Item.IsActive)
+                                                                      OnDeactivateClicked.InvokeAsync(context.Item);
+                                                                  else
+                                                                       OnActivateClicked.InvokeAsync(context.Item);
+                                                              }" />
 
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                Size="Size.Small"
@@ -334,12 +336,22 @@
 
                     @* Actions *@
                     <MudStack Row="true" Spacing="2">
+
                         <MudButton Variant="Variant.Outlined"
-                        Color="Color.Primary"
-                        StartIcon="@Icons.Material.Filled.Edit"
-                        OnClick="() => OnEditClicked.InvokeAsync(_selected)">
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="() => OnEditClicked.InvokeAsync(_selected)">
                             Edit
                         </MudButton>
+
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected.Id, EntityType.Company))">
+                        Files
+                    </MudButton>
+
                         @if (_selected.IsActive)
                         {
                             <MudButton Variant="Variant.Outlined"
@@ -392,7 +404,7 @@
     [Parameter] public EventCallback<CompanyResponse> OnAddPhoneClicked { get; set; }
     [Parameter] public EventCallback<(CompanyResponse, PhonesResponse)> OnEditPhoneClicked { get; set; }
     [Parameter] public EventCallback<(CompanyResponse, PhonesResponse)> OnDeletePhoneClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     [Parameter] public EventCallback<CompanyResponse> OnAddBankAccountClicked { get; set; }
     [Parameter] public EventCallback<(CompanyResponse, BankAccountResponse)> OnEditBankAccountClicked { get; set; }
     [Parameter] public EventCallback<(CompanyResponse, BankAccountResponse)> OnDeleteBankAccountClicked { get; set; }

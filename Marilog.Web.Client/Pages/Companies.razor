@@ -1,10 +1,11 @@
 ﻿@page "/companies"
 @using Marilog.Contracts.DTOs.Requests.CompanyDTOs
-@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
+@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Companies
 @using Marilog.Shared.UI.Pages.ContactForms
+@using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 
 @inject ICompanyService CompanyService
@@ -13,6 +14,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ICurrencyService CurrencyService
+@inject IManageStoredFiles ManageStoredFiles
 
 @if (_loading)
 {
@@ -37,7 +39,8 @@ else
                          OnDeletePhoneClicked="ConfirmDeletePhone"
                          OnEditBankAccountClicked="OpenEditBankAccountDialog"
                          OnEditEmailClicked="OpenEditEmailDialog"
-                         OnEditPhoneClicked="OpenEditPhoneDialog"/>
+                         OnEditPhoneClicked="OpenEditPhoneDialog"
+                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 }
 
 @code {

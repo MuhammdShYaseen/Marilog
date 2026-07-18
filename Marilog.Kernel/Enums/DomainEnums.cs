@@ -37,7 +37,7 @@
     }
     public enum EntityType
     {
-        AContract = 0,
+        
         CrewContract = 1,
         CrewPayroll = 2,
         Document = 3,
@@ -45,7 +45,10 @@
         SwiftTransfer = 5,
         Person = 6,
         Vessel = 7,
-        NON = 8
+        AContract = 8,
+        Bank = 9,
+        Company = 10,
+        NON = 0
     }
     public enum JobStatus
     {
