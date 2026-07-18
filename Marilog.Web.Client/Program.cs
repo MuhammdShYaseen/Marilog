@@ -1,9 +1,10 @@
 using Marilog.Client.Extensions;
 using Marilog.Contracts.Options;
 using Marilog.Shared.UI.Extensions;
+using Marilog.Web.Client.Services.Implementation;
+using Marilog.Web.Client.Services.Interfaces;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.Extensions.Options;
 namespace Marilog.Web.Client
 {
     public class Program
@@ -43,6 +44,7 @@ namespace Marilog.Web.Client
             //builder.Services.AddMudServices();
             builder.Services.AddMarilogClientService();
             builder.Services.AddMarilogUI();
+            builder.Services.AddScoped<IManageStoredFiles, ManageStoredFiles>();
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
             builder.Services.Configure<UrlsOptions>(builder.Configuration.GetSection("Urls"));

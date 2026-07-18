@@ -1,14 +1,15 @@
 ﻿@page "/contracts"
+@using Kernel.Enums
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
-@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
+@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
+@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Components.Upload
 @using Marilog.Shared.UI.Pages.Contracts
 @using Marilog.Shared.UI.Pages.Contracts.Dialogs
-@using Marilog.Shared.UI.Components.Upload
-@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
-@using Kernel.Enums
+@using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 
 @inject IContractService ContractService
@@ -16,6 +17,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IStoredFileService StoredFileService
+@inject IManageStoredFiles ManageStoredFiles
 
 @if (_loading)
 {
@@ -46,7 +48,7 @@ else
                          OnRemovePartyClicked="OpenRemovePartyDialog"
                          OnRecordAmendmentClicked="OpenRecordAmendmentDialog"
                          OnChangeExpiryClicked="OpenChangeExpiryDialog"
-                         OnAttachFileClicked="OpenAttachFileDialog" />
+                         OnAttachFileClicked="arg => ManageStoredFiles.OpenUploadFilesDialogAsync(arg, LoadAsync, () => RefreshSelected(arg.entityId))" />
 }
 
 @code {

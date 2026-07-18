@@ -1,13 +1,14 @@
 ﻿@page "/documents"
-@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
-@using Marilog.Contracts.DTOs.Responses
-@using Marilog.Contracts.Interfaces.Services.SystemServices
-@using Marilog.Shared.UI.Pages.Documents
-@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
-@using Marilog.Contracts.DTOs.Reports.DocumentReports
-@using Marilog.Shared.UI.Components.ManagingStoredFiles
-@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
 @using Kernel.Enums
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
+@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Components.ManagingStoredFiles
+@using Marilog.Shared.UI.Pages.Documents
+@using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 @inject HttpClient Http
 @inject IDocumentService DocumentService
@@ -22,6 +23,8 @@
 @inject ISwiftTransferService SwiftTransferService
 @inject IPdfFileGeneratorService PdfService
 @inject IStoredFileService StoredFileService
+@inject IManageStoredFiles ManageStoredFiles
+
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -38,8 +41,7 @@ else if (_detail is not null)
                               OnRemoveItemClicked="ConfirmRemoveItem"
                               OnRemovePaymentClicked="ConfirmRemovePayment"
                               OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))" 
-                              OnManageAttachedFilesClicked="OpenManageFilesDialog"
-                              />
+                              OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"/>
 }
 else
 {
@@ -51,7 +53,7 @@ else
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnDeleteClicked="ConfirmDelete"
-                         OnManageAttachedFilesClicked="OpenManageFilesDialog"
+                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
                          OnDocumentSelected="LoadDetail"
                          OnVesselSelected="LoadByVessel"
                          OnSupplierSelected="LoadBySupplier" 
@@ -353,43 +355,6 @@ else
     }
 
 
-    private async Task OpenManageFilesDialog((int entityId, EntityType entityType) arg)
-    {
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true,
-            Position = DialogPosition.Center
-        };
-
-        var parameters = new DialogParameters<ManageStoredFilesDialog>
-    {
-        { x => x.LoadFilesFunc, ct => StoredFileService.GetByEntityIdAsync(arg.entityId, arg.entityType, ct) },
-        { x => x.DeleteFileFunc, (id, ct) => StoredFileService.DeleteAsync(id, ct) },
-        { x => x.AddTagFunc, (id, name, color, ct) => StoredFileService.AddTagAsync(id, name, color, ct) },
-        { x => x.RemoveTagFunc, (id, tagId, ct) => StoredFileService.RemoveTagAsync(id, tagId, ct) },
-        { x => x.BuildDownloadUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
-        { x => x.BuildThumbnailUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream" },
-        { x => x.UploadFilesFunc, async (files, ct) =>
-            {
-                var requests = files.Select(f => new UploadFileRequest
-                {
-                    ContentType = f.ContentType,
-                    EntityId = arg.entityId,
-                    EntityType = arg.entityType,
-                    FileName = f.Name,
-                    FileStream = f.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024),
-                    Size = f.Size
-                });
-
-                var outcome = await StoredFileService.UploadAsync(requests, ct);
-                return outcome.Count > 0;
-            }
-        }
-    };
-
-        await DialogService.ShowAsync<ManageStoredFilesDialog>("Manage Documents", parameters, options);
-    }
+   
 
 }
