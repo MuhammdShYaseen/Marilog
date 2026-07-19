@@ -65,8 +65,7 @@
         var parameters = new DialogParameters<PortEditDialog>
         {
             { x => x.Existing, null },
-            { x => x.Countries, _countries },
-            { x => x.CheckCodeExistsAsync, CheckCodeExistsAsync }
+            { x => x.Countries, _countries }
         };
 
         var dialog = await DialogService.ShowAsync<PortEditDialog>("New Port", parameters, DefaultDialogOptions());
@@ -81,8 +80,7 @@
         var parameters = new DialogParameters<PortEditDialog>
         {
             { x => x.Existing, port },
-            { x => x.Countries, _countries },
-            { x => x.CheckCodeExistsAsync, CheckCodeExistsAsync }
+            { x => x.Countries, _countries }
         };
 
         var dialog = await DialogService.ShowAsync<PortEditDialog>("Edit Port", parameters, DefaultDialogOptions());

@@ -40,6 +40,7 @@ namespace Marilog.Web.Client.Services.Implementation
                 { x => x.RemoveTagFunc, (id, tagId, ct) => _storedFileService.RemoveTagAsync(id, tagId, ct) },
                 { x => x.BuildDownloadUrl, file => $"{_http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
                 { x => x.BuildThumbnailUrl, file => $"{_http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream" },
+                { x => x.SaveContentFunc,(id, content, ct) => UpdateContentAsync(id, content, ct) },
                 { x => x.UploadFilesFunc, async (files, ct) =>
                     {
                         var requests = files.Select(f => new UploadFileRequest
@@ -111,9 +112,10 @@ namespace Marilog.Web.Client.Services.Implementation
                 _snackbar.Add("Error while uploading files", Severity.Error);
         }
 
-        public async Task UpdateContentAsync(int fileId, string content)
+        private async Task<bool> UpdateContentAsync(int fileId, string content, CancellationToken ct = default)
         {
-            await _storedFileService.UpdateContentFromUserAsync(fileId, content);
+            await _storedFileService.UpdateContentFromUserAsync(fileId, content, ct);
+            return true;
         }
     }
 }

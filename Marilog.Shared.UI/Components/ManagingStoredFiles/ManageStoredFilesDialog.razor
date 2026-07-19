@@ -200,7 +200,7 @@
                                         <MudButton Variant="Variant.Filled"
                                                    Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.Save"
-                                                   Disabled="@(!_isContentDirty || _isSavingContent)"
+                                                   Disabled="@(!_isContentDirty)"
                                                    OnClick="SaveContentAsync">
                                             @(_isSavingContent ? "Saving..." : "Save")
                                         </MudButton>

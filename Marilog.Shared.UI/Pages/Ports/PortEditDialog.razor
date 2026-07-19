@@ -27,7 +27,6 @@
                                   Label="Port Code" Variant="Variant.Outlined" Margin="Margin.Dense"
                                   Required="true" RequiredError="Port code is required"
                                   Error="@_codeTaken" ErrorText="This port code is already in use"
-                                  OnBlur="@CheckCodeAvailabilityAsync"
                                   HelperText="Stored uppercase automatically" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
@@ -66,7 +65,6 @@
     [Parameter, EditorRequired] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
 
     /// <summary>Host wires this to IPortService.ExistsByCodeAsync(code, ct).</summary>
-    [Parameter, EditorRequired] public Func<string, CancellationToken, Task<bool>> CheckCodeExistsAsync { get; set; } = default!;
 
     MudForm _form = default!;
     bool _isEdit;
@@ -93,14 +91,7 @@
         _codeTaken = false;
     }
 
-    async Task CheckCodeAvailabilityAsync()
-    {
-        // Editing an existing port keeps its own code — nothing to check against itself.
-        if (_isEdit || string.IsNullOrWhiteSpace(_portCode))
-            return;
-
-        _codeTaken = await CheckCodeExistsAsync(_portCode, CancellationToken.None);
-    }
+   
 
     void Cancel() => MudDialog.Cancel();
 
@@ -112,7 +103,6 @@
 
         if (!_isEdit)
         {
-            await CheckCodeAvailabilityAsync();
             if (_codeTaken)
             {
                 Snackbar.Add("This port code is already in use.", Severity.Warning);
