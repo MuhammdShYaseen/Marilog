@@ -152,5 +152,11 @@ namespace Marilog.Client.Services.SystemServices
         {
             throw new NotImplementedException();
         }
+
+        public async Task UpdateContentFromUserAsync(int id, string content, CancellationToken cancellationToken = default)
+        {
+            var response = await _http.PutAsJsonAsync( $"{Base}/{id}/user-content", content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

@@ -59,7 +59,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
-        public void UpdateContentFromOCR(string content)
+        public void UpdateContent(string content)
         {
             if (string.IsNullOrWhiteSpace(content))
                 return;

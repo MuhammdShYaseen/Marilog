@@ -210,7 +210,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 file.SetThumbnail(_storage.GetRelativePath(thumbnailPath));
             }
-            file.UpdateContentFromOCR(content);
+            file.UpdateContent(content);
+            await _repoStoredFile.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateContentFromUserAsync(int id, string content, CancellationToken ct = default)
+        {
+            var file = await _repoStoredFile.GetByIdAsync(id, ct);
+            if(file == null)
+                throw new KeyNotFoundException($"there is no stored file with ID : {id}");
+
+            file.UpdateContent(content);
+            _repoStoredFile.Update(file);
             await _repoStoredFile.SaveChangesAsync(ct);
         }
 

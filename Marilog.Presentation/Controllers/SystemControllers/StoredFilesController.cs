@@ -137,6 +137,15 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+        [HttpPut("{id:int}/user-content")]
+        public async Task<IActionResult> UpdateContent(int id, [FromBody] string content, CancellationToken ct)
+        {
+            await _service.UpdateContentFromUserAsync(id, content, ct);
+
+            return NoContent();
+        }
+
+
         // ── Tags ─────────────────────────────────────────────────────────────
 
         [HttpPost("{storedFileId:int}/tags")]

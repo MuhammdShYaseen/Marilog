@@ -110,5 +110,10 @@ namespace Marilog.Web.Client.Services.Implementation
             else
                 _snackbar.Add("Error while uploading files", Severity.Error);
         }
+
+        public async Task UpdateContentAsync(int fileId, string content)
+        {
+            await _storedFileService.UpdateContentFromUserAsync(fileId, content);
+        }
     }
 }
