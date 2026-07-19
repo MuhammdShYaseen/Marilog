@@ -1,5 +1,6 @@
 @* VesselTable.razor *@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Vessels
 
@@ -31,16 +32,22 @@
         <TemplateColumn Title="" Sortable="false" CellStyle="width:120px">
             <CellTemplate>
                 <MudStack Row="true" Spacing="1">
+
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                    Size="Size.Small"
                                    Color="Color.Primary"
                                    OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
-                    <MudIconButton Icon="@(context.Item.IsActive
-                                                                              ? Icons.Material.Filled.ToggleOff
-                                                                          : Icons.Material.Filled.ToggleOn)"
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Vessel))" />
+
+                    <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
                                    Size="Size.Small"
                                    Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
                                    OnClick="() => OnToggleActiveClicked.InvokeAsync(context.Item)" />
+
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                    Size="Size.Small"
                                    Color="Color.Error"
@@ -65,6 +72,7 @@
     [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
     private VesselResponse? _selected;
 

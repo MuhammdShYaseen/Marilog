@@ -1,5 +1,6 @@
 @* SharedVesselPage.razor *@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Vessels
 
@@ -55,7 +56,8 @@
                                  OnRowSelected="OnRowSelected"
                                  OnEditClicked="OnEditClicked"
                                  OnDeleteClicked="OnDeleteClicked"
-                                 OnToggleActiveClicked="OnToggleActiveClicked" />
+                                 OnToggleActiveClicked="OnToggleActiveClicked" 
+                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="Active">
@@ -64,7 +66,8 @@
                                  OnRowSelected="OnRowSelected"
                                  OnEditClicked="OnEditClicked"
                                  OnDeleteClicked="OnDeleteClicked"
-                                 OnToggleActiveClicked="OnToggleActiveClicked" />
+                                 OnToggleActiveClicked="OnToggleActiveClicked" 
+                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="Inactive">
@@ -73,7 +76,8 @@
                                  OnRowSelected="OnRowSelected"
                                  OnEditClicked="OnEditClicked"
                                  OnDeleteClicked="OnDeleteClicked"
-                                 OnToggleActiveClicked="OnToggleActiveClicked" />
+                                 OnToggleActiveClicked="OnToggleActiveClicked" 
+                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
             </MudTabs>
@@ -163,6 +167,14 @@
                                OnClick="() => OnEditClicked.InvokeAsync(_selected)">
                         Edit
                     </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected.Id, EntityType.Vessel))">
+                        Files
+                    </MudButton>
+
                     <MudButton Variant="Variant.Outlined"
                                Color="@(_selected.IsActive ? Color.Warning : Color.Success)"
                                StartIcon="@(_selected.IsActive
@@ -191,7 +203,7 @@
     [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     private VesselResponse? _selected;
     private string _search = string.Empty;
     private int _activeTab;

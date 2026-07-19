@@ -4,6 +4,7 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Vessels
+@using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 
 @inject IVesselService  VesselService
@@ -11,6 +12,7 @@
 @inject ICountryService CountryService
 @inject ISnackbar       Snackbar
 @inject IDialogService  DialogService
+@inject IManageStoredFiles ManageStoredFiles
 
 @if (_loading)
 {
@@ -22,7 +24,8 @@ else
                 OnAddClicked="OpenAddDialog"
                 OnEditClicked="OpenEditDialog"
                 OnDeleteClicked="ConfirmDelete"
-                OnToggleActiveClicked="ToggleActive" />
+                OnToggleActiveClicked="ToggleActive"
+                OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 }
 
 @code {
