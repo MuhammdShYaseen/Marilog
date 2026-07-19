@@ -223,7 +223,7 @@
                     RawMessage = _rawMessage
                 };
 
-                var success = await OnUpdateAsync(Existing!.Id!.Value, request, CancellationToken.None);
+                var success = await OnUpdateAsync(Existing!.Id!, request, CancellationToken.None);
                 if (success)
                 {
                     Snackbar.Add("SWIFT transfer updated.", Severity.Success);
