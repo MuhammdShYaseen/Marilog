@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.SwiftTransfer
 @* ────────────────────────────────────────────────────────────────────────────
@@ -23,7 +24,8 @@
                                SelectedItem="@_selectedSummary"
                                OnRowSelected="@HandleRowSelectedAsync"
                                OnEditClicked="@OnEditClicked"
-                               OnDeleteClicked="@OnDeleteClicked" />
+                               OnDeleteClicked="@OnDeleteClicked"
+                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
 
     @if (_selectedDetail is not null)
     {
@@ -43,14 +45,14 @@
     [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     SwiftTransferResponse? _selectedSummary;
     SwiftTransferResponse? _selectedDetail;
     bool _isLoadingDetail;
 
     async Task HandleRowSelectedAsync(SwiftTransferResponse item)
     {
-        if (item.Id is null)
+        if (item.Id is 0)
             return;
 
         // Toggle off if clicking the already-selected row.
@@ -65,7 +67,7 @@
         _isLoadingDetail = true;
         StateHasChanged();
 
-        _selectedDetail = await LoadDetailFunc(item.Id.Value, CancellationToken.None) ?? item;
+        _selectedDetail = await LoadDetailFunc(item.Id, CancellationToken.None) ?? item;
         _isLoadingDetail = false;
     }
 

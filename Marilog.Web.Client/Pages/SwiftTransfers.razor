@@ -1,16 +1,17 @@
 @page "/swift-transfers"
-@using MudBlazor
-@using Marilog.Contracts.Interfaces.Services.SystemServices
-@using Marilog.Contracts.DTOs.Responses
-@using Marilog.Shared.UI.Pages.SwiftTransfer
 @using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.SwiftTransfer
+@using Marilog.Web.Client.Services.Interfaces
+@using MudBlazor
 @inject ISwiftTransferService SwiftTransferService
 @inject ICompanyService CompanyService
 @inject IBankService BankService
 @inject ICurrencyService CurrencyService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-
+@inject IManageStoredFiles ManageStoredFiles
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host. Only file with @page and the only file that references
    the concrete client services. Loads reference data (companies/banks/
@@ -30,7 +31,8 @@
                           LoadDetailFunc="@LoadDetailAsync"
                           OnAddClicked="@HandleAddClickedAsync"
                           OnEditClicked="@HandleEditClickedAsync"
-                          OnDeleteClicked="@HandleDeleteClickedAsync" />
+                          OnDeleteClicked="@HandleDeleteClickedAsync"
+                          OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 
 @code {
     SharedSwiftTransferPage _sharedPage = null!;
@@ -147,7 +149,7 @@
 
     async Task HandleDeleteClickedAsync(SwiftTransferResponse transfer)
     {
-        if (transfer.Id is null)
+        if (transfer.Id is 0)
             return;
 
         var confirmed = await DialogService.ShowMessageBoxAsync(
@@ -160,7 +162,7 @@
 
         try
         {
-            await SwiftTransferService.DeleteAsync(transfer.Id.Value);
+            await SwiftTransferService.DeleteAsync(transfer.Id);
             Snackbar.Add("SWIFT transfer deleted.", Severity.Success);
             await LoadTransfersAsync();
         }

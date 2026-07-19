@@ -2,7 +2,7 @@
 {
     public class SwiftTransferResponse
     {
-        public int? Id { get; set; }
+        public int Id { get; set; } = 0;
         public string SwiftReference { get; set; } = null!;
         public DateOnly TransactionDate { get; set; }
 

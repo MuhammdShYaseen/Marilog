@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.SwiftTransfer
 @* ────────────────────────────────────────────────────────────────────────────
@@ -45,6 +46,10 @@
         <MudTd Style="text-align:right">
             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                             onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Receipt" Size="Size.Small"
+                           onclick="@(EventCallback.Factory.Create(this, () => OnManageAttachedFilesClicked.InvokeAsync((context.Id, EntityType.SwiftTransfer))))" />
+
             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                             onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context)))" />
         </MudTd>
@@ -65,7 +70,7 @@
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnRowSelected { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     string RowClassFunc(SwiftTransferResponse item, int index) =>
         SelectedItem is not null && item.Id == SelectedItem.Id ? "mud-theme-primary-hover selected-row" : string.Empty;
 }
