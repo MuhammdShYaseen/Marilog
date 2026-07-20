@@ -285,6 +285,10 @@
                                         <MudStack Spacing="0" Style="flex:1; min-width:0">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                                 <MudText Typo="Typo.body2"><b>@cert.CertificateName</b></MudText>
+                                                @if (!string.IsNullOrWhiteSpace(cert.CertificateNumber))
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">(@cert.CertificateNumber)</MudText>
+                                                }
                                                 @if (certExpired)
                                                 {
                                                     <MudChip T="string" Color="Color.Error" Size="Size.Small">Expired</MudChip>
@@ -294,6 +298,12 @@
                                                     <MudChip T="string" Color="Color.Warning" Size="Size.Small">Expiring Soon</MudChip>
                                                 }
                                             </MudStack>
+                                            @if (!string.IsNullOrWhiteSpace(cert.IssuingAuthority))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    Issued by: @cert.IssuingAuthority
+                                                </MudText>
+                                            }
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                 Issue: @(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")
                                                 &nbsp;·&nbsp;

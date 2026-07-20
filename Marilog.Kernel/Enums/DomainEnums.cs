@@ -1,5 +1,102 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+    public enum PersonCertificateType
+    {
+        Other = 0,
+
+        // ===== STCW Certificates =====
+        StcwBasicSafetyTraining,            // BST
+        StcwAdvancedFireFighting,
+        StcwMedicalFirstAid,
+        StcwMedicalCare,
+        StcwProficiencyInSurvivalCraft,     // PSCRB
+        StcwSecurityAwareness,
+        StcwDesignatedSecurityDuties,
+        StcwCertificateOfCompetency,        // COC - حسب الرتبة (Officer/Master/Engineer)
+        StcwCertificateOfProficiency,       // COP
+        StcwWatchkeeping,
+        StcwCrowdManagement,                // للسفن الراكبين
+        StcwTankerFamiliarization,          // Oil/Chemical/Gas tanker endorsement
+
+        // ===== Medical =====
+        MedicalFitnessCertificate,          // ENG1 أو ما يعادلها
+        YellowFeverVaccinationCertificate,
+        Covid19VaccinationCertificate,
+
+        // ===== Identity & Travel Documents =====
+        Passport,
+        SeamanBook,                         // Seafarer's Identity Document (SID)
+        Visa,
+        NationalId,
+        UsSeamanVisa,                       // C1/D Visa - شائع لبعض الموانئ
+
+        // ===== Employment / Labour =====
+        SeafarerEmploymentAgreement,        // SEA - MLC 2006
+        DischargeBook,
+        AntiBullyingHarassmentTraining,
+
+        // ===== Endorsements / Flag-specific =====
+        GmdssOperatorCertificate,
+        FlagStateEndorsement,               // Endorsement attesting COC recognition
+
+        // ===== Other Training =====
+        SecurityTrainingCertificate,        // ISPS-related for individuals
+        DrugAndAlcoholTestCertificate
+    }
+
+    public enum VesselCertificateType
+    {
+        Other = 0,
+
+        // ===== Statutory Certificates (SOLAS / MARPOL / Load Line) =====
+        SafetyManagementCertificate,        // SMC - ISM Code
+        DocumentOfCompliance,               // DOC - ISM Code (company-level, لكن بيتربط بالباخرة)
+        InternationalShipSecurityCertificate, // ISSC - ISPS Code
+        InternationalLoadLineCertificate,   // ILLC
+        InternationalTonnageCertificate,    // ITC 1969
+        SafetyConstructionCertificate,      // SOLAS Ch. II-1/II-2
+        SafetyEquipmentCertificate,         // SOLAS Ch. III
+        SafetyRadioCertificate,             // SOLAS Ch. IV
+        CargoShipSafetyCertificate,         // مجمع (لو مطبق بدل الثلاثة فوق)
+        PassengerShipSafetyCertificate,
+
+        // MARPOL Annexes
+        InternationalOilPollutionPreventionCertificate, // IOPP - Annex I
+        InternationalSewagePollutionPreventionCertificate, // ISPP - Annex IV
+        InternationalAirPollutionPreventionCertificate, // IAPP - Annex VI
+        InternationalEnergyEfficiencyCertificate,       // IEEC - Annex VI
+        BallastWaterManagementCertificate,              // BWM Convention
+
+        // Labour / Crew
+        MaritimeLabourCertificate,          // MLC 2006
+        DeclarationOfMaritimeLabourCompliance, // DMLC
+
+        // ===== Class Certificates =====
+        ClassCertificate,                   // Certificate of Class
+        HullClassCertificate,
+        MachineryClassCertificate,
+        ContinuousSurveyReport,
+
+        // ===== Flag State =====
+        CertificateOfRegistry,              // شهادة التسجيل
+        FlagStateAuthorizationCertificate,
+
+        // ===== Port State Control / Inspection =====
+        PortStateControlInspectionReport,
+
+        // ===== Insurance / Financial =====
+        CivilLiabilityCertificate,          // CLC - Oil Pollution
+        BunkerConventionCertificate,        // Bunker Oil Pollution
+        P_and_I_CertificateOfEntry,         // P&I Club
+
+        // ===== Radio / Communication =====
+        ShipStationLicence,
+
+        // ===== Other Operational =====
+        MinimumSafeManningDocument,
+        GarbageManagementPlanCertificate,
+        OilRecordBookCertificate
+    }
     public enum PhoneType { Office, Mobile, Fax, WhatsApp }
     public enum EmailRole { General, Operations, Accounts, Legal, Technical }
     public enum BlType
