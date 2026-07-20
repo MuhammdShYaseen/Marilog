@@ -29,7 +29,9 @@
                    OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
                    OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
                    OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
-                   OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" />
+                   OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync"
+                   OnRemoveCertificateClicked ="ConfirmRemoveCertificate"
+                   OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"/>
 @code {
 
     private IReadOnlyList<PersonResponse> _persons = [];
