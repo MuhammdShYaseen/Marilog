@@ -449,8 +449,8 @@
     [Parameter] public EventCallback<List<PersonResponse>> OnShowExpiringCertificatesClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, PersonCertificateResponse)> OnEditCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, PersonCertificateResponse)> OnRemoveCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
 
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }

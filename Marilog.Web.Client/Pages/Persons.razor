@@ -211,7 +211,7 @@
         await RefreshSelected(person.Id);
     }
 
-    private async Task OpenEditCertificateDialog((PersonResponse person, PersonCertificateResponse cert) args)
+    private async Task OpenEditCertificateDialog((PersonResponse person, CertificateResponse cert) args)
     {
         var parameters = new DialogParameters { ["Certificate"] = args.cert };
         var dialog = await DialogService.ShowAsync<CertificateDialog>("Edit Certificate", parameters);
@@ -225,7 +225,7 @@
         await RefreshSelected(args.person.Id);
     }
 
-    private async Task ConfirmRemoveCertificate((PersonResponse person, PersonCertificateResponse cert) args)
+    private async Task ConfirmRemoveCertificate((PersonResponse person, CertificateResponse cert) args)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Remove Certificate",

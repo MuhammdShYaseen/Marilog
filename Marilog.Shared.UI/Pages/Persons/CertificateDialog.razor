@@ -1,11 +1,28 @@
 @using Marilog.Contracts.DTOs.Requests.Common
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Persons
 
 <MudDialog>
     <DialogContent>
         <MudGrid>
+
+            <MudItem xs="12">
+                <MudSelect T="PersonCertificateType"
+                           @bind-Value="_type"
+                           Label="Certificate Type"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var type in Enum.GetValues<PersonCertificateType>())
+                    {
+                        <MudSelectItem Value="@type">@type</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+
             <MudItem xs="12">
                 <MudTextField @bind-Value="_certificateName"
                               Label="Certificate Name"
@@ -61,7 +78,7 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public PersonCertificateResponse? Certificate { get; set; }
+    [Parameter] public CertificateResponse? Certificate { get; set; }
 
     private string _certificateName = string.Empty;
     private DateTime? _issueDateDt;
@@ -69,6 +86,7 @@
     private string? _description;
     private string? _certificateNumber;
     private string? _issuingAuthority;
+    private PersonCertificateType _type = PersonCertificateType.Other;
     protected override void OnParametersSet()
     {
         if (Certificate is null) return;
@@ -78,7 +96,7 @@
         _description = Certificate.Description;
         _certificateNumber = Certificate.CertificateNumber;
         _issuingAuthority = Certificate.IssuingAuthority;
-
+        _type = Certificate.PType ?? 0;
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -91,6 +109,7 @@
             ExpiryDate = _expiryDateDt.HasValue ? DateOnly.FromDateTime(_expiryDateDt.Value) : null,
             Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
             CertificateNumber = string.IsNullOrWhiteSpace(_certificateNumber) ? null : _certificateNumber.Trim(),
-            IssuingAuthority = string.IsNullOrWhiteSpace(_issuingAuthority) ? null : _issuingAuthority.Trim()
+            IssuingAuthority = string.IsNullOrWhiteSpace(_issuingAuthority) ? null : _issuingAuthority.Trim(),
+            PType = _type
         }));
 }

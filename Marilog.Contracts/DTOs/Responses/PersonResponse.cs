@@ -17,7 +17,7 @@
         public string? IBAN { get; set; } = null!;
         public string? BankSwiftCode { get; set; } = null!;
         public bool IsActive { get; set; }
-        public IReadOnlyList<PersonCertificateResponse> Certificates { get; set; } = [];
+        public IReadOnlyList<CertificateResponse> Certificates { get; set; } = [];
         public IReadOnlyList<PersonSeaServiceResponse> SeaServices { get; set; } = [];
     }
 }

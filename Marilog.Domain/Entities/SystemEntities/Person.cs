@@ -1,6 +1,8 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Domain.Entities.Certificates;
 using Marilog.Domain.ValueObjects.Person;
 using Marilog.Domain.ValueObjects.ReusableValueObjects;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -22,8 +24,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 
-        private readonly List<Certificate> _certificates = new();
-        public IReadOnlyCollection<Certificate> Certificates => _certificates.AsReadOnly();
+        private readonly List<PersonCertificate> _certificates = new();
+        public IReadOnlyCollection<PersonCertificate> Certificates => _certificates.AsReadOnly();
 
         private readonly List<PersonSeaService> _seaServices = new();
         public IReadOnlyCollection<PersonSeaService> SeaServices => _seaServices.AsReadOnly();
@@ -88,29 +90,35 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         //-----Certificates--------------------------
-        public void AddCertificate(string name,string? certificateNumber, string? issuingAuthurity, DateOnly? issueDate, DateOnly? expiryDate, string? description)
+        public void AddCertificate(PersonCertificateType type, string name, string? certificateNumber,
+            string? issuingAuthority, DateOnly? issueDate, DateOnly? expiryDate, string? description)
         {
-            _certificates.Add(Certificate.Create(name,certificateNumber, issuingAuthurity, issueDate, expiryDate, description));
-            Touch();
-        }
-        public void UpdateCertificate(int index, string name, string? certificateNumber, string? issuingAuthurity, DateOnly? issueDate, DateOnly? expiryDate, string? description)
-        {
-            if (index < 0 || index >= _certificates.Count)
-                throw new IndexOutOfRangeException("Certificate not found.");
-
-            // ✅ ValueObject — استبدال بدل تعديل
-            _certificates[index] = _certificates[index]
-                .WithUpdates(name, certificateNumber, issuingAuthurity, issueDate, expiryDate, description);
+            var certificate = Certificate.Create(name, certificateNumber, issuingAuthority, issueDate, expiryDate, description);
+            _certificates.Add(PersonCertificate.Create(type, certificate));
             Touch();
         }
 
-        public void RemoveCertificate(int index)
+        public void UpdateCertificate(int certificateId, PersonCertificateType type, string name,
+            string? certificateNumber, string? issuingAuthority, DateOnly? issueDate, DateOnly? expiryDate, string? description)
         {
-            if (index < 0 || index >= _certificates.Count)
-                throw new IndexOutOfRangeException("Certificate not found.");
-            _certificates.RemoveAt(index);
+            var existing = _certificates.FirstOrDefault(c => c.Id == certificateId)
+                ?? throw new InvalidOperationException("Certificate not found.");
+
+            var certificate = Certificate.Create(name, certificateNumber, issuingAuthority, issueDate, expiryDate, description);
+            existing.Update(type, certificate);
             Touch();
         }
+
+        public void RemoveCertificate(int certificateId)
+        {
+            var existing = _certificates.FirstOrDefault(c => c.Id == certificateId)
+                ?? throw new InvalidOperationException("Certificate not found.");
+            _certificates.Remove(existing);
+            Touch();
+        }
+
+
+        //----Sea Services-----------------------------------
         public void UpdateSeaService(int index, int rankId, int experienceInMonths, decimal? vesselSizeInMT)
         {
             if (index < 0 || index >= _seaServices.Count)

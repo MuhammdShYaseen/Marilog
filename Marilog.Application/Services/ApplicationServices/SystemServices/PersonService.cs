@@ -213,28 +213,26 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Certificates ──────────────────────────────────────────────────────────
 
-        public async Task AddCertificateAsync(int personId,
-            UpsertCertificateRequest req, CancellationToken ct = default)
+        public async Task AddCertificateAsync(int personId, UpsertCertificateRequest req, CancellationToken ct = default)
         {
             var person = await GetOrThrowAsync(personId, ct);
-            person.AddCertificate(req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
+            person.AddCertificate(req.PType ?? 0, req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
             _repo.Update(person);
             await _repo.SaveChangesAsync(ct);
         }
 
-        public async Task UpdateCertificateAsync(int personId, int index,
-            UpsertCertificateRequest req, CancellationToken ct = default)
+        public async Task UpdateCertificateAsync(int personId, int certificateId, UpsertCertificateRequest req, CancellationToken ct = default)
         {
             var person = await GetOrThrowAsync(personId, ct);
-            person.UpdateCertificate(index, req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
+            person.UpdateCertificate(certificateId, req.PType ?? 0 , req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
             _repo.Update(person);
             await _repo.SaveChangesAsync(ct);
         }
 
-        public async Task RemoveCertificateAsync(int personId, int index, CancellationToken ct = default)
+        public async Task RemoveCertificateAsync(int personId, int certificateId, CancellationToken ct = default)
         {
             var person = await GetOrThrowAsync(personId, ct);
-            person.RemoveCertificate(index);
+            person.RemoveCertificate(certificateId);
             _repo.Update(person);
             await _repo.SaveChangesAsync(ct);
         }
@@ -344,15 +342,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 // ✅ يُحسب في الميموري — مش في SQL
                 Certificates = p.Certificates
-                    .Select((c, i) => new PersonCertificateResponse
+                    .Select((c, i) => new CertificateResponse
                     {
                         Index = i,
-                        CertificateName = c.CertificateName,
-                        IssueDate = c.IssueDate,
-                        ExpiryDate = c.ExpiryDate,
-                        Description = c.Description,
-                        CertificateNumber = c.CertificateNumber,
-                        IssuingAuthority = c.IssuingAuthority,
+                        CertificateName = c.Certificate.CertificateName,
+                        IssueDate = c.Certificate.IssueDate,
+                        ExpiryDate = c.Certificate.ExpiryDate,
+                        Description = c.Certificate.Description,
+                        CertificateNumber = c.Certificate.CertificateNumber,
+                        IssuingAuthority = c.Certificate.IssuingAuthority,
+                        PType = c.Type
+                        
                     }).ToList(),
 
                 SeaServices = p.SeaServices
