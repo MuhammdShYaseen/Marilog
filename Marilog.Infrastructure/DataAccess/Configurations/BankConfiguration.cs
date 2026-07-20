@@ -29,7 +29,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                 .HasMaxLength(250);
 
             builder.Property(x => x.SwiftBic)
-                .HasMaxLength(11);
+                .HasMaxLength(20);
 
             builder.Property(x => x.BranchCode)
                 .HasMaxLength(50);

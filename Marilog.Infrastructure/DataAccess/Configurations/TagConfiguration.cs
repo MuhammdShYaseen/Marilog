@@ -21,7 +21,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
             builder.Property(t => t.Color)
                 .IsRequired()
-                .HasMaxLength(7)
+                .HasMaxLength(20)
                 .HasDefaultValue("#1E88E5");
 
 
