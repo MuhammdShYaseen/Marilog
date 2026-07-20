@@ -1,6 +1,4 @@
-﻿
-
-namespace Marilog.Contracts.DTOs.Requests.PersonDTOs
+﻿namespace Marilog.Contracts.DTOs.Requests.Common
 {
     public class UpsertCertificateRequest
     {

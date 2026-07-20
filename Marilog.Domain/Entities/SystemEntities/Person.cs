@@ -1,5 +1,6 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.ValueObjects.Person;
+using Marilog.Domain.ValueObjects.ReusableValueObjects;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -21,8 +22,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 
-        private readonly List<PersonCertificate> _certificates = new();
-        public IReadOnlyCollection<PersonCertificate> Certificates => _certificates.AsReadOnly();
+        private readonly List<Certificate> _certificates = new();
+        public IReadOnlyCollection<Certificate> Certificates => _certificates.AsReadOnly();
 
         private readonly List<PersonSeaService> _seaServices = new();
         public IReadOnlyCollection<PersonSeaService> SeaServices => _seaServices.AsReadOnly();
@@ -89,7 +90,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         //-----Certificates--------------------------
         public void AddCertificate(string name, DateOnly? issueDate, DateOnly? expiryDate, string? description)
         {
-            _certificates.Add(PersonCertificate.Create(name, issueDate, expiryDate, description));
+            _certificates.Add(Certificate.Create(name, issueDate, expiryDate, description));
             Touch();
         }
         public void UpdateCertificate(int index, string name, DateOnly? issueDate, DateOnly? expiryDate, string? description)
