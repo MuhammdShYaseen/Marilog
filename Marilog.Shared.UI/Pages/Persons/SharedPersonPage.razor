@@ -126,12 +126,13 @@
                                 <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
                                                Size="Size.Small"
                                                Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
-                                               OnClick="() =>{
-                                                                if (context.Item.IsActive)
-                                                                   OnDeactivateClicked.InvokeAsync(context.Item);
-                                                                else
-                                                                   OnActivateClicked.InvokeAsync(context.Item);
-                                                              }" />
+                                               OnClick="() =>
+                                               {
+                                                   if (context.Item.IsActive)
+                                                       OnDeactivateClicked.InvokeAsync(context.Item);
+                                                   else
+                                                       OnActivateClicked.InvokeAsync(context.Item);
+                                               }" />
 
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                Size="Size.Small"
@@ -279,51 +280,94 @@
                                 var certExpiringSoon = !certExpired && cert.ExpiryDate.HasValue &&
                                                        (cert.ExpiryDate.Value.DayNumber - certToday.DayNumber) <= 90;
 
-                                <MudPaper Elevation="0" Class="pa-2 mb-2"
-                                          Style="border:1px solid var(--mud-palette-divider)">
-                                    <MudStack Row="true" AlignItems="AlignItems.Start">
-                                        <MudStack Spacing="0" Style="flex:1; min-width:0">
-                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                                <MudText Typo="Typo.body2"><b>@cert.CertificateName</b></MudText>
-                                                @if (!string.IsNullOrWhiteSpace(cert.CertificateNumber))
-                                                {
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">(@cert.CertificateNumber)</MudText>
-                                                }
-                                                @if (certExpired)
-                                                {
-                                                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Expired</MudChip>
-                                                }
-                                                else if (certExpiringSoon)
-                                                {
-                                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Expiring Soon</MudChip>
-                                                }
+                                <MudPaper Elevation="0" Class="pa-3 mb-2"
+                                          Style="border:1px solid var(--mud-palette-divider); border-radius:8px;">
+                                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="3">
+
+                                        @* أيقونة دائرية تعبيرية عن الشهادة *@
+                                        <MudAvatar Color="@(certExpired ? Color.Error : certExpiringSoon ? Color.Warning : Color.Primary)"
+                                                   Variant="Variant.Text"
+                                                   Size="Size.Medium">
+                                            <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small" />
+                                        </MudAvatar>
+
+                                        <MudStack Spacing="1" Style="flex:1; min-width:0">
+
+                                            @* السطر الأول: الاسم + الحالة *@
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                    <MudText Typo="Typo.subtitle2">@cert.CertificateName</MudText>
+                                                    @if (certExpired)
+                                                    {
+                                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">Expired</MudChip>
+                                                    }
+                                                    else if (certExpiringSoon)
+                                                    {
+                                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">Expiring Soon</MudChip>
+                                                    }
+                                                </MudStack>
+
+                                                <MudStack Row="true" Spacing="0">
+
+
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                                   Size="Size.Small"
+                                                                   OnClick="() => OnEditCertificateClicked.InvokeAsync((_selected, cert))" />
+
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                                                   Size="Size.Small"
+                                                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((cert.Index, EntityType.PersonCertificate))" />
+
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                                   Size="Size.Small"
+                                                                   Color="Color.Error"
+                                                                   OnClick="() => OnRemoveCertificateClicked.InvokeAsync((_selected, cert))" />
+                                                </MudStack>
                                             </MudStack>
-                                            @if (!string.IsNullOrWhiteSpace(cert.IssuingAuthority))
+
+                                            @* رقم الشهادة + الجهة المصدرة *@
+                                            @if (!string.IsNullOrWhiteSpace(cert.CertificateNumber) || !string.IsNullOrWhiteSpace(cert.IssuingAuthority))
                                             {
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                    Issued by: @cert.IssuingAuthority
-                                                </MudText>
+                                                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                                    @if (!string.IsNullOrWhiteSpace(cert.CertificateNumber))
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Tag">
+                                                            @cert.CertificateNumber
+                                                        </MudChip>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(cert.IssuingAuthority))
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.AccountBalance">
+                                                            @cert.IssuingAuthority
+                                                        </MudChip>
+                                                    }
+                                                </MudStack>
                                             }
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                Issue: @(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")
-                                                &nbsp;·&nbsp;
-                                                Expiry: @(cert.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")
-                                            </MudText>
+
+                                            <MudDivider Class="my-1" />
+
+                                            @* التواريخ *@
+                                            <MudStack Row="true" Spacing="4">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Issue date</MudText>
+                                                    <MudText Typo="Typo.body2">@(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")</MudText>
+                                                </MudStack>
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Expiry date</MudText>
+                                                    <MudText Typo="Typo.body2"
+                                                             Color="@(certExpired ? Color.Error : certExpiringSoon ? Color.Warning : Color.Default)">
+                                                        @(cert.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")
+                                                    </MudText>
+                                                </MudStack>
+                                            </MudStack>
+
                                             @if (!string.IsNullOrWhiteSpace(cert.Description))
                                             {
-                                                <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                                                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="mt-1">
                                                     @cert.Description
                                                 </MudText>
                                             }
-                                        </MudStack>
-                                        <MudStack Row="true" Spacing="0">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                           Size="Size.Small"
-                                                           OnClick="() => OnEditCertificateClicked.InvokeAsync((_selected, cert))" />
-                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                           Size="Size.Small"
-                                                           Color="Color.Error"
-                                                           OnClick="() => OnRemoveCertificateClicked.InvokeAsync((_selected, cert))" />
+
                                         </MudStack>
                                     </MudStack>
                                 </MudPaper>
@@ -478,8 +522,7 @@
     // ── Row Selection ─────────────────────────────────────────────
     private async Task OnRowSelected(PersonResponse? person)
     {
-        if (person is null || person.Id == _lastSelectedId) return;
-        _lastSelectedId = person.Id;
+        if (person is null) return;
         _selected = person;
     }
 

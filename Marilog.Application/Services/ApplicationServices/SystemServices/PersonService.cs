@@ -2,6 +2,7 @@ using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Domain.Entities.Certificates;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Person;
@@ -13,11 +14,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     {
         private readonly IRepository<Person> _repo;
         private readonly IRepository<Rank> _rankRepo;
-
-        public PersonService(IRepository<Person> repo, IRepository<Rank> rankRepo)
+        private readonly IRepository<PersonCertificate> _CrtRepo;
+        public PersonService(IRepository<Person> repo, IRepository<Rank> rankRepo, IRepository<PersonCertificate> crtRepo)
         {
             _repo = repo;
             _rankRepo = rankRepo;
+            _CrtRepo = crtRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -27,6 +29,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var person = await _repo.Query()
                 .AsNoTracking()
                 .Include(p => p.NationalityCountry)
+                .Include(c => c.Certificates)
                 .FirstOrDefaultAsync(p => p.Id == id, ct);
 
             if (person is null) return null;
@@ -61,7 +64,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         public async Task<IReadOnlyList<PersonResponse>> GetAllAsync(CancellationToken ct = default)
-            => await MapListAsync(_repo.Query().OrderBy(x => x.FullName), ct);
+        {
+            var persons = await MapListAsync(_repo.Query().OrderBy(x => x.FullName), ct);
+            return persons;
+        }
 
         public async Task<IReadOnlyList<PersonResponse>> GetActiveAsync(CancellationToken ct = default)
             => await MapListAsync(_repo.Query().Where(x => x.IsActive).OrderBy(x => x.FullName), ct);
@@ -268,8 +274,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // ── Private Helpers ───────────────────────────────────────────────────────
 
         private async Task<Person> GetOrThrowAsync(int id, CancellationToken ct)
-            => await _repo.GetByIdAsync(id, ct)
-               ?? throw new KeyNotFoundException($"Person {id} not found.");
+        {
+            var person = await _repo.Query()
+                                    .Where(p => p.Id == id)
+                                    .Include(c => c.Certificates)
+                                    .FirstOrDefaultAsync(ct);
+
+            if (person == null)
+                throw new KeyNotFoundException("Person not Found");
+
+            return person;   
+        } 
 
         private async Task EnsureUniqueDocumentsAsync(string? passportNo,
             string? seamanBookNo, int? excludeId, CancellationToken ct)
@@ -344,7 +359,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Certificates = p.Certificates
                     .Select((c, i) => new CertificateResponse
                     {
-                        Index = i,
+                        Index = c.Id,
                         CertificateName = c.Certificate.CertificateName,
                         IssueDate = c.Certificate.IssueDate,
                         ExpiryDate = c.Certificate.ExpiryDate,
