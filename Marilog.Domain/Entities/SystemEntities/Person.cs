@@ -88,19 +88,19 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         //-----Certificates--------------------------
-        public void AddCertificate(string name, DateOnly? issueDate, DateOnly? expiryDate, string? description)
+        public void AddCertificate(string name,string? certificateNumber, string? issuingAuthurity, DateOnly? issueDate, DateOnly? expiryDate, string? description)
         {
-            _certificates.Add(Certificate.Create(name, issueDate, expiryDate, description));
+            _certificates.Add(Certificate.Create(name,certificateNumber, issuingAuthurity, issueDate, expiryDate, description));
             Touch();
         }
-        public void UpdateCertificate(int index, string name, DateOnly? issueDate, DateOnly? expiryDate, string? description)
+        public void UpdateCertificate(int index, string name, string? certificateNumber, string? issuingAuthurity, DateOnly? issueDate, DateOnly? expiryDate, string? description)
         {
             if (index < 0 || index >= _certificates.Count)
                 throw new IndexOutOfRangeException("Certificate not found.");
 
             // ✅ ValueObject — استبدال بدل تعديل
             _certificates[index] = _certificates[index]
-                .WithUpdates(name, issueDate, expiryDate, description);
+                .WithUpdates(name, certificateNumber, issuingAuthurity, issueDate, expiryDate, description);
             Touch();
         }
 

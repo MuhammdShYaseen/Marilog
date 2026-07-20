@@ -32,6 +32,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                 cert.ToTable("PersonCertificates");
                 cert.WithOwner().HasForeignKey("PersonId");
                 cert.Property(c => c.CertificateName).HasMaxLength(200).IsRequired();
+                cert.Property(c => c.CertificateNumber).HasMaxLength(200);
+                cert.Property(c => c.IssuingAuthority).HasMaxLength(200);
                 cert.Property(c => c.Description).HasMaxLength(1000);
                 cert.Property(c => c.IssueDate);
                 cert.Property(c => c.ExpiryDate);

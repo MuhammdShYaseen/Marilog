@@ -217,7 +217,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             UpsertCertificateRequest req, CancellationToken ct = default)
         {
             var person = await GetOrThrowAsync(personId, ct);
-            person.AddCertificate(req.CertificateName, req.IssueDate, req.ExpiryDate, req.Description);
+            person.AddCertificate(req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
             _repo.Update(person);
             await _repo.SaveChangesAsync(ct);
         }
@@ -226,7 +226,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             UpsertCertificateRequest req, CancellationToken ct = default)
         {
             var person = await GetOrThrowAsync(personId, ct);
-            person.UpdateCertificate(index, req.CertificateName, req.IssueDate, req.ExpiryDate, req.Description);
+            person.UpdateCertificate(index, req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
             _repo.Update(person);
             await _repo.SaveChangesAsync(ct);
         }

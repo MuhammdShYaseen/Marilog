@@ -13,6 +13,20 @@
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_certificateNumber"
+                              Label="Certificate Number"
+                              Required="false"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_issuingAuthority"
+                              Label="Issuing Authority"
+                              Required="false"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
             <MudItem xs="6">
                 <MudDatePicker @bind-Date="_issueDateDt"
                                Label="Issue Date"
@@ -53,7 +67,8 @@
     private DateTime? _issueDateDt;
     private DateTime? _expiryDateDt;
     private string? _description;
-
+    private string? _certificateNumber;
+    private string? _issuingAuthority;
     protected override void OnParametersSet()
     {
         if (Certificate is null) return;
@@ -61,6 +76,9 @@
         _issueDateDt = Certificate.IssueDate?.ToDateTime(TimeOnly.MinValue);
         _expiryDateDt = Certificate.ExpiryDate?.ToDateTime(TimeOnly.MinValue);
         _description = Certificate.Description;
+        _certificateNumber = Certificate.CertificateNumber;
+        _issuingAuthority = Certificate.IssuingAuthority;
+
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -69,14 +87,10 @@
         MudDialog.Close(DialogResult.Ok(new UpsertCertificateRequest
         {
             CertificateName = _certificateName.Trim(),
-            IssueDate = _issueDateDt.HasValue
-                ? DateOnly.FromDateTime(_issueDateDt.Value)
-                : null,
-            ExpiryDate = _expiryDateDt.HasValue
-                ? DateOnly.FromDateTime(_expiryDateDt.Value)
-                : null,
-            Description = string.IsNullOrWhiteSpace(_description)
-                ? null
-                : _description.Trim()
+            IssueDate = _issueDateDt.HasValue ? DateOnly.FromDateTime(_issueDateDt.Value) : null,
+            ExpiryDate = _expiryDateDt.HasValue ? DateOnly.FromDateTime(_expiryDateDt.Value) : null,
+            Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+            CertificateNumber = string.IsNullOrWhiteSpace(_certificateNumber) ? null : _certificateNumber.Trim(),
+            IssuingAuthority = string.IsNullOrWhiteSpace(_issuingAuthority) ? null : _issuingAuthority.Trim()
         }));
 }
