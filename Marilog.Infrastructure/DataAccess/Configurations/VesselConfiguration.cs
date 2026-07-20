@@ -19,6 +19,12 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
             builder.HasIndex(x => x.IMONumber).IsUnique();
 
+            //----Certificates------------------------------------------------------
+            builder.HasMany(p => p.Certificates)
+                   .WithOne()
+                   .HasForeignKey("VesselId")
+                   .OnDelete(DeleteBehavior.Cascade);
+
             builder.HasOne(x => x.FlagCountry)
                    .WithMany()
                    .HasForeignKey(x => x.FlagCountryID)

@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -123,6 +124,32 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<IActionResult> Delete(int id, CancellationToken ct)
         {
             await _service.DeleteAsync(id, ct);
+            return NoContent();
+        }
+
+
+        // ── Certificates ─────────────────────────────────────────────────────────────
+
+        [HttpPost("{id}/certificates")]
+        public async Task<IActionResult> AddCertificate(int id,
+            [FromBody] UpsertCertificateRequest request, CancellationToken ct)
+        {
+            await _service.AddCertificateAsync(id, request, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id}/certificates/{index}")]
+        public async Task<IActionResult> UpdateCertificate(int id, int index,
+            [FromBody] UpsertCertificateRequest request, CancellationToken ct)
+        {
+            await _service.UpdateCertificateAsync(id, index, request, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}/certificates/{index}")]
+        public async Task<IActionResult> RemoveCertificate(int id, int index, CancellationToken ct)
+        {
+            await _service.RemoveCertificateAsync(id, index, ct);
             return NoContent();
         }
     }

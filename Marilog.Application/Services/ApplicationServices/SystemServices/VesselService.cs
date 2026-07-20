@@ -1,3 +1,4 @@
+using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -214,11 +215,40 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+
+        // ── Certificates ──────────────────────────────────────────────────────────
+
+        public async Task AddCertificateAsync(int vesselId, UpsertCertificateRequest req, CancellationToken ct = default)
+        {
+            var vessel = await GetOrThrowAsync(vesselId, ct);
+            vessel.AddCertificate(req.VType ?? 0, req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
+            _repo.Update(vessel);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateCertificateAsync(int vesselId, int certificateId, UpsertCertificateRequest req, CancellationToken ct = default)
+        {
+            var vessel = await GetOrThrowAsync(vesselId, ct);
+            vessel.UpdateCertificate(certificateId, req.VType ?? 0, req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
+            _repo.Update(vessel);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemoveCertificateAsync(int vesselId, int certificateId, CancellationToken ct = default)
+        {
+            var vessel = await GetOrThrowAsync(vesselId, ct);
+            vessel.RemoveCertificate(certificateId);
+            _repo.Update(vessel);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<Vessel> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.Query()
                           .Include(x => x.CrewContracts)
+                          .Include(c => c.Certificates)
                           .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Vessel {id} not found.");
 
@@ -243,7 +273,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             IMONumber = x.IMONumber,
             GrossTonnage = x.GrossTonnage,
             Notes = x.Notes,
+            Certificates = x.Certificates.Select(c => new CertificateResponse
+            {
+                CertificateName = c.Certificate.CertificateName,
+                CertificateNumber = c.Certificate.CertificateNumber,
+                Description = c.Certificate.Description,
+                ExpiryDate = c.Certificate.ExpiryDate,
+                Index = c.Id,
+                IssueDate = c.Certificate.IssueDate,
+                IssuingAuthority = c.Certificate.IssuingAuthority,
+                VType = c.Type
 
+            }).ToList(),
+            
             CompanyId = x.CompanyID,
             CompanyName = x.Company != null
                 ? x.Company.CompanyName

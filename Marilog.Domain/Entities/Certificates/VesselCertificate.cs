@@ -17,5 +17,11 @@ namespace Marilog.Domain.Entities.Certificates
                 Type = type,
                 Certificate = certificate ?? throw new ArgumentNullException(nameof(certificate))
             };
+
+        public void Update(VesselCertificateType type, Certificate certificate)
+        {
+            Type = type;
+            Certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -92,6 +93,27 @@ namespace Marilog.Client.Services.SystemServices
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        // ── Certificates ─────────────────────────────────────────────────────────────
+
+        public async Task AddCertificateAsync(int vesselId, UpsertCertificateRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync($"{Base}/{vesselId}/certificates", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdateCertificateAsync(int vesselId, int index, UpsertCertificateRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync($"{Base}/{vesselId}/certificates/{index}", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
+        public async Task RemoveCertificateAsync(int vesselId, int index,
+            CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{vesselId}/certificates/{index}", ct);
             http.EnsureSuccessStatusCode();
         }
     }

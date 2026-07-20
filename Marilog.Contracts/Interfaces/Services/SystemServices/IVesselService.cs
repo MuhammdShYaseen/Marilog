@@ -1,3 +1,4 @@
+using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 
@@ -11,6 +12,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<VesselResponse>> GetAllAsync(CancellationToken ct = default);
         Task<IReadOnlyList<VesselResponse>> GetActiveAsync(CancellationToken ct = default);
         Task<IReadOnlyList<VesselResponse>> GetByCompanyAsync(int companyId, CancellationToken ct = default);
+
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<VesselResponse> CreateAsync(int companyId, string vesselName,
@@ -26,5 +28,11 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task         ActivateAsync(int id, CancellationToken ct = default);
         Task         DeactivateAsync(int id, CancellationToken ct = default);
         Task         DeleteAsync(int id, CancellationToken ct = default);
+
+
+        // Certificates
+        Task AddCertificateAsync(int vesselId, UpsertCertificateRequest request, CancellationToken ct = default);
+        Task UpdateCertificateAsync(int vesselId, int index, UpsertCertificateRequest request, CancellationToken ct = default);
+        Task RemoveCertificateAsync(int vesselId, int index, CancellationToken ct = default);
     }
 }

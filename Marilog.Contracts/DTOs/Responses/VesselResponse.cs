@@ -12,5 +12,6 @@
         public string? FlagCountryName { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; }
+        public IReadOnlyList<CertificateResponse>? Certificates { get; set; }
     }
 }

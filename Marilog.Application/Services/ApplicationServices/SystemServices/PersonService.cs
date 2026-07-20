@@ -14,12 +14,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     {
         private readonly IRepository<Person> _repo;
         private readonly IRepository<Rank> _rankRepo;
-        private readonly IRepository<PersonCertificate> _CrtRepo;
-        public PersonService(IRepository<Person> repo, IRepository<Rank> rankRepo, IRepository<PersonCertificate> crtRepo)
+        public PersonService(IRepository<Person> repo, IRepository<Rank> rankRepo)
         {
             _repo = repo;
             _rankRepo = rankRepo;
-            _CrtRepo = crtRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
