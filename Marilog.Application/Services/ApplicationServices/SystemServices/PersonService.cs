@@ -350,7 +350,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         CertificateName = c.CertificateName,
                         IssueDate = c.IssueDate,
                         ExpiryDate = c.ExpiryDate,
-                        Description = c.Description
+                        Description = c.Description,
+                        CertificateNumber = c.CertificateNumber,
+                        IssuingAuthority = c.IssuingAuthority,
                     }).ToList(),
 
                 SeaServices = p.SeaServices

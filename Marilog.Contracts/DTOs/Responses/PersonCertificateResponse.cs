@@ -6,8 +6,8 @@ namespace Marilog.Contracts.DTOs.Responses
     {
         public int Index { get; set; }
         public string CertificateName { get; set; } = string.Empty;
-        public string CertificateNumber { get; set; } = string.Empty;
-        public string IssuingAuthority { get; set; } = string.Empty;
+        public string? CertificateNumber { get; set; }
+        public string? IssuingAuthority { get; set; }
         public DateOnly? IssueDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
         public string? Description { get; set; }
