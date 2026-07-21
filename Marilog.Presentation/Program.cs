@@ -1,7 +1,9 @@
 using Marilog.Application;
 using Marilog.Contracts.Options;
 using Marilog.Infrastructure;
+using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Presentation.Extensions;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 namespace Marilog.Presentation
 {
@@ -55,6 +57,11 @@ namespace Marilog.Presentation
             });
 
             var app = builder.Build();
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<MarilogContext>();
+                db.Database.Migrate();
+            }
             app.UseCors("AllowClient");
             app.UseErrorHandler();
             app.UseSerilogRequestLogging(opts =>
