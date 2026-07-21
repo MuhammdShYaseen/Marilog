@@ -2,24 +2,45 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using MudBlazor
-@namespace Marilog.Shared.UI.Pages.Persons
+@namespace Marilog.Shared.UI.Components.SharedDialogs
 
 <MudDialog>
     <DialogContent>
         <MudGrid>
 
             <MudItem xs="12">
-                <MudSelect T="PersonCertificateType"
-                           @bind-Value="_type"
-                           Label="Certificate Type"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (var type in Enum.GetValues<PersonCertificateType>())
-                    {
-                        <MudSelectItem Value="@type">@type</MudSelectItem>
-                    }
-                </MudSelect>
+                @if (Entity == EntityType.Person || Entity == 0 || Entity == null)
+                {
+                    <MudSelect T="PersonCertificateType"
+                               @bind-Value="_typePerson"
+                               Label="Certificate Type"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+
+                        @foreach (var type in Enum.GetValues<PersonCertificateType>())
+                        {
+                            <MudSelectItem Value="@type">@type</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                @if (Entity == EntityType.Vessel)
+                {
+                    <MudSelect T="VesselCertificateType"
+                               @bind-Value="_typeVessel"
+                               Label="Certificate Type"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+
+                        @foreach (var type in Enum.GetValues<VesselCertificateType>())
+                        {
+                            <MudSelectItem Value="@type">@type</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+
             </MudItem>
 
 
@@ -79,14 +100,15 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public CertificateResponse? Certificate { get; set; }
-
+    [Parameter] public EntityType? Entity { get; set; }
     private string _certificateName = string.Empty;
     private DateTime? _issueDateDt;
     private DateTime? _expiryDateDt;
     private string? _description;
     private string? _certificateNumber;
     private string? _issuingAuthority;
-    private PersonCertificateType _type = PersonCertificateType.Other;
+    private PersonCertificateType _typePerson = PersonCertificateType.Other;
+    private VesselCertificateType _typeVessel = VesselCertificateType.Other;
     protected override void OnParametersSet()
     {
         if (Certificate is null) return;
@@ -96,7 +118,8 @@
         _description = Certificate.Description;
         _certificateNumber = Certificate.CertificateNumber;
         _issuingAuthority = Certificate.IssuingAuthority;
-        _type = Certificate.PType ?? 0;
+        _typePerson = Certificate.PType ?? 0;
+        _typeVessel = Certificate.VType ?? 0;
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -110,6 +133,7 @@
             Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
             CertificateNumber = string.IsNullOrWhiteSpace(_certificateNumber) ? null : _certificateNumber.Trim(),
             IssuingAuthority = string.IsNullOrWhiteSpace(_issuingAuthority) ? null : _issuingAuthority.Trim(),
-            PType = _type
+            PType = _typePerson,
+            VType = _typeVessel
         }));
 }

@@ -1,8 +1,11 @@
 ﻿@* VesselsPageHost.razor *@
 @page "/vessels"
+@using Marilog.Contracts.DTOs.Requests.Common
 @using Marilog.Contracts.DTOs.Requests.VesselDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Components.SharedDialogs
 @using Marilog.Shared.UI.Pages.Vessels
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
@@ -20,12 +23,16 @@
 }
 else
 {
-    <SharedVesselPage Vessels="@_vessels"
+    <SharedVesselPage @ref="_sharedPage"
+                Vessels="@_vessels"
                 OnAddClicked="OpenAddDialog"
                 OnEditClicked="OpenEditDialog"
                 OnDeleteClicked="ConfirmDelete"
                 OnToggleActiveClicked="ToggleActive"
-                OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" 
+                OnAddCertificateClicked="OpenAddCertificateDialog"
+                OnEditCertificateClicked="OpenEditCertificateDialog"
+                OnRemoveCertificateClicked  = "ConfirmRemoveCertificate"/>
 }
 
 @code {
@@ -166,5 +173,59 @@ else
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
+    }
+
+
+    // ── Certificates ──────────────────────────────────────────────────────────────
+
+    private async Task OpenAddCertificateDialog(VesselResponse vessel)
+    {
+        var paramaters = new DialogParameters 
+        { [nameof(CertificateDialog.Entity)] = EntityType.Vessel };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate", paramaters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpsertCertificateRequest)result.Data!;
+        await VesselService.AddCertificateAsync(vessel.Id, request);
+        Snackbar.Add("Certificate added.", Severity.Success);
+        await LoadAsync();
+        await RefreshSelected(vessel.Id);
+    }
+
+    private async Task OpenEditCertificateDialog((VesselResponse vessel, CertificateResponse cert) args)
+    {
+        var parameters = new DialogParameters { ["Certificate"] = args.cert, [nameof(CertificateDialog.Entity)] = EntityType.Vessel };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("Edit Certificate", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpsertCertificateRequest)result.Data!;
+        await VesselService.UpdateCertificateAsync(args.vessel.Id, args.cert.Index, request);
+        Snackbar.Add("Certificate updated.", Severity.Success);
+        await LoadAsync();
+        await RefreshSelected(args.vessel.Id);
+    }
+
+    private async Task ConfirmRemoveCertificate((VesselResponse vessel, CertificateResponse cert) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Certificate",
+            $"Remove '{args.cert.CertificateName}'?",
+            yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            await VesselService.RemoveCertificateAsync(args.vessel.Id, args.cert.Index);
+            Snackbar.Add("Certificate removed.", Severity.Success);
+            await LoadAsync();
+            await RefreshSelected(args.vessel.Id);
+        }
+    }
+    private SharedVesselPage _sharedPage = default!;
+    private async Task RefreshSelected(int vesselId)
+    {
+        var updated = await VesselService.GetByIdAsync(vesselId) ?? new();
+        _sharedPage?.UpdateSelected(updated);
     }
 }

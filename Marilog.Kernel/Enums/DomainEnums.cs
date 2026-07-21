@@ -146,6 +146,7 @@
         Bank = 9,
         Company = 10,
         PersonCertificate = 11,
+        VesselCertificate = 12,
         NON = 0
     }
     public enum JobStatus
