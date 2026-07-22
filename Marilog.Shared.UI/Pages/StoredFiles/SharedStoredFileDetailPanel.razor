@@ -1,0 +1,145 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedStoredFileDetailPanel
+   Rule 15: appears below the list/grid, not a dialog. Owns the tag-entry
+   popover as local UI state; every mutation goes out via delegate.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4 mt-4" Outlined="true">
+    <div class="d-flex justify-space-between align-start mb-2">
+        <div>
+            <MudText Typo="Typo.h6">@File.OriginalFileName</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @File.ContentType · @FormatSize(File.Size) · Uploaded @File.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+            </MudText>
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@DeleteAsync" />
+    </div>
+
+    <div class="d-flex flex-wrap align-center gap-1 mb-3">
+        @if (File.Tags is { Count: > 0 })
+        {
+            @foreach (var tag in File.Tags)
+            {
+                <MudChip T="string" Size="Size.Small" Color="@ParseColor(tag.Color)"
+                         OnClose="@(() => RemoveTagAsync(tag.Id))">@tag.Name</MudChip>
+            }
+        }
+
+        <MudMenu Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" AnchorOrigin="Origin.BottomLeft">
+            <div class="pa-3" style="width:220px">
+                <MudTextField T="string" @bind-Value="_newTagName" Label="Tag name" Margin="Margin.Dense"
+                              Variant="Variant.Outlined" Class="mb-2" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">Color</MudText>
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                    @foreach (var color in _palette)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="@color"
+                                 Variant="@(color == _newTagColor ? Variant.Filled : Variant.Outlined)"
+                                 OnClick="@(() => _newTagColor = color)">@color</MudChip>
+                    }
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                           Disabled="@string.IsNullOrWhiteSpace(_newTagName)"
+                           OnClick="@AddTagAsync">
+                    Add Tag
+                </MudButton>
+            </div>
+        </MudMenu>
+    </div>
+
+    
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public StoredFileResponse File { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
+
+    /// <summary>Host wires this to IStoredFileService.DeleteAsync(id, ct).</summary>
+    [Parameter, EditorRequired] public Func<int, CancellationToken, Task> DeleteFileFunc { get; set; } = default!;
+    /// <summary>Host wires this to IStoredFileService.AddTagAsync(id, name, color, ct).</summary>
+    [Parameter, EditorRequired] public Func<int, string, string, CancellationToken, Task> AddTagFunc { get; set; } = default!;
+    /// <summary>Host wires this to IStoredFileService.RemoveTagAsync(id, tagId, ct).</summary>
+    [Parameter, EditorRequired] public Func<int, int, CancellationToken, Task> RemoveTagFunc { get; set; } = default!;
+    [Parameter] public Func<int, string, CancellationToken, Task>? SaveContentFunc { get; set; }
+
+    /// <summary>Raised after a successful delete/tag change so the host can refresh the search results.</summary>
+    [Parameter, EditorRequired] public EventCallback OnChanged { get; set; }
+
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    static readonly Color[] _palette =
+        [Color.Primary, Color.Secondary, Color.Tertiary, Color.Success, Color.Warning, Color.Error, Color.Info, Color.Dark];
+
+    string _newTagName = string.Empty;
+    Color _newTagColor = Color.Primary;
+
+    async Task AddTagAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newTagName))
+            return;
+
+        try
+        {
+            await AddTagFunc(File.Id, _newTagName.Trim(), _newTagColor.ToString(), CancellationToken.None);
+            _newTagName = string.Empty;
+            _newTagColor = Color.Primary;
+            Snackbar.Add("Tag added.", Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to add tag: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task RemoveTagAsync(int tagId)
+    {
+        try
+        {
+            await RemoveTagFunc(File.Id, tagId, CancellationToken.None);
+            Snackbar.Add("Tag removed.", Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to remove tag: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task DeleteAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete File",
+            $"Delete '{File.OriginalFileName}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await DeleteFileFunc(File.Id, CancellationToken.None);
+            Snackbar.Add("File deleted.", Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete file: {ex.Message}", Severity.Error);
+        }
+    }
+
+    static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
+    };
+
+    static Color ParseColor(string? colorName) =>
+        Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed) ? parsed : Color.Default;
+}

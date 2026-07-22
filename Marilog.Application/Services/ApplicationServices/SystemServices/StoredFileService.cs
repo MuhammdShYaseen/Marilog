@@ -100,13 +100,39 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         public async Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(
-            IReadOnlyList<string> tags,
-            CancellationToken ct = default)
+    IReadOnlyList<string> tags,
+    CancellationToken ct = default)
         {
-            return await _repoStoredFile.Query()
+            var searchTerms = tags
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct()
+                .ToList();
+
+            if (searchTerms.Count == 0)
+            {
+                return [];
+            }
+
+            var query = _repoStoredFile.Query()
                 .AsNoTracking()
                 .Include(f => f.Tags)
-                .Where(f => f.Tags.Any(t => tags.Contains(t.Name)))
+                .AsQueryable();
+
+            query = query.Where(file =>
+                file.Tags.Any(tag =>
+                    EF.Functions.Like(tag.Name, "%" + searchTerms[0] + "%")));
+
+            for (var i = 1; i < searchTerms.Count; i++)
+            {
+                var term = searchTerms[i];
+
+                query = query.Where(file =>
+                    file.Tags.Any(tag =>
+                        EF.Functions.Like(tag.Name, "%" + term + "%")));
+            }
+
+            return await query
                 .Select(ToResponse)
                 .ToListAsync(ct);
         }

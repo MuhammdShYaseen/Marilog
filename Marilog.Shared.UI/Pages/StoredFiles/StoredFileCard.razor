@@ -1,0 +1,68 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+
+@* ────────────────────────────────────────────────────────────────────────────
+   StoredFileCard
+   Rule 7: any clickable card repeated in a @foreach must be its own
+   standalone component. Rule 6: MudPaper click needs the explicit
+   EventCallback attribute form, never @onclick.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="@CardClass" Outlined="true" Style="cursor:pointer; overflow:hidden;"
+          onclick="@(EventCallback.Factory.Create(this, () => OnClicked.InvokeAsync(File)))">
+    <div style="height:120px; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey);">
+        @if (File.ContentType.StartsWith("image/"))
+        {
+            <img src="@ThumbnailUrl" alt="@File.OriginalFileName" style="max-height:100%; max-width:100%; object-fit:cover;" />
+        }
+        else if (File.HasThumbnail)
+        {
+            <img src="@ThumbnailUrl" alt="@File.OriginalFileName" style="max-height:100%; max-width:100%; object-fit:contain;" />
+        }
+        else
+        {
+            <MudIcon Icon="@IconForContentType(File.ContentType)" Size="Size.Large" Color="Color.Secondary" />
+        }
+    </div>
+
+    <div class="pa-2">
+        <MudText Typo="Typo.body2" Class="text-truncate">@File.OriginalFileName</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@FormatSize(File.Size)</MudText>
+        @if (File.Tags is { Count: > 0 })
+        {
+            <div class="d-flex flex-wrap gap-1 mt-1">
+                @foreach (var tag in File.Tags.Take(3))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="@ParseColor(tag.Color)">@tag.Name</MudChip>
+                }
+            </div>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public StoredFileResponse File { get; set; } = null!;
+    [Parameter, EditorRequired] public string ThumbnailUrl { get; set; } = string.Empty;
+    [Parameter] public bool IsSelected { get; set; }
+    [Parameter, EditorRequired] public EventCallback<StoredFileResponse> OnClicked { get; set; }
+
+    string CardClass => IsSelected ? "pa-0 border-primary" : "pa-0";
+
+    static string IconForContentType(string contentType) => contentType switch
+    {
+        var ct when ct.StartsWith("application/pdf") => Icons.Material.Filled.PictureAsPdf,
+        var ct when ct.StartsWith("application/vnd.openxmlformats") || ct.Contains("word") => Icons.Material.Filled.Description,
+        var ct when ct.Contains("sheet") || ct.Contains("excel") => Icons.Material.Filled.TableChart,
+        _ => Icons.Material.Filled.InsertDriveFile
+    };
+
+    static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
+    };
+
+    static Color ParseColor(string? colorName) =>
+        Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed) ? parsed : Color.Default;
+}

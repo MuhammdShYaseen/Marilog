@@ -1,0 +1,274 @@
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+@inject IDialogService DialogService
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedStoredFilePage
+   No unfiltered "browse everything" query exists on IStoredFileService, so
+   the page starts empty and prompts the user to search by text (requires an
+   EntityType — FullTextSearchAsync has no "any type" option) or filter by
+   tag (GetByTagsAsync, cross-entity, no paging support). Owns search/view
+   UI state only; every service call happens through a delegate from the
+   Platform host (rule 2/3). Dialogs (Upload) are opened by the host, never
+   here (rule 4) — OnUploadClicked bubbles up, and the host calls back into
+   RefreshCurrentSearchAsync via @ref once the dialog reports success.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h5">Stored Files</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudButtonGroup Variant="Variant.Outlined">
+                <MudIconButton Icon="@Icons.Material.Filled.ViewList" Color="@(_viewMode == ViewMode.List ? Color.Primary : Color.Default)"
+                                OnClick="@(() => _viewMode = ViewMode.List)" />
+                <MudIconButton Icon="@Icons.Material.Filled.GridView" Color="@(_viewMode == ViewMode.Grid ? Color.Primary : Color.Default)"
+                                OnClick="@(() => _viewMode = ViewMode.Grid)" />
+            </MudButtonGroup>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.UploadFile"
+                       OnClick="@(() => OnUploadClicked.InvokeAsync())">
+                Upload
+            </MudButton>
+        </div>
+    </div>
+
+    <MudTabs Elevation="0" Rounded="true" @bind-ActivePanelIndex="_searchTabIndex" Class="mb-4">
+        <MudTabPanel Text="Search by content">
+            <MudGrid Class="mt-2">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="EntityType" @bind-Value="_entityType" Label="Entity Type"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var type in Enum.GetValues<EntityType>())
+                        {
+                            <MudSelectItem Value="@type">@type</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_queryText" Label="Search text"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  OnKeyDown="@(async e => { if (e.Key == "Enter") await SearchByTextAsync(1); })" />
+                </MudItem>
+                <MudItem xs="12" sm="2" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                               OnClick="@(() => SearchByTextAsync(1))">
+                        Search
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Filter by tag">
+            <MudGrid Class="mt-2">
+                <MudItem xs="12" sm="8">
+                    <MudTextField T="string" @bind-Value="_tagInput" Label="Tag name — press Enter to add"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  OnKeyDown="@HandleTagKeyDown" />
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        @foreach (var tag in _tagChips)
+                        {
+                            <MudChip T="string" Size="Size.Small" OnClose="@(() => _tagChips.Remove(tag))">@tag</MudChip>
+                        }
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                               Disabled="@(_tagChips.Count == 0)"
+                               OnClick="SearchByTagsAsync">
+                        Search
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+
+    @if (_mode == SearchMode.None)
+    {
+        <MudAlert Severity="Severity.Info">Search by content or filter by tag to see files here.</MudAlert>
+    }
+    else
+    {
+        @if (_viewMode == ViewMode.List)
+        {
+            <SharedStoredFileTable Items="@_files" IsLoading="@_isLoading"
+                                   SelectedItem="@_selectedFile"
+                                   OnRowSelected="@SelectFileAsync" />
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (var file in _files)
+                {
+                    <MudItem xs="6" sm="4" md="3">
+                        <StoredFileCard File="@file" ThumbnailUrl="@BuildThumbnailUrl(file)"
+                                        IsSelected="@(_selectedFile?.Id == file.Id)"
+                                        OnClicked="@SelectFileAsync" />
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+
+        @if (_pagedInfo is not null)
+        {
+            <div class="d-flex justify-center mt-4">
+                <MudPagination Count="@_pagedInfo.TotalPages" Selected="@_pagedInfo.Page"
+                                SelectedChanged="@(p => SearchByTextAsync(p))" />
+            </div>
+        }
+
+        @if (_selectedFile is not null)
+        {
+            <SharedStoredFileDetailPanel File="@_selectedFile"
+                                        BuildDownloadUrl="@BuildDownloadUrl"
+                                        BuildThumbnailUrl="@BuildThumbnailUrl"
+                                        DeleteFileFunc="@DeleteFileFunc"
+                                        AddTagFunc="@AddTagFunc"
+                                        RemoveTagFunc="@RemoveTagFunc"
+                                        SaveContentFunc="@SaveContentFunc"
+                                        OnChanged="@RefreshCurrentSearchAsync" />
+        }
+    }
+</MudPaper>
+
+@code {
+    enum SearchMode { None, Text, Tags }
+    enum ViewMode { List, Grid }
+
+    [Parameter, EditorRequired]
+    public Func<string, EntityType, int, int, CancellationToken, Task<PagedResponse<StoredFileResponse>>> SearchByTextFunc { get; set; } = default!;
+    [Parameter, EditorRequired]
+    public Func<IReadOnlyList<string>, CancellationToken, Task<IReadOnlyList<StoredFileResponse>>> SearchByTagsFunc { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<int, CancellationToken, Task> DeleteFileFunc { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<int, string, string, CancellationToken, Task> AddTagFunc { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<int, int, CancellationToken, Task> RemoveTagFunc { get; set; } = default!;
+    [Parameter] public Func<int, string, CancellationToken, Task>? SaveContentFunc { get; set; }
+    [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback OnUploadClicked { get; set; }
+
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    int _searchTabIndex;
+    SearchMode _mode = SearchMode.None;
+    ViewMode _viewMode = ViewMode.List;
+
+    EntityType _entityType;
+    string _queryText = string.Empty;
+    string _tagInput = string.Empty;
+    List<string> _tagChips = [];
+
+    List<StoredFileResponse> _files = [];
+    PagedResponse<StoredFileResponse>? _pagedInfo;
+    StoredFileResponse? _selectedFile;
+    bool _isLoading;
+
+    const int PageSize = 24;
+
+    void HandleTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter" || string.IsNullOrWhiteSpace(_tagInput))
+            return;
+
+        if (!_tagChips.Contains(_tagInput, StringComparer.OrdinalIgnoreCase))
+            _tagChips.Add(_tagInput.Trim());
+
+        _tagInput = string.Empty;
+    }
+
+    async Task SearchByTextAsync(int page)
+    {
+        _mode = SearchMode.Text;
+        _isLoading = true;
+        _selectedFile = null;
+        StateHasChanged();
+        try
+        {
+            _pagedInfo = await SearchByTextFunc(_queryText, _entityType, page, PageSize, CancellationToken.None);
+            _files = _pagedInfo.Items;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Search failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    async Task SearchByTagsAsync()
+    {
+        if (_tagChips.Count == 0)
+            return;
+
+        _mode = SearchMode.Tags;
+        _pagedInfo = null;
+        _isLoading = true;
+        _selectedFile = null;
+        StateHasChanged();
+        try
+        {
+            var result = await SearchByTagsFunc(_tagChips, CancellationToken.None);
+            _files = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Tag search failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    void SelectFile(StoredFileResponse file) =>
+        _selectedFile = _selectedFile?.Id == file.Id ? null : file;
+
+    /// <summary>Called by the Platform host (via @ref) after a successful upload, and
+    /// internally after a tag change or delete, to re-run whichever search is active.</summary>
+    public async Task RefreshCurrentSearchAsync()
+    {
+        var previouslySelectedId = _selectedFile?.Id;
+
+        switch (_mode)
+        {
+            case SearchMode.Text:
+                await SearchByTextAsync(_pagedInfo?.Page ?? 1);
+                break;
+            case SearchMode.Tags:
+                await SearchByTagsAsync();
+                break;
+        }
+
+        _selectedFile = _files.FirstOrDefault(f => f.Id == previouslySelectedId);
+    }
+
+
+    private async Task SelectFileAsync(
+    StoredFileResponse file)
+    {
+        var parameters = new DialogParameters
+        {
+            ["File"] = file,
+            ["BuildDownloadUrl"] = BuildDownloadUrl,
+            ["BuildThumbnailUrl"] = BuildThumbnailUrl,
+            ["SaveContentFunc"] = SaveContentFunc
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            BackdropClick = true
+        };
+
+        await DialogService.ShowAsync<
+            DisplayFileDetilesDialog>(
+            file.OriginalFileName,
+            parameters,
+            options);
+    }
+}

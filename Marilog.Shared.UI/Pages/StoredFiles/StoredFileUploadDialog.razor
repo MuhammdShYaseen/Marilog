@@ -1,0 +1,115 @@
+@using Marilog.Kernel.Enums
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+
+@* ────────────────────────────────────────────────────────────────────────────
+   StoredFileUploadDialog
+   UploadFileRequest.EntityType is non-nullable, so even on the general
+   (entity-agnostic) browse page the user must pick a type before uploading;
+   EntityId stays optional for files not yet linked to a specific record.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="EntityType" @bind-Value="_entityType" Label="Entity Type"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                    @foreach (var type in Enum.GetValues<EntityType>())
+                    {
+                        <MudSelectItem Value="@type">@type</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int?" @bind-Value="_entityId" Label="Entity Id (optional)"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 HelperText="Leave blank to upload an unlinked file" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" @bind-Files="_selectedFiles" Accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile">
+                            Choose Files
+                        </MudButton>
+                </MudFileUpload>
+            </MudItem>
+
+            @if (_selectedFiles is { Count: > 0 })
+            {
+                <MudItem xs="12">
+                    <MudList T="string" Dense="true">
+                        @foreach (var file in _selectedFiles)
+                        {
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                                @file.Name — @FormatSize(file.Size)
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_selectedFiles is not { Count: > 0 } || _isUploading)"
+                   OnClick="SubmitAsync">
+            @(_isUploading ? "Uploading..." : "Upload")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Host wires this to IStoredFileService.UploadAsync(requests, ct), returning
+    /// true when at least one file uploaded successfully.</summary>
+    [Parameter, EditorRequired]
+    public Func<IReadOnlyList<IBrowserFile>, EntityType, int?, CancellationToken, Task<bool>> UploadFilesFunc { get; set; } = default!;
+
+    EntityType _entityType;
+    int? _entityId;
+    IReadOnlyList<IBrowserFile> _selectedFiles = [];
+    bool _isUploading;
+
+    void Cancel() => MudDialog.Cancel();
+
+    async Task SubmitAsync()
+    {
+        if (_selectedFiles is not { Count: > 0 })
+            return;
+
+        _isUploading = true;
+        try
+        {
+            var success = await UploadFilesFunc(_selectedFiles, _entityType, _entityId, CancellationToken.None);
+            if (success)
+            {
+                Snackbar.Add($"{_selectedFiles.Count} file(s) uploaded.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("Upload did not complete.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
+    };
+}

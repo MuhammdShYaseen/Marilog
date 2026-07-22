@@ -1,0 +1,142 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+
+<MudDialog>
+
+    <TitleContent>
+
+        <MudStack Row="true"
+                  AlignItems="AlignItems.Center"
+                  Spacing="2">
+
+            <MudIcon Icon="@GetFileIcon()"
+                     Color="Color.Primary" />
+
+            <MudStack Spacing="0">
+
+                <MudText Typo="Typo.h6">
+                    @File.OriginalFileName
+                </MudText>
+
+                <MudText Typo="Typo.caption"
+                         Color="Color.Secondary">
+
+                    @File.ContentType
+                    <span class="mx-1">•</span>
+                    @FormatSize(File.Size)
+
+                </MudText>
+
+            </MudStack>
+
+        </MudStack>
+
+    </TitleContent>
+
+
+    <DialogContent>
+
+        <SharedStoredFileTabs File="@File"
+                              DownloadUrl="@BuildDownloadUrl(File)"
+                              ThumbnailUrl="@BuildThumbnailUrl(File)"
+                              SaveContentFunc="@SaveContentFunc" />
+
+    </DialogContent>
+
+
+    <DialogActions>
+
+        <MudButton OnClick="Close">
+
+            Close
+
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+
+    [Parameter, EditorRequired]
+    public StoredFileResponse File { get; set; } = null!;
+
+
+    [Parameter, EditorRequired]
+    public Func<StoredFileResponse, string>
+        BuildDownloadUrl
+    { get; set; } = default!;
+
+
+    [Parameter, EditorRequired]
+    public Func<StoredFileResponse, string>
+        BuildThumbnailUrl
+    { get; set; } = default!;
+
+
+    [Parameter]
+    public Func<int, string, CancellationToken, Task>?
+        SaveContentFunc
+    { get; set; }
+
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+
+
+    private string GetFileIcon()
+    {
+        var extension = Path
+            .GetExtension(File.OriginalFileName)
+            .ToLowerInvariant();
+
+        return extension switch
+        {
+            ".pdf"
+                => Icons.Material.Filled.PictureAsPdf,
+
+            ".doc" or ".docx"
+                => Icons.Material.Filled.Description,
+
+            ".xls" or ".xlsx" or ".csv"
+                => Icons.Material.Filled.TableChart,
+
+            ".ppt" or ".pptx"
+                => Icons.Material.Filled.Slideshow,
+
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp"
+                => Icons.Material.Filled.Image,
+
+            ".zip" or ".rar" or ".7z"
+                => Icons.Material.Filled.FolderZip,
+
+            _
+                => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+
+    private static string FormatSize(long bytes)
+    {
+        return bytes switch
+        {
+            < 1024
+                => $"{bytes} B",
+
+            < 1024 * 1024
+                => $"{bytes / 1024d:F1} KB",
+
+            _
+                => $"{bytes / 1024d / 1024d:F1} MB"
+        };
+    }
+}

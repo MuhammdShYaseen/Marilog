@@ -28,6 +28,7 @@
     <Folder Include="Pages\Currencies\" />
     <Folder Include="Pages\ContactForms\" />
     <Folder Include="Pages\LogsUi\" />
+    <Folder Include="Pages\StoredFiles\" />
     <Folder Include="Styles\" />
   </ItemGroup>
 

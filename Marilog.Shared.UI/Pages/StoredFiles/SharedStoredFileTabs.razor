@@ -1,0 +1,210 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedStoredFileTabs
+   Two views of the selected file per rule 15: editable raw Content (OCR/user
+   text) and a rendered Preview. The preview tab reuses the same /stream
+   endpoint for both inline display and the Download link — this project's
+   StoredFiles controller only exposes one stream route (no ?inline=true
+   query flag), so rule 17's two-endpoint split doesn't apply here; the
+   browser's `download` attribute on the link is what forces a save instead
+   of navigating.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="Preview">
+
+        <div class="pa-2"
+             style="min-height:300px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:var(--mud-palette-background-grey);">
+
+            @if (File.ContentType.StartsWith(
+                "image/",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                <img src="@BuildPreviewUrl(DownloadUrl)"
+                     alt="@File.OriginalFileName"
+                     style="max-width:100%;
+                max-height:500px;
+                object-fit:contain;" />
+            }
+            else if (File.ContentType.StartsWith(
+                "application/pdf",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                <iframe src="@BuildPreviewUrl(DownloadUrl)"
+                        style="width:100%;
+                    height:500px;
+                    border:none;"
+                        title="@File.OriginalFileName"
+                        class="pdf-preview-frame">
+                </iframe>
+            }
+            else if (File.HasThumbnail)
+            {
+                <img src="@ThumbnailUrl"
+                     alt="@File.OriginalFileName"
+                     style="max-width:100%;
+                max-height:500px;
+                object-fit:contain;" />
+            }
+            else
+            {
+                <div class="d-flex flex-column align-center pa-8">
+
+                    <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile"
+                             Size="Size.Large"
+                             Color="Color.Secondary" />
+
+                    <MudText Typo="Typo.body2"
+                             Color="Color.Secondary"
+                             Class="mt-2">
+
+                        No preview available for this file type.
+
+                    </MudText>
+
+                </div>
+            }
+
+        </div>
+
+
+        <div class="d-flex justify-end mt-2">
+
+            <MudButton Href="@DownloadUrl"
+                       Target="_blank"
+                       download="@File.OriginalFileName"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       Variant="Variant.Text">
+
+                Download
+
+            </MudButton>
+
+        </div>
+
+    </MudTabPanel>
+
+    <MudTabPanel Text="Content">
+        <MudTextField T="string" @bind-Value="_contentBuffer" Lines="12"
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Placeholder="No content extracted for this file yet." />
+        <div class="d-flex justify-end gap-2 mt-2">
+            <MudButton Disabled="@(!IsContentDirty)" OnClick="DiscardContent">Discard</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       Disabled="@(!IsContentDirty || _isSavingContent)"
+                       OnClick="SaveContentAsync">
+                @(_isSavingContent ? "Saving..." : "Save")
+            </MudButton>
+        </div>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    [Parameter, EditorRequired] public StoredFileResponse File { get; set; } = null!;
+    [Parameter, EditorRequired] public string DownloadUrl { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ThumbnailUrl { get; set; } = string.Empty;
+
+    /// <summary>Host wires this to IStoredFileService.UpdateContentFromUserAsync(id, content, ct).
+    /// Stays optional (rule 2) in case a caller wants a read-only detail view.</summary>
+    [Parameter] public Func<int, string, CancellationToken, Task>? SaveContentFunc { get; set; }
+
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    string _originalContent = string.Empty;
+    string _contentBuffer = string.Empty;
+    bool _isSavingContent;
+
+    protected override void OnParametersSet()
+    {
+        // Only reset the buffer when the selected file actually changes, so an
+        // in-progress edit isn't wiped out by an unrelated re-render.
+        if (_originalContent == (File.Content ?? string.Empty) && _contentBuffer != string.Empty)
+            return;
+
+        _originalContent = File.Content ?? string.Empty;
+        _contentBuffer = _originalContent;
+    }
+
+    private static string BuildPreviewUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return url;
+        }
+
+        return url.Contains('?')
+            ? $"{url}&inline=true"
+            : $"{url}?inline=true";
+    }
+
+    bool IsContentDirty => _contentBuffer != _originalContent;
+
+    void DiscardContent() => _contentBuffer = _originalContent;
+
+    async Task SaveContentAsync()
+    {
+        if (SaveContentFunc is null)
+        {
+            Snackbar.Add("Saving content isn't available yet.", Severity.Info);
+            return;
+        }
+
+        _isSavingContent = true;
+        try
+        {
+            await SaveContentFunc(File.Id, _contentBuffer, CancellationToken.None);
+            _originalContent = _contentBuffer;
+            Snackbar.Add("Content saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save content: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSavingContent = false;
+        }
+    }
+}
+
+<style>
+    .manage-files-table .mud-table-head {
+        background-color: var(--mud-palette-background-grey);
+    }
+
+    .manage-files-table .selected-row {
+        background-color: var(--mud-palette-primary-hover) !important;
+    }
+
+    .file-card {
+        border-radius: 8px;
+        overflow: hidden;
+        transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+        .file-card:hover {
+            box-shadow: var(--mud-elevation-4);
+        }
+
+    .file-card-selected {
+        border: 2px solid var(--mud-palette-primary);
+        cursor: pointer;
+    }
+
+    .detail-panel {
+        border-radius: 8px;
+    }
+
+    .pdf-preview-frame {
+        width: 100%;
+        height: 500px;
+        border: none;
+        border-radius: 4px;
+    }
+</style>

@@ -1,0 +1,90 @@
+@page "/storedfiles"
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.StoredFiles
+@using Microsoft.AspNetCore.Components.Forms
+@inject IStoredFileService StoredFileService
+@inject HttpClient Http
+@inject IDialogService DialogService
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for the general Stored Files browser. Wires every
+   search/mutation delegate to IStoredFileService and the two known stream
+   routes (api/StoredFiles/{id}/stream, api/StoredFiles/{id}/thumbnailStream —
+   confirmed against the existing per-entity ManageStoredFilesDialog wiring;
+   there's no ?inline=true flag on this project's stream endpoint). Only this
+   file opens the Upload dialog (rule 4) and only this file references
+   IStoredFileService (rule 2/3).
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedStoredFilePage @ref="_sharedPage"
+                      SearchByTextFunc="@SearchByTextAsync"
+                      SearchByTagsFunc="@SearchByTagsAsync"
+                      DeleteFileFunc="@((id, ct) => StoredFileService.DeleteAsync(id, ct))"
+                      AddTagFunc="@((id, name, color, ct) => StoredFileService.AddTagAsync(id, name, color, ct))"
+                      RemoveTagFunc="@((id, tagId, ct) => StoredFileService.RemoveTagAsync(id, tagId, ct))"
+                      SaveContentFunc="@((id, content, ct) => StoredFileService.UpdateContentFromUserAsync(id, content, ct))"
+                      BuildDownloadUrl="@(file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/stream")"
+                      BuildThumbnailUrl="@(file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream")"
+                      OnUploadClicked="@HandleUploadClickedAsync" />
+
+@code {
+    SharedStoredFilePage _sharedPage = default!;
+
+    private async Task<PagedResponse<StoredFileResponse>> SearchByTextAsync(string query, EntityType entityType, int page, int pageSize, CancellationToken ct)
+    {
+        return await StoredFileService.FullTextSearchAsync(query, page, pageSize, entityType, ct);
+
+    }
+    
+    private async Task<IReadOnlyList<StoredFileResponse>> SearchByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct)
+    {
+       return await StoredFileService.GetByTagsAsync(tags, ct);
+    }
+    
+
+    async Task HandleUploadClickedAsync()
+    {
+        var parameters = new DialogParameters<StoredFileUploadDialog>
+        {
+            { x => x.UploadFilesFunc, UploadFilesAsync }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<StoredFileUploadDialog>("Upload Files", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await _sharedPage.RefreshCurrentSearchAsync();
+    }
+
+    async Task<bool> UploadFilesAsync(IReadOnlyList<IBrowserFile> files, EntityType entityType, int? entityId, CancellationToken ct)
+    {
+        var requests = files.Select(f => new UploadFileRequest
+        {
+            FileStream = f.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024, cancellationToken: ct),
+            FileName = f.Name,
+            ContentType = f.ContentType,
+            Size = f.Size,
+            EntityType = entityType,
+            EntityId = entityId
+        });
+
+        var uploaded = await StoredFileService.UploadAsync(requests, ct);
+        return uploaded.Count > 0;
+    }
+
+
+
+    
+}

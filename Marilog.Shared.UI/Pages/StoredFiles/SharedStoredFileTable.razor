@@ -1,0 +1,86 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.StoredFiles
+
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedStoredFileTable
+   List-mode rendering for rule 14's dual view. OnRowClick built explicitly
+   per rule 18 rather than an inline markup lambda.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudTable Items="@Items" Hover="true" Dense="true" Loading="@IsLoading"
+          RowClassFunc="@RowClassFunc" OnRowClick="@_rowClickCallback" T="StoredFileResponse">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh Style="text-align:right">Size</MudTh>
+        <MudTh>Tags</MudTh>
+        <MudTh>Uploaded</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name" Class="d-flex align-center gap-2">
+            <MudIcon Icon="@IconForContentType(context.ContentType)" Size="Size.Small" Color="Color.Secondary" />
+            @context.OriginalFileName
+        </MudTd>
+        <MudTd DataLabel="Type">@context.ContentType</MudTd>
+        <MudTd DataLabel="Size" Style="text-align:right">@FormatSize(context.Size)</MudTd>
+        <MudTd DataLabel="Tags">
+            @if (context.Tags is { Count: > 0 })
+            {
+                @foreach (var tag in context.Tags)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="@ParseColor(tag.Color)">@tag.Name</MudChip>
+                }
+            }
+        </MudTd>
+        <MudTd DataLabel="Uploaded">@context.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No files found.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Searching...</MudText>
+    </LoadingContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<StoredFileResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public StoredFileResponse? SelectedItem { get; set; }
+    [Parameter, EditorRequired] public EventCallback<StoredFileResponse> OnRowSelected { get; set; }
+
+    EventCallback<TableRowClickEventArgs<StoredFileResponse>> _rowClickCallback;
+
+    protected override void OnInitialized()
+    {
+        _rowClickCallback = EventCallback.Factory.Create<TableRowClickEventArgs<StoredFileResponse>>(
+            this, HandleRowClick);
+    }
+
+    async Task HandleRowClick(TableRowClickEventArgs<StoredFileResponse> e)
+    {
+        if (e.Item is not null)
+            await OnRowSelected.InvokeAsync(e.Item);
+    }
+
+    string RowClassFunc(StoredFileResponse item, int index) =>
+        SelectedItem is not null && item.Id == SelectedItem.Id ? "mud-theme-primary-hover selected-row" : string.Empty;
+
+    static string IconForContentType(string contentType) => contentType switch
+    {
+        var ct when ct.StartsWith("image/") => Icons.Material.Filled.Image,
+        var ct when ct.StartsWith("application/pdf") => Icons.Material.Filled.PictureAsPdf,
+        var ct when ct.Contains("word") => Icons.Material.Filled.Description,
+        var ct when ct.Contains("sheet") || ct.Contains("excel") => Icons.Material.Filled.TableChart,
+        _ => Icons.Material.Filled.InsertDriveFile
+    };
+
+    static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
+    };
+
+    static Color ParseColor(string? colorName) =>
+        Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed) ? parsed : Color.Default;
+}
