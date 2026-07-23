@@ -1,5 +1,6 @@
 ﻿using Marilog.Application.DTOs.DataManagment;
 using Marilog.Application.Interfaces.DataManagment;
+using Marilog.Contracts.Interfaces.DataManagment;
 using Microsoft.Extensions.Logging;
 using System.IO.Compression;
 using System.Security.Cryptography;

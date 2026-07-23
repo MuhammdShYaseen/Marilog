@@ -4,6 +4,7 @@ using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
+using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;

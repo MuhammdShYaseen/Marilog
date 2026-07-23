@@ -1,5 +1,4 @@
-﻿
-namespace Marilog.Application.Interfaces.DataManagment
+﻿namespace Marilog.Contracts.Interfaces.DataManagment
 {
     public interface IFullBackupService
     {
