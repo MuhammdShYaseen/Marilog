@@ -28,7 +28,8 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudFileUpload T="IReadOnlyList<IBrowserFile>" @bind-Files="_selectedFiles" Accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" Files="_selectedFiles" FilesChanged="OnFilesChanged"
+                               DragAndDrop="true" AppendMultipleFiles="true">
                         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile">
                             Choose Files
                         </MudButton>
@@ -74,6 +75,9 @@
     int? _entityId;
     IReadOnlyList<IBrowserFile> _selectedFiles = [];
     bool _isUploading;
+
+    void OnFilesChanged(IReadOnlyList<IBrowserFile> incoming) =>
+        _selectedFiles = incoming?.GroupBy(f => (f.Name, f.Size)).Select(g => g.First()).ToList() ?? [];
 
     void Cancel() => MudDialog.Cancel();
 

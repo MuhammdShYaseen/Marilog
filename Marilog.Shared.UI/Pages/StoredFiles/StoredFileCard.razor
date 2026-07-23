@@ -4,20 +4,17 @@
 
 @* ────────────────────────────────────────────────────────────────────────────
    StoredFileCard
-   Rule 7: any clickable card repeated in a @foreach must be its own
-   standalone component. Rule 6: MudPaper click needs the explicit
-   EventCallback attribute form, never @onclick.
+   Rule 7: standalone component for anything repeated in a @foreach.
+   Rule 6: MudPaper click needs the explicit EventCallback attribute form.
+   Read-only preview tile — clicking opens DisplayFileDetilesDialog, which
+   now owns tags/delete/download.
    ──────────────────────────────────────────────────────────────────────── *@
-<MudPaper Class="@CardClass" Outlined="true" Style="cursor:pointer; overflow:hidden;"
+<MudPaper Class="file-card" Outlined="true"
           onclick="@(EventCallback.Factory.Create(this, () => OnClicked.InvokeAsync(File)))">
-    <div style="height:120px; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey);">
-        @if (File.ContentType.StartsWith("image/"))
+    <div class="file-card-thumb">
+        @if (File.ContentType.StartsWith("image/") || File.HasThumbnail)
         {
-            <img src="@ThumbnailUrl" alt="@File.OriginalFileName" style="max-height:100%; max-width:100%; object-fit:cover;" />
-        }
-        else if (File.HasThumbnail)
-        {
-            <img src="@ThumbnailUrl" alt="@File.OriginalFileName" style="max-height:100%; max-width:100%; object-fit:contain;" />
+            <img src="@ThumbnailUrl" alt="@File.OriginalFileName" />
         }
         else
         {
@@ -40,18 +37,42 @@
     </div>
 </MudPaper>
 
+<style>
+    .file-card {
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+        .file-card:hover {
+            box-shadow: var(--mud-elevation-4);
+        }
+
+    .file-card-thumb {
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--mud-palette-background-grey);
+    }
+
+        .file-card-thumb img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: cover;
+        }
+</style>
+
 @code {
     [Parameter, EditorRequired] public StoredFileResponse File { get; set; } = null!;
     [Parameter, EditorRequired] public string ThumbnailUrl { get; set; } = string.Empty;
-    [Parameter] public bool IsSelected { get; set; }
     [Parameter, EditorRequired] public EventCallback<StoredFileResponse> OnClicked { get; set; }
-
-    string CardClass => IsSelected ? "pa-0 border-primary" : "pa-0";
 
     static string IconForContentType(string contentType) => contentType switch
     {
         var ct when ct.StartsWith("application/pdf") => Icons.Material.Filled.PictureAsPdf,
-        var ct when ct.StartsWith("application/vnd.openxmlformats") || ct.Contains("word") => Icons.Material.Filled.Description,
+        var ct when ct.Contains("word") => Icons.Material.Filled.Description,
         var ct when ct.Contains("sheet") || ct.Contains("excel") => Icons.Material.Filled.TableChart,
         _ => Icons.Material.Filled.InsertDriveFile
     };

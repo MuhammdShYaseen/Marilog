@@ -26,7 +26,7 @@
                       DeleteFileFunc="@((id, ct) => StoredFileService.DeleteAsync(id, ct))"
                       AddTagFunc="@((id, name, color, ct) => StoredFileService.AddTagAsync(id, name, color, ct))"
                       RemoveTagFunc="@((id, tagId, ct) => StoredFileService.RemoveTagAsync(id, tagId, ct))"
-                      SaveContentFunc="@((id, content, ct) => StoredFileService.UpdateContentFromUserAsync(id, content, ct))"
+                      SaveContentFunc="@SaveContentAsync"
                       BuildDownloadUrl="@(file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/stream")"
                       BuildThumbnailUrl="@(file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream")"
                       OnUploadClicked="@HandleUploadClickedAsync" />
@@ -34,17 +34,24 @@
 @code {
     SharedStoredFilePage _sharedPage = default!;
 
-    private async Task<PagedResponse<StoredFileResponse>> SearchByTextAsync(string query, EntityType entityType, int page, int pageSize, CancellationToken ct)
-    {
-        return await StoredFileService.FullTextSearchAsync(query, page, pageSize, entityType, ct);
+    Task<PagedResponse<StoredFileResponse>> SearchByTextAsync(string query, EntityType entityType, int page, int pageSize, CancellationToken ct) =>
+        StoredFileService.FullTextSearchAsync(query, page, pageSize, entityType, ct);
 
-    }
-    
-    private async Task<IReadOnlyList<StoredFileResponse>> SearchByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct)
+    Task<IReadOnlyList<StoredFileResponse>> SearchByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct) =>
+        StoredFileService.GetByTagsAsync(tags, ct);
+
+    async Task<bool> SaveContentAsync(int id, string content, CancellationToken ct)
     {
-       return await StoredFileService.GetByTagsAsync(tags, ct);
+        try
+        {
+            await StoredFileService.UpdateContentFromUserAsync(id, content, ct);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
-    
 
     async Task HandleUploadClickedAsync()
     {
@@ -83,8 +90,4 @@
         var uploaded = await StoredFileService.UploadAsync(requests, ct);
         return uploaded.Count > 0;
     }
-
-
-
-    
 }

@@ -4,11 +4,13 @@
 
 @* ────────────────────────────────────────────────────────────────────────────
    SharedStoredFileTable
-   List-mode rendering for rule 14's dual view. OnRowClick built explicitly
-   per rule 18 rather than an inline markup lambda.
+   Stateless, read-only list rendering — clicking a row opens the full-screen
+   viewer (DisplayFileDetilesDialog), which now owns tags/delete/download.
+   OnRowClick built explicitly per rule 18 rather than an inline markup
+   lambda.
    ──────────────────────────────────────────────────────────────────────── *@
 <MudTable Items="@Items" Hover="true" Dense="true" Loading="@IsLoading"
-          RowClassFunc="@RowClassFunc" OnRowClick="@_rowClickCallback" T="StoredFileResponse">
+          OnRowClick="@_rowClickCallback" T="StoredFileResponse">
     <HeaderContent>
         <MudTh>Name</MudTh>
         <MudTh>Type</MudTh>
@@ -45,7 +47,6 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<StoredFileResponse> Items { get; set; } = [];
     [Parameter] public bool IsLoading { get; set; }
-    [Parameter] public StoredFileResponse? SelectedItem { get; set; }
     [Parameter, EditorRequired] public EventCallback<StoredFileResponse> OnRowSelected { get; set; }
 
     EventCallback<TableRowClickEventArgs<StoredFileResponse>> _rowClickCallback;
@@ -61,9 +62,6 @@
         if (e.Item is not null)
             await OnRowSelected.InvokeAsync(e.Item);
     }
-
-    string RowClassFunc(StoredFileResponse item, int index) =>
-        SelectedItem is not null && item.Id == SelectedItem.Id ? "mud-theme-primary-hover selected-row" : string.Empty;
 
     static string IconForContentType(string contentType) => contentType switch
     {

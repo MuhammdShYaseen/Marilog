@@ -4,6 +4,7 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.StoredFiles
 @inject IDialogService DialogService
+
 @* ────────────────────────────────────────────────────────────────────────────
    SharedStoredFilePage
    No unfiltered "browse everything" query exists on IStoredFileService, so
@@ -11,9 +12,14 @@
    EntityType — FullTextSearchAsync has no "any type" option) or filter by
    tag (GetByTagsAsync, cross-entity, no paging support). Owns search/view
    UI state only; every service call happens through a delegate from the
-   Platform host (rule 2/3). Dialogs (Upload) are opened by the host, never
-   here (rule 4) — OnUploadClicked bubbles up, and the host calls back into
-   RefreshCurrentSearchAsync via @ref once the dialog reports success.
+   Platform host (rule 2/3).
+
+   Selecting a file opens DisplayFileDetilesDialog full-screen (WhatsApp-Web
+   style) instead of showing an inline detail panel — that panel is retired.
+   IDialogService is injected directly here (allowed per rule 2 — it's a
+   UI-level service, not a data service) to open that viewer; the Upload
+   dialog is still opened by the Platform host (OnUploadClicked bubbles up)
+   since this page has no upload-context (EntityType/EntityId) of its own.
    ──────────────────────────────────────────────────────────────────────── *@
 <MudPaper Class="pa-4" Elevation="0">
     <div class="d-flex justify-space-between align-center mb-4">
@@ -21,9 +27,9 @@
         <div class="d-flex align-center gap-2">
             <MudButtonGroup Variant="Variant.Outlined">
                 <MudIconButton Icon="@Icons.Material.Filled.ViewList" Color="@(_viewMode == ViewMode.List ? Color.Primary : Color.Default)"
-                                OnClick="@(() => _viewMode = ViewMode.List)" />
+                               OnClick="@(() => _viewMode = ViewMode.List)" />
                 <MudIconButton Icon="@Icons.Material.Filled.GridView" Color="@(_viewMode == ViewMode.Grid ? Color.Primary : Color.Default)"
-                                OnClick="@(() => _viewMode = ViewMode.Grid)" />
+                               OnClick="@(() => _viewMode = ViewMode.Grid)" />
             </MudButtonGroup>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.UploadFile"
@@ -92,7 +98,6 @@
         @if (_viewMode == ViewMode.List)
         {
             <SharedStoredFileTable Items="@_files" IsLoading="@_isLoading"
-                                   SelectedItem="@_selectedFile"
                                    OnRowSelected="@SelectFileAsync" />
         }
         else
@@ -102,7 +107,6 @@
                 {
                     <MudItem xs="6" sm="4" md="3">
                         <StoredFileCard File="@file" ThumbnailUrl="@BuildThumbnailUrl(file)"
-                                        IsSelected="@(_selectedFile?.Id == file.Id)"
                                         OnClicked="@SelectFileAsync" />
                     </MudItem>
                 }
@@ -113,20 +117,8 @@
         {
             <div class="d-flex justify-center mt-4">
                 <MudPagination Count="@_pagedInfo.TotalPages" Selected="@_pagedInfo.Page"
-                                SelectedChanged="@(p => SearchByTextAsync(p))" />
+                               SelectedChanged="@(p => SearchByTextAsync(p))" />
             </div>
-        }
-
-        @if (_selectedFile is not null)
-        {
-            <SharedStoredFileDetailPanel File="@_selectedFile"
-                                        BuildDownloadUrl="@BuildDownloadUrl"
-                                        BuildThumbnailUrl="@BuildThumbnailUrl"
-                                        DeleteFileFunc="@DeleteFileFunc"
-                                        AddTagFunc="@AddTagFunc"
-                                        RemoveTagFunc="@RemoveTagFunc"
-                                        SaveContentFunc="@SaveContentFunc"
-                                        OnChanged="@RefreshCurrentSearchAsync" />
         }
     }
 </MudPaper>
@@ -142,7 +134,7 @@
     [Parameter, EditorRequired] public Func<int, CancellationToken, Task> DeleteFileFunc { get; set; } = default!;
     [Parameter, EditorRequired] public Func<int, string, string, CancellationToken, Task> AddTagFunc { get; set; } = default!;
     [Parameter, EditorRequired] public Func<int, int, CancellationToken, Task> RemoveTagFunc { get; set; } = default!;
-    [Parameter] public Func<int, string, CancellationToken, Task>? SaveContentFunc { get; set; }
+    [Parameter] public Func<int, string, CancellationToken, Task<bool>>? SaveContentFunc { get; set; }
     [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
     [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
     [Parameter, EditorRequired] public EventCallback OnUploadClicked { get; set; }
@@ -160,7 +152,6 @@
 
     List<StoredFileResponse> _files = [];
     PagedResponse<StoredFileResponse>? _pagedInfo;
-    StoredFileResponse? _selectedFile;
     bool _isLoading;
 
     const int PageSize = 24;
@@ -180,7 +171,6 @@
     {
         _mode = SearchMode.Text;
         _isLoading = true;
-        _selectedFile = null;
         StateHasChanged();
         try
         {
@@ -205,7 +195,6 @@
         _mode = SearchMode.Tags;
         _pagedInfo = null;
         _isLoading = true;
-        _selectedFile = null;
         StateHasChanged();
         try
         {
@@ -222,53 +211,42 @@
         }
     }
 
-    void SelectFile(StoredFileResponse file) =>
-        _selectedFile = _selectedFile?.Id == file.Id ? null : file;
-
-    /// <summary>Called by the Platform host (via @ref) after a successful upload, and
-    /// internally after a tag change or delete, to re-run whichever search is active.</summary>
-    public async Task RefreshCurrentSearchAsync()
+    /// <summary>Called by the Platform host (via @ref) after a successful upload, to
+    /// re-run whichever search is active. Also called internally after the file
+    /// viewer dialog closes, since tag/delete edits happen inside it now.</summary>
+    public Task RefreshCurrentSearchAsync() => _mode switch
     {
-        var previouslySelectedId = _selectedFile?.Id;
+        SearchMode.Text => SearchByTextAsync(_pagedInfo?.Page ?? 1),
+        SearchMode.Tags => SearchByTagsAsync(),
+        _ => Task.CompletedTask
+    };
 
-        switch (_mode)
-        {
-            case SearchMode.Text:
-                await SearchByTextAsync(_pagedInfo?.Page ?? 1);
-                break;
-            case SearchMode.Tags:
-                await SearchByTagsAsync();
-                break;
-        }
-
-        _selectedFile = _files.FirstOrDefault(f => f.Id == previouslySelectedId);
-    }
-
-
-    private async Task SelectFileAsync(
-    StoredFileResponse file)
+    async Task SelectFileAsync(StoredFileResponse file)
     {
-        var parameters = new DialogParameters
+        var parameters = new DialogParameters<DisplayFileDetilesDialog>
         {
-            ["File"] = file,
-            ["BuildDownloadUrl"] = BuildDownloadUrl,
-            ["BuildThumbnailUrl"] = BuildThumbnailUrl,
-            ["SaveContentFunc"] = SaveContentFunc
+            { x => x.File, file },
+            { x => x.BuildDownloadUrl, BuildDownloadUrl },
+            { x => x.BuildThumbnailUrl, BuildThumbnailUrl },
+            { x => x.SaveContentFunc, SaveContentFunc },
+            { x => x.DeleteFileFunc, DeleteFileFunc },
+            { x => x.AddTagFunc, AddTagFunc },
+            { x => x.RemoveTagFunc, RemoveTagFunc }
         };
 
         var options = new DialogOptions
         {
-            CloseButton = true,
+            FullScreen = true,
+            CloseButton = false,
             CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
             BackdropClick = true
         };
 
-        await DialogService.ShowAsync<
-            DisplayFileDetilesDialog>(
-            file.OriginalFileName,
-            parameters,
-            options);
+        var dialog = await DialogService.ShowAsync<DisplayFileDetilesDialog>(file.OriginalFileName, parameters, options);
+        await dialog.Result;
+
+        // Tags/delete happen inside the dialog now, so re-sync the list on close
+        // regardless of how it closed (Close button, Delete, Esc, backdrop).
+        await RefreshCurrentSearchAsync();
     }
 }

@@ -1,142 +1,251 @@
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
-
 @namespace Marilog.Shared.UI.Pages.StoredFiles
 
-<MudDialog>
-
+@* ────────────────────────────────────────────────────────────────────────────
+   DisplayFileDetilesDialog
+   Full-screen viewer. Colors are theme-adaptive via CSS Canvas/CanvasText +
+   color-mix() rather than hardcoded values, so it follows whatever palette
+   the app is in (light/dark) automatically. The top title bar uses the
+   dialog's natural system color (no gray overlay). Add-Tag sits inline with
+   the tag chips at the top of the content area, not mixed into the file
+   action icons — same row, same icon language (Sell = the recognizable
+   price-tag glyph), so "add a tag" reads as one action next to the tags
+   it affects.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog Class="wa-viewer">
     <TitleContent>
-
-        <MudStack Row="true"
-                  AlignItems="AlignItems.Center"
-                  Spacing="2">
-
-            <MudIcon Icon="@GetFileIcon()"
-                     Color="Color.Primary" />
-
-            <MudStack Spacing="0">
-
-                <MudText Typo="Typo.h6">
-                    @File.OriginalFileName
-                </MudText>
-
-                <MudText Typo="Typo.caption"
-                         Color="Color.Secondary">
-
-                    @File.ContentType
-                    <span class="mx-1">•</span>
-                    @FormatSize(File.Size)
-
-                </MudText>
-
-            </MudStack>
-
-        </MudStack>
-
+        <div class="wa-viewer-topbar">
+            <div class="d-flex align-center gap-2 wa-viewer-title">
+                <MudIcon Icon="@GetFileIcon()" Color="Color.Inherit" />
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="wa-viewer-filename">@File.OriginalFileName</MudText>
+                    <MudText Typo="Typo.caption" Class="wa-viewer-meta">@File.ContentType · @FormatSize(File.Size)</MudText>
+                </div>
+            </div>
+            <div class="d-flex align-center gap-1">
+                <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Inherit"
+                               Href="@BuildDownloadUrl(File)" Target="_blank" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Inherit"
+                               onclick="@(EventCallback.Factory.Create(this, DeleteAsync))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" OnClick="Close" />
+            </div>
+        </div>
     </TitleContent>
 
-
     <DialogContent>
+        <div class="wa-viewer-body">
+            <div class="wa-viewer-tags">
+                @if (File.Tags is { Count: > 0 })
+                {
+                    @foreach (var tag in File.Tags)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="@ParseColor(tag.Color)"
+                                 OnClose="@(() => RemoveTagAsync(tag.Id))">@tag.Name</MudChip>
+                    }
+                }
 
-        <SharedStoredFileTabs File="@File"
-                              DownloadUrl="@BuildDownloadUrl(File)"
-                              ThumbnailUrl="@BuildThumbnailUrl(File)"
-                              SaveContentFunc="@SaveContentFunc" />
+                <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" AnchorOrigin="Origin.BottomLeft">
+                    <div class="pa-3" style="width:220px">
+                        <MudTextField T="string" @bind-Value="_newTagName" Label="Tag name" Margin="Margin.Dense"
+                                      Variant="Variant.Outlined" Class="mb-2" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">Color</MudText>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            @foreach (var color in _palette)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="@color"
+                                         Variant="@(color == _newTagColor ? Variant.Filled : Variant.Outlined)"
+                                         OnClick="@(() => _newTagColor = color)">@color</MudChip>
+                            }
+                        </div>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                   Disabled="@string.IsNullOrWhiteSpace(_newTagName)" OnClick="AddTagAsync">
+                            Add Tag
+                        </MudButton>
+                    </div>
+                </MudMenu>
+            </div>
 
+            <div class="wa-viewer-content">
+                <SharedStoredFileTabs File="@File"
+                                      DownloadUrl="@BuildDownloadUrl(File)"
+                                      ThumbnailUrl="@BuildThumbnailUrl(File)"
+                                      SaveContentFunc="@SaveContentFunc" />
+            </div>
+        </div>
     </DialogContent>
-
-
-    <DialogActions>
-
-        <MudButton OnClick="Close">
-
-            Close
-
-        </MudButton>
-
-    </DialogActions>
-
 </MudDialog>
 
-
-@code
-{
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = default!;
-
-
-    [Parameter, EditorRequired]
-    public StoredFileResponse File { get; set; } = null!;
-
-
-    [Parameter, EditorRequired]
-    public Func<StoredFileResponse, string>
-        BuildDownloadUrl
-    { get; set; } = default!;
-
-
-    [Parameter, EditorRequired]
-    public Func<StoredFileResponse, string>
-        BuildThumbnailUrl
-    { get; set; } = default!;
-
-
-    [Parameter]
-    public Func<int, string, CancellationToken, Task>?
-        SaveContentFunc
-    { get; set; }
-
-
-    private void Close()
-    {
-        MudDialog.Close();
+<style>
+    .wa-viewer.mud-dialog {
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        background: Canvas;
+        color: CanvasText;
+        box-shadow: none;
+        border-radius: 0;
     }
 
+    .wa-viewer .mud-dialog-title,
+    .wa-viewer .mud-dialog-content {
+        background: transparent;
+        color: CanvasText;
+    }
 
-    private string GetFileIcon()
+    /* Top bar: no gray overlay — just the dialog's natural system color. */
+    .wa-viewer-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 4px;
+    }
+
+    .wa-viewer-filename {
+        color: CanvasText;
+    }
+
+    .wa-viewer-meta {
+        color: color-mix(in srgb, CanvasText 70%, Canvas 30%);
+    }
+
+    .wa-viewer-body {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        min-height: 75vh;
+        padding: 8px 16px 24px;
+    }
+
+    .wa-viewer-tags {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Generous, comfortable room for the file/text preview itself. */
+    .wa-viewer-content {
+        flex: 1;
+        padding: 24px;
+        background: color-mix(in srgb, Canvas 97%, CanvasText 3%);
+        border-radius: 12px;
+    }
+
+    .pdf-preview-frame {
+        width: 100%;
+        height: 75vh;
+        border: none;
+        border-radius: 4px;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    [Parameter, EditorRequired] public StoredFileResponse File { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<StoredFileResponse, string> BuildThumbnailUrl { get; set; } = default!;
+    [Parameter] public Func<int, string, CancellationToken, Task<bool>>? SaveContentFunc { get; set; }
+
+    /// <summary>Host wires this to IStoredFileService.DeleteAsync(id, ct).</summary>
+    [Parameter, EditorRequired] public Func<int, CancellationToken, Task> DeleteFileFunc { get; set; } = default!;
+    /// <summary>Host wires this to IStoredFileService.AddTagAsync(id, name, color, ct).</summary>
+    [Parameter, EditorRequired] public Func<int, string, string, CancellationToken, Task> AddTagFunc { get; set; } = default!;
+    /// <summary>Host wires this to IStoredFileService.RemoveTagAsync(id, tagId, ct).</summary>
+    [Parameter, EditorRequired] public Func<int, int, CancellationToken, Task> RemoveTagFunc { get; set; } = default!;
+
+    static readonly Color[] _palette =
+        [Color.Primary, Color.Secondary, Color.Tertiary, Color.Success, Color.Warning, Color.Error, Color.Info, Color.Dark];
+
+    string _newTagName = string.Empty;
+    Color _newTagColor = Color.Primary;
+
+    void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    async Task AddTagAsync()
     {
-        var extension = Path
-            .GetExtension(File.OriginalFileName)
-            .ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(_newTagName))
+            return;
 
+        try
+        {
+            await AddTagFunc(File.Id, _newTagName.Trim(), _newTagColor.ToString(), CancellationToken.None);
+            // Optimistic local update so the chip appears immediately — the server-assigned
+            // TagResponse.Id isn't returned by AddTagAsync, so this placeholder gets replaced
+            // with the real data once SharedStoredFilePage re-runs its search after this
+            // dialog closes. Don't rely on this Id for anything before that refresh.
+            File.Tags = (File.Tags ?? []).Append(new TagResponse { Name = _newTagName.Trim(), Color = _newTagColor.ToString() }).ToList();
+            _newTagName = string.Empty;
+            _newTagColor = Color.Primary;
+            Snackbar.Add("Tag added.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to add tag: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task RemoveTagAsync(int tagId)
+    {
+        try
+        {
+            await RemoveTagFunc(File.Id, tagId, CancellationToken.None);
+            File.Tags = File.Tags?.Where(t => t.Id != tagId).ToList();
+            Snackbar.Add("Tag removed.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to remove tag: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task DeleteAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete File",
+            $"Delete '{File.OriginalFileName}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await DeleteFileFunc(File.Id, CancellationToken.None);
+            Snackbar.Add("File deleted.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete file: {ex.Message}", Severity.Error);
+        }
+    }
+
+    string GetFileIcon()
+    {
+        var extension = Path.GetExtension(File.OriginalFileName).ToLowerInvariant();
         return extension switch
         {
-            ".pdf"
-                => Icons.Material.Filled.PictureAsPdf,
-
-            ".doc" or ".docx"
-                => Icons.Material.Filled.Description,
-
-            ".xls" or ".xlsx" or ".csv"
-                => Icons.Material.Filled.TableChart,
-
-            ".ppt" or ".pptx"
-                => Icons.Material.Filled.Slideshow,
-
-            ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp"
-                => Icons.Material.Filled.Image,
-
-            ".zip" or ".rar" or ".7z"
-                => Icons.Material.Filled.FolderZip,
-
-            _
-                => Icons.Material.Filled.InsertDriveFile
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".doc" or ".docx" => Icons.Material.Filled.Description,
+            ".xls" or ".xlsx" or ".csv" => Icons.Material.Filled.TableChart,
+            ".ppt" or ".pptx" => Icons.Material.Filled.Slideshow,
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp" => Icons.Material.Filled.Image,
+            ".zip" or ".rar" or ".7z" => Icons.Material.Filled.FolderZip,
+            _ => Icons.Material.Filled.InsertDriveFile
         };
     }
 
-
-    private static string FormatSize(long bytes)
+    static string FormatSize(long bytes) => bytes switch
     {
-        return bytes switch
-        {
-            < 1024
-                => $"{bytes} B",
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024d:F1} KB",
+        _ => $"{bytes / 1024d / 1024d:F1} MB"
+    };
 
-            < 1024 * 1024
-                => $"{bytes / 1024d:F1} KB",
-
-            _
-                => $"{bytes / 1024d / 1024d:F1} MB"
-        };
-    }
+    static Color ParseColor(string? colorName) =>
+        Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed) ? parsed : Color.Default;
 }
