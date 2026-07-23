@@ -38,10 +38,10 @@ namespace Marilog.Client.Services.SystemServices
             string query,
             int page,
             int pageSize,
-            EntityType entityType,
+            EntityType? entityType,
             CancellationToken ct = default)
         {
-            var url = $"{Base}/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}&entityType={(int)entityType}";
+            var url = $"{Base}/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}&entityType={(int)entityType.GetValueOrDefault()}";
             var response = await _http.GetFromJsonAsync<ApiResponse<PagedResponse<StoredFileResponse>>>(url, ct);
             return response?.Data ?? new PagedResponse<StoredFileResponse>();
         }

@@ -70,7 +70,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToListAsync(ct);
         }
 
-        public async Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType entityType, CancellationToken ct = default)
+        public async Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType? entityType = null, CancellationToken ct = default)
         {
             var q = _repoStoredFile.Query()
                 .AsNoTracking()
@@ -79,7 +79,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     EF.Functions.Like(f.OriginalFileName, $"%{query}%") ||
                     EF.Functions.Like(f.Content!, $"%{query}%"));
 
-                q = q.Where(f => f.EntityType == entityType);
+            if (entityType.HasValue && entityType.Value != 0)
+            {
+                q = q.Where(f => f.EntityType == entityType.Value);
+            }
 
             var total = await q.CountAsync(ct);
 
@@ -99,9 +102,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
-        public async Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(
-    IReadOnlyList<string> tags,
-    CancellationToken ct = default)
+        public async Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct = default)
         {
             var searchTerms = tags
                 .Where(x => !string.IsNullOrWhiteSpace(x))

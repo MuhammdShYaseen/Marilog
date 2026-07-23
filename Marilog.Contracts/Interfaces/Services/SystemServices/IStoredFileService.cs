@@ -10,7 +10,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         // Queries
         Task<StoredFileResponse?> GetByIdAsync(int id, CancellationToken ct = default);
         Task<IReadOnlyList<StoredFileResponse>> GetByEntityIdAsync(int entityId, EntityType entityType, CancellationToken ct = default);
-        Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType entityType, CancellationToken ct = default);
+        Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType? entityType, CancellationToken ct = default);
         Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct = default);
         Task<Stream> GetFileStreamAsync(int id, CancellationToken ct = default);
         Task<Stream?> GetThumbnailStreamAsync(int id, CancellationToken ct = default);
