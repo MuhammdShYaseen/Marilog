@@ -1,8 +1,10 @@
 ﻿using Marilog.Client.Interfaces;
+using Marilog.Client.Services.DataManagment;
 using Marilog.Client.Services.FunctionaltyServices;
 using Marilog.Client.Services.Logging;
 using Marilog.Client.Services.SystemServices;
 using Marilog.Client.Services.UiServices;
+using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
@@ -46,6 +48,10 @@ namespace Marilog.Client.Extensions
 
             //===Logging=========
             services.AddScoped<ILogReaderService, LogReaderService>();
+
+
+            //==Backup====================
+            services.AddScoped<IFullBackupService, FullBackupService>();
 
             return services;
         }

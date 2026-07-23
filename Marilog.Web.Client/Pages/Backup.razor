@@ -1,0 +1,39 @@
+﻿@page "/admin/backup"
+@using Marilog.Contracts.Interfaces.DataManagment
+@using Marilog.Shared.UI.Pages.DataBackup
+@inject IFullBackupService BackupService
+@inject IJSRuntime JS
+<SharedBackupPage   OnDownloadBackupClicked="DownloadBackupFile"
+                    OnUploadRestoreFileClicked="UploadRestoreFile" 
+                    FileExtension="@BackupService.FileExtension" />
+
+
+
+@code {
+
+    private async Task DownloadBackupFile()
+    {
+        await using var memoryStream = new MemoryStream();
+
+        await BackupService.CreateBackupAsync(memoryStream);
+
+        var bytes = memoryStream.ToArray();
+
+        Console.WriteLine($"Backup size: {bytes.Length} bytes");
+
+        await JS.InvokeVoidAsync(
+            "downloadFile",
+            $"marilog-full-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip",
+            "application/zip",
+            bytes);
+    }
+
+
+    private async Task UploadRestoreFile(IBrowserFile file)
+    {
+        await using var stream = file.OpenReadStream(maxAllowedSize: 1024L * 1024L * 1024L);
+
+        await BackupService.RestoreBackupAsync(stream);
+    }
+
+}

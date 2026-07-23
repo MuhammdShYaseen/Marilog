@@ -1,0 +1,329 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+
+@namespace Marilog.Shared.UI.Pages.DataBackup
+
+
+<MudPaper Class="pa-6">
+
+    <MudStack Spacing="1">
+
+        <MudText Typo="Typo.h5">
+            Data Backup
+        </MudText>
+
+        <MudText Typo="Typo.body2"
+                 Color="Color.Secondary">
+
+            Create a complete backup of your data or restore your system from an existing backup file.
+
+        </MudText>
+
+    </MudStack>
+
+
+    <MudDivider Class="my-6" />
+
+
+    <MudGrid Spacing="4">
+
+
+        @* =========================
+           CREATE BACKUP
+           ========================= *@
+
+        <MudItem xs="12"
+                 md="6">
+
+            <MudPaper Outlined="true"
+                      Class="pa-5 h-100">
+
+                <MudStack Spacing="3">
+
+                    <MudStack Row="true"
+                              AlignItems="AlignItems.Center"
+                              Spacing="2">
+
+                        <MudAvatar Color="Color.Primary"
+                                   Variant="Variant.Filled">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Backup" />
+
+                        </MudAvatar>
+
+
+                        <MudStack Spacing="0">
+
+                            <MudText Typo="Typo.h6">
+
+                                Create Backup
+
+                            </MudText>
+
+
+                            <MudText Typo="Typo.body2"
+                                     Color="Color.Secondary">
+
+                                Download a complete backup of your data.
+
+                            </MudText>
+
+                        </MudStack>
+
+                    </MudStack>
+
+
+                    <MudAlert Severity="Severity.Info"
+                              Variant="Variant.Outlined">
+
+                        The backup file contains the complete application data and can be used to restore the system later.
+
+                    </MudAlert>
+
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               FullWidth="true"
+                               OnClick="DownloadBackup">
+
+                        Create & Download Backup
+
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+
+        </MudItem>
+
+
+        @* =========================
+           RESTORE BACKUP
+           ========================= *@
+
+        <MudItem xs="12"
+                 md="6">
+
+            <MudPaper Outlined="true"
+                      Class="pa-5 h-100">
+
+                <MudStack Spacing="3">
+
+                    <MudStack Row="true"
+                              AlignItems="AlignItems.Center"
+                              Spacing="2">
+
+                        <MudAvatar Color="Color.Warning"
+                                   Variant="Variant.Filled">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Restore" />
+
+                        </MudAvatar>
+
+
+                        <MudStack Spacing="0">
+
+                            <MudText Typo="Typo.h6">
+
+                                Restore Backup
+
+                            </MudText>
+
+
+                            <MudText Typo="Typo.body2"
+                                     Color="Color.Secondary">
+
+                                Restore your data from an existing backup file.
+
+                            </MudText>
+
+                        </MudStack>
+
+                    </MudStack>
+
+
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>"
+                                   Files="_files"
+                                   FilesChanged="OnFilesChanged"
+                                   DragAndDrop="true"
+                                   AppendMultipleFiles="false"
+                                   MaximumFileCount="1"
+                                   Accept="@FileExtension">
+
+                    </MudFileUpload>
+
+
+                    @if (_files is { Count: > 0 })
+                    {
+                        <MudTable Items="_files"
+                                  Dense="true"
+                                  Hover="true">
+
+                            <HeaderContent>
+
+                                <MudTh>Name</MudTh>
+
+                                <MudTh>Size</MudTh>
+
+                                <MudTh></MudTh>
+
+                            </HeaderContent>
+
+
+                            <RowTemplate Context="file">
+
+                                <MudTd DataLabel="Name">
+
+                                    <MudStack Row="true"
+                                              AlignItems="AlignItems.Center"
+                                              Spacing="1">
+
+                                        <MudIcon Icon="@Icons.Material.Filled.FolderZip"
+                                                 Size="Size.Small" />
+
+                                        <MudText>
+                                            @file.Name
+                                        </MudText>
+
+                                    </MudStack>
+
+                                </MudTd>
+
+
+                                <MudTd DataLabel="Size">
+
+                                    @FormatSize(file.Size)
+
+                                </MudTd>
+
+
+                                <MudTd>
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveFile(file))" />
+
+                                </MudTd>
+
+                            </RowTemplate>
+
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudText Align="Align.Center"
+                                 Color="Color.Secondary">
+
+                            Drag & drop backup file here or click browse
+
+                        </MudText>
+                    }
+
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Restore"
+                               FullWidth="true"
+                               Disabled="@(_files is null || _files.Count == 0)"
+                               OnClick="RestoreBackup">
+
+                        Restore Backup
+
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+
+@code {
+
+    [Parameter]
+    public string FileExtension { get; set; } = ".zip";
+
+
+    [Parameter]
+    public EventCallback OnDownloadBackupClicked { get; set; }
+
+
+    [Parameter]
+    public EventCallback<IBrowserFile> OnUploadRestoreFileClicked { get; set; }
+
+
+    private IReadOnlyList<IBrowserFile>? _files;
+
+
+    private async Task DownloadBackup()
+    {
+        await OnDownloadBackupClicked.InvokeAsync();
+    }
+
+
+    private void OnFilesChanged(
+        IReadOnlyList<IBrowserFile> incoming)
+    {
+        var file = incoming?
+            .FirstOrDefault(x =>
+                string.Equals(
+                    Path.GetExtension(x.Name),
+                    FileExtension,
+                    StringComparison.OrdinalIgnoreCase));
+
+
+        _files = file is null
+            ? Array.Empty<IBrowserFile>()
+            : new[] { file };
+    }
+
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        if (_files is null)
+            return;
+
+
+        _files = _files
+            .Where(x => x != file)
+            .ToList();
+    }
+
+
+    private async Task RestoreBackup()
+    {
+        if (_files is null || _files.Count == 0)
+            return;
+
+
+        var file = _files.First();
+
+
+        await OnUploadRestoreFileClicked
+            .InvokeAsync(file);
+
+
+        _files = null;
+    }
+
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+
+
+        if (bytes < 1024 * 1024)
+            return $"{bytes / 1024d:F1} KB";
+
+
+        return $"{bytes / 1024d / 1024d:F1} MB";
+    }
+
+}

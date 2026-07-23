@@ -18,11 +18,10 @@ namespace Marilog.Client.Services.DataManagment
         {
             ArgumentNullException.ThrowIfNull(destination);
 
-            using var response = await _httpClient.PostAsync($"{Base}/create", content: null, ct);
-
+            using var response = await _httpClient.GetAsync($"{Base}/create", HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
 
-            await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+            await using var responseStream =  await response.Content.ReadAsStreamAsync(ct);
 
             await responseStream.CopyToAsync(destination, ct);
         }

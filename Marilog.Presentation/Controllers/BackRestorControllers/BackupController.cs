@@ -12,7 +12,7 @@ namespace Marilog.Presentation.Controllers.BackRestorControllers
         public BackupController(IFullBackupService backupService)
             => _backupService = backupService;
 
-        [HttpPost("create")]
+        [HttpGet("create")]
         [DisableRequestSizeLimit]
         public async Task<IActionResult> CreateBackup(CancellationToken ct)
         {
