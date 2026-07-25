@@ -85,6 +85,7 @@
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Download"
                                FullWidth="true"
+                               Disabled="_allowActions"
                                OnClick="DownloadBackup">
 
                         Create & Download Backup
@@ -149,6 +150,7 @@
                                    DragAndDrop="true"
                                    AppendMultipleFiles="false"
                                    MaximumFileCount="1"
+                                   Disabled="_allowActions"
                                    Accept="@FileExtension">
 
                     </MudFileUpload>
@@ -226,7 +228,7 @@
                                Color="Color.Warning"
                                StartIcon="@Icons.Material.Filled.Restore"
                                FullWidth="true"
-                               Disabled="@(_files is null || _files.Count == 0)"
+                               Disabled="@(_files is null || _files.Count == 0 || _allowActions == true)"
                                OnClick="RestoreBackup">
 
                         Restore Backup
@@ -259,17 +261,18 @@
 
 
     private IReadOnlyList<IBrowserFile>? _files;
-
+    private bool _allowActions = false;
 
     private async Task DownloadBackup()
     {
+        _allowActions = true;
         await OnDownloadBackupClicked.InvokeAsync();
+        _allowActions = false;
     }
 
-
-    private void OnFilesChanged(
-        IReadOnlyList<IBrowserFile> incoming)
+    private void OnFilesChanged(IReadOnlyList<IBrowserFile> incoming)
     {
+        _allowActions = true;
         var file = incoming?
             .FirstOrDefault(x =>
                 string.Equals(
@@ -281,11 +284,13 @@
         _files = file is null
             ? Array.Empty<IBrowserFile>()
             : new[] { file };
+        _allowActions = false;
     }
 
 
     private void RemoveFile(IBrowserFile file)
     {
+        _allowActions = true;
         if (_files is null)
             return;
 
@@ -293,11 +298,13 @@
         _files = _files
             .Where(x => x != file)
             .ToList();
+        _allowActions = false;
     }
 
 
     private async Task RestoreBackup()
     {
+        _allowActions = true;
         if (_files is null || _files.Count == 0)
             return;
 
@@ -310,6 +317,7 @@
 
 
         _files = null;
+        _allowActions = false;
     }
 
 

@@ -44,141 +44,114 @@
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                @bind-Value="_DocTypeId"
-                Label="Document Type"
-                Required="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-
-                    @foreach (var type in DocTypes)
-                    {
-                        <MudSelectItem Value="@type.Id">
-                            @type.Name
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
-            </MudItem>
-
-
-            <MudItem xs="12" sm="6">
-                <MudSelect T="FinancialSide?"
-                           @bind-Value="_Side"
-                           Label="Financial Side"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-
-                    @foreach (var item in Enum.GetValues<FinancialSide>())
-                    {
-                        <MudSelectItem T="FinancialSide?" Value="@item">
-                            @item.ToString()
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                <MudAutocomplete T="int"
+                                 @bind-Value="_DocTypeId"
+                                 Label="Document Type"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => DocTypes.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                 SearchFunc="@SearchDocTypes"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                @bind-Value="_CurrencyId"
-                Label="Currency"
-                Required="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-
-                    @foreach (var currency in Currencies)
-                    {
-                        <MudSelectItem Value="@currency.Id">
-                            @currency.Code
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                <MudAutocomplete T="FinancialSide?"
+                                 @bind-Value="_Side"
+                                 Label="Financial Side"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(item => item?.ToString() ?? "")"
+                                 SearchFunc="@SearchFinancialSides"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                @bind-Value="_SupplierId"
-                Label="Supplier"
-                Clearable="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-
-                    @foreach (var company in Companies)
-                    {
-                        <MudSelectItem Value="@((int?)company.Id)">
-                            @company.Name
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                <MudAutocomplete T="int"
+                                 @bind-Value="_CurrencyId"
+                                 Label="Currency"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => Currencies.FirstOrDefault(x => x.Id == id)?.Code ?? "")"
+                                 SearchFunc="@SearchCurrencies"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                @bind-Value="_BuyerId"
-                Label="Buyer"
-                Clearable="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-
-                    @foreach (var company in Companies)
-                    {
-                        <MudSelectItem Value="@((int?)company.Id)">
-                            @company.Name
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                <MudAutocomplete T="int?"
+                                 @bind-Value="_SupplierId"
+                                 Label="Supplier"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => Companies.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                 SearchFunc="@SearchCompanies"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           Value="_VesselId"
-                           ValueChanged="OnVesselChanged"
-                           Label="Vessel"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (var vessel in Vessels)
-                    {
-                        <MudSelectItem Value="@((int?)vessel.Id)">@vessel.Name</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="int?"
+                                 @bind-Value="_BuyerId"
+                                 Label="Buyer"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => Companies.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                 SearchFunc="@SearchCompanies"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                @bind-Value="_PortId"
-                Label="Port"
-                Clearable="true"
-                Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-
-                    @foreach (var port in Ports)
-                    {
-                        <MudSelectItem Value="@((int?)port.Id)">
-                            @port.Name
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                <MudAutocomplete T="int?"
+                                 Value="_VesselId"
+                                 ValueChanged="OnVesselChanged"
+                                 Label="Vessel"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => Vessels.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                 SearchFunc="@SearchVessels"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_ParentDocumentId"
-                           Label="Parent Document"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           ToStringFunc="@(id => AllDocs.FirstOrDefault(x => x.Id == id)?.DocNumber ?? "")">
+                <MudAutocomplete T="int?"
+                                 @bind-Value="_PortId"
+                                 Label="Port"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => Ports.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                 SearchFunc="@SearchPorts"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" />
+            </MudItem>
 
-                    @foreach (var doc in AllDocs.Where(x => x.Id != Document?.Id))
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)doc.Id)">
+            <MudItem xs="12" sm="6">
+                <MudAutocomplete T="int?"
+                                 @bind-Value="_ParentDocumentId"
+                                 Label="Parent Document"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => AllDocs.FirstOrDefault(x => x.Id == id)?.DocNumber ?? "")"
+                                 SearchFunc="@SearchParentDocuments"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true">
+                    <ItemTemplate Context="id">
+                        @{
+                            var doc = AllDocs.FirstOrDefault(x => x.Id == id);
+                        }
+                        @if (doc != null)
+                        {
                             <div style="display:flex; flex-direction:column; gap:2px; padding: 2px 0">
                                 <div style="display:flex; justify-content:space-between; align-items:center; gap:16px">
                                     <MudText Typo="Typo.body2" Style="font-weight:600">@doc.DocNumber</MudText>
@@ -199,26 +172,28 @@
                                     <MudText Typo="Typo.caption" Style="align-self:center; opacity:0.7">@doc.DocDate.ToString("dd MMM yyyy")</MudText>
                                 </div>
                             </div>
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                        }
+                    </ItemTemplate>
+                </MudAutocomplete>
             </MudItem>
 
-
-
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_VoyageId"
-                           Label="Voyage"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           ToStringFunc="@(id => AllVoyages.FirstOrDefault(x => x.VoyageId == id)?.VoyageNumber ?? "")">
-
-                    @foreach (var voy in AllVoyages.Where(x => x.VoyageId != Voyage?.VoyageId))
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)voy.VoyageId)">
+                <MudAutocomplete T="int?"
+                                 @bind-Value="_VoyageId"
+                                 Label="Voyage"
+                                 Clearable="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 ToStringFunc="@(id => AllVoyages.FirstOrDefault(x => x.VoyageId == id)?.VoyageNumber ?? "")"
+                                 SearchFunc="@SearchVoyages"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true">
+                    <ItemTemplate Context="id">
+                        @{
+                            var voy = AllVoyages.FirstOrDefault(x => x.VoyageId == id);
+                        }
+                        @if (voy != null)
+                        {
                             <div style="display:flex; flex-direction:column; gap:2px; padding: 2px 0">
                                 <div style="display:flex; justify-content:space-between; align-items:center; gap:16px">
                                     <MudText Typo="Typo.body2" Style="font-weight:600">@voy.VoyageNumber</MudText>
@@ -232,10 +207,9 @@
                                     <MudText Typo="Typo.caption" Style="align-self:center; opacity:0.7">Arrival Date : @voy.ArrivalDate?.ToString("dd MMM yyyy")</MudText>
                                 </div>
                             </div>
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                        }
+                    </ItemTemplate>
+                </MudAutocomplete>
             </MudItem>
 
 
@@ -384,7 +358,7 @@
         MudDialog.Cancel();
     }
 
-    
+
     private void Submit()
     {
         if (Document is null)
@@ -426,6 +400,54 @@
             }));
         }
     }
+
+
+
+    //====auto complete=====
+    private Task<IEnumerable<int>> SearchDocTypes(string value, CancellationToken token)
+    {
+
+        return Task.FromResult(DocTypes
+                   .Where(x => string.IsNullOrEmpty(value) || x.Name!.Contains(value, StringComparison.OrdinalIgnoreCase))
+                   .Select(x => x.Id));
+    }
+
+    private Task<IEnumerable<FinancialSide?>> SearchFinancialSides(string value, CancellationToken token)
+        => Task.FromResult(Enum.GetValues<FinancialSide>()
+            .Where(x => string.IsNullOrEmpty(value) || x.ToString().Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (FinancialSide?)x));
+
+    private Task<IEnumerable<int>> SearchCurrencies(string value, CancellationToken token)
+        => Task.FromResult(Currencies
+            .Where(x => string.IsNullOrEmpty(value) || x.Code.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Id));
+
+    private Task<IEnumerable<int?>> SearchCompanies(string value, CancellationToken token)
+        => Task.FromResult(Companies
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchVessels(string value, CancellationToken token)
+        => Task.FromResult(Vessels
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchPorts(string value, CancellationToken token)
+        => Task.FromResult(Ports
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchParentDocuments(string value, CancellationToken token)
+        => Task.FromResult(AllDocs
+            .Where(x => x.Id != Document?.Id)
+            .Where(x => string.IsNullOrEmpty(value) || x.DocNumber.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchVoyages(string value, CancellationToken token)
+        => Task.FromResult(AllVoyages
+            .Where(x => x.VoyageId != Voyage?.VoyageId)
+            .Where(x => string.IsNullOrEmpty(value) || x.VoyageNumber.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.VoyageId));
 
     
 }
