@@ -1,6 +1,7 @@
 using Marilog.Domain.Events;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 
 namespace Marilog.Application.EventHandlers
 {
@@ -16,24 +17,28 @@ namespace Marilog.Application.EventHandlers
         public DocumentEmailRequestedEventHandler(IEmailService emailService)
             => _emailService = emailService;
 
-        public async Task HandleAsync(DocumentEmailRequestedEvent @event,
-            CancellationToken ct = default)
+        public async Task HandleAsync(DocumentEmailRequestedEvent @event, CancellationToken ct = default)
         {
-            await _emailService.CreateAsync(
-                entityType:   @event.EntityType,
-                entityId:     @event.DocumentId,
-                subject:      @event.Subject,
-                body:         @event.Body,
-                direction:    @event.Direction,
-                participants: @event.Participants
-                .Select(p => new EmailParticipantResponse 
-                      { 
-                          DisplayName = p.DisplayName,
-                          EmailAddress = p.EmailAddress,
-                          ParticipantId = p.ParticipantId,
-                          ParticipantType = p.ParticipantType,
-                          Role = p.Role }).ToList()
-                           ,ct: ct);
-                      }
+            var req = new CreateEmailRequest
+            {
+                EntityType = @event.EntityType,
+                EntityId = @event.DocumentId,
+                Subject = @event.Subject,
+                Body = @event.Body,
+                Direction = @event.Direction,
+                Participants = @event.Participants
+                .Select(p => new EmailParticipantResponse
+                {
+                    DisplayName = p.DisplayName,
+                    EmailAddress = p.EmailAddress,
+                    ParticipantId = p.ParticipantId,
+                    ParticipantType = p.ParticipantType,
+                    Role = p.Role
+                }).ToList()
+            };
+            await _emailService.CreateAsync(req, ct);
+
+    }
+                
     }
 }

@@ -28,9 +28,9 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data;
         }
 
-        public async Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(string entityType, int entityId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(EntityType entityType, int entityId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-entity?entityType={Uri.EscapeDataString(entityType)}&entityId={entityId}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-entity?entityType={entityType}&entityId={entityId}", ct);
             return response?.Data ?? [];
         }
 
@@ -48,24 +48,27 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<EmailResponse> CreateAsync(string entityType, int entityId, string subject, string body,
-            EmailDirection direction, IReadOnlyList<EmailParticipantResponse> participants,
+        public async Task<EmailResponse> CreateAsync(CreateEmailRequest request,
             CancellationToken ct = default)
         {
-            var request = new CreateEmailRequest
-            {
-                EntityType = entityType,
-                EntityId = entityId,
-                Subject = subject,
-                Body = body,
-                Direction = direction,
-                Participants = participants
-            };
-
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             http.EnsureSuccessStatusCode();
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<EmailResponse>>(ct);
             return response!.Data!;
+        }
+
+        public async Task<EmailResponse> UpsertAsync(int emailId, EntityType entityType, int entityId, CancellationToken ct = default)
+        {
+            var request = new UpsertEmailEntityRequest
+            {
+                EntityType = entityType,
+                EntityId = entityId
+            };
+
+            var response = await _http.PutAsJsonAsync($"api/emails/{emailId}/entity", request, ct);
+            response.EnsureSuccessStatusCode();
+
+            return (await response.Content.ReadFromJsonAsync<EmailResponse>(cancellationToken: ct))!;
         }
 
         public async Task MarkAsSentAsync(int id, DateTime sentAt, string? externalId = null, CancellationToken ct = default)

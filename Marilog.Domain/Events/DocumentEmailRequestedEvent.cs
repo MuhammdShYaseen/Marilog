@@ -18,7 +18,7 @@ namespace Marilog.Domain.Events
     public sealed record DocumentEmailRequestedEvent(
         int DocumentId,
         string DocNumber,
-        string EntityType,
+        EntityType EntityType,
         string Subject,
         string Body,
         EmailDirection Direction,

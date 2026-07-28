@@ -5,7 +5,7 @@ namespace Marilog.Contracts.DTOs.Requests.EmailDTOs
 {
     public class CreateEmailRequest
     {
-        public string EntityType { get; set; } = default!;
+        public EntityType EntityType { get; set; } = default!;
         public int EntityId { get; set; }
 
         public string Subject { get; set; } = default!;

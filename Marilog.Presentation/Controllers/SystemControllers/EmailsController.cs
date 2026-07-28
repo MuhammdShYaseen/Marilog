@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -38,7 +39,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
         [HttpGet("by-entity")]
         public async Task<ActionResult<IReadOnlyList<EmailResponse>>> GetByEntity(
-            [FromQuery] string entityType,
+            [FromQuery] EntityType entityType,
             [FromQuery] int entityId,
             CancellationToken ct)
         {
@@ -74,16 +75,17 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             [FromBody] CreateEmailRequest request,
             CancellationToken ct)
         {
-            var email = await _service.CreateAsync(
-                request.EntityType,
-                request.EntityId,
-                request.Subject,
-                request.Body,
-                request.Direction,
-                request.Participants,
-                ct);
+            var email = await _service.CreateAsync(request, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = email.Id }, ApiResponse<EmailResponse>.Ok(email));
+        }
+
+        [HttpPut("{emailId:int}/entity")]
+        public async Task<ActionResult<EmailResponse>> UpsertEntity(int emailId, [FromBody] UpsertEmailEntityRequest request, CancellationToken ct)
+        {
+            var result = await _service.UpsertAsync(emailId, request.EntityType,
+                request.EntityId, ct);
+            return Ok(result);
         }
 
         [HttpPatch("{id:int}/mark-sent")]

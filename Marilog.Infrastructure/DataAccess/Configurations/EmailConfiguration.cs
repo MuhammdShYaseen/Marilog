@@ -13,7 +13,10 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).UseIdentityColumn();
 
-            builder.Property(x => x.EntityType).IsRequired().HasMaxLength(50);
+            builder.Property(x => x.EntityType)
+                   .IsRequired()
+                   .HasConversion<string>()
+                   .HasMaxLength(50);
             builder.Property(x => x.EntityId).IsRequired();
             builder.Property(x => x.Subject).IsRequired().HasMaxLength(300);
             builder.Property(x => x.Body).IsRequired().HasColumnType("nvarchar(max)");

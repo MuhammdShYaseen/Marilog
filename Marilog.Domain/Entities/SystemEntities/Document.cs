@@ -270,7 +270,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             AddDomainEvent(new DocumentEmailRequestedEvent(
                 DocumentId: Id,
                 DocNumber: DocNumber,
-                EntityType: nameof(Document),
+                EntityType: EntityType.Document,
                 Subject: subject,
                 Body: body,
                 Direction: direction,

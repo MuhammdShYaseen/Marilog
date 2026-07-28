@@ -1,9 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Kernel.Enums;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
+
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -18,7 +16,7 @@ namespace Marilog.Domain.Entities.SystemEntities
     {
 
         // ── Polymorphic reference to owning entity ────────────────────────────────
-        public string EntityType { get; private set; } = null!;  // "Document" | "SwiftTransfer" | "Voyage"
+        public EntityType EntityType { get; private set; } = 0;  // "Document" | "SwiftTransfer" | "Voyage"
         public int EntityId { get; private set; }
 
         // ── Content ───────────────────────────────────────────────────────────────
@@ -48,17 +46,10 @@ namespace Marilog.Domain.Entities.SystemEntities
         private Email() { }
 
         // ── Factory ───────────────────────────────────────────────────────────────
-        public static Email Create(
-            string entityType,
-            int entityId,
-            string subject,
-            string body,
-            EmailDirection direction = EmailDirection.Outbound)
+        public static Email Create(EntityType entityType, int entityId, string subject, string body, EmailDirection direction = EmailDirection.Outbound)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(entityType);
             ArgumentException.ThrowIfNullOrWhiteSpace(subject);
             ArgumentException.ThrowIfNullOrWhiteSpace(body);
-            if (entityId <= 0) throw new ArgumentException("Invalid EntityId.");
 
             return new Email
             {
@@ -71,6 +62,12 @@ namespace Marilog.Domain.Entities.SystemEntities
             };
         }
 
+
+        public void Upsert(EntityType entityType, int entityId)
+        {
+            EntityType = entityType;
+            EntityId = entityId;
+        }
         // ── Participants ──────────────────────────────────────────────────────────
         public EmailParticipant AddParticipant(
             ParticipantRole role,
