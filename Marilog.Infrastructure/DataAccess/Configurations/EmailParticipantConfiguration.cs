@@ -29,12 +29,9 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.DisplayName).HasMaxLength(200);
             builder.Property(x => x.EmailAddress).HasMaxLength(200);
 
-            // ── Polymorphic navigations — no real DB FK ───────────────────────────
-            builder.Ignore(x => x.Company);
-            //builder.Ignore(x => x.Vessel);
+            
 
             // ── Indexes ───────────────────────────────────────────────────────────
-            // EmailId index is created automatically by EF via the FK in EmailConfiguration
             builder.HasIndex(x => new { x.ParticipantType, x.ParticipantId });
             builder.HasIndex(x => x.Role);
         }

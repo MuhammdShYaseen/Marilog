@@ -14,7 +14,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public int ParticipantId { get;  set; }  // CompanyId or VesselId
 
         // ── Navigation (resolved at query time) ───────────────────────────────────
-        public int CompanyId { get;  set; }
+        //public int CompanyId { get;  set; }
 
 
 

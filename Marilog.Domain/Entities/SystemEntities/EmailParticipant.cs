@@ -1,6 +1,4 @@
-﻿using Marilog.Domain.Common;
-using Marilog.Kernel.Enums;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -11,21 +9,11 @@ namespace Marilog.Domain.Entities.SystemEntities
     /// </summary>
     public class EmailParticipant
     {
-        public int Id { get; private set; }
-        
+        public int Id { get; private set; } 
         public int EmailId { get; private set; }
-        //public Email Email { get; private set; } = null!;
         public ParticipantRole Role { get; private set; }
         public ParticipantType ParticipantType { get; private set; }
         public int ParticipantId { get; private set; }  // CompanyId or VesselId
-
-        // ── Navigation (resolved at query time) ───────────────────────────────────
-        public Company Company { get; private set; } = null!;
-
-
-        public int CompanyId {  get; private set; }
-
-       
 
         // ── Fallback / override display ───────────────────────────────────────────
         public string? DisplayName { get; private set; }  // override Company/Vessel name if needed
