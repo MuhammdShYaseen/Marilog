@@ -254,6 +254,13 @@
     public enum ParticipantRole { From, To, Cc }
     public enum ParticipantType { Company, Vessel }
 
+    public enum EmailProviderType
+    {
+        Imap = 0,
+        MicrosoftGraph = 1,
+        Gmail = 2
+    }
+
 
     //Payroll Enums
     public enum PayrollStatus { Draft, Approved, PartiallyPaid, FullyPaid, Cancelled }

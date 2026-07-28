@@ -31,6 +31,14 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasConversion<string>()
                    .HasMaxLength(20)
                    .HasDefaultValue(EmailStatus.Draft);
+            // ── Email Account ─────────────────────────────────────────────────────
+            builder.HasOne(x => x.Account)
+                   .WithMany()
+                   .HasForeignKey(x => x.AccountID)
+                   .IsRequired()
+                   .OnDelete(DeleteBehavior.Restrict);
+
+
 
             builder.Property(x => x.SentAt);
             builder.Property(x => x.ExternalId).HasMaxLength(200);
@@ -49,6 +57,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasIndex(x => x.Status);
             builder.HasIndex(x => x.SentAt);
             builder.HasIndex(x => x.ExternalId);
+            builder.HasIndex(x => x.AccountID);
         }
     }
 }

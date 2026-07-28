@@ -8,6 +8,7 @@ namespace Marilog.Contracts.DTOs.Requests.EmailDTOs
         public EntityType EntityType { get; set; } = default!;
         public int EntityId { get; set; }
 
+        public int AccountID { get; set; }
         public string Subject { get; set; } = default!;
         public string Body { get; set; } = default!;
         public EmailDirection Direction { get; set; }

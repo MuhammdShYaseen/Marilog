@@ -113,7 +113,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (!request.Participants.Any(p => p.Role == ParticipantRole.To))
                 throw new InvalidOperationException("Email must have at least one recipient.");
 
-            var email = Email.Create(request.EntityType, request.EntityId, request.Subject, request.Body, request.Direction);
+            var email = Email.Create(request.EntityType, request.EntityId, request.AccountID, request.Subject, request.Body, request.Direction);
 
             foreach (var p in request.Participants)
                 email.AddParticipant(p.Role, p.ParticipantType,

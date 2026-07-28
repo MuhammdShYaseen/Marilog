@@ -32,6 +32,11 @@ namespace Marilog.Domain.Entities.SystemEntities
         private readonly List<EmailParticipant> _participants = new();
         public IReadOnlyCollection<EmailParticipant> Participants => _participants.AsReadOnly();
 
+
+        //----Email Account---------------------------------------------------------
+        public int AccountID { get; private set; }
+        public EmailAccount? Account { get; private set; }
+
         // ── Computed shortcuts ────────────────────────────────────────────────────
         [NotMapped]
         public EmailParticipant? Sender => _participants.FirstOrDefault(p => p.Role == ParticipantRole.From);
@@ -43,7 +48,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         private Email() { }
 
         // ── Factory ───────────────────────────────────────────────────────────────
-        public static Email Create(EntityType entityType, int entityId, string subject, string body, EmailDirection direction = EmailDirection.Outbound)
+        public static Email Create(EntityType entityType, int entityId, int accountId, string subject, string body, EmailDirection direction = EmailDirection.Outbound)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(subject);
             ArgumentException.ThrowIfNullOrWhiteSpace(body);
@@ -52,6 +57,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             {
                 EntityType = entityType,
                 EntityId = entityId,
+                AccountID = accountId,
                 Subject = subject,
                 Body = body,
                 Direction = direction,
