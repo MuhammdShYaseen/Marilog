@@ -29,17 +29,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             EntityId = email.EntityId,
             EntityType = email.EntityType,
             ExternalId = email.ExternalId,
-
-            Attachments = email.Attachments
-                .Select(a => new EmailAttachmentResponse
-                {
-                    EmailId = a.Id,
-                    FileName = a.FileName,
-                    FilePath = a.FilePath,
-                    FileSizeBytes = a.FileSizeBytes
-                })
-                .ToList(),
-
             Participants = email.Participants
                 .Select(p => new EmailParticipantResponse
                 {
@@ -141,7 +130,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var email = await _repo.Query()
                 .Include(x => x.Participants)
-                .Include(x => x.Attachments)
                 .FirstOrDefaultAsync(x => x.Id == emailId, ct)
                 ?? throw new KeyNotFoundException(
                     $"Email {emailId} not found. Upsert only re-links an existing email " +
@@ -232,32 +220,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-        // ── Attachments ───────────────────────────────────────────────────────────
-
-        public async Task<EmailAttachmentResponse> AddAttachmentAsync(int emailId, string fileName,
-            string filePath, long fileSizeBytes, CancellationToken ct = default)
-        {
-            var email = await GetWithAttachmentsOrThrowAsync(emailId, ct);
-            var attachment = email.AddAttachment(fileName, filePath, fileSizeBytes);
-            _repo.Update(email);
-            await _repo.SaveChangesAsync(ct);
-            return new EmailAttachmentResponse
-            {
-                EmailId = attachment.Id,
-                FileName = attachment.FileName,
-                FilePath = attachment.FilePath,
-                FileSizeBytes = attachment.FileSizeBytes
-            };
-        }
-
-        public async Task RemoveAttachmentAsync(int emailId, int attachmentId,
-            CancellationToken ct = default)
-        {
-            var email = await GetWithAttachmentsOrThrowAsync(emailId, ct);
-            email.RemoveAttachment(attachmentId);
-            _repo.Update(email);
-            await _repo.SaveChangesAsync(ct);
-        }
+        
 
         // ── Private ───────────────────────────────────────────────────────────────
 
@@ -272,11 +235,5 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Email {id} not found.");
 
-        private async Task<Email> GetWithAttachmentsOrThrowAsync(int id,
-            CancellationToken ct)
-            => await _repo.Query()
-                          .Include(x => x.Attachments)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct)
-               ?? throw new KeyNotFoundException($"Email {id} not found.");
     }
 }

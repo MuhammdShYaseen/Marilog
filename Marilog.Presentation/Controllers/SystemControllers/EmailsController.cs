@@ -158,34 +158,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
-        // ─────────────────────────────────────────────
-        // Attachments
-        // ─────────────────────────────────────────────
-
-        [HttpPost("{id:int}/attachments")]
-        public async Task<ActionResult<EmailAttachmentResponse>> AddAttachment(
-            int id,
-            [FromBody] AddAttachmentRequest request,
-            CancellationToken ct)
-        {
-            var attachment = await _service.AddAttachmentAsync(
-                id,
-                request.FileName,
-                request.FilePath,
-                request.FileSizeBytes,
-                ct);
-
-            return Ok(ApiResponse<EmailAttachmentResponse>.Ok(attachment));
-        }
-
-        [HttpDelete("{id:int}/attachments/{attachmentId:int}")]
-        public async Task<IActionResult> RemoveAttachment(
-            int id,
-            int attachmentId,
-            CancellationToken ct)
-        {
-            await _service.RemoveAttachmentAsync(id, attachmentId, ct);
-            return NoContent();
-        }
+       
     }
 }

@@ -30,10 +30,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string? ExternalId { get; private set; }  // Message-ID from mail server
 
         private readonly List<EmailParticipant> _participants = new();
-        private readonly List<EmailAttachment> _attachments = new();
-
         public IReadOnlyCollection<EmailParticipant> Participants => _participants.AsReadOnly();
-        public IReadOnlyCollection<EmailAttachment> Attachments => _attachments.AsReadOnly();
 
         // ── Computed shortcuts ────────────────────────────────────────────────────
         [NotMapped]
@@ -144,24 +141,6 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
-        // ── Attachments ───────────────────────────────────────────────────────────
-        public EmailAttachment AddAttachment(string fileName, string filePath, long fileSizeBytes)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-
-            var attachment = EmailAttachment.Create(Id, fileName, filePath, fileSizeBytes);
-            _attachments.Add(attachment);
-            Touch();
-            return attachment;
-        }
-
-        public void RemoveAttachment(int attachmentId)
-        {
-            var attachment = _attachments.FirstOrDefault(a => a.Id == attachmentId)
-                ?? throw new InvalidOperationException($"Attachment {attachmentId} not found.");
-            _attachments.Remove(attachment);
-            Touch();
-        }
+        
     }
 }

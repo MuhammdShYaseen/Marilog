@@ -33,11 +33,5 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task                   RemoveParticipantAsync(int emailId, int participantId,
                                                       CancellationToken ct = default);
 
-        // ── Attachments ───────────────────────────────────────────────────────────
-        Task<EmailAttachmentResponse> AddAttachmentAsync(int emailId, string fileName,
-                                                 string filePath, long fileSizeBytes,
-                                                 CancellationToken ct = default);
-        Task                  RemoveAttachmentAsync(int emailId, int attachmentId,
-                                                    CancellationToken ct = default);
     }
 }

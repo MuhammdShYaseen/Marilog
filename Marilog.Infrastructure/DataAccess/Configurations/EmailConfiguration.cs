@@ -44,12 +44,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .IsRequired(false)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            // ── Attachments ───────────────────────────────────────────────────────
-            builder.HasMany(x => x.Attachments)
-                   .WithOne()
-                   .HasForeignKey(nameof(EmailAttachment.EmailId))
-                   .IsRequired()
-                   .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasIndex(x => new { x.EntityType, x.EntityId });
             builder.HasIndex(x => x.Status);

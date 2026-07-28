@@ -130,22 +130,5 @@ namespace Marilog.Client.Services.SystemServices
             http.EnsureSuccessStatusCode();
         }
 
-        // ── Attachments ───────────────────────────────────────────────────────────
-
-        public async Task<EmailAttachmentResponse> AddAttachmentAsync(int emailId, string fileName,
-            string filePath, long fileSizeBytes, CancellationToken ct = default)
-        {
-            var request = new AddAttachmentRequest { FileName = fileName, FilePath = filePath, FileSizeBytes = fileSizeBytes };
-            var http = await _http.PostAsJsonAsync($"{Base}/{emailId}/attachments", request, ct);
-            http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<EmailAttachmentResponse>>(ct);
-            return response!.Data!;
-        }
-
-        public async Task RemoveAttachmentAsync(int emailId, int attachmentId, CancellationToken ct = default)
-        {
-            var http = await _http.DeleteAsync($"{Base}/{emailId}/attachments/{attachmentId}", ct);
-            http.EnsureSuccessStatusCode();
-        }
     }
 }
