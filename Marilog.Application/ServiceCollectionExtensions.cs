@@ -54,7 +54,7 @@ namespace Marilog.Application
             // ── Communication ─────────────────────────────────────────────────────
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<DocumentEmailRequestedEventHandler>();
-
+            services.AddScoped<IEmailAccountService, EmailAccountService>();
 
             // ── Domain Services ───────────────────────────────────────────────────
             services.AddScoped<IPayrollCalculatorService, PayrollCalculatorService>();

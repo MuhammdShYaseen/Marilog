@@ -45,7 +45,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             AccountNav = new EmailAccountResponse 
             { 
                 EmailAddress = email.Account != null ? email.Account.EmailAddress : null,
-                EncryptedConfig = email.Account != null ? email.Account.EncryptedConfig : null,
                 DisplayName = email.Account != null ? email.Account.DisplayName : null,
                 LastSyncedAt = email.Account != null ? email.Account.LastSyncedAt : null,
                 ProviderType = email.Account != null ? email.Account.ProviderType : 0,
