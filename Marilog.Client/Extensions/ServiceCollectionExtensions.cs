@@ -28,6 +28,7 @@ namespace Marilog.Client.Extensions
             services.AddScoped<IDocumentService, DocumentService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IEmailAccountService, EmailAccountService>();
             services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IOperationsDashboardService, OperationsDashboardService>();
             services.AddScoped<IPersonService, PersonService>();
