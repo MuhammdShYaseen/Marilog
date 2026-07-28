@@ -14,7 +14,6 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string DisplayName { get; private set; } = null!;
         public string EmailAddress { get; private set; } = null!;
         public EmailProviderType ProviderType { get; private set; }
-        public bool IsActive { get; private set; } = true;
 
         // Shape depends on ProviderType:
         // Imap           -> { Host, Port, Username, Password, UseSsl, SmtpHost, SmtpPort }
@@ -58,18 +57,6 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(encryptedConfig);
             EncryptedConfig = encryptedConfig;
-            Touch();
-        }
-
-        public void Activate()
-        {
-            IsActive = true;
-            Touch();
-        }
-
-        public void Deactivate()
-        {
-            IsActive = false;
             Touch();
         }
 

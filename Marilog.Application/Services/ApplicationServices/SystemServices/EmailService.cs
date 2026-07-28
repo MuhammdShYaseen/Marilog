@@ -35,13 +35,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Id = p.Id,
                     EmailId = p.EmailId,
                     ParticipantId = p.ParticipantId,
-                    //CompanyId = p.CompanyId,
                     DisplayName = p.DisplayName,
                     EmailAddress = p.EmailAddress,
                     ParticipantType = p.ParticipantType,
                     Role = p.Role
                 })
-                .ToList()
+                .ToList(),
+            AccountID = email.AccountID,
+            AccountNav = new EmailAccountResponse 
+            { 
+                EmailAddress = email.Account != null ? email.Account.EmailAddress : null,
+                EncryptedConfig = email.Account != null ? email.Account.EncryptedConfig : null,
+                DisplayName = email.Account != null ? email.Account.DisplayName : null,
+                LastSyncedAt = email.Account != null ? email.Account.LastSyncedAt : null,
+                ProviderType = email.Account != null ? email.Account.ProviderType : 0,
+            }
+            
         };
 
         // Used for in-memory (non-queryable) entities, e.g. right after Create.

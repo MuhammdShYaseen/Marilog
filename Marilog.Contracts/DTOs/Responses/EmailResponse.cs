@@ -23,6 +23,9 @@ namespace Marilog.Contracts.DTOs.Responses
         
 
         public IReadOnlyCollection<EmailParticipantResponse> Participants { get; init; } = new List<EmailParticipantResponse>();
-        public IReadOnlyCollection<EmailAttachmentResponse> Attachments { get; init; } = new List<EmailAttachmentResponse>();
+
+        //---Account------------------------------
+        public int AccountID { get; set; }
+        public EmailAccountResponse? AccountNav {  get; set; }
     }
 }
