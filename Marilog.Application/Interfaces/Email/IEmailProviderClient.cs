@@ -1,8 +1,6 @@
-﻿
-using Marilog.Contracts.DTOs.Requests.EmailDTOs;
-using Marilog.Kernel.Enums;
+﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 
-namespace Marilog.Contracts.Interfaces.Services.EmailServices
+namespace Marilog.Application.Interfaces.Email
 {
     /// <summary>
     /// One implementation per ProviderType (Imap, MicrosoftGraph, Gmail).

@@ -1,4 +1,4 @@
-﻿using Marilog.Contracts.Interfaces.Services.EmailServices;
+﻿using Marilog.Application.Interfaces.Email;
 using Marilog.Kernel.Enums;
 
 

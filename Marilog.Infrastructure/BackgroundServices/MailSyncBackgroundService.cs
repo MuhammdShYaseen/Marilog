@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
+﻿using Marilog.Application.Interfaces.Email;
+using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;

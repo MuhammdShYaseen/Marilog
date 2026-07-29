@@ -57,7 +57,7 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<EmailResponse> UpsertAsync(int emailId, EntityType entityType, int entityId, CancellationToken ct = default)
+        public async Task<EmailResponse> RelinkAsync(int emailId, EntityType entityType, int entityId, CancellationToken ct = default)
         {
             var request = new UpsertEmailEntityRequest
             {
@@ -105,7 +105,7 @@ namespace Marilog.Client.Services.SystemServices
         // ── Participants ──────────────────────────────────────────────────────────
 
         public async Task<EmailParticipantResponse> AddParticipantAsync(int emailId, ParticipantRole role,
-            ParticipantType participantType, int participantId,
+            ParticipantType participantType, int? participantId,
             string? displayName = null, string? emailAddress = null,
             CancellationToken ct = default)
         {
@@ -141,6 +141,11 @@ namespace Marilog.Client.Services.SystemServices
         }
 
         public Task<EmailResponse> SendEmailAsync(int emailId, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<EmailResponse> CreateFromSentAsync(int accountId, InboundMessage message, CancellationToken ct = default)
         {
             throw new NotImplementedException();
         }

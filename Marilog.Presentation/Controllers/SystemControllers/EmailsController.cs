@@ -90,7 +90,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPut("{emailId:int}/entity")]
         public async Task<ActionResult<EmailResponse>> UpsertEntity(int emailId, [FromBody] UpsertEmailEntityRequest request, CancellationToken ct)
         {
-            var result = await _service.UpsertAsync(emailId, request.EntityType,
+            var result = await _service.RelinkAsync(emailId, request.EntityType,
                 request.EntityId, ct);
             return Ok(result);
         }

@@ -1,6 +1,6 @@
 ﻿using Marilog.Kernel.Enums;
 
-namespace Marilog.Contracts.Interfaces.Services.EmailServices
+namespace Marilog.Application.Interfaces.Email
 {
     public interface IEmailProviderClientFactory
     {

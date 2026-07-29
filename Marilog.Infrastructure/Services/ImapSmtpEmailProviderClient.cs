@@ -3,11 +3,11 @@ using MailKit.Net.Imap;
 using MailKit.Net.Smtp;
 using MailKit.Search;
 using MailKit.Security;
+using Marilog.Application.Interfaces.Email;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
-using Marilog.Contracts.Interfaces.Services.EmailServices;
 using MimeKit;
 
-namespace Marilog.Infrastructure.EmailProviders
+namespace Marilog.Infrastructure.Services
 {
     /// <summary>
     /// Generic IMAP (receive) / SMTP (send) client — works with any provider that
