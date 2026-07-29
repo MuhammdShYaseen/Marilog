@@ -20,105 +20,185 @@
    UI-level service, not a data service) to open that viewer; the Upload
    dialog is still opened by the Platform host (OnUploadClicked bubbles up)
    since this page has no upload-context (EntityType/EntityId) of its own.
+
+   ── Visual pass only (no logic changes) ──
+   - Header gets a subtitle + toggle group with tooltips instead of bare icons
+   - Search area wrapped in a bordered Paper with tab icons
+   - Empty state redesigned (icon + heading + hint) instead of a plain Alert
+   - Thin loading bar above results instead of relying solely on table's own spinner
+   - Result count line + refined pagination row
    ──────────────────────────────────────────────────────────────────────── *@
-<MudPaper Class="pa-4" Elevation="0">
-    <div class="d-flex justify-space-between align-center mb-4">
-        <MudText Typo="Typo.h5">Stored Files</MudText>
-        <div class="d-flex align-center gap-2">
-            <MudButtonGroup Variant="Variant.Outlined">
-                <MudIconButton Icon="@Icons.Material.Filled.ViewList" Color="@(_viewMode == ViewMode.List ? Color.Primary : Color.Default)"
-                               OnClick="@(() => _viewMode = ViewMode.List)" />
-                <MudIconButton Icon="@Icons.Material.Filled.GridView" Color="@(_viewMode == ViewMode.Grid ? Color.Primary : Color.Default)"
-                               OnClick="@(() => _viewMode = ViewMode.Grid)" />
+<MudPaper Class="pa-6" Elevation="0">
+
+    @* ── Header ─────────────────────────────────────────────────────── *@
+    <div class="d-flex justify-space-between align-start flex-wrap gap-4 mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Class="font-weight-bold">Stored Files</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Search by content or filter by tag to browse and manage documents.
+            </MudText>
+        </div>
+
+        <div class="d-flex align-center gap-3">
+            <MudButtonGroup Variant="Variant.Outlined" Color="Color.Default" Class="rounded-lg">
+                <MudTooltip Text="List view">
+                    <MudIconButton Icon="@Icons.Material.Filled.ViewList"
+                                   Color="@(_viewMode == ViewMode.List ? Color.Primary : Color.Default)"
+                                   OnClick="@(() => _viewMode = ViewMode.List)" />
+                </MudTooltip>
+                <MudTooltip Text="Grid view">
+                    <MudIconButton Icon="@Icons.Material.Filled.GridView"
+                                   Color="@(_viewMode == ViewMode.Grid ? Color.Primary : Color.Default)"
+                                   OnClick="@(() => _viewMode = ViewMode.Grid)" />
+                </MudTooltip>
             </MudButtonGroup>
+
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.UploadFile"
+                       Class="rounded-lg px-4"
                        OnClick="@(() => OnUploadClicked.InvokeAsync())">
                 Upload
             </MudButton>
         </div>
     </div>
 
-    <MudTabs Elevation="0" Rounded="true" @bind-ActivePanelIndex="_searchTabIndex" Class="mb-4">
-        <MudTabPanel Text="Search by content">
-            <MudGrid Class="mt-2">
-                <MudItem xs="12" sm="4">
-                    <MudSelect T="EntityType" @bind-Value="_entityType" Label="Entity Type"
-                               Variant="Variant.Outlined" Margin="Margin.Dense">
-                        @foreach (var type in Enum.GetValues<EntityType>())
-                        {
-                            <MudSelectItem Value="@type">@type</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField T="string" @bind-Value="_queryText" Label="Search text"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  OnKeyDown="@(async e => { if (e.Key == "Enter") await SearchByTextAsync(1); })" />
-                </MudItem>
-                <MudItem xs="12" sm="2" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
-                               OnClick="@(() => SearchByTextAsync(1))">
-                        Search
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
+    @* ── Search area ────────────────────────────────────────────────── *@
+    <MudPaper Outlined="true" Class="rounded-lg pa-3 mb-6">
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true"
+                 @bind-ActivePanelIndex="_searchTabIndex" PanelClass="pa-3">
+            <MudTabPanel Text="Search by content" Icon="@Icons.Material.Filled.Search">
+                <MudGrid AlignItems="Center.Center">
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="EntityType" @bind-Value="_entityType" Label="Entity Type"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var type in Enum.GetValues<EntityType>())
+                            {
+                                <MudSelectItem Value="@type">@type</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" 
+                                      @bind-Value="_queryText" 
+                                      Label="Search text"
+                                      Placeholder="Type a keyword and press Enter…"
+                                      Adornment="Adornment.Start" 
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Immediate="true"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      OnKeyDown="@(async e => { if (e.Key == "Enter") await SearchByTextAsync(1); })" />
+                    </MudItem>
+                    <MudItem xs="12" sm="2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                   Class="rounded-lg" Style="height:40px"
+                                   OnClick="@(() => SearchByTextAsync(1))">
+                            Search
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
 
-        <MudTabPanel Text="Filter by tag">
-            <MudGrid Class="mt-2">
-                <MudItem xs="12" sm="8">
-                    <MudTextField T="string" @bind-Value="_tagInput" Label="Tag name — press Enter to add"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  OnKeyDown="@HandleTagKeyDown" />
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        @foreach (var tag in _tagChips)
+            <MudTabPanel Text="Filter by tag" Icon="@Icons.Material.Filled.Sell">
+                <MudGrid AlignItems="Center.Center">
+                    <MudItem xs="12" sm="8">
+                        <MudTextField T="string" @bind-Value="_tagInput" Label="Tag name"
+                                      Placeholder="Type a tag and press Enter to add…"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LocalOffer"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Immediate="true"
+                                      OnKeyDown="@HandleTagKeyDown" />
+                        @if (_tagChips.Count > 0)
                         {
-                            <MudChip T="string" Size="Size.Small" OnClose="@(() => _tagChips.Remove(tag))">@tag</MudChip>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                @foreach (var tag in _tagChips)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                                             OnClose="@(() => _tagChips.Remove(tag))">@tag</MudChip>
+                                }
+                            </div>
                         }
-                    </div>
-                </MudItem>
-                <MudItem xs="12" sm="4" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
-                               Disabled="@(_tagChips.Count == 0)"
-                               OnClick="SearchByTagsAsync">
-                        Search
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-    </MudTabs>
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2 d-block">
+                                No tags added yet.
+                            </MudText>
+                        }
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                   Class="rounded-lg" Style="height:40px"
+                                   Disabled="@(_tagChips.Count == 0)"
+                                   OnClick="SearchByTagsAsync">
+                            Search
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
 
+    @* ── Results ────────────────────────────────────────────────────── *@
     @if (_mode == SearchMode.None)
     {
-        <MudAlert Severity="Severity.Info">Search by content or filter by tag to see files here.</MudAlert>
+        <div class="d-flex flex-column align-center justify-center py-12 px-4 mud-text-secondary">
+            <MudIcon Icon="@Icons.Material.Outlined.FolderOpen" Size="Size.Large" Class="mb-3" style="opacity:.5" />
+            <MudText Typo="Typo.subtitle1" Class="font-weight-medium">No files to show yet</MudText>
+            <MudText Typo="Typo.body2" Class="mt-1" Style="max-width:360px;text-align:center">
+                Use <b>Search by content</b> to find files by their text, or <b>Filter by tag</b> to browse by label.
+            </MudText>
+        </div>
     }
     else
     {
-        @if (_viewMode == ViewMode.List)
+        <div style="min-height:4px" class="mb-2">
+            @if (_isLoading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="rounded" />
+            }
+        </div>
+
+        @if (!_isLoading && _files.Count == 0)
         {
-            <SharedStoredFileTable Items="@_files" IsLoading="@_isLoading"
-                                   OnRowSelected="@SelectFileAsync" />
+            <div class="d-flex flex-column align-center justify-center py-10 mud-text-secondary">
+                <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="mb-2" style="opacity:.5" />
+                <MudText Typo="Typo.subtitle1">No matching files</MudText>
+                <MudText Typo="Typo.body2" Class="mt-1">Try a different keyword or tag.</MudText>
+            </div>
         }
         else
         {
-            <MudGrid>
-                @foreach (var file in _files)
-                {
-                    <MudItem xs="6" sm="4" md="3">
-                        <StoredFileCard File="@file" ThumbnailUrl="@BuildThumbnailUrl(file)"
-                                        OnClicked="@SelectFileAsync" />
-                    </MudItem>
-                }
-            </MudGrid>
-        }
-
-        @if (_pagedInfo is not null)
-        {
-            <div class="d-flex justify-center mt-4">
-                <MudPagination Count="@_pagedInfo.TotalPages" Selected="@_pagedInfo.Page"
-                               SelectedChanged="@(p => SearchByTextAsync(p))" />
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @(_files.Count) file@(_files.Count == 1 ? "" : "s") found
+                </MudText>
             </div>
+
+            @if (_viewMode == ViewMode.List)
+            {
+                <SharedStoredFileTable Items="@_files" IsLoading="@_isLoading"
+                                       OnRowSelected="@SelectFileAsync" />
+            }
+            else
+            {
+                <MudGrid Spacing="3">
+                    @foreach (var file in _files)
+                    {
+                        <MudItem xs="6" sm="4" md="3">
+                            <StoredFileCard File="@file" ThumbnailUrl="@BuildThumbnailUrl(file)"
+                                            OnClicked="@SelectFileAsync" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+
+            @if (_pagedInfo is not null && _pagedInfo.TotalPages > 1)
+            {
+                <div class="d-flex justify-center mt-6">
+                    <MudPagination Count="@_pagedInfo.TotalPages" Selected="@_pagedInfo.Page"
+                                   SelectedChanged="@(p => SearchByTextAsync(p))"
+                                   Color="Color.Primary" Variant="Variant.Filled" />
+                </div>
+            }
         }
     }
 </MudPaper>
