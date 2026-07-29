@@ -18,8 +18,9 @@ namespace Marilog.Contracts.Interfaces.Services.EmailServices
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<EmailResponse> CreateAsync(CreateEmailRequest request, CancellationToken ct = default);
         Task<EmailResponse> CreateFromInboundAsync(int accountId, InboundMessage message, CancellationToken ct = default);
+        Task<EmailResponse> CreateFromSentAsync(int accountId, InboundMessage message, CancellationToken ct = default);
         Task<EmailResponse> SendEmailAsync(int emailId, CancellationToken ct = default);
-        Task<EmailResponse> UpsertAsync(int emailId, EntityType entityType, int entityId, CancellationToken ct = default);
+        Task<EmailResponse> RelinkAsync(int emailId, EntityType entityType, int entityId, CancellationToken ct = default);
         Task        MarkAsSentAsync(int id, DateTime sentAt, string? externalId = null, CancellationToken ct = default);
         Task        MarkAsReceivedAsync(int id, CancellationToken ct = default);
         Task        MarkAsFailedAsync(int id, CancellationToken ct = default);
@@ -29,7 +30,7 @@ namespace Marilog.Contracts.Interfaces.Services.EmailServices
         // ── Participants ──────────────────────────────────────────────────────────
         Task<EmailParticipantResponse> AddParticipantAsync(int emailId, ParticipantRole role,
                                                    ParticipantType participantType,
-                                                   int participantId,
+                                                   int? participantId,
                                                    string? displayName = null,
                                                    string? emailAddress = null,
                                                    CancellationToken ct = default);

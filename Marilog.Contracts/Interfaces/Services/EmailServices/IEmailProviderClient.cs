@@ -1,5 +1,6 @@
-﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
-
+﻿
+using Marilog.Contracts.DTOs.Requests.EmailDTOs;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Contracts.Interfaces.Services.EmailServices
 {
@@ -9,12 +10,25 @@ namespace Marilog.Contracts.Interfaces.Services.EmailServices
     /// </summary>
     public interface IEmailProviderClient
     {
+        /// <summary>Fetches new messages from the Inbox folder.</summary>
         Task<IReadOnlyList<InboundMessage>> FetchNewMessagesAsync(
             Dictionary<string, string> config,
             DateTime since,
             CancellationToken ct = default);
 
-        Task SendAsync(
+        /// <summary>
+        /// Fetches messages already sent from this account (Sent/Sent Items
+        /// folder) — catches anything sent outside Marilog (e.g. a person
+        /// replying directly from Outlook/webmail) so it still ends up logged.
+        /// Reuses the InboundMessage shape since the fields are identical;
+        /// the caller decides Direction based on which method it called.
+        /// </summary>
+        Task<IReadOnlyList<InboundMessage>> FetchSentMessagesAsync(
+            Dictionary<string, string> config,
+            DateTime since,
+            CancellationToken ct = default);
+
+        Task<string> SendAsync(
             Dictionary<string, string> config,
             string fromAddress,
             string? fromDisplayName,

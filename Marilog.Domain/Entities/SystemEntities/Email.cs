@@ -84,7 +84,27 @@ namespace Marilog.Domain.Entities.SystemEntities
                 SentAt = receivedAt
             };
         }
-        public void Upsert(EntityType entityType, int entityId)
+
+        public static Email CreateFromSentSync(int accountId, string subject, string body,
+           string externalId, DateTime sentAt)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+            ArgumentException.ThrowIfNullOrWhiteSpace(body);
+
+            return new Email
+            {
+                AccountID = accountId,
+                EntityType = EntityType.NON,
+                EntityId = null,
+                Subject = subject,
+                Body = body,
+                Direction = EmailDirection.Outbound,
+                Status = EmailStatus.Sent,
+                ExternalId = externalId,
+                SentAt = sentAt
+            };
+        }
+        public void Relink(EntityType entityType, int entityId)
         {
             EntityType = entityType;
             EntityId = entityId;

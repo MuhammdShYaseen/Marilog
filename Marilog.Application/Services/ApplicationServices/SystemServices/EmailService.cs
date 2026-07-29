@@ -14,12 +14,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<Email> _repo;
         private readonly IEmailAccountService _accountService;
         private readonly IEmailProviderClientFactory _clientFactory;
-        public EmailService(IRepository<Email> repo, IEmailAccountService accountService, IEmailProviderClientFactory clientFactory)
+
+        public EmailService(IRepository<Email> repo, IEmailAccountService accountService,
+            IEmailProviderClientFactory clientFactory)
         {
             _repo = repo;
             _accountService = accountService;
             _clientFactory = clientFactory;
-
         }
 
         // ── Mapping ───────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             Id = email.Id,
 
+            AccountID = email.AccountID,
             Direction = email.Direction,
             SentAt = email.SentAt,
             Status = email.Status,
@@ -47,16 +49,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     ParticipantType = p.ParticipantType,
                     Role = p.Role
                 })
-                .ToList(),
-            AccountID = email.AccountID,
-            AccountNav = new EmailAccountResponse 
-            { 
-                EmailAddress = email.Account != null ? email.Account.EmailAddress : null,
-                DisplayName = email.Account != null ? email.Account.DisplayName : null,
-                LastSyncedAt = email.Account != null ? email.Account.LastSyncedAt : null,
-                ProviderType = email.Account != null ? email.Account.ProviderType : 0,
-            }
-            
+                .ToList()
         };
 
         // Used for in-memory (non-queryable) entities, e.g. right after Create.
@@ -81,6 +74,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(ToResponse)
                 .FirstOrDefaultAsync(ct);
         }
+
         public async Task<IReadOnlyList<EmailResponse>> GetUnlinkedAsync(CancellationToken ct = default)
         {
             // Powers the Triage screen — inbound emails not yet linked to any entity.
@@ -91,6 +85,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(ToResponse)
                 .ToListAsync(ct);
         }
+
         public async Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(EntityType entityType,
             int entityId, CancellationToken ct = default)
         {
@@ -149,10 +144,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return ToResponseCompiled(email);
         }
 
-
         /// <summary>
         /// Called by the mail sync background service for every message fetched
-        /// from an inbox. Always creates an unlinked email (EntityType.NON /
+        /// from the Inbox folder. Always creates an unlinked email (EntityType.NON /
         /// EntityId null) — linking happens later via RelinkAsync from the
         /// Triage screen. Sender/recipients are recorded as unmatched
         /// participants (ParticipantId null) since we have no reliable way here
@@ -161,7 +155,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         /// Company.Email), not this method's job.
         /// Attachment upload to StoredFile is NOT handled here; caller's job.
         /// </summary>
-        public async Task<EmailResponse> CreateFromInboundAsync(int accountId, InboundMessage message, CancellationToken ct = default)
+        public Task<EmailResponse> CreateFromInboundAsync(int accountId,
+            InboundMessage message, CancellationToken ct = default)
+            => CreateFromSyncedMessageAsync(accountId, message, isSent: false, ct);
+
+        /// <summary>
+        /// Called by the mail sync background service for every message found
+        /// in the account's Sent folder — catches mail sent outside Marilog
+        /// (e.g. someone replying directly from Outlook/webmail) so it still
+        /// ends up logged. Direction/Status are Outbound/Sent, not Draft.
+        /// </summary>
+        public Task<EmailResponse> CreateFromSentAsync(int accountId,
+            InboundMessage message, CancellationToken ct = default)
+            => CreateFromSyncedMessageAsync(accountId, message, isSent: true, ct);
+
+        private async Task<EmailResponse> CreateFromSyncedMessageAsync(int accountId,
+            InboundMessage message, bool isSent, CancellationToken ct)
         {
             var existingId = await _repo.Query()
                 .AsNoTracking()
@@ -172,8 +181,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (existingId is not null)
                 return (await GetByIdAsync(existingId.Value, ct))!; // already synced, avoid duplicate
 
-            var email = Email.CreateInbound(accountId, message.Subject, message.Body,
-                message.ExternalId, message.ReceivedAt);
+            var email = isSent
+                ? Email.CreateFromSentSync(accountId, message.Subject, message.Body,
+                    message.ExternalId, message.ReceivedAt)
+                : Email.CreateInbound(accountId, message.Subject, message.Body,
+                    message.ExternalId, message.ReceivedAt);
 
             email.AddParticipant(ParticipantRole.From, ParticipantType.Company,
                 participantId: null, displayName: message.FromDisplayName, emailAddress: message.FromAddress);
@@ -191,6 +203,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             return ToResponseCompiled(email);
         }
+
         /// <summary>
         /// Sends an existing Draft email through its EmailAccount's provider,
         /// then marks it Sent (or Failed if the provider call throws).
@@ -233,10 +246,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var config = await _accountService.GetDecryptedConfigAsync(email.AccountID, ct);
             var client = _clientFactory.GetClient(account.ProviderType);
 
+            string externalId;
             try
             {
-                if(account.EmailAddress != null)
-                await client.SendAsync(config, account.EmailAddress, account.DisplayName, outbound, ct);
+                externalId = await client.SendAsync(config, account.EmailAddress ?? throw new NullReferenceException("EmailAddress ==null"), account.DisplayName, outbound, ct);
             }
             catch
             {
@@ -246,23 +259,24 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw;
             }
 
-            email.MarkAsSent(DateTime.UtcNow);
+            email.MarkAsSent(DateTime.UtcNow, externalId);
             _repo.Update(email);
             await _repo.SaveChangesAsync(ct);
 
             return ToResponseCompiled(email);
         }
-        public async Task<EmailResponse> UpsertAsync(int emailId, EntityType entityType,
+
+        public async Task<EmailResponse> RelinkAsync(int emailId, EntityType entityType,
             int entityId, CancellationToken ct = default)
         {
             var email = await _repo.Query()
                 .Include(x => x.Participants)
                 .FirstOrDefaultAsync(x => x.Id == emailId, ct)
                 ?? throw new KeyNotFoundException(
-                    $"Email {emailId} not found. Upsert only re-links an existing email " +
+                    $"Email {emailId} not found. Relink only re-links an existing email " +
                     "to a different entity — use CreateAsync to create a new one.");
 
-            email.Upsert(entityType, entityId);
+            email.Relink(entityType, entityId);
 
             _repo.Update(email);
             await _repo.SaveChangesAsync(ct);
@@ -316,7 +330,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // ── Participants ──────────────────────────────────────────────────────────
 
         public async Task<EmailParticipantResponse> AddParticipantAsync(int emailId,
-            ParticipantRole role, ParticipantType participantType, int participantId,
+            ParticipantRole role, ParticipantType participantType, int? participantId,
             string? displayName = null, string? emailAddress = null,
             CancellationToken ct = default)
         {
@@ -330,7 +344,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Id = participant.Id,
                 EmailId = participant.EmailId,
                 ParticipantId = participant.ParticipantId,
-                //CompanyId = participant.CompanyId,
                 DisplayName = participant.DisplayName,
                 EmailAddress = participant.EmailAddress,
                 ParticipantType = participant.ParticipantType,
@@ -347,8 +360,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-        
-
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<Email> GetOrThrowAsync(int id, CancellationToken ct)
@@ -361,6 +372,5 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                           .Include(x => x.Participants)
                           .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Email {id} not found.");
-
     }
 }

@@ -1,5 +1,4 @@
-﻿
-using Marilog.Contracts.DTOs.Requests.EmailDTOs;
+﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
@@ -85,10 +84,19 @@ namespace Marilog.Infrastructure.BackgroundServices
             var since = account.LastSyncedAt ?? DateTime.UtcNow.AddDays(-7);
 
             var messages = await client.FetchNewMessagesAsync(config, since, ct);
+            var sentMessages = await client.FetchSentMessagesAsync(config, since, ct);
 
             foreach (var message in messages)
             {
                 var email = await emailService.CreateFromInboundAsync(account.Id, message, ct);
+
+                if (message.Attachments.Count > 0)
+                    await UploadAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct);
+            }
+
+            foreach (var message in sentMessages)
+            {
+                var email = await emailService.CreateFromSentAsync(account.Id, message, ct);
 
                 if (message.Attachments.Count > 0)
                     await UploadAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct);
