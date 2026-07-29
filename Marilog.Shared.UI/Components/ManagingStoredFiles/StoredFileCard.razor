@@ -2,7 +2,7 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Components.ManagingStoredFiles
 
-<MudPaper Class="@CardClass" Outlined="true" onclick="@(EventCallback.Factory.Create(this, HandleCardClick))">
+<MudPaper Class="@CardClass" Style="width:200px;" Outlined="true" onclick="@(EventCallback.Factory.Create(this, HandleCardClick))">
     <div class="file-thumb">
 
         @if (IsImage)
