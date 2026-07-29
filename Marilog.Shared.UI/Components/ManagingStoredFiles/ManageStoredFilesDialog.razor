@@ -132,11 +132,10 @@
             }
             else
             {
-                <MudGrid Spacing="3" Class="mt-1">
+                <div class="file-grid">
 
                     @foreach (var file in _files)
                     {
-                        <MudItem xs="6" sm="4" md="3">
                             <StoredFileCard File="file"
                                             IsSelected="@(file.Id == _selectedFile?.Id)"
                                             DownloadUrl="@BuildDownloadUrl(file)"
@@ -147,10 +146,9 @@
                                             OnDelete="DeleteAsync"
                                             OnAddTag="HandleCardAddTag"
                                             OnRemoveTag="HandleCardRemoveTag" />
-                        </MudItem>
                     }
 
-                </MudGrid>
+                </div>
             }
 
             @if (_selectedFile is not null)
@@ -554,6 +552,12 @@
 }
 
 <style>
+    .file-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
     .manage-files-table .mud-table-head {
         background-color: var(--mud-palette-background-grey);
     }
