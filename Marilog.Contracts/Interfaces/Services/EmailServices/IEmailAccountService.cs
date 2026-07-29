@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 
-namespace Marilog.Contracts.Interfaces.Services.SystemServices
+namespace Marilog.Contracts.Interfaces.Services.EmailServices
 {
     public interface IEmailAccountService
     {

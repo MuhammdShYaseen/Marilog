@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Kernel.Enums;
 using System.Net.Http.Json;
 
@@ -130,5 +130,19 @@ namespace Marilog.Client.Services.SystemServices
             http.EnsureSuccessStatusCode();
         }
 
+        public Task<IReadOnlyList<EmailResponse>> GetUnlinkedAsync(CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<EmailResponse> CreateFromInboundAsync(int accountId, InboundMessage message, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<EmailResponse> SendEmailAsync(int emailId, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

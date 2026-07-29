@@ -8,7 +8,7 @@ namespace Marilog.Contracts.DTOs.Responses
     {
         public int Id { get; set; }
         public EntityType EntityType { get;  set; } = 0;  // "Document" | "SwiftTransfer" | "Voyage"
-        public int EntityId { get;  set; }
+        public int? EntityId { get;  set; }
 
         // ── Content ───────────────────────────────────────────────────────────────
         public string Subject { get;  set; } = null!;

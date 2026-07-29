@@ -2,7 +2,7 @@
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,6 +35,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             var email = await _service.GetFullAsync(id, ct);
             return email is null ? NotFound() : Ok(ApiResponse<EmailResponse>.Ok(email));
+        }
+
+        [HttpGet("unlinked")]
+        public async Task<ActionResult<IReadOnlyList<EmailResponse>>> GetUnlinked(CancellationToken ct)
+        {
+            var result = await _service.GetUnlinkedAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<EmailResponse>>.Ok(result));
         }
 
         [HttpGet("by-entity")]
@@ -87,7 +94,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.EntityId, ct);
             return Ok(result);
         }
-
+        [HttpPost("{id:int}/send")]
+        public async Task<ActionResult<EmailResponse>> Send(int id, CancellationToken ct)
+        {
+            var result = await _service.SendEmailAsync(id, ct);
+            return Ok(ApiResponse<EmailResponse>.Ok(result));
+        }
         [HttpPatch("{id:int}/mark-sent")]
         public async Task<IActionResult> MarkAsSent(
             int id,

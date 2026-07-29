@@ -17,7 +17,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         // ── Polymorphic reference to owning entity ────────────────────────────────
         public EntityType EntityType { get; private set; } = 0;  // "Document" | "SwiftTransfer" | "Voyage"
-        public int EntityId { get; private set; }
+        public int? EntityId { get; private set; }
 
         // ── Content ───────────────────────────────────────────────────────────────
         public string Subject { get; private set; } = null!;
@@ -65,7 +65,25 @@ namespace Marilog.Domain.Entities.SystemEntities
             };
         }
 
+        public static Email CreateInbound(int accountId, string subject, string body,
+            string externalId, DateTime receivedAt)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+            ArgumentException.ThrowIfNullOrWhiteSpace(body);
 
+            return new Email
+            {
+                AccountID = accountId,
+                EntityType = EntityType.NON,
+                EntityId = null,
+                Subject = subject,
+                Body = body,
+                Direction = EmailDirection.Inbound,
+                Status = EmailStatus.Received,
+                ExternalId = externalId,
+                SentAt = receivedAt
+            };
+        }
         public void Upsert(EntityType entityType, int entityId)
         {
             EntityType = entityType;
@@ -75,7 +93,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public EmailParticipant AddParticipant(
             ParticipantRole role,
             ParticipantType participantType,
-            int participantId,
+            int? participantId,
             string? displayName = null,
             string? emailAddress = null)
         {

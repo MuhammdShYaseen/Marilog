@@ -17,7 +17,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .IsRequired()
                    .HasConversion<string>()
                    .HasMaxLength(50);
-            builder.Property(x => x.EntityId).IsRequired();
+            builder.Property(x => x.EntityId);
             builder.Property(x => x.Subject).IsRequired().HasMaxLength(300);
             builder.Property(x => x.Body).IsRequired().HasColumnType("nvarchar(max)");
 

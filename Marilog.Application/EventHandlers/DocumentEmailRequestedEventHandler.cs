@@ -1,7 +1,7 @@
 using Marilog.Domain.Events;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 
 namespace Marilog.Application.EventHandlers
 {

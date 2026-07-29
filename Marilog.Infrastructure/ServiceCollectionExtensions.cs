@@ -5,10 +5,12 @@ using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Contracts.Interfaces.DataManagment;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Infrastructure.BackgroundServices;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.Repositories;
@@ -80,6 +82,11 @@ namespace Marilog.Infrastructure
             services.AddSingleton<IFileStorageBackupService, FileStorageBackupService>();
             services.AddScoped<ISchemaVersionProvider, EfCoreSchemaVersionProvider>();
             services.AddScoped<IFullBackupService, FullBackupService>();
+
+            //=====Email=====================================================================
+            services.AddSingleton<ImapSmtpEmailProviderClient>();
+            services.AddSingleton<IEmailProviderClientFactory, EmailProviderClientFactory>();
+            services.AddHostedService<MailSyncBackgroundService>();
             return services;
 
 

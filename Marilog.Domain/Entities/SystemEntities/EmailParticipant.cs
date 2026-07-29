@@ -13,7 +13,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public int EmailId { get; private set; }
         public ParticipantRole Role { get; private set; }
         public ParticipantType ParticipantType { get; private set; }
-        public int ParticipantId { get; private set; }  // CompanyId or VesselId
+        public int? ParticipantId { get; private set; }  // CompanyId or VesselId
 
         // ── Fallback / override display ───────────────────────────────────────────
         public string? DisplayName { get; private set; }  // override Company/Vessel name if needed
@@ -25,7 +25,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             int emailId,
             ParticipantRole role,
             ParticipantType participantType,
-            int participantId,
+            int? participantId,
             string? displayName = null,
             string? emailAddress = null)
         {

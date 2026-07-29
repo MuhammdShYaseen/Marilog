@@ -7,6 +7,7 @@ using Marilog.Client.Services.UiServices;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Microsoft.Extensions.DependencyInjection;

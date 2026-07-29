@@ -1,6 +1,6 @@
 ﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Json;

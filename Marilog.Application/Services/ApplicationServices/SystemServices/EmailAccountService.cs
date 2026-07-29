@@ -2,7 +2,7 @@
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;

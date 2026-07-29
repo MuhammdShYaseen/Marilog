@@ -1,11 +1,12 @@
 ﻿using Marilog.Application.Interfaces.Events;
 using Marilog.Domain.Common;
 using Marilog.Domain.Events;
+using Marilog.Infrastructure.Dispatchers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Marilog.Infrastructure.Dispatchers;
+namespace Marilog.Infrastructure.BackgroundServices;
 
 public sealed class DomainEventProcessor : BackgroundService
 {

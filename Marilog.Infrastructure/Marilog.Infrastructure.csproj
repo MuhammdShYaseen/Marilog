@@ -7,6 +7,7 @@
     <UserSecretsId>95ab1aa9-22fb-4c89-a996-250ce6af0f1c</UserSecretsId>
   </PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="MailKit" Version="4.17.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.8" />

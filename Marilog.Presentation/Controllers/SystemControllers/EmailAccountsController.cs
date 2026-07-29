@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers

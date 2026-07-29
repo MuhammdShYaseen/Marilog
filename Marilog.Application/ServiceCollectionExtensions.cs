@@ -14,6 +14,7 @@ using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Interfaces.Ai;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Application.Services.ApplicationServices.FunctionaltyServices;
+using Marilog.Contracts.Interfaces.Services.EmailServices;
 
 
 namespace Marilog.Application
