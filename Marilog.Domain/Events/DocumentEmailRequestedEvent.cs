@@ -7,7 +7,7 @@ namespace Marilog.Domain.Events
     public sealed record EmailParticipantData(
         ParticipantRole Role,
         ParticipantType ParticipantType,
-        int ParticipantId,
+        int? ParticipantId,
         string? DisplayName = null,
         string? EmailAddress = null);
 
