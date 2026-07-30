@@ -3,7 +3,7 @@ using Marilog.Application.Interfaces.DataManagment;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace Marilog.Infrastructure.Services
+namespace Marilog.Infrastructure.Services.DataBackup
 {
     public class FileStorageBackupService : IFileStorageBackupService
     {

@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Microsoft.Extensions.Configuration;
 
-namespace Marilog.Infrastructure.Services
+namespace Marilog.Infrastructure.Services.DataBackup
 {
     public class LocalFileStorageProvider : IFileStorageProvider
     {

@@ -2,7 +2,7 @@
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marilog.Infrastructure.Services
+namespace Marilog.Infrastructure.Services.DataBackup
 {
     public class EfCoreSchemaVersionProvider : ISchemaVersionProvider
     {

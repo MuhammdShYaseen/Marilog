@@ -16,6 +16,8 @@ using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.OCR;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
+using Marilog.Infrastructure.Services.DataBackup;
+using Marilog.Infrastructure.Services.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

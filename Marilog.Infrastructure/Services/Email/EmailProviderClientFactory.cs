@@ -2,7 +2,7 @@
 using Marilog.Kernel.Enums;
 
 
-namespace Marilog.Infrastructure.Services
+namespace Marilog.Infrastructure.Services.Email
 {
     public class EmailProviderClientFactory : IEmailProviderClientFactory
     {
