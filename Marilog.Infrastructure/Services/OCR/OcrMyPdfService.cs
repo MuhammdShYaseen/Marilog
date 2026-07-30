@@ -1,5 +1,5 @@
-﻿using Marilog.Infrastructure.Models.OCR;
-using Marilog.Infrastructure.OCR.Interfaces;
+﻿using Marilog.Infrastructure.Interfaces.OCR;
+using Marilog.Infrastructure.Models.OCR;
 using Marilog.Infrastructure.OCR.Models;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using UglyToad.PdfPig;
 
 
-namespace Marilog.Infrastructure.OCR.Implementations
+namespace Marilog.Infrastructure.Services.OCR
 {
     internal class OcrMyPdfService : ISearchablePdfService
     {

@@ -1,7 +1,7 @@
 ﻿using Marilog.Contracts.DTOs.OCR;
 using System.Threading.Channels;
 
-namespace Marilog.Infrastructure.OCR.Queues
+namespace Marilog.Infrastructure.Queues.OCR
 {
     public sealed class OcrQueue
     {

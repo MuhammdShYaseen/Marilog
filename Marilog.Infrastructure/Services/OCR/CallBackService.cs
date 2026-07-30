@@ -1,8 +1,8 @@
 ﻿using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Infrastructure.OCR.Interfaces;
+using Marilog.Infrastructure.Interfaces.OCR;
 using Microsoft.Extensions.Logging;
 
-namespace Marilog.Infrastructure.OCR.Implementations
+namespace Marilog.Infrastructure.Services.OCR
 {
     public sealed class CallBackService : ICallBackService
     {

@@ -1,13 +1,13 @@
 ﻿using Marilog.Application.Interfaces.OCR;
 using Marilog.Infrastructure.BackgroundServices;
-using Marilog.Infrastructure.OCR.Implementations;
-using Marilog.Infrastructure.OCR.Interfaces;
-using Marilog.Infrastructure.OCR.Queues;
+using Marilog.Infrastructure.Interfaces.OCR;
+using Marilog.Infrastructure.Queues.OCR;
+using Marilog.Infrastructure.Services.OCR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Marilog.Infrastructure.OCR
+namespace Marilog.Infrastructure.Persistence
 {
     public static class OcrDependences
     {

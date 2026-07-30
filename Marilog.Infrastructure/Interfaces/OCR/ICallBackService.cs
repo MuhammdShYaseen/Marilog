@@ -1,5 +1,4 @@
-﻿
-namespace Marilog.Infrastructure.OCR.Interfaces
+﻿namespace Marilog.Infrastructure.Interfaces.OCR
 {
     public interface ICallBackService
     {

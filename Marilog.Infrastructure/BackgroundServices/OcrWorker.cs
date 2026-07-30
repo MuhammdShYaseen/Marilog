@@ -1,8 +1,8 @@
 ﻿
 using Marilog.Contracts.DTOs.OCR;
+using Marilog.Infrastructure.Interfaces.OCR;
 using Marilog.Infrastructure.Models.OCR;
-using Marilog.Infrastructure.OCR.Interfaces;
-using Marilog.Infrastructure.OCR.Queues;
+using Marilog.Infrastructure.Queues.OCR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

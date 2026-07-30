@@ -1,11 +1,10 @@
-﻿
-using Marilog.Infrastructure.OCR.Interfaces;
+﻿using Marilog.Infrastructure.Interfaces.OCR;
 using System.Text;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 
-namespace Marilog.Infrastructure.OCR.Implementations
+namespace Marilog.Infrastructure.Services.OCR
 {
     public sealed class PdfDirectTextExtractor : IPdfDirectTextExtractor
     {

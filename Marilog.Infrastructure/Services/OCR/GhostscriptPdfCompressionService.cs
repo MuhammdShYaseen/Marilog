@@ -1,10 +1,10 @@
-﻿using Marilog.Infrastructure.OCR.Interfaces;
+﻿using Marilog.Infrastructure.Interfaces.OCR;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 
-namespace Marilog.Infrastructure.OCR.Implementations
+namespace Marilog.Infrastructure.Services.OCR
 {
     public sealed class GhostscriptPdfCompressionService : IPdfCompressionService
     {

@@ -1,7 +1,6 @@
-﻿
-using Marilog.Infrastructure.Models.OCR;
+﻿using Marilog.Infrastructure.Models.OCR;
 
-namespace Marilog.Infrastructure.OCR.Interfaces
+namespace Marilog.Infrastructure.Interfaces.OCR
 {
     public interface ISearchablePdfService
     {

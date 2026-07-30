@@ -1,10 +1,10 @@
 ﻿using Marilog.Application.Interfaces.OCR;
 using Marilog.Contracts.DTOs.OCR;
-using Marilog.Infrastructure.OCR.Queues;
+using Marilog.Infrastructure.Queues.OCR;
 using Microsoft.Extensions.Logging;
 
 
-namespace Marilog.Infrastructure.OCR.Implementations
+namespace Marilog.Infrastructure.Services.OCR
 {
     public sealed class OcrStarter : IOcrStarter
     {

@@ -13,7 +13,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.BackgroundServices;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Dispatchers;
-using Marilog.Infrastructure.OCR;
+using Marilog.Infrastructure.Persistence;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
 using Marilog.Infrastructure.Services.DataBackup;

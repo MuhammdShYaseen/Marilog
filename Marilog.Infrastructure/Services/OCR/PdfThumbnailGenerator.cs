@@ -2,9 +2,9 @@
 using PDFtoImage;
 using SkiaSharp;
 using System.Runtime.Versioning;
-using Marilog.Infrastructure.OCR.Interfaces;
+using Marilog.Infrastructure.Interfaces.OCR;
 
-namespace Marilog.Infrastructure.OCR.Implementations
+namespace Marilog.Infrastructure.Services.OCR
 {
     [SupportedOSPlatform("windows")]
     [SupportedOSPlatform("linux")]
