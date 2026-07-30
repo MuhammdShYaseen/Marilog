@@ -68,23 +68,14 @@ namespace Marilog.Infrastructure.BackgroundServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Primary OCR failed | DocumentId: {Id}", request.DocumentId);
-                try
-                {
-                    result = await _pdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, options: ocrOptions, ct: ct);
-
-                    _logger.LogInformation("Fallback pipeline succeeded | DocumentId: {Id}", request.DocumentId);
-                }
-                catch (Exception fallbackEx)
-                {
-                    _logger.LogError(fallbackEx, "Both primary and fallback OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
-                    return;
-                }
+                
+                _logger.LogError(ex, "OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
+                return;
             }
 
             var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
             var thumbnailPath = await _pdfThumbnail.GenerateAsync(request.FilePath);
-            if (!string.IsNullOrWhiteSpace(extractedContent) || !string.IsNullOrWhiteSpace(extractedContent))
+            if (!string.IsNullOrWhiteSpace(extractedContent))
             {
                 await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, thumbnailPath, ct);
             }

@@ -1,7 +1,6 @@
 ﻿using Marilog.Application.Interfaces.Events;
 using Marilog.Contracts.DTOs.OCR;
 using Marilog.Contracts.Options;
-using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
