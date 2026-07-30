@@ -1,8 +1,10 @@
 ﻿using Marilog.Application.Interfaces.Email;
+using Marilog.Infrastructure.Services.Email.Google;
+using Marilog.Infrastructure.Services.Email.Smtp;
 using Marilog.Kernel.Enums;
 
 
-namespace Marilog.Infrastructure.Services.Email
+namespace Marilog.Infrastructure.Services.Email.Factory
 {
     public class EmailProviderClientFactory : IEmailProviderClientFactory
     {

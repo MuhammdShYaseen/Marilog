@@ -10,7 +10,7 @@ using MimeKit.Utils;
 using System.Text;
 using MessagePart = Google.Apis.Gmail.v1.Data.MessagePart;
 
-namespace Marilog.Infrastructure.Services.Email
+namespace Marilog.Infrastructure.Services.Email.Google
 {
     public sealed class GoogleApiEmailProviderClient : IEmailProviderClient
     {
@@ -205,7 +205,7 @@ namespace Marilog.Infrastructure.Services.Email
             return inbound;
         }
 
-        private static BodyResult ExtractBody(Google.Apis.Gmail.v1.Data.MessagePart? part)
+        private static BodyResult ExtractBody(MessagePart? part)
         {
             if (part is null)
                 return new BodyResult();

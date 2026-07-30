@@ -2,7 +2,7 @@
 using Marilog.Infrastructure.Models.Email;
 using Microsoft.Extensions.Logging;
 
-namespace Marilog.Infrastructure.Services.Email
+namespace Marilog.Infrastructure.Services.Email.Google
 {
     public sealed class GoogleOAuthTokenService : IGoogleOAuthTokenService
     {

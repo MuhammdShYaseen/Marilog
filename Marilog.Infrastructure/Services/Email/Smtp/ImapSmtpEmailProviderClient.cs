@@ -7,7 +7,7 @@ using Marilog.Application.Interfaces.Email;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using MimeKit;
 
-namespace Marilog.Infrastructure.Services.Email
+namespace Marilog.Infrastructure.Services.Email.Smtp
 {
     /// <summary>
     /// Generic IMAP (receive) / SMTP (send) client — works with any provider that
