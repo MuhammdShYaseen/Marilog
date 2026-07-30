@@ -89,6 +89,7 @@ namespace Marilog.Infrastructure
             //=====Email=====================================================================
             services.AddSingleton<ImapSmtpEmailProviderClient>();
             services.AddSingleton<IEmailProviderClientFactory, EmailProviderClientFactory>();
+            services.AddScoped<IGoogleOAuthTokenService, GoogleOAuthTokenService>();
             services.AddHostedService<MailSyncBackgroundService>();
 
 
