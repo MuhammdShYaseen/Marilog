@@ -1,4 +1,5 @@
-﻿using Marilog.Infrastructure.OCR.Interfaces;
+﻿using Marilog.Infrastructure.Models.OCR;
+using Marilog.Infrastructure.OCR.Interfaces;
 using Marilog.Infrastructure.OCR.Models;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;

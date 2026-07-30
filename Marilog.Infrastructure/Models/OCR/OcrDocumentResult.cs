@@ -1,4 +1,4 @@
-﻿namespace Marilog.Infrastructure.OCR.Models
+﻿namespace Marilog.Infrastructure.Models.OCR
 {
     public sealed record OcrDocumentResult
     (

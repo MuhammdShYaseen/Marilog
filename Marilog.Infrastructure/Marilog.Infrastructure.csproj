@@ -33,7 +33,7 @@
 	  <ProjectReference Include="..\Marilog.Domain\Marilog.Domain.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Models\OCR\" />
+	  <Folder Include="OCR\Models\" />
 	  <Folder Include="Queues\" />
 	</ItemGroup>
 

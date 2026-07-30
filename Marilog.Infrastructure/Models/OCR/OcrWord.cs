@@ -1,6 +1,4 @@
-﻿
-
-namespace Marilog.Infrastructure.OCR.Models
+﻿namespace Marilog.Infrastructure.Models.OCR
 {
     public sealed record OcrWord(string Text, float Confidence, OcrBoundingBox BoundingBox);
 }

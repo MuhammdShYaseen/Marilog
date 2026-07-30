@@ -1,5 +1,5 @@
 ﻿
-using Marilog.Infrastructure.OCR.Models;
+using Marilog.Infrastructure.Models.OCR;
 
 namespace Marilog.Infrastructure.OCR.Interfaces
 {

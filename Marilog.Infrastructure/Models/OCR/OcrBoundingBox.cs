@@ -1,5 +1,4 @@
-﻿
-namespace Marilog.Infrastructure.OCR.Models
+﻿namespace Marilog.Infrastructure.Models.OCR
 {
     public sealed record OcrBoundingBox(
     int X1, int Y1,
