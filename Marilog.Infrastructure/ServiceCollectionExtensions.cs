@@ -13,6 +13,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.BackgroundServices;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Dispatchers;
+using Marilog.Infrastructure.OCR;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -87,6 +88,10 @@ namespace Marilog.Infrastructure
             services.AddSingleton<ImapSmtpEmailProviderClient>();
             services.AddSingleton<IEmailProviderClientFactory, EmailProviderClientFactory>();
             services.AddHostedService<MailSyncBackgroundService>();
+
+
+            //=====OCR========================================================================
+            services.AddOcr(configuration);
             return services;
 
 

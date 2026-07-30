@@ -19,4 +19,8 @@
     <ProjectReference Include="..\Marilog.Domain\Marilog.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOs\OCR\" />
+  </ItemGroup>
+
 </Project>
