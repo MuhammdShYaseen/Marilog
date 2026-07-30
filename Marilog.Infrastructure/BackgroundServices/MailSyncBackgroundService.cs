@@ -79,12 +79,15 @@ namespace Marilog.Infrastructure.BackgroundServices
             CancellationToken ct)
         {
             var config = await accountService.GetDecryptedConfigAsync(account.Id, ct);
-            var client = clientFactory.GetClient(account.ProviderType);
 
-            // First-ever sync: only look back 7 days, not the entire mailbox history.
-            var since = account.LastSyncedAt ?? DateTime.UtcNow.AddDays(-7);
+            var originalConfig = new Dictionary<string, string>(config);
+
+            var client = clientFactory.GetClient(account.ProviderType);
+            
+            var since = account.LastSyncedAt ?? DateTime.UtcNow.AddDays(-7);// First-ever sync: only look back 7 days, not the entire mailbox history.
 
             var messages = await client.FetchNewMessagesAsync(config, since, ct);
+
             var sentMessages = await client.FetchSentMessagesAsync(config, since, ct);
 
             foreach (var message in messages)
@@ -103,14 +106,16 @@ namespace Marilog.Infrastructure.BackgroundServices
                     await UploadAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct);
             }
 
+
+            if (ConfigChanged(config, originalConfig))
+            {
+                await accountService.UpdateConfigAsync(account.Id, config, ct);
+            }
             await accountService.MarkSyncedAsync(account.Id, DateTime.UtcNow, ct);
         }
 
-        private static async Task UploadAttachmentsAsync(
-            int emailId,
-            List<InboundAttachment> attachments,
-            IStoredFileService storedFileService,
-            CancellationToken ct)
+        private static async Task UploadAttachmentsAsync(int emailId, List<InboundAttachment> attachments, 
+                                                         IStoredFileService storedFileService, CancellationToken ct)
         {
             var streams = new List<MemoryStream>();
 
@@ -141,6 +146,24 @@ namespace Marilog.Infrastructure.BackgroundServices
                 foreach (var stream in streams)
                     await stream.DisposeAsync();
             }
+        }
+
+
+        private static bool ConfigChanged(Dictionary<string, string> current, Dictionary<string, string> original)
+        {
+            if (current.Count != original.Count)
+                return true;
+
+            foreach (var pair in current)
+            {
+                if (!original.TryGetValue(pair.Key, out var value) ||
+                    !string.Equals(value, pair.Value, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

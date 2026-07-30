@@ -1,6 +1,5 @@
 ﻿using Marilog.Infrastructure.Interfaces.OCR;
 using Marilog.Infrastructure.Models.OCR;
-using Marilog.Infrastructure.OCR.Models;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -14,8 +13,7 @@ namespace Marilog.Infrastructure.Services.OCR
         private readonly ILogger<OcrMyPdfService> _logger;
         private readonly string _ocrMyPdfExecutable;
 
-        public OcrMyPdfService(
-            ILogger<OcrMyPdfService> logger)
+        public OcrMyPdfService(ILogger<OcrMyPdfService> logger)
         {
             _logger = logger;
 

@@ -7,10 +7,11 @@ namespace Marilog.Infrastructure.Services.Email
     public class EmailProviderClientFactory : IEmailProviderClientFactory
     {
         private readonly ImapSmtpEmailProviderClient _imapSmtpClient;
-
-        public EmailProviderClientFactory(ImapSmtpEmailProviderClient imapSmtpClient)
+        private readonly GoogleApiEmailProviderClient _googleEmailClient;
+        public EmailProviderClientFactory(ImapSmtpEmailProviderClient imapSmtpClient, GoogleApiEmailProviderClient googleEmailClient)
         {
             _imapSmtpClient = imapSmtpClient;
+            _googleEmailClient = googleEmailClient;
         }
 
         public IEmailProviderClient GetClient(EmailProviderType providerType) => providerType switch
@@ -18,9 +19,10 @@ namespace Marilog.Infrastructure.Services.Email
             EmailProviderType.Imap => _imapSmtpClient,
             EmailProviderType.MicrosoftGraph => throw new NotSupportedException(
                 "Microsoft Graph provider not implemented yet."),
-            EmailProviderType.Gmail => throw new NotSupportedException(
-                "Gmail API provider not implemented yet."),
-            _ => throw new NotSupportedException($"Unknown provider type: {providerType}")
+            EmailProviderType.Gmail => _googleEmailClient,
+            _ =>
+            
+            throw new NotSupportedException($"Unknown provider type: {providerType}")
         };
     }
 }
