@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.OCR;
 using Marilog.Infrastructure.OCR.Interfaces;
 using Marilog.Infrastructure.OCR.Models;
 using Marilog.Infrastructure.OCR.Queues;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,27 +13,15 @@ namespace Marilog.Infrastructure.BackgroundServices
     {
         private readonly ILogger<OcrWorker> _logger;
         private readonly OcrQueue _queue;
-        private readonly ISearchablePdfService _pdfService;
-        private readonly ICallBackService _callbackService;
-        private readonly IPdfCompressionService _compressionService;
-        private readonly IPdfDirectTextExtractor _pdfDirectText;
-        private readonly IThumbnailGenerator _pdfThumbnail;
+        private readonly IServiceScopeFactory _scopeFactory;
         public OcrWorker(
             ILogger<OcrWorker> logger,
             OcrQueue queue,
-            ISearchablePdfService pdfService,
-            IPdfCompressionService compressionService,
-            ICallBackService callBack,
-            IPdfDirectTextExtractor pdfDirectText,
-            IThumbnailGenerator thumbnailGenerator)
+            IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
             _queue = queue;
-            _pdfService = pdfService;
-            _callbackService = callBack;
-            _compressionService = compressionService;
-            _pdfDirectText = pdfDirectText;
-            _pdfThumbnail = thumbnailGenerator;
+            _scopeFactory = scopeFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -49,6 +38,12 @@ namespace Marilog.Infrastructure.BackgroundServices
         private async Task ProcessAsync(OcrRequest request, CancellationToken ct)
         {
             _logger.LogInformation("OCR started | DocumentId: {Id} | File: {File}", request.DocumentId, Path.GetFileName(request.FilePath));
+            using var scope = _scopeFactory.CreateScope();
+            var _pdfService = scope.ServiceProvider.GetRequiredService<ISearchablePdfService>();
+            var _callbackService = scope.ServiceProvider.GetRequiredService<ICallBackService>();
+            var _compressionService = scope.ServiceProvider.GetRequiredService<IPdfCompressionService>();
+            var _pdfDirectText = scope.ServiceProvider.GetRequiredService<IPdfDirectTextExtractor>();
+            var _pdfThumbnail = scope.ServiceProvider.GetRequiredService<IThumbnailGenerator>();
 
             OcrDocumentResult result;
 
@@ -84,10 +79,10 @@ namespace Marilog.Infrastructure.BackgroundServices
                 _logger.LogError("extracted content failed | DocumentId: {Id}", request.DocumentId);
             }
 
-            await CleanupAsync(request.FilePath, request.DocumentId);
+            await CleanupAsync(request.FilePath, request.DocumentId, _compressionService);
         }
 
-        private async Task CleanupAsync(string filePath, Guid documentId)
+        private async Task CleanupAsync(string filePath, Guid documentId, IPdfCompressionService _compressionService)
         {
             // كمبريس — best-effort، ما لازم يفشل الـ job لو صار خطأ هنا
             try
