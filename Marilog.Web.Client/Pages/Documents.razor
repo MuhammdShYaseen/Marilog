@@ -46,6 +46,7 @@ else
     <SharedDocumentsPage Unpaid="_unpaid"
                          ByVessel="_byVessel"
                          BySupplier="_bySupplier"
+                         ByType="_byType"
                          Vessels="_vessels"
                          Companies="_companies"
                          OnAddClicked="OpenAddDialog"
@@ -55,6 +56,8 @@ else
                          OnDocumentSelected="LoadDetail"
                          OnVesselSelected="LoadByVessel"
                          OnSupplierSelected="LoadBySupplier" 
+                         OnTypeSelected ="LoadByType"
+                         DocTypes="_docTypes"
                          OnDocumentReportRequested="HandleDocumentReportRequestedAsync"
                          OnPaymentReportRequested="HandlePaymentReportRequestedAsync"
                          OnExportPdfRequested="HandleExportPdfAsync"
@@ -67,6 +70,7 @@ else
     private IReadOnlyList<DocumentResponse> _byVessel = [];
     private IReadOnlyList<VoyageResponse> _VoyagesbyVessel = [];
     private IReadOnlyList<DocumentResponse> _bySupplier = [];
+    private IReadOnlyList<DocumentResponse> _byType = [];
     private IReadOnlyList<VesselResponse> _vessels = [];
     private IReadOnlyList<CompanyResponse> _companies = [];
     private IReadOnlyList<DocumentTypeResponse> _docTypes = [];
@@ -77,6 +81,7 @@ else
     private bool _loading = true;
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
+    private int? _selectedTypeId;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -135,6 +140,19 @@ else
         }
 
         _bySupplier = await DocumentService.GetBySupplierAsync(supplierId.Value, true);
+    }
+
+    private async Task LoadByType(int? TypeId)
+    {
+        _selectedTypeId = TypeId;
+
+        if (TypeId is null)
+        {
+            _byType = [];
+            return;
+        }
+
+        _byType = await DocumentService.GetByTypeAsync(TypeId.Value);
     }
 
     private async Task LoadDetail(int id)
