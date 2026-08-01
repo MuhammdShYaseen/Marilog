@@ -1,3 +1,4 @@
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
@@ -10,6 +11,9 @@ namespace Marilog.Contracts.Interfaces.Services.EmailServices
         // ── Queries ───────────────────────────────────────────────────────────────
         Task<EmailResponse?>               GetByIdAsync(int id, CancellationToken ct = default);
         Task<EmailResponse?>               GetFullAsync(int id, CancellationToken ct = default);
+        Task<PagedResponse<EmailResponse>> GetInboxAsync(PagedRequest request, CancellationToken ct = default);
+        Task<PagedResponse<EmailResponse>> GetOutboxAsync(PagedRequest request, CancellationToken ct = default);
+
         Task<IReadOnlyList<EmailResponse>> GetUnlinkedAsync(CancellationToken ct = default);
         Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(EntityType entityType, int entityId, CancellationToken ct = default);
         Task<IReadOnlyList<EmailResponse>> GetByStatusAsync(EmailStatus status, CancellationToken ct = default);

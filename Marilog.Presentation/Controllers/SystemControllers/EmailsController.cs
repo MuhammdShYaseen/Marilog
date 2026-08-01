@@ -37,6 +37,20 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return email is null ? NotFound() : Ok(ApiResponse<EmailResponse>.Ok(email));
         }
 
+        [HttpGet("inbox")]
+        public async Task<ActionResult<PagedResponse<EmailResponse>>> GetInbox([FromQuery] PagedRequest request, CancellationToken ct)
+        {
+            var result = await _service.GetInboxAsync(request, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("outbox")]
+        public async Task<ActionResult<PagedResponse<EmailResponse>>> GetOutbox([FromQuery] PagedRequest request, CancellationToken ct)
+        {
+            var result = await _service.GetOutboxAsync(request, ct);
+            return Ok(result);
+        }
+
         [HttpGet("unlinked")]
         public async Task<ActionResult<IReadOnlyList<EmailResponse>>> GetUnlinked(CancellationToken ct)
         {

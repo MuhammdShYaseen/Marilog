@@ -27,7 +27,19 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetFromJsonAsync<ApiResponse<EmailResponse>>($"{Base}/{id}/full", ct);
             return response?.Data;
         }
+        public async Task<PagedResponse<EmailResponse>> GetInboxAsync(PagedRequest request, CancellationToken ct = default)
+        {
+            return await _http.GetFromJsonAsync<PagedResponse<EmailResponse>>(
+                $"{Base}/inbox?page={request.Page}&pageSize={request.PageSize}", ct)
+                ?? new PagedResponse<EmailResponse>();
+        }
 
+        public async Task<PagedResponse<EmailResponse>> GetOutboxAsync(PagedRequest request, CancellationToken ct = default)
+        {
+            return await _http.GetFromJsonAsync<PagedResponse<EmailResponse>>(
+                $"{Base}/outbox?page={request.Page}&pageSize={request.PageSize}", ct)
+                ?? new PagedResponse<EmailResponse>();
+        }
         public async Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(EntityType entityType, int entityId, CancellationToken ct = default)
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-entity?entityType={entityType}&entityId={entityId}", ct);

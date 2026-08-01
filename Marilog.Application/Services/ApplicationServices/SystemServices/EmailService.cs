@@ -1,5 +1,5 @@
-using System.Linq.Expressions;
 using Marilog.Application.Interfaces.Email;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
@@ -7,6 +7,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -76,6 +77,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .FirstOrDefaultAsync(ct);
         }
 
+        public Task<PagedResponse<EmailResponse>> GetInboxAsync(PagedRequest request, CancellationToken ct = default)
+        {
+            return GetEmailsAsync(EmailDirection.Inbound, request, ct);
+        }
+
+        public Task<PagedResponse<EmailResponse>> GetOutboxAsync(PagedRequest request, CancellationToken ct = default)
+        {
+            return GetEmailsAsync(EmailDirection.Outbound, request, ct);
+        }
+
+        
         public async Task<IReadOnlyList<EmailResponse>> GetUnlinkedAsync(CancellationToken ct = default)
         {
             // Powers the Triage screen — inbound emails not yet linked to any entity.
@@ -363,6 +375,30 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Private ───────────────────────────────────────────────────────────────
 
+
+        private async Task<PagedResponse<EmailResponse>> GetEmailsAsync(EmailDirection direction, PagedRequest request, CancellationToken ct)
+        {
+            var query = _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.Direction == direction);
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(x => x.CreatedAt) // أو SentAt / ReceivedAt حسب مشروعك
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(ToResponse)
+                .ToListAsync(ct);
+
+            return new PagedResponse<EmailResponse>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = request.Page,
+                PageSize = request.PageSize
+            };
+        }
         private async Task<Email> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Email {id} not found.");
