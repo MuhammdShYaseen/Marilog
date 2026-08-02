@@ -16,12 +16,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     {
         private readonly IEmailAccountService _service;
         private readonly IGoogleOAuthTokenService _googleOAuthService;
-        private readonly IHttpContextAccessor _contextAccessor;
-        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService, IHttpContextAccessor contextAccessor)
+        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService)
         {
             _service = service;
             _googleOAuthService = googleOAuthService;
-            _contextAccessor = contextAccessor;
         }
 
         [HttpGet("{id:int}")]
@@ -90,9 +88,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             var state = Guid.NewGuid().ToString("N");
 
-            _contextAccessor.HttpContext!
-                .Session
-                .SetString("GoogleOAuthState", state);
 
             var authorizationUrl = _googleOAuthService.GetAuthorizationUrl(state);
 
@@ -103,15 +98,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [AllowAnonymous]
         public async Task<IActionResult> GoogleCallback([FromQuery] string code, [FromQuery] string state, CancellationToken ct)
         {
-            var savedState = HttpContext.Session.GetString("GoogleOAuthState");
-
-            if (savedState != state)
-            {
-                return BadRequest("Invalid OAuth state.");
-            }
-
-            var token = await _googleOAuthService
-                .ExchangeCodeForTokenAsync(code, ct);
+           
+            var token = await _googleOAuthService.ExchangeCodeForTokenAsync(code, ct);
 
             return Ok(ApiResponse<GoogleTokenResponse>.Ok(token));
         }
