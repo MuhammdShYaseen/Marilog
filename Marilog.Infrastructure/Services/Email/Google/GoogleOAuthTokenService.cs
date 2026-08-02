@@ -5,6 +5,7 @@ using Marilog.Infrastructure.Models.Email;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace Marilog.Infrastructure.Services.Email.Google
@@ -13,29 +14,43 @@ namespace Marilog.Infrastructure.Services.Email.Google
     {
         private static readonly TimeSpan RefreshThreshold = TimeSpan.FromMinutes(2);
 
+        // NOTE: keep this list identical to the scopes registered under
+        // "Data Access" on the Google Auth Platform console for this
+        // OAuth client, or Google will reject the consent request while
+        // the app is in Testing / not-yet-verified for these scopes.
+        private const string Scopes =
+            "https://www.googleapis.com/auth/gmail.send " +
+            "https://www.googleapis.com/auth/gmail.readonly";
+
         private readonly HttpClient _httpClient;
         private readonly ILogger<GoogleOAuthTokenService> _logger;
         private readonly GoogleOAuthOptions _options;
-        public GoogleOAuthTokenService(HttpClient httpClient, IOptions<GoogleOAuthOptions> options, ILogger<GoogleOAuthTokenService> logger)
+
+        public GoogleOAuthTokenService(
+            HttpClient httpClient,
+            IOptions<GoogleOAuthOptions> options,
+            ILogger<GoogleOAuthTokenService> logger)
         {
             _httpClient = httpClient;
             _logger = logger;
             _options = options.Value;
         }
 
-        public string GetAuthorizationUrl()
+        public string GetAuthorizationUrl(string state)
         {
+            if (string.IsNullOrWhiteSpace(state))
+                throw new ArgumentException("A state value is required.", nameof(state));
+
             var query = new Dictionary<string, string>
             {
                 ["client_id"] = _options.ClientID!,
                 ["redirect_uri"] = _options.RedirectUri!,
                 ["response_type"] = "code",
-                ["scope"] =
-                    "https://www.googleapis.com/auth/gmail.modify " +
-                    "https://www.googleapis.com/auth/gmail.send",
+                ["scope"] = Scopes,
                 ["access_type"] = "offline",
                 ["prompt"] = "consent",
-                ["include_granted_scopes"] = "true"
+                ["include_granted_scopes"] = "true",
+                ["state"] = state
             };
 
             var queryString = string.Join(
@@ -47,8 +62,8 @@ namespace Marilog.Infrastructure.Services.Email.Google
         }
 
         public async Task<GoogleTokenResponse> ExchangeCodeForTokenAsync(
-     string authorizationCode,
-     CancellationToken ct = default)
+            string authorizationCode,
+            CancellationToken ct = default)
         {
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
@@ -90,6 +105,43 @@ namespace Marilog.Infrastructure.Services.Email.Google
             return token;
         }
 
+        public async Task<string> GetUserEmailAsync(string accessToken, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(accessToken))
+                throw new ArgumentException("Access token is required.", nameof(accessToken));
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                "https://www.googleapis.com/oauth2/v2/userinfo");
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, ct);
+
+            var body = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "Failed to fetch Google user info. Status: {StatusCode}, Response: {Response}",
+                    response.StatusCode,
+                    body);
+
+                throw new InvalidOperationException(
+                    $"Failed to fetch Google user info: {response.StatusCode}");
+            }
+
+            var userInfo = JsonSerializer.Deserialize<GoogleUserInfoResponse>(body);
+
+            if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.Email))
+            {
+                throw new InvalidOperationException(
+                    "Google userinfo endpoint did not return an email address.");
+            }
+
+            return userInfo.Email;
+        }
+
         public async Task<bool> EnsureValidAccessTokenAsync(Dictionary<string, string> config, CancellationToken ct = default)
         {
             if (!config.TryGetValue("accessToken", out var accessToken) ||
@@ -108,9 +160,6 @@ namespace Marilog.Infrastructure.Services.Email.Google
 
             if (IsAccessTokenValid(config))
                 return false;
-
-            var clientId = GetRequired(config, "clientId");
-            var clientSecret = GetRequired(config, "clientSecret");
 
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
@@ -140,11 +189,9 @@ namespace Marilog.Infrastructure.Services.Email.Google
                     $"Google OAuth token refresh failed: {response.StatusCode}");
             }
 
-            var tokenResponse =
-                System.Text.Json.JsonSerializer.Deserialize<GoogleTokenResponse>(body);
+            var tokenResponse = JsonSerializer.Deserialize<GoogleTokenResponse>(body);
 
-            if (tokenResponse is null ||
-                string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
+            if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
             {
                 throw new InvalidOperationException(
                     "Google OAuth token endpoint returned an invalid response.");
@@ -156,8 +203,7 @@ namespace Marilog.Infrastructure.Services.Email.Google
                 ? tokenResponse.ExpiresIn
                 : 3600;
 
-            config["expiresAt"] =
-                DateTime.UtcNow.AddSeconds(expiresIn).ToString("O");
+            config["expiresAt"] = DateTime.UtcNow.AddSeconds(expiresIn).ToString("O");
 
             // Google normally does NOT return a new refresh token
             // during a normal refresh flow.
@@ -167,8 +213,7 @@ namespace Marilog.Infrastructure.Services.Email.Google
             return true;
         }
 
-        private static bool IsAccessTokenValid(
-            Dictionary<string, string> config)
+        private static bool IsAccessTokenValid(Dictionary<string, string> config)
         {
             if (!config.TryGetValue("expiresAt", out var value))
                 return false;
@@ -182,24 +227,7 @@ namespace Marilog.Infrastructure.Services.Email.Google
                 return false;
             }
 
-            return expiresAt.ToUniversalTime() >
-                   DateTime.UtcNow.Add(RefreshThreshold);
+            return expiresAt.ToUniversalTime() > DateTime.UtcNow.Add(RefreshThreshold);
         }
-
-        private static string GetRequired(
-            Dictionary<string, string> config,
-            string key)
-        {
-            if (!config.TryGetValue(key, out var value) ||
-                string.IsNullOrWhiteSpace(value))
-            {
-                throw new InvalidOperationException(
-                    $"Email configuration is missing '{key}'.");
-            }
-
-            return value;
-        }
-
-        
     }
 }

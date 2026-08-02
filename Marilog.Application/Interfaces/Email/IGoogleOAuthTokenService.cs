@@ -5,7 +5,7 @@ namespace Marilog.Application.Interfaces.Email
     public interface IGoogleOAuthTokenService
     {
 
-        string GetAuthorizationUrl();
+        public string GetAuthorizationUrl(string state);
         Task<GoogleTokenResponse> ExchangeCodeForTokenAsync(string authorizationCode, CancellationToken ct = default);
         Task<bool> EnsureValidAccessTokenAsync(Dictionary<string, string> config, CancellationToken ct = default);
     } 

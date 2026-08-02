@@ -16,10 +16,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     {
         private readonly IEmailAccountService _service;
         private readonly IGoogleOAuthTokenService _googleOAuthService;
-        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService)
+        private readonly IHttpContextAccessor _contextAccessor;
+        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService, IHttpContextAccessor contextAccessor)
         {
             _service = service;
             _googleOAuthService = googleOAuthService;
+            _contextAccessor = contextAccessor;
         }
 
         [HttpGet("{id:int}")]
@@ -86,18 +88,30 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [AllowAnonymous]
         public IActionResult GoogleAuthorize()
         {
-            var authorizationUrl = _googleOAuthService.GetAuthorizationUrl();
+            var state = Guid.NewGuid().ToString("N");
+
+            _contextAccessor.HttpContext!
+                .Session
+                .SetString("GoogleOAuthState", state);
+
+            var authorizationUrl = _googleOAuthService.GetAuthorizationUrl(state);
 
             return Redirect(authorizationUrl);
         }
 
         [HttpGet("google/callback")]
         [AllowAnonymous]
-        public async Task<IActionResult> GoogleCallback(
-            [FromQuery] string code,
-            CancellationToken ct)
+        public async Task<IActionResult> GoogleCallback([FromQuery] string code, [FromQuery] string state, CancellationToken ct)
         {
-            var token = await _googleOAuthService.ExchangeCodeForTokenAsync(code, ct);
+            var savedState = HttpContext.Session.GetString("GoogleOAuthState");
+
+            if (savedState != state)
+            {
+                return BadRequest("Invalid OAuth state.");
+            }
+
+            var token = await _googleOAuthService
+                .ExchangeCodeForTokenAsync(code, ct);
 
             return Ok(ApiResponse<GoogleTokenResponse>.Ok(token));
         }
