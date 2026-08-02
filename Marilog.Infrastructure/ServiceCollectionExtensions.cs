@@ -70,7 +70,7 @@ namespace Marilog.Infrastructure
             //options
             services.Configure<UrlsOptions>(configuration.GetSection("Urls"));
             services.Configure<InternalApiKeysOptions>(configuration.GetSection("InternalApiKeys"));
-
+            services.Configure<GoogleOAuthOptions>(configuration.GetSection("GoogleOAuth"));
 
             //backup
             services.AddScoped<IDatabaseBackupService>(sp =>

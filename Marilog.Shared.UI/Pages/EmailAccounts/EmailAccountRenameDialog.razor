@@ -1,0 +1,52 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailAccounts
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Rename Account</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_displayName" Label="Display Name" Immediate="true" FullWidth="true" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@string.IsNullOrWhiteSpace(_displayName)"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CurrentDisplayName { get; set; } = string.Empty;
+
+    private string _displayName = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _displayName = CurrentDisplayName;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_displayName))
+            return;
+
+        MudDialog.Close(DialogResult.Ok(_displayName.Trim()));
+    }
+}

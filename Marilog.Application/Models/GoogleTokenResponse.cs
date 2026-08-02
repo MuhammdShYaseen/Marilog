@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace Marilog.Infrastructure.Models.Email
+namespace Marilog.Application.Models
 {
-    internal sealed class GoogleTokenResponse
+    public sealed class GoogleTokenResponse
     {
         [JsonPropertyName("access_token")]
         public string AccessToken { get; set; } = null!;

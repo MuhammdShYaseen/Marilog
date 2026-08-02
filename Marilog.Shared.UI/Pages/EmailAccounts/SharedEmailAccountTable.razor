@@ -1,0 +1,101 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailAccounts
+
+<MudTable T="EmailAccountResponse" Items="Items" Hover="true" Class="email-accounts-table">
+
+    <HeaderContent>
+        <MudTh>Display Name</MudTh>
+        <MudTh>Email Address</MudTh>
+        <MudTh>Provider</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Last Synced</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="account">
+
+        <MudTd DataLabel="Display Name">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.AlternateEmail" Size="Size.Small" Color="Color.Primary" />
+                <MudText>@account.DisplayName</MudText>
+            </MudStack>
+        </MudTd>
+
+        <MudTd DataLabel="Email Address">@account.EmailAddress</MudTd>
+
+        <MudTd DataLabel="Provider">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@account.ProviderType</MudChip>
+        </MudTd>
+
+        <MudTd DataLabel="Status">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                     Color="@(account.IsActive ? Color.Success : Color.Default)">
+                @(account.IsActive ? "Active" : "Inactive")
+            </MudChip>
+        </MudTd>
+
+        <MudTd DataLabel="Last Synced">
+            @(account.LastSyncedAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never")
+        </MudTd>
+
+        <MudTd>
+            <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+
+                <MudTooltip Text="Rename">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OnRename.InvokeAsync(account))" />
+                </MudTooltip>
+
+                <MudTooltip Text="Connection Settings">
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OnEditConfig.InvokeAsync(account))" />
+                </MudTooltip>
+
+                <MudTooltip Text="@(account.IsActive ? "Deactivate" : "Activate")">
+                    <MudIconButton Icon="@(account.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                   Size="Size.Small"
+                                   Color="@(account.IsActive ? Color.Success : Color.Default)"
+                                   OnClick="@(() => OnToggleActive.InvokeAsync(account))" />
+                </MudTooltip>
+
+                <MudTooltip Text="Delete">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => OnDelete.InvokeAsync(account))" />
+                </MudTooltip>
+
+            </MudStack>
+        </MudTd>
+
+    </RowTemplate>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+            No email accounts configured yet.
+        </MudText>
+    </NoRecordsContent>
+
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<EmailAccountResponse> Items { get; set; } = Array.Empty<EmailAccountResponse>();
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnRename { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnEditConfig { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnToggleActive { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnDelete { get; set; }
+}

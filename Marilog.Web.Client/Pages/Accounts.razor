@@ -1,0 +1,159 @@
+@page "/emails/accounts"
+
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.EmailServices
+@using Marilog.Shared.UI.Pages.EmailAccounts
+@using MudBlazor
+@inject IEmailAccountService AccountService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<SharedEmailAccountPage  Items="_accounts"
+                         IsLoading="_isLoading"
+                         OnAddAccountClicked="OpenCreateDialogAsync"
+                         OnRename="OpenRenameDialogAsync"
+                         OnEditConfig="OpenConfigDialogAsync"
+                         OnToggleActive="ToggleActiveAsync"
+                         OnDelete="DeleteAsync" />
+
+@code {
+    private IReadOnlyList<EmailAccountResponse> _accounts = Array.Empty<EmailAccountResponse>();
+    private bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        _accounts = await AccountService.GetAllAsync();
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+
+        var dialog = await DialogService.ShowAsync<EmailAccountCreateDialog>("Add Account", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var request = (Marilog.Contracts.DTOs.Requests.EmailDTOs.CreateEmailAccountRequest)result.Data!;
+
+        try
+        {
+            await AccountService.CreateAsync(request);
+            Snackbar.Add("Account added.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to add account.", Severity.Error);
+        }
+    }
+
+    private async Task OpenRenameDialogAsync(EmailAccountResponse account)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
+        var parameters = new DialogParameters<EmailAccountRenameDialog>
+        {
+            { x => x.CurrentDisplayName, account.DisplayName }
+        };
+
+        var dialog = await DialogService.ShowAsync<EmailAccountRenameDialog>("Rename Account", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var newName = (string)result.Data!;
+
+        try
+        {
+            await AccountService.RenameAsync(account.Id, newName);
+            Snackbar.Add("Account renamed.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to rename account.", Severity.Error);
+        }
+    }
+
+    private async Task OpenConfigDialogAsync(EmailAccountResponse account)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var parameters = new DialogParameters<EmailAccountConfigDialog>
+        {
+            { x => x.ProviderType, account.ProviderType }
+        };
+
+        var dialog = await DialogService.ShowAsync<EmailAccountConfigDialog>("Connection Settings", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var config = (Dictionary<string, string>)result.Data!;
+
+        try
+        {
+            await AccountService.UpdateConfigAsync(account.Id, config);
+            Snackbar.Add("Connection settings updated.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to update connection settings.", Severity.Error);
+        }
+    }
+
+    private async Task ToggleActiveAsync(EmailAccountResponse account)
+    {
+        try
+        {
+            if (account.IsActive)
+                await AccountService.DeactivateAsync(account.Id);
+            else
+                await AccountService.ActivateAsync(account.Id);
+
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to update account status.", Severity.Error);
+        }
+    }
+
+    private async Task DeleteAsync(EmailAccountResponse account)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete the account \"{account.DisplayName}\"?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await AccountService.DeleteAsync(account.Id);
+            Snackbar.Add("Account deleted.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to delete account.", Severity.Error);
+        }
+    }
+}

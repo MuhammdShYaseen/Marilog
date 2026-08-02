@@ -1,7 +1,11 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Application.Interfaces.Email;
+using Marilog.Application.Models;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
+using Marilog.Infrastructure.Services.Email.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -11,10 +15,11 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     public class EmailAccountsController : ControllerBase
     {
         private readonly IEmailAccountService _service;
-
-        public EmailAccountsController(IEmailAccountService service)
+        private readonly IGoogleOAuthTokenService _googleOAuthService;
+        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService)
         {
             _service = service;
+            _googleOAuthService = googleOAuthService;
         }
 
         [HttpGet("{id:int}")]
@@ -74,6 +79,27 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             await _service.DeleteAsync(id, ct);
             return NoContent();
+        }
+
+
+        [HttpGet("google/authorize")]
+        [AllowAnonymous]
+        public IActionResult GoogleAuthorize()
+        {
+            var authorizationUrl = _googleOAuthService.GetAuthorizationUrl();
+
+            return Redirect(authorizationUrl);
+        }
+
+        [HttpGet("google/callback")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleCallback(
+            [FromQuery] string code,
+            CancellationToken ct)
+        {
+            var token = await _googleOAuthService.ExchangeCodeForTokenAsync(code, ct);
+
+            return Ok(ApiResponse<GoogleTokenResponse>.Ok(token));
         }
 
         // Deliberately no endpoint for GetDecryptedConfigAsync — internal use

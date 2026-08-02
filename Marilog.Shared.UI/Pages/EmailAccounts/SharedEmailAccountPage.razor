@@ -1,0 +1,61 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailAccounts
+
+<MudStack Spacing="4">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.AlternateEmail" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5">Email Accounts</MudText>
+        </MudStack>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddAccountClicked.InvokeAsync())">
+            Add Account
+        </MudButton>
+    </MudStack>
+
+    @if (IsLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </MudStack>
+    }
+    else
+    {
+        <MudPaper Outlined="true" Class="pa-0">
+            <SharedEmailAccountTable Items="Items"
+                                      OnRename="OnRename"
+                                      OnEditConfig="OnEditConfig"
+                                      OnToggleActive="OnToggleActive"
+                                      OnDelete="OnDelete" />
+        </MudPaper>
+    }
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<EmailAccountResponse> Items { get; set; } = Array.Empty<EmailAccountResponse>();
+
+    [Parameter, EditorRequired]
+    public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnAddAccountClicked { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnRename { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnEditConfig { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnToggleActive { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailAccountResponse> OnDelete { get; set; }
+}
