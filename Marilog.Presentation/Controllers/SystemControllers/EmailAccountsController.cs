@@ -4,9 +4,13 @@ using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
+using Marilog.Contracts.Options;
 using Marilog.Infrastructure.Services.Email.Google;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
@@ -16,10 +20,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     {
         private readonly IEmailAccountService _service;
         private readonly IGoogleOAuthTokenService _googleOAuthService;
-        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService)
+        private readonly GoogleOAuthOptions _googleOptions;
+        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService, IOptions<GoogleOAuthOptions> options)
         {
             _service = service;
             _googleOAuthService = googleOAuthService;
+            _googleOptions = options.Value;
         }
 
         [HttpGet("{id:int}")]
@@ -82,29 +88,46 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
 
-        [HttpGet("google/authorize")]
+        [HttpGet("google/connect")]
         [AllowAnonymous]
-        public IActionResult GoogleAuthorize()
+        public IActionResult ConnectGoogle()
         {
             var state = Guid.NewGuid().ToString("N");
 
+            var url = _googleOAuthService.GetAuthorizationUrl(state);
 
-            var authorizationUrl = _googleOAuthService.GetAuthorizationUrl(state);
-
-            return Redirect(authorizationUrl);
+            return Redirect(url);
         }
 
         [HttpGet("google/callback")]
         [AllowAnonymous]
-        public async Task<IActionResult> GoogleCallback([FromQuery] string code, [FromQuery] string state, CancellationToken ct)
+        public async Task<IActionResult> GoogleCallback(string code,  string state, CancellationToken ct)
         {
-           
             var token = await _googleOAuthService.ExchangeCodeForTokenAsync(code, ct);
+            var user = await _googleOAuthService.GetUserInfoAsync(token.AccessToken, ct);
+            var config = new Dictionary<string, string>
+            {
+                 ["clientId"] = _googleOptions.ClientID!,
 
-            return Ok(ApiResponse<GoogleTokenResponse>.Ok(token));
+                 ["refreshToken"] = token.RefreshToken ?? "",
+
+                 ["accessToken"] = token.AccessToken,
+
+                 ["expiresAt"] = DateTime.UtcNow.AddSeconds(token.ExpiresIn).ToString("O")
+            };
+
+            var request = new CreateEmailAccountRequest
+            {
+                ProviderType = EmailProviderType.Gmail,
+
+                EmailAddress = user.Email,
+
+                DisplayName = user.Name,
+
+                Config = JsonSerializer.Serialize(config)
+            };
+            await _service.CreateAsync(request, ct);
+            return Redirect("email/emailaccounts");
         }
-
-        // Deliberately no endpoint for GetDecryptedConfigAsync — internal use
-        // (MailWorker / IEmailProviderClient) only, never exposed over HTTP.
     }
 }

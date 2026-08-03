@@ -8,5 +8,6 @@ namespace Marilog.Application.Interfaces.Email
         public string GetAuthorizationUrl(string state);
         Task<GoogleTokenResponse> ExchangeCodeForTokenAsync(string authorizationCode, CancellationToken ct = default);
         Task<bool> EnsureValidAccessTokenAsync(Dictionary<string, string> config, CancellationToken ct = default);
+        Task<GoogleUserInfoResponse>GetUserInfoAsync(string accessToken, CancellationToken ct = default);
     } 
 }

@@ -1,141 +1,292 @@
 @using Marilog.Kernel.Enums
 @using MudBlazor
+
 @namespace Marilog.Shared.UI.Pages.EmailAccounts
 
 <MudDialog>
 
     <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Connection Settings</MudText>
+        <MudStack Row="true"
+                  AlignItems="AlignItems.Center"
+                  Spacing="2">
+
+            <MudIcon Icon="@Icons.Material.Filled.Settings"
+                     Color="Color.Primary" />
+
+            <MudText Typo="Typo.h6">
+                Connection Settings
+            </MudText>
+
         </MudStack>
     </TitleContent>
 
+
     <DialogContent>
+
         <MudStack Spacing="4">
 
-            <MudAlert Severity="Severity.Info" Dense="true">
-                For security, stored credentials are never sent back to the browser. Enter the
-                full connection details below to replace the current configuration.
+
+            <MudAlert Severity="Severity.Info"
+                      Dense="true">
+
+                Connection credentials are securely stored on the server.
+
+                OAuth providers are managed through their official authentication flow.
+
             </MudAlert>
+
+
 
             @if (ProviderType == EmailProviderType.Imap)
             {
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">IMAP (Receiving)</MudText>
+
+                <MudText Typo="Typo.subtitle2"
+                         Color="Color.Secondary">
+
+                    IMAP (Receiving)
+
+                </MudText>
+
 
                 <MudGrid Spacing="2">
-                    <MudItem xs="8"><MudTextField T="string" @bind-Value="_imapHost" Label="Host" Immediate="true" /></MudItem>
-                    <MudItem xs="4"><MudTextField T="int" @bind-Value="_imapPort" Label="Port" Immediate="true" /></MudItem>
+
+                    <MudItem xs="8">
+
+                        <MudTextField T="string"
+                                      @bind-Value="_imapHost"
+                                      Label="Host" />
+
+                    </MudItem>
+
+
+                    <MudItem xs="4">
+
+                        <MudTextField T="int"
+                                      @bind-Value="_imapPort"
+                                      Label="Port" />
+
+                    </MudItem>
+
                 </MudGrid>
 
-                <MudTextField T="string" @bind-Value="_username" Label="Username" Immediate="true" />
-                <MudTextField T="string" @bind-Value="_password" Label="Password / App Password" InputType="InputType.Password" Immediate="true" />
-                <MudCheckBox T="bool" @bind-Value="_useSsl" Label="Use SSL" />
 
-                <MudDivider Class="mt-2" />
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">SMTP (Sending)</MudText>
+
+                <MudTextField T="string"
+                              @bind-Value="_username"
+                              Label="Username" />
+
+
+                <MudTextField T="string"
+                              @bind-Value="_password"
+                              Label="Password / App Password"
+                              InputType="InputType.Password" />
+
+
+                <MudCheckBox T="bool"
+                             @bind-Value="_useSsl"
+                             Label="Use SSL" />
+
+
+
+                <MudDivider />
+
+
+                <MudText Typo="Typo.subtitle2"
+                         Color="Color.Secondary">
+
+                    SMTP (Sending)
+
+                </MudText>
+
 
                 <MudGrid Spacing="2">
-                    <MudItem xs="8"><MudTextField T="string" @bind-Value="_smtpHost" Label="SMTP Host" Immediate="true" /></MudItem>
-                    <MudItem xs="4"><MudTextField T="int" @bind-Value="_smtpPort" Label="SMTP Port" Immediate="true" /></MudItem>
+
+                    <MudItem xs="8">
+
+                        <MudTextField T="string"
+                                      @bind-Value="_smtpHost"
+                                      Label="SMTP Host" />
+
+                    </MudItem>
+
+
+                    <MudItem xs="4">
+
+                        <MudTextField T="int"
+                                      @bind-Value="_smtpPort"
+                                      Label="SMTP Port" />
+
+                    </MudItem>
+
                 </MudGrid>
+
             }
             else if (ProviderType == EmailProviderType.Gmail)
             {
-                <MudTextField T="string" @bind-Value="_googleClientId" Label="Client ID" Immediate="true" />
-                <MudTextField T="string" @bind-Value="_googleClientSecret" Label="Client Secret" InputType="InputType.Password" Immediate="true" />
-                <MudTextField T="string" @bind-Value="_googleRefreshToken" Label="Refresh Token" InputType="InputType.Password" Immediate="true" />
-                <MudTextField T="string" @bind-Value="_googleAccessToken" Label="Access Token (optional — refreshes automatically)" InputType="InputType.Password" Immediate="true" />
+
+                <MudAlert Severity="Severity.Success">
+
+                    This account is connected using Google OAuth.
+
+                    Access tokens and refresh tokens are managed securely by the server.
+
+                </MudAlert>
+
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Custom.Brands.Google"
+                           OnClick="ReconnectGoogle">
+
+                    Reconnect Google
+
+                </MudButton>
+
             }
             else
             {
+
                 <MudText Color="Color.Secondary">
-                    OAuth-based connection settings are managed automatically once Microsoft/Gmail
-                    sign-in is implemented — there is nothing to configure manually here yet.
+
+                    OAuth configuration is managed automatically.
+
                 </MudText>
+
             }
 
+
         </MudStack>
+
+
     </DialogContent>
 
+
+
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Disabled="@(!IsValid)"
-                   OnClick="Submit">
-            Save
+
+        <MudButton OnClick="Cancel">
+            Cancel
         </MudButton>
+
+
+        @if (ProviderType == EmailProviderType.Imap)
+        {
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(!IsValid)"
+                       OnClick="Submit">
+
+                Save
+
+            </MudButton>
+
+        }
+
+
     </DialogActions>
+
 
 </MudDialog>
 
+
+
 @code {
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
+
 
     [Parameter, EditorRequired]
     public EmailProviderType ProviderType { get; set; }
 
+
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+
+
     private string _imapHost = string.Empty;
+
     private int _imapPort = 993;
+
+
     private string _username = string.Empty;
+
     private string _password = string.Empty;
+
+
     private bool _useSsl = true;
+
+
     private string _smtpHost = string.Empty;
+
     private int _smtpPort = 587;
 
-    private string _googleClientId = string.Empty;
-    private string _googleClientSecret = string.Empty;
-    private string _googleRefreshToken = string.Empty;
-    private string _googleAccessToken = string.Empty;
+
 
     private bool IsValid =>
-        (ProviderType != EmailProviderType.Imap
-            || (!string.IsNullOrWhiteSpace(_imapHost)
-                && !string.IsNullOrWhiteSpace(_username)
-                && !string.IsNullOrWhiteSpace(_password)
-                && !string.IsNullOrWhiteSpace(_smtpHost)))
-        && (ProviderType != EmailProviderType.Gmail
-            || (!string.IsNullOrWhiteSpace(_googleClientId)
-                && !string.IsNullOrWhiteSpace(_googleClientSecret)
-                && !string.IsNullOrWhiteSpace(_googleRefreshToken)));
+        ProviderType != EmailProviderType.Imap
+        ||
+        (
+            !string.IsNullOrWhiteSpace(_imapHost)
+            &&
+            !string.IsNullOrWhiteSpace(_username)
+            &&
+            !string.IsNullOrWhiteSpace(_password)
+            &&
+            !string.IsNullOrWhiteSpace(_smtpHost)
+        );
 
-    private void Cancel() => MudDialog.Cancel();
+
+
+    private void Cancel()
+        => MudDialog.Cancel();
+
+
+
+
+    private void ReconnectGoogle()
+    {
+        Navigation.NavigateTo(
+            "api/emailaccounts/google/connect",
+            forceLoad: true);
+    }
+
+
+
 
     private void Submit()
     {
+
         if (!IsValid)
             return;
 
-        Dictionary<string, string> config;
 
-        if (ProviderType == EmailProviderType.Gmail)
-        {
-            config = new Dictionary<string, string>
-            {
-                ["clientId"] = _googleClientId,
-                ["clientSecret"] = _googleClientSecret,
-                ["refreshToken"] = _googleRefreshToken
-            };
 
-            if (!string.IsNullOrWhiteSpace(_googleAccessToken))
-                config["accessToken"] = _googleAccessToken;
-        }
-        else
-        {
-            config = new Dictionary<string, string>
+        var config =
+            new Dictionary<string, string>
             {
                 ["Host"] = _imapHost,
+
                 ["Port"] = _imapPort.ToString(),
+
                 ["Username"] = _username,
+
                 ["Password"] = _password,
+
                 ["UseSsl"] = _useSsl.ToString(),
+
                 ["SmtpHost"] = _smtpHost,
+
                 ["SmtpPort"] = _smtpPort.ToString()
             };
-        }
 
-        MudDialog.Close(DialogResult.Ok(config));
+
+
+        MudDialog.Close(
+            DialogResult.Ok(config));
     }
+
 }

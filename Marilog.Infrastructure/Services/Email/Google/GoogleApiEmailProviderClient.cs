@@ -3,11 +3,14 @@ using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
 using Marilog.Application.Interfaces.Email;
+using Marilog.Application.Models;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Infrastructure.Models.Email;
 using MimeKit;
 using MimeKit.Utils;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using MessagePart = Google.Apis.Gmail.v1.Data.MessagePart;
 
 namespace Marilog.Infrastructure.Services.Email.Google
@@ -15,11 +18,12 @@ namespace Marilog.Infrastructure.Services.Email.Google
     public sealed class GoogleApiEmailProviderClient : IEmailProviderClient
     {
         private readonly IGoogleOAuthTokenService _tokenService;
-        
+        private readonly HttpClient _httpClient;
 
-        public GoogleApiEmailProviderClient(IGoogleOAuthTokenService tokenService)
+        public GoogleApiEmailProviderClient(IGoogleOAuthTokenService tokenService, HttpClient httpClient)
         {
             _tokenService = tokenService;
+            _httpClient = httpClient;
         }
 
         public async Task<IReadOnlyList<InboundMessage>> FetchNewMessagesAsync(Dictionary<string, string> config, DateTime since, CancellationToken ct = default)
@@ -101,6 +105,8 @@ namespace Marilog.Infrastructure.Services.Email.Google
         {
             await _tokenService.EnsureValidAccessTokenAsync(config, ct);
         }
+
+       
 
         private static GmailService CreateGmailService(Dictionary<string, string> config)
         {

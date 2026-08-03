@@ -19,8 +19,11 @@ namespace Marilog.Infrastructure.Services.Email.Google
         // OAuth client, or Google will reject the consent request while
         // the app is in Testing / not-yet-verified for these scopes.
         private const string Scopes =
-            "https://www.googleapis.com/auth/gmail.send " +
-            "https://www.googleapis.com/auth/gmail.readonly";
+    "https://www.googleapis.com/auth/gmail.send " +
+    "https://www.googleapis.com/auth/gmail.readonly " +
+    "openid " +
+    "email " +
+    "profile";
 
         private readonly HttpClient _httpClient;
         private readonly ILogger<GoogleOAuthTokenService> _logger;
@@ -60,7 +63,55 @@ namespace Marilog.Infrastructure.Services.Email.Google
 
             return $"https://accounts.google.com/o/oauth2/v2/auth?{queryString}";
         }
+        public async Task<GoogleUserInfoResponse> GetUserInfoAsync(string accessToken, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(accessToken))
+                throw new ArgumentException(
+                    "Access token is required.",
+                    nameof(accessToken));
 
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                "https://www.googleapis.com/oauth2/v2/userinfo");
+
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    accessToken);
+
+
+            using var response =
+                await _httpClient.SendAsync(request, ct);
+
+
+            var body =
+                await response.Content.ReadAsStringAsync(ct);
+
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"Google user info request failed: {response.StatusCode}");
+            }
+
+
+            var userInfo = JsonSerializer.Deserialize<GoogleUserInfoResponse>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+
+            if (userInfo is null ||
+                string.IsNullOrWhiteSpace(userInfo.Email))
+            {
+                throw new InvalidOperationException(
+                    "Google user info response does not contain an email address.");
+            }
+
+
+            return userInfo;
+        }
         public async Task<GoogleTokenResponse> ExchangeCodeForTokenAsync(
             string authorizationCode,
             CancellationToken ct = default)
