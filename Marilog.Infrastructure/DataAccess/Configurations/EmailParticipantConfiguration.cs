@@ -25,7 +25,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasConversion<string>()
                    .HasMaxLength(20);
 
-            builder.Property(x => x.ParticipantId).IsRequired();
+            //builder.Property(x => x.ParticipantId).IsRequired();
             builder.Property(x => x.DisplayName).HasMaxLength(200);
             builder.Property(x => x.EmailAddress).HasMaxLength(200);
 

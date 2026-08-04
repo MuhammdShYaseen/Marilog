@@ -1,8 +1,7 @@
-@using System.Text.Json
 @using Marilog.Contracts.DTOs.Requests.EmailDTOs
 @using Marilog.Kernel.Enums
 @using MudBlazor
-
+@inject HttpClient Http
 @namespace Marilog.Shared.UI.Pages.EmailAccounts
 
 <MudDialog>
@@ -232,11 +231,8 @@
     private void ConnectGoogle()
     {
         _isConnecting = true;
-
-
-        Navigation.NavigateTo(
-            "api/emailaccounts/google/connect",
-            forceLoad: true);
+        var apiBase = Http.BaseAddress!.ToString().TrimEnd('/');
+        Navigation.NavigateTo($"{apiBase}/api/emailaccounts/google/connect", forceLoad: true);
     }
 
 
@@ -277,7 +273,7 @@
             {
                 ProviderType = EmailProviderType.Imap,
 
-                Config = JsonSerializer.Serialize(config)
+                Config = config
             };
 
 

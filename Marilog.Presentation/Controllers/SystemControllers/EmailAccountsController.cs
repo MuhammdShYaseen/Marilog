@@ -1,16 +1,13 @@
 ﻿using Marilog.Application.Interfaces.Email;
-using Marilog.Application.Models;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Contracts.Options;
-using Marilog.Infrastructure.Services.Email.Google;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
@@ -21,11 +18,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         private readonly IEmailAccountService _service;
         private readonly IGoogleOAuthTokenService _googleOAuthService;
         private readonly GoogleOAuthOptions _googleOptions;
-        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService, IOptions<GoogleOAuthOptions> options)
+        private readonly UrlsOptions _UrlsOptions;
+        public EmailAccountsController(IEmailAccountService service, IGoogleOAuthTokenService googleOAuthService, IOptions<GoogleOAuthOptions> options, IOptions<UrlsOptions> urlsOptions)
         {
             _service = service;
             _googleOAuthService = googleOAuthService;
             _googleOptions = options.Value;
+            _UrlsOptions = urlsOptions.Value;
         }
 
         [HttpGet("{id:int}")]
@@ -124,10 +123,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
                 DisplayName = user.Name,
 
-                Config = JsonSerializer.Serialize(config)
+                Config = config
             };
             await _service.CreateAsync(request, ct);
-            return Redirect("email/emailaccounts");
+            return Redirect(_UrlsOptions.Frontend + "email/emailaccounts");
         }
     }
 }

@@ -1,17 +1,16 @@
-﻿using Marilog.Contracts.DTOs.Requests.EmailDTOs;
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.EmailDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
-using System;
-using System.Collections.Generic;
 using System.Net.Http.Json;
-using System.Text;
+
 
 namespace Marilog.Client.Services.SystemServices
 {
     public class EmailAccountService : IEmailAccountService
     {
         private readonly HttpClient _http;
-        private const string BaseRoute = "api/email-accounts";
+        private const string BaseRoute = "api/emailaccounts";
 
         public EmailAccountService(HttpClient http) => _http = http;
 
@@ -24,8 +23,8 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<IReadOnlyList<EmailAccountResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            var result = await _http.GetFromJsonAsync<List<EmailAccountResponse>>(BaseRoute, ct);
-            return result ?? new List<EmailAccountResponse>();
+            var response = await _http.GetFromJsonAsync<ApiResponse<List<EmailAccountResponse>>>(BaseRoute, ct);
+            return response?.Data ?? new List<EmailAccountResponse>();
         }
 
         public async Task<EmailAccountResponse> CreateAsync(CreateEmailAccountRequest request, CancellationToken ct = default)
