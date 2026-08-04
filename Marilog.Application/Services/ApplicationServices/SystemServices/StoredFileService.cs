@@ -173,6 +173,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             foreach (var request in requests)
             {
+                if (!CanConvertToPdf(request.FileName))
+                    continue;
+
+
                 var checksum = await ComputeChecksumAsync(request.FileStream, ct);
 
                 // reset stream after checksum read
@@ -286,6 +290,29 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             using var sha256 = System.Security.Cryptography.SHA256.Create();
             var hashBytes = await sha256.ComputeHashAsync(stream, ct);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        }
+
+        private static bool CanConvertToPdf(string fileName)
+        {
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+
+            return extension is
+                ".pdf" or
+                ".doc" or
+                ".docx" or
+                ".xls" or
+                ".xlsx" or
+                ".ppt" or
+                ".pptx" or
+                ".txt" or
+                ".rtf" or
+                ".jpg" or
+                ".jpeg" or
+                ".png" or
+                ".bmp" or
+                ".gif" or
+                ".tif" or
+                ".tiff";
         }
     }
 }

@@ -14,6 +14,7 @@ namespace Marilog.Infrastructure.Persistence
         public static IServiceCollection AddOcr(this IServiceCollection services, IConfiguration configuration)
         {
             //-----CompressService--------------
+            services.AddSingleton<IPdfConversionService, PdfConversionService>();
             services.AddSingleton<IPdfCompressionService, GhostscriptPdfCompressionService>();
             services.AddSingleton<IPdfDirectTextExtractor, PdfDirectTextExtractor>();
             services.AddSingleton<ISearchablePdfService, OcrMyPdfService>();
