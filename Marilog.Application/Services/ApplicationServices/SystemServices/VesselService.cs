@@ -225,7 +225,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _repo.Update(vessel);
             await _repo.SaveChangesAsync(ct);
         }
-
+        public async Task AddRangCertificateAsync(int vesselId, IEnumerable<UpsertCertificateRequest> requests, CancellationToken ct = default)
+        {
+            var vessel = await GetOrThrowAsync(vesselId, ct);
+            foreach (var req in requests)
+            {
+                vessel.AddCertificate(req.VType ?? 0, req.CertificateName, req.CertificateNumber, req.IssuingAuthority, req.IssueDate, req.ExpiryDate, req.Description);
+            }
+            _repo.Update(vessel);
+            await _repo.SaveChangesAsync(ct);
+        }
         public async Task UpdateCertificateAsync(int vesselId, int certificateId, UpsertCertificateRequest req, CancellationToken ct = default)
         {
             var vessel = await GetOrThrowAsync(vesselId, ct);

@@ -137,7 +137,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.AddCertificateAsync(id, request, ct);
             return NoContent();
         }
-
+        [HttpPost("{id}/certificates/range")]
+        public async Task<IActionResult> AddRangeCertificates(int id, [FromBody] IEnumerable<UpsertCertificateRequest> requests, CancellationToken ct)
+        {
+            await _service.AddRangCertificateAsync(id, requests, ct);
+            return NoContent();
+        }
         [HttpPut("{id}/certificates/{index}")]
         public async Task<IActionResult> UpdateCertificate(int id, int index,
             [FromBody] UpsertCertificateRequest request, CancellationToken ct)

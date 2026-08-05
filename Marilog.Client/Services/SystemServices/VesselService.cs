@@ -103,7 +103,11 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.PostAsJsonAsync($"{Base}/{vesselId}/certificates", request, ct);
             http.EnsureSuccessStatusCode();
         }
-
+        public async Task AddRangCertificateAsync(int vesselId, IEnumerable<UpsertCertificateRequest> requests, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync($"{Base}/{vesselId}/certificates/range", requests, ct);
+            http.EnsureSuccessStatusCode();
+        }
         public async Task UpdateCertificateAsync(int vesselId, int index, UpsertCertificateRequest request, CancellationToken ct = default)
         {
             var http = await _http.PutAsJsonAsync($"{Base}/{vesselId}/certificates/{index}", request, ct);

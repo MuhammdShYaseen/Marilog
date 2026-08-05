@@ -32,6 +32,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         // Certificates
         Task AddCertificateAsync(int vesselId, UpsertCertificateRequest request, CancellationToken ct = default);
+        Task AddRangCertificateAsync(int vesselId, IEnumerable<UpsertCertificateRequest> requests, CancellationToken ct = default);
         Task UpdateCertificateAsync(int vesselId, int index, UpsertCertificateRequest request, CancellationToken ct = default);
         Task RemoveCertificateAsync(int vesselId, int index, CancellationToken ct = default);
     }
