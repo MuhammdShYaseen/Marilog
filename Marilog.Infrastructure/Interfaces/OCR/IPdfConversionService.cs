@@ -4,6 +4,6 @@ namespace Marilog.Infrastructure.Interfaces.OCR
 {
     public interface IPdfConversionService
     {
-        Task<bool> EnsurePdfAsync(string filePath, CancellationToken cancellationToken = default);
+        Task<string?> EnsurePdfAsync(string filePath, CancellationToken cancellationToken = default);
     }
 }

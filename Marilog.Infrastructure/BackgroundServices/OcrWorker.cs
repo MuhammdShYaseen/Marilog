@@ -1,5 +1,7 @@
 ﻿
 using Marilog.Contracts.DTOs.OCR;
+using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.Interfaces.OCR;
 using Marilog.Infrastructure.Models.OCR;
 using Marilog.Infrastructure.Queues.OCR;
@@ -14,6 +16,7 @@ namespace Marilog.Infrastructure.BackgroundServices
         private readonly ILogger<OcrWorker> _logger;
         private readonly OcrQueue _queue;
         private readonly IServiceScopeFactory _scopeFactory;
+
         public OcrWorker(
             ILogger<OcrWorker> logger,
             OcrQueue queue,
@@ -44,6 +47,7 @@ namespace Marilog.Infrastructure.BackgroundServices
             var _compressionService = scope.ServiceProvider.GetRequiredService<IPdfCompressionService>();
             var _pdfDirectText = scope.ServiceProvider.GetRequiredService<IPdfDirectTextExtractor>();
             var _pdfThumbnail = scope.ServiceProvider.GetRequiredService<IThumbnailGenerator>();
+            var _pdfConverter = scope.ServiceProvider.GetRequiredService<IPdfConversionService>();
 
             OcrDocumentResult result;
 
@@ -55,31 +59,35 @@ namespace Marilog.Infrastructure.BackgroundServices
                 KeepOriginalBackup = true
             };
 
+            //var success = await _pdfConverter.EnsurePdfAsync(request.FilePath, ct);
+            //if (success != null)
+            //{
 
-
-            try
-            {
-                result = await _pdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, ocrOptions, ct: ct);
-            }
-            catch (Exception ex)
-            {
                 
-                _logger.LogError(ex, "OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
-                return;
-            }
+                try
+                {
+                    result = await _pdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, ocrOptions, ct: ct);
+                }
+                catch (Exception ex)
+                {
 
-            var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
-            var thumbnailPath = await _pdfThumbnail.GenerateAsync(request.FilePath);
-            if (!string.IsNullOrWhiteSpace(extractedContent))
-            {
-                await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, thumbnailPath, ct);
-            }
-            else
-            {
-                _logger.LogError("extracted content failed | DocumentId: {Id}", request.DocumentId);
-            }
+                    _logger.LogError(ex, "OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
+                    return;
+                }
 
-            await CleanupAsync(request.FilePath, request.DocumentId, _compressionService);
+                var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
+                var thumbnailPath = await _pdfThumbnail.GenerateAsync(request.FilePath);
+                if (!string.IsNullOrWhiteSpace(extractedContent))
+                {
+                    await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, thumbnailPath, ct);
+                }
+                else
+                {
+                    _logger.LogError("extracted content failed | DocumentId: {Id}", request.DocumentId);
+                }
+
+                await CleanupAsync(request.FilePath, request.DocumentId, _compressionService);
+            //}
         }
 
         private async Task CleanupAsync(string filePath, Guid documentId, IPdfCompressionService _compressionService)
