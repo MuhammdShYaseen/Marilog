@@ -14,43 +14,53 @@ namespace Marilog.Infrastructure.Services.OCR
         public bool CanGenerate(string contentType) =>
          string.Equals(contentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
 
-        public Task<string?> GenerateAsync(string sourceFullPath, CancellationToken ct = default)
+        public async Task<string?> GenerateAsync(
+            string sourceFullPath,
+            CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
-            string thumbnailPath = Path.ChangeExtension(sourceFullPath, ".png");
+            return await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
 
-            const int maxSize = 300;
+                string thumbnailPath = Path.ChangeExtension(sourceFullPath, ".png");
 
-            using var pdfStream = File.OpenRead(sourceFullPath);
+                const int maxSize = 300;
 
-            // رندر الصفحة بدقة أعلى (300 DPI) بدل الاعتماد على الافتراضي المنخفض
-            // ده بيدي صورة أصلية أوضح، والتصغير لاحقاً بيحافظ على تفاصيل أكتر (supersampling)
-            using var original = Conversion.ToImage(
-                pdfStream,
-                page: 0,
-                options: new RenderOptions(Dpi: 300));
+                using var pdfStream = File.OpenRead(sourceFullPath);
 
-            float scale = Math.Min(
-                (float)maxSize / original.Width,
-                (float)maxSize / original.Height);
+                using var original = Conversion.ToImage(
+                    pdfStream,
+                    page: 0,
+                    options: new RenderOptions(Dpi: 200));
 
-            scale = Math.Min(scale, 1f); // لا نقوم بتكبير الصور الصغيرة
+                float scale = Math.Min(
+                    (float)maxSize / original.Width,
+                    (float)maxSize / original.Height);
 
-            int width = (int)(original.Width * scale);
-            int height = (int)(original.Height * scale);
+                scale = Math.Min(scale, 1f);
 
-            using var thumbnail = original.Resize(
-                new SKImageInfo(width, height),
-                new SKSamplingOptions(SKCubicResampler.Mitchell)); // فلتر تصغير عالي الجودة بدل Default
+                int width = Math.Max(1, (int)Math.Round(original.Width * scale));
+                int height = Math.Max(1, (int)Math.Round(original.Height * scale));
 
-            using var image = SKImage.FromBitmap(thumbnail);
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100); // PNG أساساً بدون فقد، رفعناها لأقصى قيمة احتياطاً
+                using var thumbnail = original.Resize(
+                    new SKImageInfo(width, height),
+                    new SKSamplingOptions(SKCubicResampler.CatmullRom));
 
-            using var output = File.Create(thumbnailPath);
-            data.SaveTo(output);
+                using var image = SKImage.FromBitmap(thumbnail);
 
-            return Task.FromResult<string?>(thumbnailPath);
+                using var data = image.Encode(
+                    SKEncodedImageFormat.Png,
+                    100);
+
+                using var output = File.Create(thumbnailPath);
+
+                data.SaveTo(output);
+
+                return thumbnailPath;
+
+            }, ct);
         }
     }
 }

@@ -15,5 +15,5 @@ namespace Marilog.Contracts.DTOs.Responses
         // ── Fallback / override display ───────────────────────────────────────────
         public string? DisplayName { get;  set; }  // override Company/Vessel name if needed
         public string? EmailAddress { get;  set; }  // override or fallback address
-    };
+    }
 }

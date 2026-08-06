@@ -94,15 +94,14 @@ namespace Marilog.Infrastructure.BackgroundServices
             {
                 var email = await emailService.CreateFromInboundAsync(account.Id, message, ct);
 
-                if (message.Attachments.Count > 0)
+                if (message.Attachments.Count > 0 && !await HasAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct))
                     await UploadAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct);
             }
 
             foreach (var message in sentMessages)
             {
                 var email = await emailService.CreateFromSentAsync(account.Id, message, ct);
-
-                if (message.Attachments.Count > 0)
+                if (message.Attachments.Count > 0 && !await HasAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct))
                     await UploadAttachmentsAsync(email.Id, message.Attachments, storedFileService, ct);
             }
 
@@ -113,7 +112,12 @@ namespace Marilog.Infrastructure.BackgroundServices
             }
             await accountService.MarkSyncedAsync(account.Id, DateTime.UtcNow, ct);
         }
-
+        private static async Task<bool> HasAttachmentsAsync(int emailId, List<InboundAttachment> incoming,
+                                                      IStoredFileService storedFileService, CancellationToken ct)
+        {
+            var existing = await storedFileService.GetByEntityIdAsync(emailId, EntityType.Email, ct);
+            return existing.Count >= incoming.Count;
+        }
         private static async Task UploadAttachmentsAsync(int emailId, List<InboundAttachment> attachments, 
                                                          IStoredFileService storedFileService, CancellationToken ct)
         {

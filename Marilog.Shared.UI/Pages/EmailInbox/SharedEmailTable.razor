@@ -1,0 +1,81 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailInbox
+
+<MudTable T="EmailResponse"
+          Items="Items"
+          Hover="true"
+          GroupBy="_groupDefinition"
+          GroupHeaderStyle="background-color:var(--mud-palette-background-grey)"
+          OnRowClick="HandleRowClick"
+          RowClassFunc="@((email, index) => email.Id == SelectedId ? "selected-row" : string.Empty)"
+          Class="email-table">
+
+    <HeaderContent>
+        <MudTh>Subject</MudTh>
+        <MudTh>From</MudTh>
+        <MudTh>Date</MudTh>
+    </HeaderContent>
+
+    <GroupHeaderTemplate>
+        <MudTh Class="pa-2" colspan="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.AlternateEmail" Size="Size.Small" Color="Color.Primary" />
+                <MudText Typo="Typo.subtitle2">@context.Key</MudText>
+            </MudStack>
+        </MudTh>
+    </GroupHeaderTemplate>
+
+    <RowTemplate Context="email">
+        <MudTd DataLabel="Subject">
+            <MudText>
+                @(string.IsNullOrWhiteSpace(email.Subject) ? "(No subject)" : email.Subject)
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="From">@GetSenderLabel(email)</MudTd>
+        <MudTd DataLabel="Date">@(email.SentAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</MudTd>
+    </RowTemplate>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">No messages found.</MudText>
+    </NoRecordsContent>
+
+</MudTable>
+
+<style>
+    .email-table .selected-row {
+        background-color: var(--mud-palette-primary-hover) !important;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<EmailResponse> Items { get; set; } = Array.Empty<EmailResponse>();
+
+    [Parameter]
+    public int? SelectedId { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnSelect { get; set; }
+
+    private readonly TableGroupDefinition<EmailResponse> _groupDefinition = new()
+    {
+        GroupName = "Account",
+        Selector = e => e.AccountNav?.DisplayName ?? "Unknown Account"
+    };
+
+    private static string GetSenderLabel(EmailResponse email)
+    {
+        var sender = email.Participants.FirstOrDefault(p => p.Role == ParticipantRole.From);
+        return sender?.DisplayName ?? sender?.EmailAddress ?? "Unknown";
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<EmailResponse> args)
+    {
+        if (args.Item is null)
+            return;
+
+        OnSelect.InvokeAsync(args.Item);
+    }
+}

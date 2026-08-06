@@ -15,5 +15,6 @@ namespace Marilog.Contracts.DTOs.Requests.EmailDTOs
 
         public IReadOnlyList<EmailParticipantResponse> Participants { get; set; }
             = new List<EmailParticipantResponse>();
+      
     }
 }

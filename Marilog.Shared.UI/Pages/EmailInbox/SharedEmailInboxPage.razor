@@ -1,0 +1,96 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailInbox
+
+<MudStack Spacing="4">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5">Inbox</MudText>
+        </MudStack>
+
+        <MudTextField T="string"
+                      Value="SearchTerm"
+                      ValueChanged="@(v => OnSearchChanged.InvokeAsync(v))"
+                      Placeholder="Search..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true"
+                      Class="search-box" />
+    </MudStack>
+
+    @if (IsLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </MudStack>
+    }
+    else
+    {
+        <MudPaper Outlined="true" Class="pa-0">
+            <SharedEmailTable Items="Items" SelectedId="SelectedEmail?.Id" OnSelect="OnSelect" />
+        </MudPaper>
+
+        <MudStack Row="true" Justify="Justify.Center">
+            <MudPagination Count="@PageCount" Selected="@CurrentPage" SelectedChanged="@(p => OnPageChanged.InvokeAsync(p))" />
+        </MudStack>
+
+        @if (SelectedEmail is not null)
+        {
+            <SharedEmailDetailPanel Email="SelectedEmail"
+                                     OnClose="OnCloseDetail"
+                                     OnReply="OnReply"
+                                     OnManageAttachments="OnManageAttachments"
+                                     OnDelete="OnDelete" />
+        }
+    }
+
+</MudStack>
+
+<style>
+    .search-box {
+        max-width: 320px;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<EmailResponse> Items { get; set; } = Array.Empty<EmailResponse>();
+
+    [Parameter, EditorRequired]
+    public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired]
+    public int CurrentPage { get; set; }
+
+    [Parameter, EditorRequired]
+    public int PageCount { get; set; }
+
+    [Parameter]
+    public string? SearchTerm { get; set; }
+
+    [Parameter, EditorRequired]
+    public EmailResponse? SelectedEmail { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnSelect { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnCloseDetail { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<int> OnPageChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<string> OnSearchChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnReply { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnManageAttachments { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnDelete { get; set; }
+}

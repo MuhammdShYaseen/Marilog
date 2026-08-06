@@ -1,0 +1,133 @@
+@using Marilog.Contracts.DTOs.Requests.EmailDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailInbox
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Reply" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Reply</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            <MudText Typo="Typo.body2">
+                <b>To:</b> @(_toParticipant?.DisplayName ?? _toParticipant?.EmailAddress ?? "Unknown")
+            </MudText>
+
+            @if (_otherOriginalParticipants.Count > 0)
+            {
+                <MudCheckBox T="bool" @bind-Value="_replyToAll"
+                             Label="@($"Also CC: {string.Join(", ", _otherOriginalParticipants.Select(p => p.DisplayName ?? p.EmailAddress))}")" />
+            }
+
+            <MudTextField T="string" @bind-Value="_subject" Label="Subject" Immediate="true" />
+            <MudTextField T="string" @bind-Value="_body" Label="Message" Lines="10" Variant="Variant.Outlined" FullWidth="true" />
+
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Send"
+                   Disabled="@(!IsValid)"
+                   OnClick="Submit">
+            Send
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public EmailResponse OriginalEmail { get; set; } = default!;
+
+    // Result returned to the host — the host is responsible for calling
+    // CreateAsync + AddParticipantAsync (per recipient) + SendEmailAsync.
+    
+
+    private string _subject = string.Empty;
+    private string _body = string.Empty;
+    private bool _replyToAll;
+
+    private EmailParticipantResponse? _toParticipant;
+    private List<EmailParticipantResponse> _otherOriginalParticipants = new();
+
+    protected override void OnInitialized()
+    {
+        _toParticipant = OriginalEmail.Participants.FirstOrDefault(p => p.Role == ParticipantRole.From);
+
+        // Everyone else who was on the original thread (To/Cc), excluding the sender,
+        // offered as an optional "reply all" CC — reusing already-valid participant records.
+        _otherOriginalParticipants = OriginalEmail.Participants
+            .Where(p => p.Role != ParticipantRole.From)
+            .ToList();
+
+        _subject = OriginalEmail.Subject.StartsWith("Re:", StringComparison.OrdinalIgnoreCase)
+            ? OriginalEmail.Subject
+            : $"Re: {OriginalEmail.Subject}";
+
+        var quotedDate = OriginalEmail.SentAt?.ToString("yyyy-MM-dd HH:mm") ?? "unknown date";
+        var quotedFrom = _toParticipant?.DisplayName ?? _toParticipant?.EmailAddress ?? "Unknown";
+
+        _body = $"\n\n---\nOn {quotedDate}, {quotedFrom} wrote:\n{OriginalEmail.Body}";
+    }
+
+    private bool IsValid =>
+        _toParticipant is not null
+        && !string.IsNullOrWhiteSpace(_subject)
+        && !string.IsNullOrWhiteSpace(_body);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (!IsValid)
+            return;
+
+        var recipients = new List<EmailParticipantResponse>
+        {
+            new()
+            {
+                Role = ParticipantRole.To,
+                ParticipantType = _toParticipant!.ParticipantType,
+                ParticipantId = _toParticipant.ParticipantId,
+                DisplayName = _toParticipant.DisplayName,
+                EmailAddress = _toParticipant.EmailAddress
+            }
+        };
+
+        if (_replyToAll)
+        {
+            recipients.AddRange(_otherOriginalParticipants.Select(p => new EmailParticipantResponse
+            {
+                Role = ParticipantRole.Cc,
+                ParticipantType = p.ParticipantType,
+                ParticipantId = p.ParticipantId,
+                DisplayName = p.DisplayName,
+                EmailAddress = p.EmailAddress
+            }));
+        }
+
+        var result = new CreateEmailRequest
+        {
+            Subject = _subject.Trim(),
+            Body = _body,
+            Participants = recipients,
+            AccountID = OriginalEmail.AccountID,
+            Direction = EmailDirection.Outbound
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+}

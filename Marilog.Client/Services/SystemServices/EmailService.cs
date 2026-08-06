@@ -152,9 +152,15 @@ namespace Marilog.Client.Services.SystemServices
             throw new NotImplementedException();
         }
 
-        public Task<EmailResponse> SendEmailAsync(int emailId, CancellationToken ct = default)
+        public async Task<EmailResponse> SendEmailAsync(int emailId, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            var http = await _http.PostAsync($"{Base}/{emailId}/send", null, ct);
+
+            http.EnsureSuccessStatusCode();
+
+            var response = await http.Content.ReadFromJsonAsync<ApiResponse<EmailResponse>>(cancellationToken: ct);
+
+            return response!.Data ?? new EmailResponse();
         }
 
         public Task<EmailResponse> CreateFromSentAsync(int accountId, InboundMessage message, CancellationToken ct = default)

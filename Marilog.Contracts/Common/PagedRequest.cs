@@ -21,5 +21,6 @@ namespace Marilog.Contracts.Common
                 ? 20
                 : Math.Min(value, MaxPageSize);
         }
+        public string? SearchTerm { get; set; }
     }
 }

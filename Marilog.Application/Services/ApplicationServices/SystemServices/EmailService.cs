@@ -140,16 +140,38 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<EmailResponse> CreateAsync(CreateEmailRequest request, CancellationToken ct = default)
         {
-            if (!request.Participants.Any(p => p.Role == ParticipantRole.From))
-                throw new InvalidOperationException("Email must have a sender.");
             if (!request.Participants.Any(p => p.Role == ParticipantRole.To))
                 throw new InvalidOperationException("Email must have at least one recipient.");
 
-            var email = Email.Create(request.EntityType, request.EntityId, request.AccountID, request.Subject, request.Body, request.Direction);
+            var account = await _accountService.GetByIdAsync(request.AccountID, ct);
+
+            if (account is null)
+                throw new InvalidOperationException("Email account not found.");
+
+            var email = Email.Create(
+                request.EntityType,
+                request.EntityId,
+                request.AccountID,
+                request.Subject,
+                request.Body,
+                request.Direction);
+
+            email.AddParticipant(
+                ParticipantRole.From,
+                ParticipantType.Company,
+                account.Id,
+                account.DisplayName,
+                account.EmailAddress);
 
             foreach (var p in request.Participants)
-                email.AddParticipant(p.Role, p.ParticipantType,
-                                     p.ParticipantId, p.DisplayName, p.EmailAddress);
+            {
+                email.AddParticipant(
+                    p.Role,
+                    p.ParticipantType,
+                    p.ParticipantId,
+                    p.DisplayName,
+                    p.EmailAddress);
+            }
 
             await _repo.AddAsync(email, ct);
             await _repo.SaveChangesAsync(ct);

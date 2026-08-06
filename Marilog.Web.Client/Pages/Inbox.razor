@@ -1,0 +1,149 @@
+@page "/emails/inbox"
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Requests.EmailDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.EmailServices
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+//@using Marilog.Shared.UI.Components.ManagingStoredFiles
+@using Marilog.Shared.UI.Pages.EmailInbox
+@using Marilog.Web.Client.Services.Interfaces
+@using MudBlazor
+@inject IEmailService EmailService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject HttpClient Http
+@inject IManageStoredFiles ManageStoredFiles
+@* ASSUMPTION: attachments reuse the same StoredFile client service used on the Documents page.
+   Adjust the injected type name below if yours differs (e.g. IStoredFileService). *@
+@inject IStoredFileService StoredFileService
+
+<SharedEmailInboxPage Items="_emails"
+                       IsLoading="_isLoading"
+                       CurrentPage="_page"
+                       PageCount="_pageCount"
+                       SearchTerm="_searchTerm"
+                       SelectedEmail="_selectedEmail"
+                       OnSelect="SelectEmail"
+                       OnCloseDetail="@(() => _selectedEmail = null)"
+                       OnPageChanged="ChangePageAsync"
+                       OnSearchChanged="SearchAsync"
+                       OnReply="OpenReplyDialogAsync"
+                      OnManageAttachments="OpenAttachmentsDialogAsync"
+                       OnDelete="DeleteAsync" />
+
+@code {
+    private IReadOnlyList<EmailResponse> _emails = Array.Empty<EmailResponse>();
+    private bool _isLoading;
+    private int _page = 1;
+    private const int PageSize = 20;
+    private int _pageCount = 1;
+    private string? _searchTerm;
+    private EmailResponse? _selectedEmail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        var result = await EmailService.GetInboxAsync(new PagedRequest
+        {
+            Page = _page,
+            PageSize = PageSize,
+            SearchTerm = _searchTerm
+        });
+
+        _emails = result.Items;
+        _pageCount = Math.Max(1, (int)Math.Ceiling(result.TotalCount / (double)PageSize));
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private void SelectEmail(EmailResponse email)
+    {
+        _selectedEmail = email;
+    }
+
+    private async Task ChangePageAsync(int page)
+    {
+        _page = page;
+        await ReloadAsync();
+    }
+
+    private async Task SearchAsync(string term)
+    {
+        _searchTerm = term;
+        _page = 1;
+        await ReloadAsync();
+    }
+
+    private async Task OpenReplyDialogAsync(EmailResponse email)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var parameters = new DialogParameters<EmailReplyDialog>
+        {
+            { x => x.OriginalEmail, email }
+        };
+
+        var dialog = await DialogService.ShowAsync<EmailReplyDialog>("Reply", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+
+        var request = (CreateEmailRequest)result.Data!;
+
+
+
+        try
+        {
+            var created = await EmailService.CreateAsync(request);
+            await EmailService.SendEmailAsync(created.Id);
+            Snackbar.Add("Reply sent.", Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to send reply.", Severity.Error);
+        }
+    }
+
+    private async Task OpenAttachmentsDialogAsync(EmailResponse email)
+    {
+        await ManageStoredFiles.OpenManageStoredFilesDialogAsync((email.Id, EntityType.Email));
+    }
+
+    private async Task DeleteAsync(EmailResponse email)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete \"{email.Subject}\"?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await EmailService.DeleteAsync(email.Id);
+
+            if (_selectedEmail?.Id == email.Id)
+                _selectedEmail = null;
+
+            Snackbar.Add("Message deleted.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to delete message.", Severity.Error);
+        }
+    }
+}
