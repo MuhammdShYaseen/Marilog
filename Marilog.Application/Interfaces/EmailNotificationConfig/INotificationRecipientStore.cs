@@ -1,6 +1,4 @@
-﻿
-
-namespace Marilog.Contracts.Interfaces.Services.EmailNotification
+﻿namespace Marilog.Application.Interfaces.EmailNotificationConfig
 {
     public interface INotificationRecipientStore
     {

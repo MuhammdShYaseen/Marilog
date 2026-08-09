@@ -1,12 +1,12 @@
 ﻿using Marilog.Application.EventHandlers;
 using Marilog.Application.Interfaces.DataManagment;
 using Marilog.Application.Interfaces.Email;
+using Marilog.Application.Interfaces.EmailNotificationConfig;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Contracts.Interfaces.DataManagment;
-using Marilog.Contracts.Interfaces.Services.EmailNotification;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
