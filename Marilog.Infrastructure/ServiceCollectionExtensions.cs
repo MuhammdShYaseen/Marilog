@@ -6,6 +6,7 @@ using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Contracts.Interfaces.DataManagment;
+using Marilog.Contracts.Interfaces.Services.EmailNotification;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
@@ -20,6 +21,7 @@ using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.Email.Factory;
 using Marilog.Infrastructure.Services.Email.Google;
 using Marilog.Infrastructure.Services.Email.Smtp;
+using Marilog.Infrastructure.Services.EmailNotification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -98,7 +100,13 @@ namespace Marilog.Infrastructure
 
             //=====OCR========================================================================
             services.AddOcr(configuration);
+
+            //=====EmailNotificationConfig====================================================
+            services.AddSingleton<INotificationRecipientStore, JsonNotificationRecipientStore>();
             return services;
+
+
+
 
 
         }
