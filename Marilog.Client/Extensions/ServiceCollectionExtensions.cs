@@ -1,5 +1,6 @@
 ﻿using Marilog.Client.Interfaces;
 using Marilog.Client.Services.DataManagment;
+using Marilog.Client.Services.EmailNotification;
 using Marilog.Client.Services.FunctionaltyServices;
 using Marilog.Client.Services.Logging;
 using Marilog.Client.Services.SystemServices;
@@ -7,6 +8,7 @@ using Marilog.Client.Services.UiServices;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
+using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -54,6 +56,10 @@ namespace Marilog.Client.Extensions
 
             //==Backup====================
             services.AddScoped<IFullBackupService, FullBackupService>();
+
+
+            //==EmailNotificationConfigServices==================
+            services.AddScoped<INotificationRecipientStore, EmailNotificationRecipient>();
 
             return services;
         }
