@@ -10,8 +10,4 @@
     <ProjectReference Include="..\Marilog.Kernel\Marilog.Kernel.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Interfaces\Services\EmailNotification\" />
-  </ItemGroup>
-
 </Project>

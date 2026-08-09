@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Folder Include="DTOs\OCR\" />
+    <Folder Include="Interfaces\EmailNotificationConfig\" />
   </ItemGroup>
 
 </Project>

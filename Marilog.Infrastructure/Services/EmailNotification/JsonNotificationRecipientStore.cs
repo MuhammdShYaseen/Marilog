@@ -1,4 +1,4 @@
-﻿using Marilog.Application.Interfaces.EmailNotificationConfig;
+﻿using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
