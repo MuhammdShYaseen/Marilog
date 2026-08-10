@@ -148,7 +148,7 @@
         PersonCertificate = 11,
         VesselCertificate = 12,
         Email = 13,
-        NON = 0
+        NONE = 0
     }
     public enum JobStatus
     {

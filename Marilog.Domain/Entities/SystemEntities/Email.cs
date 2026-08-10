@@ -74,7 +74,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             return new Email
             {
                 AccountID = accountId,
-                EntityType = EntityType.NON,
+                EntityType = EntityType.NONE,
                 EntityId = null,
                 Subject = subject,
                 Body = body,
@@ -94,7 +94,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             return new Email
             {
                 AccountID = accountId,
-                EntityType = EntityType.NON,
+                EntityType = EntityType.NONE,
                 EntityId = null,
                 Subject = subject,
                 Body = body,

@@ -6,7 +6,7 @@ namespace Marilog.Domain.Entities.SystemEntities
 {
     public class StoredFile : Entity
     {
-        public EntityType EntityType { get; private set; } = EntityType.NON;
+        public EntityType EntityType { get; private set; } = EntityType.NONE;
         public int? EntityId { get; private set; }
         public string OriginalFileName { get; private set; } = null!;// from user machine
         public string StoredFileName { get; private set; } = null!; //saved as GUID this GUID Come from File its self couse of it has GUID property inheret from Entity;

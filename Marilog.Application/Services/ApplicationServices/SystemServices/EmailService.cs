@@ -93,7 +93,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             // Powers the Triage screen — inbound emails not yet linked to any entity.
             return await _repo.Query()
                 .AsNoTracking()
-                .Where(x => x.EntityType == EntityType.NON && x.EntityId == null)
+                .Where(x => x.EntityType == EntityType.NONE && x.EntityId == null)
                 .OrderByDescending(x => x.CreatedAt)
                 .Select(ToResponse)
                 .ToListAsync(ct);
