@@ -60,6 +60,7 @@ namespace Marilog.Client.Extensions
 
             //==EmailNotificationConfigServices==================
             services.AddScoped<INotificationRecipientStore, EmailNotificationRecipient>();
+            services.AddSingleton<INotificationSettingsStore, JsonNotificationSettingsStore>();
 
             return services;
         }
