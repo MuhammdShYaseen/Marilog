@@ -14,12 +14,20 @@
 
     <HeaderContent>
         <MudTh>Subject</MudTh>
-        <MudTh>From</MudTh>
+        <MudTh>@(ShowStatus ? "To" : "From")</MudTh>
+        @if (ShowStatus)
+        {
+            <MudTh>Status</MudTh>
+        }
         <MudTh>Date</MudTh>
+        @if (ShowStatus)
+        {
+            <MudTh></MudTh>
+        }
     </HeaderContent>
 
     <GroupHeaderTemplate>
-        <MudTh Class="pa-2" colspan="3">
+        <MudTh Class="pa-2" colspan="@(ShowStatus ? 5 : 3)">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.AlternateEmail" Size="Size.Small" Color="Color.Primary" />
                 <MudText Typo="Typo.subtitle2">@context.Key</MudText>
@@ -33,8 +41,36 @@
                 @(string.IsNullOrWhiteSpace(email.Subject) ? "(No subject)" : email.Subject)
             </MudText>
         </MudTd>
-        <MudTd DataLabel="From">@GetSenderLabel(email)</MudTd>
+
+        <MudTd DataLabel="@(ShowStatus ? "To" : "From")">
+            @(ShowStatus ? GetRecipientsLabel(email) : GetSenderLabel(email))
+        </MudTd>
+
+        @if (ShowStatus)
+        {
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(email.Status)">
+                    @email.Status
+                </MudChip>
+            </MudTd>
+        }
+
         <MudTd DataLabel="Date">@(email.SentAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</MudTd>
+
+        @if (ShowStatus)
+        {
+            <MudTd @onclick:stopPropagation="true">
+                @if (email.Status == EmailStatus.Failed)
+                {
+                    <MudTooltip Text="Retry sending">
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Size="Size.Small"
+                                       Color="Color.Warning"
+                                       OnClick="@(() => OnRetry.InvokeAsync(email))" />
+                    </MudTooltip>
+                }
+            </MudTd>
+        }
     </RowTemplate>
 
     <NoRecordsContent>
@@ -56,8 +92,15 @@
     [Parameter]
     public int? SelectedId { get; set; }
 
+    // When true, renders the Outbox shape: "To" + Status + Retry action instead of "From".
+    [Parameter]
+    public bool ShowStatus { get; set; }
+
     [Parameter, EditorRequired]
     public EventCallback<EmailResponse> OnSelect { get; set; }
+
+    [Parameter]
+    public EventCallback<EmailResponse> OnRetry { get; set; }
 
     private readonly TableGroupDefinition<EmailResponse> _groupDefinition = new()
     {
@@ -70,6 +113,24 @@
         var sender = email.Participants.FirstOrDefault(p => p.Role == ParticipantRole.From);
         return sender?.DisplayName ?? sender?.EmailAddress ?? "Unknown";
     }
+
+    private static string GetRecipientsLabel(EmailResponse email)
+    {
+        var recipients = email.Participants
+            .Where(p => p.Role == ParticipantRole.To)
+            .Select(p => p.DisplayName ?? p.EmailAddress)
+            .ToList();
+
+        return recipients.Count > 0 ? string.Join(", ", recipients) : "-";
+    }
+
+    private static Color GetStatusColor(EmailStatus status) => status switch
+    {
+        EmailStatus.Sent => Color.Success,
+        EmailStatus.Failed => Color.Error,
+        EmailStatus.Draft => Color.Default,
+        _ => Color.Info
+    };
 
     private void HandleRowClick(TableRowClickEventArgs<EmailResponse> args)
     {
