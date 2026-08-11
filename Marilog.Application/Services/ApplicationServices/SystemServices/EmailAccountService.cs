@@ -63,6 +63,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var json = JsonSerializer.Serialize(request.Config);
             var encryptedConfig = _encryption.Encrypt(json);
 
+            // تحقق إذا الحساب موجود مسبقاً بنفس الإيميل
+            var existing = await _repo.Query().FirstOrDefaultAsync(
+                x => x.EmailAddress == request.EmailAddress, ct);
+
+            if (existing is not null)
+            {
+                existing.UpdateConfig(encryptedConfig);
+                await _repo.SaveChangesAsync(ct);
+                return ToResponseCompiled(existing);
+            }
+
             var account = EmailAccount.Create(
                 request.DisplayName,
                 request.EmailAddress,
