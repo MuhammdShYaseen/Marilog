@@ -4,13 +4,13 @@ using System.Net.Http.Json;
 
 namespace Marilog.Client.Services.EmailNotification
 {
-    public sealed class NotificationSettingsClient : INotificationSettingsStore
+    public sealed class JsonNotificationSettingsStore : INotificationSettingsStore
     {
         private const string Base = "api/NotificationSettings";
 
         private readonly HttpClient _http;
 
-        public NotificationSettingsClient(HttpClient http)
+        public JsonNotificationSettingsStore(HttpClient http)
         {
             _http = http;
         }
