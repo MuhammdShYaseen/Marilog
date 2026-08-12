@@ -173,13 +173,35 @@
                                            OnClick="() => OnAddCertificateClicked.InvokeAsync(_selected)" />
                         </MudStack>
 
+                        <MudTextField T="string"
+                                      Value="_certificateSearch"
+                                      ValueChanged="@((string v) => _certificateSearch = v)"
+                                      Placeholder="Search certificates by name..."
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Immediate="true"
+                                      Clearable="true"
+                                      Class="mb-2" />
+
                         @if (_selected.Certificates == null || _selected.Certificates.Count == 0)
                         {
                             <MudText Typo="Typo.body2" Color="Color.Secondary">No certificates added.</MudText>
                         }
                         else
                         {
-                            @foreach (var cert in _selected.Certificates)
+                            var filteredCertificates = string.IsNullOrWhiteSpace(_certificateSearch)
+                                 ? _selected.Certificates
+                                    : _selected.Certificates
+                                        .Where(c => !string.IsNullOrWhiteSpace(c.CertificateName) &&
+                            c.CertificateName.Contains(_certificateSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                            @if (filteredCertificates.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">No certificates match your search.</MudText>
+                            }
+                            else
+                            {
+                                
+                            @foreach (var cert in filteredCertificates)
                             {
                                 var certToday = DateOnly.FromDateTime(DateTime.Today);
                                 var certExpired = cert.ExpiryDate.HasValue && cert.ExpiryDate.Value < certToday;
@@ -274,6 +296,7 @@
                                 </MudPaper>
                             }
                         }
+                        }
                     </MudTabPanel>
 
                 </MudTabs>
@@ -334,7 +357,7 @@
     private string _search = string.Empty;
     private int _activeTab;
     private int? _lastSelectedId;
-
+    private string _certificateSearch = string.Empty;
     private IEnumerable<VesselResponse> _filtered =>
         Filter(Vessels);
 
