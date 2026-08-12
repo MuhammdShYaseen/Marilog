@@ -104,7 +104,7 @@ namespace Marilog.Infrastructure
             //=====EmailNotificationConfig====================================================
             services.AddSingleton<INotificationRecipientStore, JsonNotificationRecipientStore>();
             services.AddSingleton<INotificationSettingsStore, JsonNotificationSettingsStore>();
-            services.AddSingleton<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();
+            services.AddScoped<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();
             return services;
 
 
