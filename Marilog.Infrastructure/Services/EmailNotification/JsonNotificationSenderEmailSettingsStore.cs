@@ -1,6 +1,6 @@
 ﻿using Marilog.Application.Interfaces.Encryption;
+using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
-using Marilog.Contracts.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;

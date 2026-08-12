@@ -1,7 +1,7 @@
 ﻿
 
+using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
-using Marilog.Contracts.Options;
 using System.Net.Http.Json;
 
 namespace Marilog.Client.Services.EmailNotification

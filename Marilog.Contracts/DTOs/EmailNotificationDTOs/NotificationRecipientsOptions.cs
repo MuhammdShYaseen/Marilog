@@ -1,4 +1,4 @@
-﻿namespace Marilog.Contracts.Options
+﻿namespace Marilog.Contracts.DTOs.EmailNotificationDTOs
 {
     public class NotificationRecipientsOptions
     {

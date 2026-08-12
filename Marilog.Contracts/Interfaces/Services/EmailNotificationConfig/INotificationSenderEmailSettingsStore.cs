@@ -1,6 +1,6 @@
 ﻿
 
-using Marilog.Contracts.Options;
+using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 
 namespace Marilog.Contracts.Interfaces.Services.EmailNotificationConfig
 {
