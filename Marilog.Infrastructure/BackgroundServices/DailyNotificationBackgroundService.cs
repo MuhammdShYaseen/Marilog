@@ -273,7 +273,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             now.Year,
             now.Month,
             now.Day,
-            21,
+            09,
             0,
             0,
             DateTimeKind.Utc);
