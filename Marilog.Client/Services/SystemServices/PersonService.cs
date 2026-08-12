@@ -208,5 +208,15 @@ namespace Marilog.Client.Services.SystemServices
                 $"{Base}/{personId}/sea-services/{index}", ct);
             http.EnsureSuccessStatusCode();
         }
+
+        public Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<CertificateResponse>> GetExpiredCertificates(CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -120,5 +120,15 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.DeleteAsync($"{Base}/{vesselId}/certificates/{index}", ct);
             http.EnsureSuccessStatusCode();
         }
+
+        public Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<CertificateResponse>> GetExpiredCertificates(CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

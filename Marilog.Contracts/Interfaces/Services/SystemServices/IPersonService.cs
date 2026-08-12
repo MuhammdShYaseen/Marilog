@@ -42,6 +42,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task AddCertificateAsync(int personId, UpsertCertificateRequest request, CancellationToken ct = default);
         Task UpdateCertificateAsync(int personId, int index, UpsertCertificateRequest request, CancellationToken ct = default);
         Task RemoveCertificateAsync(int personId, int index, CancellationToken ct = default);
+        Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default);
+        Task<IReadOnlyList<CertificateResponse>> GetExpiredCertificates(CancellationToken ct = default);
 
         // Sea Services
         Task AddSeaServiceAsync(int personId, UpsertSeaServiceRequest request, CancellationToken ct = default);

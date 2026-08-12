@@ -7,6 +7,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Person;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -241,6 +242,63 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+        public async Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var expiryDate = today.AddDays(30);
+
+            return await _repo
+                .Query()
+                .AsNoTracking()
+                .SelectMany(p => p.Certificates
+                    .Where(c =>
+                        c.Certificate.ExpiryDate.HasValue &&
+                        c.Certificate.ExpiryDate.Value >= today &&
+                        c.Certificate.ExpiryDate.Value <= expiryDate)
+                    .Select(c => new CertificateResponse
+                    {
+                        Index = c.Id,
+                        CertificateName = c.Certificate.CertificateName,
+                        CertificateNumber = c.Certificate.CertificateNumber,
+                        Description = c.Certificate.Description,
+                        IssueDate = c.Certificate.IssueDate,
+                        ExpiryDate = c.Certificate.ExpiryDate,
+                        IssuingAuthority = c.Certificate.IssuingAuthority,
+                        PType = c.Type,
+                        VType = null,
+                        PName = p.FullName,
+                        VName = null
+                    }))
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<CertificateResponse>> GetExpiredCertificates(CancellationToken ct = default)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .SelectMany(p => p.Certificates
+                    .Where(c =>
+                        c.Certificate.ExpiryDate.HasValue &&
+                        c.Certificate.ExpiryDate.Value < today)
+                    .Select(c => new CertificateResponse
+                    {
+                        Index = c.Id,
+                        CertificateName = c.Certificate.CertificateName,
+                        CertificateNumber = c.Certificate.CertificateNumber,
+                        Description = c.Certificate.Description,
+                        IssueDate = c.Certificate.IssueDate,
+                        ExpiryDate = c.Certificate.ExpiryDate,
+                        IssuingAuthority = c.Certificate.IssuingAuthority,
+                        PType = c.Type,
+                        VType = null,
+                        PName = p.FullName,
+                        VName = null
+                    }))
+                .ToListAsync(ct);
+        }
+
         // ── Sea Services ──────────────────────────────────────────────────────────
 
         public async Task AddSeaServiceAsync(int personId,
@@ -378,5 +436,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         VesselSizeInMT = s.VesselSizeInMT
                     }).ToList()
             };
+
+        
     }
 }

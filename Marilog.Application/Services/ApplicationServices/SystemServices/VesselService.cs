@@ -251,6 +251,62 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+        public async Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var expiryDate = today.AddDays(30);
+
+            return await _repo
+                .Query()
+                .AsNoTracking()
+                .SelectMany(v => v.Certificates
+                    .Where(c =>
+                        c.Certificate.ExpiryDate.HasValue &&
+                        c.Certificate.ExpiryDate.Value >= today &&
+                        c.Certificate.ExpiryDate.Value <= expiryDate)
+                    .Select(c => new CertificateResponse
+                    {
+                        Index = c.Id,
+                        CertificateName = c.Certificate.CertificateName,
+                        CertificateNumber = c.Certificate.CertificateNumber,
+                        Description = c.Certificate.Description,
+                        IssueDate = c.Certificate.IssueDate,
+                        ExpiryDate = c.Certificate.ExpiryDate,
+                        IssuingAuthority = c.Certificate.IssuingAuthority,
+                        PType = null,
+                        VType = c.Type,
+                        VName = v.VesselName,
+                        PName = null
+                    }))
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<CertificateResponse>> GetExpiredCertificates(CancellationToken ct = default)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            return await _repo.Query()
+                .AsNoTracking()
+                .SelectMany(v => v.Certificates
+                    .Where(c =>
+                        c.Certificate.ExpiryDate.HasValue &&
+                        c.Certificate.ExpiryDate.Value < today)
+                    .Select(c => new CertificateResponse
+                    {
+                        Index = c.Id,
+                        CertificateName = c.Certificate.CertificateName,
+                        CertificateNumber = c.Certificate.CertificateNumber,
+                        Description = c.Certificate.Description,
+                        IssueDate = c.Certificate.IssueDate,
+                        ExpiryDate = c.Certificate.ExpiryDate,
+                        IssuingAuthority = c.Certificate.IssuingAuthority,
+                        PType = null,
+                        VType = c.Type,
+                        PName = null,
+                        VName = v.VesselName
+                    }))
+                .ToListAsync(ct);
+        }
 
         // ── Private ───────────────────────────────────────────────────────────────
 

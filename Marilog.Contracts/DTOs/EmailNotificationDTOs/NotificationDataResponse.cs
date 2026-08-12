@@ -6,14 +6,14 @@ namespace Marilog.Contracts.DTOs.EmailNotificationDTOs
 {
     public class NotificationDataResponse
     {
-        public IReadOnlyList<DocumentResponse> UnpaidDocuments { get; init; } = [];
+        public IReadOnlyList<DocumentResponse> UnpaidDocuments { get; set; } = [];
 
-        public IReadOnlyList<CertificateResponse> ExpiringVesselCertificates { get; init; } = [];
+        public IReadOnlyList<CertificateResponse> ExpiringVesselCertificates { get; set; } = [];
 
-        public IReadOnlyList<CertificateResponse> ExpiredVesselCertificates { get; init; } = [];
+        public IReadOnlyList<CertificateResponse> ExpiredVesselCertificates { get; set; } = [];
 
-        public IReadOnlyList<CertificateResponse> ExpiringPersonCertificates { get; init; } = [];
+        public IReadOnlyList<CertificateResponse> ExpiringPersonCertificates { get; set; } = [];
 
-        public IReadOnlyList<CertificateResponse> ExpiredPersonCertificates { get; init; } = [];
+        public IReadOnlyList<CertificateResponse> ExpiredPersonCertificates { get; set; } = [];
     }
 }

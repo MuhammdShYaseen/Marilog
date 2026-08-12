@@ -15,5 +15,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? Description { get; set; }
         public PersonCertificateType? PType { get; set; }
         public VesselCertificateType? VType { get; set; }
+        public string? PName { get; set; }
+        public string? VName { get; set; }
     }
 }
