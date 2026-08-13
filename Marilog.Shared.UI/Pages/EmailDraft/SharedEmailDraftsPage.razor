@@ -1,0 +1,61 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Pages.EmailInbox
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailDraft
+
+<MudStack Spacing="4">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Drafts" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.h5">Drafts</MudText>
+    </MudStack>
+
+    @if (IsLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </MudStack>
+    }
+    else
+    {
+        <MudPaper Outlined="true" Class="pa-0">
+            <SharedEmailDraftsTable Items="Items" SelectedId="SelectedEmail?.Id" OnSelect="OnSelect" OnSend="OnSend" OnDelete="OnDelete" />
+        </MudPaper>
+
+        @if (SelectedEmail is not null)
+        {
+            <SharedEmailDetailPanel Email="SelectedEmail"
+                                     OnClose="OnCloseDetail"
+                                     OnSend="OnSend"
+                                     OnManageAttachments="OnManageAttachments"
+                                     OnDelete="OnDelete" />
+        }
+    }
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<EmailResponse> Items { get; set; } = Array.Empty<EmailResponse>();
+
+    [Parameter, EditorRequired]
+    public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired]
+    public EmailResponse? SelectedEmail { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnSelect { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnCloseDetail { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnSend { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnManageAttachments { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnDelete { get; set; }
+}

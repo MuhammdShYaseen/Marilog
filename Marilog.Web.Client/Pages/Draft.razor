@@ -1,0 +1,131 @@
+﻿@page "/emails/drafts"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.EmailServices
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Components.ManagingStoredFiles
+@using Marilog.Shared.UI.Pages.EmailDraft
+@using MudBlazor
+@inject IEmailService EmailService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject HttpClient Http
+
+@* ASSUMPTION: attachments reuse the same StoredFile client service used on the Documents page.
+   Adjust the injected type name below if yours differs (e.g. IStoredFileService). *@
+@inject IStoredFileService StoredFileService
+
+<SharedEmailDraftsPage Items="_drafts"
+                        IsLoading="_isLoading"
+                        SelectedEmail="_selectedEmail"
+                        OnSelect="SelectEmail"
+                        OnCloseDetail="@(() => _selectedEmail = null)"
+                        OnSend="SendAsync"
+                        OnManageAttachments="OpenAttachmentsDialogAsync"
+                        OnDelete="DeleteAsync" />
+
+@code {
+    private IReadOnlyList<EmailResponse> _drafts = Array.Empty<EmailResponse>();
+    private bool _isLoading;
+    private EmailResponse? _selectedEmail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        _drafts = await EmailService.GetByStatusAsync(EmailStatus.Draft);
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private void SelectEmail(EmailResponse email)
+    {
+        _selectedEmail = email;
+    }
+
+    private async Task SendAsync(EmailResponse email)
+    {
+        try
+        {
+            await EmailService.SendEmailAsync(email.Id);
+
+            if (_selectedEmail?.Id == email.Id)
+                _selectedEmail = null;
+
+            Snackbar.Add("Message sent.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to send message.", Severity.Error);
+        }
+    }
+
+    private async Task OpenAttachmentsDialogAsync(EmailResponse email)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+
+        var parameters = new DialogParameters<ManageStoredFilesDialog>
+        {
+            { x => x.LoadFilesFunc, ct => StoredFileService.GetByEntityIdAsync(email.Id, EntityType.Email, ct) },
+            { x => x.DeleteFileFunc, (id, ct) => StoredFileService.DeleteAsync(id, ct) },
+            { x => x.AddTagFunc, (id, name, color, ct) => StoredFileService.AddTagAsync(id, name, color, ct) },
+            { x => x.RemoveTagFunc, (id, tagId, ct) => StoredFileService.RemoveTagAsync(id, tagId, ct) },
+            { x => x.BuildDownloadUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
+            { x => x.BuildThumbnailUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/thumbnail" },
+            { x => x.UploadFilesFunc, async (files, ct) =>
+                {
+                    var requests = files.Select(f => new Marilog.Contracts.DTOs.Requests.StoregFileDTOs.UploadFileRequest
+                    {
+                        ContentType = f.ContentType,
+                        EntityId = email.Id,
+                        EntityType = EntityType.Email,
+                        FileName = f.Name,
+                        FileStream = f.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024),
+                        Size = f.Size
+                    });
+
+                    var outcome = await StoredFileService.UploadAsync(requests, ct);
+                    return outcome.Count > 0;
+                }
+            }
+        };
+
+        await DialogService.ShowAsync<ManageStoredFilesDialog>("Attachments", parameters, options);
+    }
+
+    private async Task DeleteAsync(EmailResponse email)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete this draft (\"{email.Subject}\")?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await EmailService.DeleteAsync(email.Id);
+
+            if (_selectedEmail?.Id == email.Id)
+                _selectedEmail = null;
+
+            Snackbar.Add("Draft deleted.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to delete draft.", Severity.Error);
+        }
+    }
+}

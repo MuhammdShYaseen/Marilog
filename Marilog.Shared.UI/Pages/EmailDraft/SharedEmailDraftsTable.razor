@@ -1,0 +1,89 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailDraft
+
+<MudTable T="EmailResponse"
+          Items="Items"
+          Hover="true"
+          OnRowClick="HandleRowClick"
+          RowClassFunc="@((email, index) => email.Id == SelectedId ? "selected-row" : string.Empty)"
+          Class="email-drafts-table">
+
+    <HeaderContent>
+        <MudTh>Subject</MudTh>
+        <MudTh>To</MudTh>
+        <MudTh>Account</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="email">
+        <MudTd DataLabel="Subject">
+            @(string.IsNullOrWhiteSpace(email.Subject) ? "(No subject)" : email.Subject)
+        </MudTd>
+        <MudTd DataLabel="To">@GetRecipientsLabel(email)</MudTd>
+        <MudTd DataLabel="Account">@(email.AccountNav?.DisplayName ?? "Unknown Account")</MudTd>
+        <MudTd @onclick:stopPropagation="true">
+            <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                <MudTooltip Text="Send">
+                    <MudIconButton Icon="@Icons.Material.Filled.Send"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OnSend.InvokeAsync(email))" />
+                </MudTooltip>
+                <MudTooltip Text="Delete">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => OnDelete.InvokeAsync(email))" />
+                </MudTooltip>
+            </MudStack>
+        </MudTd>
+    </RowTemplate>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">No drafts.</MudText>
+    </NoRecordsContent>
+
+</MudTable>
+
+<style>
+    .email-drafts-table .selected-row {
+        background-color: var(--mud-palette-primary-hover) !important;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<EmailResponse> Items { get; set; } = Array.Empty<EmailResponse>();
+
+    [Parameter]
+    public int? SelectedId { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnSelect { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnSend { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<EmailResponse> OnDelete { get; set; }
+
+    private static string GetRecipientsLabel(EmailResponse email)
+    {
+        var recipients = email.Participants
+            .Where(p => p.Role == ParticipantRole.To)
+            .Select(p => p.DisplayName ?? p.EmailAddress)
+            .ToList();
+
+        return recipients.Count > 0 ? string.Join(", ", recipients) : "-";
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<EmailResponse> args)
+    {
+        if (args.Item is null)
+            return;
+
+        OnSelect.InvokeAsync(args.Item);
+    }
+}

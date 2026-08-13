@@ -43,12 +43,24 @@
     <MudDivider Class="mt-4 mb-3" />
 
     <MudStack Row="true" Spacing="2">
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Reply"
-                   OnClick="@(() => OnReply.InvokeAsync(Email))">
-            Reply
-        </MudButton>
+        @if (OnSend.HasDelegate)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Send"
+                       OnClick="@(() => OnSend.InvokeAsync(Email))">
+                Send
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Reply"
+                       OnClick="@(() => OnReply.InvokeAsync(Email))">
+                Reply
+            </MudButton>
+        }
 
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Primary"
@@ -86,8 +98,12 @@
     [Parameter, EditorRequired]
     public EventCallback OnClose { get; set; }
 
-    [Parameter, EditorRequired]
+    [Parameter]
     public EventCallback<EmailResponse> OnReply { get; set; }
+
+    // When bound, shows "Send" instead of "Reply" — used by the Drafts view.
+    [Parameter]
+    public EventCallback<EmailResponse> OnSend { get; set; }
 
     [Parameter, EditorRequired]
     public EventCallback<EmailResponse> OnManageAttachments { get; set; }
