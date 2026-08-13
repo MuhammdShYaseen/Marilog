@@ -24,14 +24,21 @@
                        SearchTerm="_searchTerm"
                        SelectedEmail="_selectedEmail"
                        OnSelect="SelectEmail"
-                       OnCloseDetail="@(() => _selectedEmail = null)"
+                       OnCloseDetail="CloseDetail"
                        OnPageChanged="ChangePageAsync"
                        OnSearchChanged="SearchAsync"
                        OnReply="OpenReplyDialogAsync"
-                      OnManageAttachments="OpenAttachmentsDialogAsync"
+                       OnManageAttachments="OpenAttachmentsDialogAsync"
+                       OnDetailDrawerOpen="_isDetailDrawerOpen"
                        OnDelete="DeleteAsync" />
 
 @code {
+
+    private void CloseDetail()
+    {
+        _selectedEmail = null;
+        _isDetailDrawerOpen = false;
+    }
     private IReadOnlyList<EmailResponse> _emails = Array.Empty<EmailResponse>();
     private bool _isLoading;
     private int _page = 1;
@@ -39,7 +46,7 @@
     private int _pageCount = 1;
     private string? _searchTerm;
     private EmailResponse? _selectedEmail;
-
+    private bool _isDetailDrawerOpen;
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
@@ -66,7 +73,9 @@
 
     private void SelectEmail(EmailResponse email)
     {
+
         _selectedEmail = email;
+        _isDetailDrawerOpen = true;
     }
 
     private async Task ChangePageAsync(int page)

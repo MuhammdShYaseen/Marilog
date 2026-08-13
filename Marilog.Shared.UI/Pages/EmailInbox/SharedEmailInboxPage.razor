@@ -29,21 +29,33 @@
     else
     {
         <MudPaper Outlined="true" Class="pa-0">
-            <SharedEmailTable Items="Items" SelectedId="SelectedEmail?.Id" OnSelect="OnSelect" />
+            <SharedEmailTable Items="Items"
+                              SelectedId="SelectedEmail?.Id"
+                              OnSelect="OnSelect" />
         </MudPaper>
 
         <MudStack Row="true" Justify="Justify.Center">
-            <MudPagination Count="@PageCount" Selected="@CurrentPage" SelectedChanged="@(p => OnPageChanged.InvokeAsync(p))" />
+            <MudPagination Count="@PageCount"
+                           Selected="@CurrentPage"
+                           SelectedChanged="@(p => OnPageChanged.InvokeAsync(p))" />
         </MudStack>
 
-        @if (SelectedEmail is not null)
-        {
-            <SharedEmailDetailPanel Email="SelectedEmail"
-                                     OnClose="OnCloseDetail"
-                                     OnReply="OnReply"
-                                     OnManageAttachments="OnManageAttachments"
-                                     OnDelete="OnDelete" />
-        }
+        <MudDrawer @bind-Open="OnDetailDrawerOpen"
+                   Anchor="Anchor.Right"
+                   Variant="DrawerVariant.Temporary"
+                   Elevation="8"
+                   Width="560px">
+
+            @if (SelectedEmail is not null)
+            {
+                <SharedEmailDetailPanel Email="SelectedEmail"
+                                        OnClose="OnCloseDetail"
+                                        OnReply="OnReply"
+                                        OnManageAttachments="OnManageAttachments"
+                                        OnDelete="OnDelete" />
+            }
+
+        </MudDrawer>
     }
 
 </MudStack>
@@ -54,7 +66,7 @@
     }
 </style>
 
-@code {
+    @code {
     [Parameter, EditorRequired]
     public IEnumerable<EmailResponse> Items { get; set; } = Array.Empty<EmailResponse>();
 
@@ -93,4 +105,8 @@
 
     [Parameter, EditorRequired]
     public EventCallback<EmailResponse> OnDelete { get; set; }
+
+    [Parameter]
+    public bool OnDetailDrawerOpen { get; set; }
+
 }
