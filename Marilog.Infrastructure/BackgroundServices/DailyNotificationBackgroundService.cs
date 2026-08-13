@@ -270,9 +270,9 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             now.Year,
             now.Month,
             now.Day,
-            7,
-            52,
-            0,
+            8,
+            26,
+            20,
             DateTimeKind.Utc);
 
         if (nextExecution <= now)

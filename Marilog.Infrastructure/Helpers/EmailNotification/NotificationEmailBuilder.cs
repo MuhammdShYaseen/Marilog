@@ -2,7 +2,9 @@
 
 using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Kernel.Enums;
 using Microsoft.VisualBasic;
+using System.Collections.ObjectModel;
 using System.Text;
 
 namespace Marilog.Infrastructure.Helpers.EmailNotification
@@ -83,10 +85,9 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
             return builder.ToString();
         }
 
-        private static void AppendUnpaidDocuments(
-            StringBuilder builder,
-            IReadOnlyList<DocumentResponse> documents)
+        private static void AppendUnpaidDocuments(StringBuilder builder, IReadOnlyList<DocumentResponse> documents)
         {
+            var filteredDocs = documents.Where(d => d.Side != FinancialSide.None).ToList() as IReadOnlyList<DocumentResponse>;
             builder.Append("""
             <h2 style="font-size:18px;margin:0 0 12px;">
                 Unpaid Documents
@@ -96,29 +97,40 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                 <thead>
                     <tr>
                         <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Document</th>
+                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Vessel</th>
+                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Supplier</th>
                         <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Description</th>
                         <th style="text-align:right;padding:10px;border-bottom:2px solid #ddd;">Amount</th>
-                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Due Date</th>
+                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Doc Date</th>
                     </tr>
                 </thead>
                 <tbody>
             """);
 
-            foreach (var document in documents)
+            foreach (var document in filteredDocs)
             {
                 builder.Append($"""
                 <tr>
                     <td style="padding:10px;border-bottom:1px solid #eee;">
                         {HtmlEncode(document.DocNumber)}
                     </td>
+
                     <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {HtmlEncode(document.Reference)}
+                        {HtmlEncode(document.VesselName)}
+                    </td>
+
+                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                        {HtmlEncode(document.SupplierName)}
+                    </td>
+
+                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                        {HtmlEncode(document.DocTypeName + " " + document.Reference)}
                     </td>
                     <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;">
                         {document.TotalAmount:N2} {HtmlEncode(document.CurrencyCode)}
                     </td>
                     <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue).AddDays(30))}
+                        {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue))}
                     </td>
                 </tr>
                 """);
