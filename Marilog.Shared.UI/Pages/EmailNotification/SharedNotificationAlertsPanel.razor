@@ -1,0 +1,69 @@
+@using Marilog.Contracts.DTOs.EmailNotificationDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailNotification
+
+<MudStack Spacing="4">
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Choose which events trigger an automatic email notification.
+    </MudText>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudStack Spacing="3">
+
+            <MudSwitch T="bool" Value="Settings.UnpaidDocuments" ValueChanged="@(v => Update(x => x.UnpaidDocuments = v))"
+                       Color="Color.Primary" Label="Unpaid documents" />
+
+            <MudDivider />
+
+            <MudSwitch T="bool" Value="Settings.ExpiringVesselCertificates" ValueChanged="@(v => Update(x => x.ExpiringVesselCertificates = v))"
+                       Color="Color.Primary" Label="Expiring vessel certificates" />
+
+            <MudSwitch T="bool" Value="Settings.ExpiredVesselCertificates" ValueChanged="@(v => Update(x => x.ExpiredVesselCertificates = v))"
+                       Color="Color.Primary" Label="Expired vessel certificates" />
+
+            <MudDivider />
+
+            <MudSwitch T="bool" Value="Settings.ExpiringPersonCertificates" ValueChanged="@(v => Update(x => x.ExpiringPersonCertificates = v))"
+                       Color="Color.Primary" Label="Expiring crew certificates" />
+
+            <MudSwitch T="bool" Value="Settings.ExpiredPersonCertificates" ValueChanged="@(v => Update(x => x.ExpiredPersonCertificates = v))"
+                       Color="Color.Primary" Label="Expired crew certificates" />
+
+        </MudStack>
+    </MudPaper>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!IsDirty || IsSaving)"
+                   OnClick="@(() => OnSave.InvokeAsync(Settings))">
+            @(IsSaving ? "Saving..." : "Save")
+        </MudButton>
+    </MudStack>
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public NotificationSettingsOptions Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public bool IsDirty { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool IsSaving { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<NotificationSettingsOptions> OnSave { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnChanged { get; set; }
+
+    private void Update(Action<NotificationSettingsOptions> apply)
+    {
+        apply(Settings);
+        OnChanged.InvokeAsync();
+    }
+}

@@ -1,0 +1,94 @@
+@using Marilog.Contracts.DTOs.EmailNotificationDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailNotification
+
+<MudStack Spacing="4">
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        The mailbox the system sends automatic notifications from.
+    </MudText>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudStack Spacing="4">
+
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Sender</MudText>
+            <MudTextField T="string" Value="Settings.FromEmail" ValueChanged="@(v => Update(x => x.FromEmail = v))" Label="From Email" Immediate="true" />
+            <MudTextField T="string" Value="Settings.FromName" ValueChanged="@(v => Update(x => x.FromName = v))" Label="From Name (optional)" Immediate="true" />
+
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">SMTP (Sending)</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="8">
+                    <MudTextField T="string" Value="Settings.SmtpHost" ValueChanged="@(v => Update(x => x.SmtpHost = v))" Label="Host" Immediate="true" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudTextField T="int" Value="Settings.SmtpPort" ValueChanged="@(v => Update(x => x.SmtpPort = v))" Label="Port" Immediate="true" />
+                </MudItem>
+            </MudGrid>
+            <MudSwitch T="bool" Value="Settings.SmtpUseSsl" ValueChanged="@(v => Update(x => x.SmtpUseSsl = v))" Color="Color.Primary" Label="Use SSL" />
+
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">IMAP (Receiving, if applicable)</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="8">
+                    <MudTextField T="string" Value="Settings.ImapHost" ValueChanged="@(v => Update(x => x.ImapHost = v))" Label="Host" Immediate="true" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudTextField T="int" Value="Settings.ImapPort" ValueChanged="@(v => Update(x => x.ImapPort = v))" Label="Port" Immediate="true" />
+                </MudItem>
+            </MudGrid>
+            <MudSwitch T="bool" Value="Settings.ImapUseSsl" ValueChanged="@(v => Update(x => x.ImapUseSsl = v))" Color="Color.Primary" Label="Use SSL" />
+
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Authentication</MudText>
+            <MudTextField T="string" Value="Settings.Username" ValueChanged="@(v => Update(x => x.Username = v))" Label="Username" Immediate="true" />
+
+            <MudTextField T="string" Value="Settings.Password" ValueChanged="@(v => Update(x => x.Password = v))"
+                          Label="Password" Immediate="true"
+                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                          OnAdornmentClick="@(() => _showPassword = !_showPassword)" />
+
+        </MudStack>
+    </MudPaper>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!IsDirty || IsSaving)"
+                   OnClick="@(() => OnSave.InvokeAsync(Settings))">
+            @(IsSaving ? "Saving..." : "Save")
+        </MudButton>
+    </MudStack>
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public NotificationSenderEmailSettingsOptions Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public bool IsDirty { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool IsSaving { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<NotificationSenderEmailSettingsOptions> OnSave { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnChanged { get; set; }
+
+    private bool _showPassword;
+
+    private void Update(Action<NotificationSenderEmailSettingsOptions> apply)
+    {
+        apply(Settings);
+        OnChanged.InvokeAsync();
+    }
+}

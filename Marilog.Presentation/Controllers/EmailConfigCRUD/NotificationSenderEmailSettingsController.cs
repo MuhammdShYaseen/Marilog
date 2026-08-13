@@ -26,9 +26,7 @@ namespace Marilog.Presentation.Controllers.EmailConfigCRUD
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] NotificationSenderEmailSettingsOptions options, CancellationToken cancellationToken)
         {
-            await _store.UpdateAsync(
-                options,
-                cancellationToken);
+            await _store.UpdateAsync(options, cancellationToken);
 
             return NoContent();
         }

@@ -118,7 +118,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                         {document.TotalAmount:N2} {HtmlEncode(document.CurrencyCode)}
                     </td>
                     <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue))}
+                        {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue).AddDays(30))}
                     </td>
                 </tr>
                 """);

@@ -7,21 +7,16 @@ using MimeKit;
 
 namespace Marilog.Infrastructure.Services.EmailNotification
 {
-
     public sealed class NotificationEmailSender : INotificationEmailSender
     {
         private readonly INotificationSenderEmailSettingsStore _settingsStore;
 
-        public NotificationEmailSender(
-            INotificationSenderEmailSettingsStore settingsStore)
+        public NotificationEmailSender(INotificationSenderEmailSettingsStore settingsStore)
         {
             _settingsStore = settingsStore;
         }
 
-        public async Task SendAsync(
-            NotificationEmailMessage message,
-            IReadOnlyCollection<string> recipients,
-            CancellationToken cancellationToken = default)
+        public async Task SendAsync(NotificationEmailMessage message, IReadOnlyCollection<string> recipients, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(message);
             ArgumentNullException.ThrowIfNull(recipients);
@@ -29,8 +24,7 @@ namespace Marilog.Infrastructure.Services.EmailNotification
             if (recipients.Count == 0)
                 return;
 
-            var settings =
-                await _settingsStore.GetAsync(cancellationToken);
+            var settings = await _settingsStore.GetAsync(cancellationToken);
 
             var email = new MimeMessage();
 
@@ -56,28 +50,20 @@ namespace Marilog.Infrastructure.Services.EmailNotification
 
             using var client = new SmtpClient();
 
-            var socketOption = settings.SmtpUseSsl
-                ? SecureSocketOptions.SslOnConnect
-                : SecureSocketOptions.StartTls;
+            var socketOption = settings.SmtpPort switch
+            {
+                465 => SecureSocketOptions.SslOnConnect,
+                587 => SecureSocketOptions.StartTls,
+                _ => SecureSocketOptions.Auto
+            };
 
-            await client.ConnectAsync(
-                settings.SmtpHost,
-                settings.SmtpPort,
-                socketOption,
-                cancellationToken);
+            await client.ConnectAsync(settings.SmtpHost, settings.SmtpPort, socketOption, cancellationToken);
 
-            await client.AuthenticateAsync(
-                settings.Username,
-                settings.Password,
-                cancellationToken);
+            await client.AuthenticateAsync(settings.Username, settings.Password, cancellationToken);
 
-            await client.SendAsync(
-                email,
-                cancellationToken);
+            await client.SendAsync(email, cancellationToken);
 
-            await client.DisconnectAsync(
-                true,
-                cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
         }
     }
 }

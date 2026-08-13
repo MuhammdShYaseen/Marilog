@@ -35,9 +35,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             {
                 var delay = CalculateDelayUntilNextExecution();
 
-                _logger.LogInformation(
-                    "Next daily notification execution is scheduled at {ExecutionTimeUtc}.",
-                    DateTime.UtcNow.Add(delay));
+                _logger.LogInformation("Next daily notification execution is scheduled at {ExecutionTimeUtc}.", DateTime.UtcNow.Add(delay));
 
                 await Task.Delay(delay, stoppingToken);
 
@@ -93,8 +91,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
         // 2. Recipients
         // ─────────────────────────────────────────────────────────────
 
-        var recipients =
-            await _recipientStore.GetAllAsync(cancellationToken);
+        var recipients = await _recipientStore.GetAllAsync(cancellationToken);
 
         var validRecipients = recipients
             .Where(IsValidEmail)
@@ -273,8 +270,8 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             now.Year,
             now.Month,
             now.Day,
-            09,
-            0,
+            7,
+            52,
             0,
             DateTimeKind.Utc);
 

@@ -8,7 +8,7 @@ namespace Marilog.Client.Services.EmailNotification
 {
     public sealed class JsonNotificationSenderEmailSettingsStore : INotificationSenderEmailSettingsStore
     {
-        private const string Base = "api/NotificationEmailSettings";
+        private const string Base = "api/NotificationSenderEmailSettings";
 
         private readonly HttpClient _http;
 
