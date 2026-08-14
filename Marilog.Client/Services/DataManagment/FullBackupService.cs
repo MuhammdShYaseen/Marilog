@@ -38,7 +38,7 @@ namespace Marilog.Client.Services.DataManagment
 
             multipartContent.Add(streamContent, "file", $"marilog-full-backup{FileExtension}");
 
-            using var response = await _httpClient.PostAsync($"{Base}/backup/restore", multipartContent, ct);
+            using var response = await _httpClient.PostAsync($"{Base}/restore", multipartContent, ct);
 
             response.EnsureSuccessStatusCode();
         }
