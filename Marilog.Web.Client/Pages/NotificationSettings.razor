@@ -6,6 +6,7 @@
 @inject INotificationSettingsStore SettingsStore
 @inject INotificationSenderEmailSettingsStore SenderStore
 @inject INotificationRecipientStore RecipientStore
+@inject INotificationSchedule ScheduleStore
 @inject ISnackbar Snackbar
 
 <SharedNotificationSettingsPage IsLoading="_isLoading"
@@ -22,7 +23,12 @@
                                  Recipients="_recipients"
                                  OnAddRecipient="AddRecipientAsync"
                                  OnRenameRecipient="RenameRecipientAsync"
-                                 OnRemoveRecipient="RemoveRecipientAsync" />
+                                 OnRemoveRecipient="RemoveRecipientAsync"
+                                 ScheduleSettings="_scheduleSettings"
+                                 IsScheduleDirty="_isScheduleDirty"
+                                 IsSavingSchedule="_isSavingSchedule"
+                                 OnScheduleChanged="@(() => _isScheduleDirty = true)"
+                                 OnSaveSchedule="SaveScheduleAsync" />
 
 @code {
     private bool _isLoading = true;
@@ -37,6 +43,11 @@
 
     private IReadOnlyList<string> _recipients = Array.Empty<string>();
 
+
+    private NotificationScheduleOptions _scheduleSettings = new();
+    private bool _isScheduleDirty;
+    private bool _isSavingSchedule;
+
     protected override async Task OnInitializedAsync()
     {
         _isLoading = true;
@@ -44,6 +55,7 @@
         _settings = await SettingsStore.GetAsync();
         _senderSettings = await SenderStore.GetAsync();
         _recipients = await RecipientStore.GetAllAsync();
+        _scheduleSettings = await ScheduleStore.GetAsync();
 
         _isLoading = false;
     }
@@ -131,6 +143,28 @@
         catch (Exception)
         {
             Snackbar.Add("Failed to remove recipient.", Severity.Error);
+        }
+    }
+
+    private async Task SaveScheduleAsync(NotificationScheduleOptions settings)
+    {
+        _isSavingSchedule = true;
+        StateHasChanged();
+
+        try
+        {
+            await ScheduleStore.SaveAsync(settings);
+            _isScheduleDirty = false;
+            Snackbar.Add("Schedule settings saved.", Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Failed to save schedule settings.", Severity.Error);
+        }
+        finally
+        {
+            _isSavingSchedule = false;
+            StateHasChanged();
         }
     }
 }

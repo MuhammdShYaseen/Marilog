@@ -1,0 +1,114 @@
+@using Marilog.Contracts.DTOs.EmailNotificationDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.EmailNotification
+
+<MudStack Spacing="4">
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Configure when the daily notification email is sent.
+    </MudText>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudStack Spacing="4">
+
+            <MudSwitch T="bool" Value="Settings.Enabled" ValueChanged="@(v => Update(x => x.Enabled = v))"
+                       Color="Color.Primary" Label="Enable daily notifications" />
+
+            <MudDivider Class="my-2" />
+
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTimePicker Label="Execution Time"
+                                   Time="_executionTime"
+                                   TimeChanged="OnExecutionTimeChanged"
+                                   Disabled="@(!Settings.Enabled)"
+                                   AmPm="false" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Value="Settings.TimeZoneId" ValueChanged="@(v => Update(x => x.TimeZoneId = v))"
+                               Label="Time Zone" Disabled="@(!Settings.Enabled)">
+                        @foreach (var tz in TimeZoneOptions)
+                        {
+                            <MudSelectItem T="string" Value="@tz">@tz</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+        </MudStack>
+    </MudPaper>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!IsDirty || IsSaving)"
+                   OnClick="@(() => OnSave.InvokeAsync(Settings))">
+            @(IsSaving ? "Saving..." : "Save")
+        </MudButton>
+    </MudStack>
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public NotificationScheduleOptions Settings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public bool IsDirty { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool IsSaving { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<NotificationScheduleOptions> OnSave { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnChanged { get; set; }
+
+    // Bridge field: MudTimePicker binds to TimeSpan?, not TimeOnly directly.
+    private TimeSpan? _executionTime;
+
+    private string[] TimeZoneOptions = new[]
+    {
+        "UTC",
+        "Asia/Dubai",
+        "Asia/Riyadh",
+        "Asia/Kuwait",
+        "Asia/Qatar",
+        "Asia/Muscat",
+        "Africa/Cairo",
+        "Europe/Istanbul",
+        "Europe/London"
+    };
+
+    protected override void OnParametersSet()
+    {
+        _executionTime = Settings.ExecutionTime.ToTimeSpan();
+
+        // Ensure a custom/unknown TimeZoneId already saved is still shown.
+        if (!TimeZoneOptions.Contains(Settings.TimeZoneId))
+        {
+            TimeZoneOptions = TimeZoneOptions
+                .Append(Settings.TimeZoneId)
+                .ToArray();
+        }
+    }
+
+    private void OnExecutionTimeChanged(TimeSpan? value)
+    {
+        if (value is null)
+            return;
+
+        _executionTime = value;
+
+        Update(x => x.ExecutionTime = TimeOnly.FromTimeSpan(value.Value));
+    }
+
+    private void Update(Action<NotificationScheduleOptions> apply)
+    {
+        apply(Settings);
+        OnChanged.InvokeAsync();
+    }
+}

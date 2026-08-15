@@ -25,7 +25,13 @@
                                                 OnChanged="OnSettingsChanged"
                                                 OnSave="OnSaveSettings" />
             </MudTabPanel>
-
+            <MudTabPanel Text="Schedule" Icon="@Icons.Material.Filled.Schedule">
+                <SharedNotificationSchedulePanel Settings="ScheduleSettings"
+                                                 IsDirty="IsScheduleDirty"
+                                                 IsSaving="IsSavingSchedule"
+                                                 OnChanged="OnScheduleChanged"
+                                                 OnSave="OnSaveSchedule" />
+            </MudTabPanel>
             <MudTabPanel Text="Sender Email" Icon="@Icons.Material.Filled.Email">
                 <SharedNotificationSenderEmailPanel Settings="SenderSettings"
                                                      IsDirty="IsSenderDirty"
@@ -91,4 +97,20 @@
 
     [Parameter, EditorRequired]
     public EventCallback<string> OnRemoveRecipient { get; set; }
+
+
+    [Parameter, EditorRequired]
+    public NotificationScheduleOptions ScheduleSettings { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public bool IsScheduleDirty { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool IsSavingSchedule { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnScheduleChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<NotificationScheduleOptions> OnSaveSchedule { get; set; }
 }
