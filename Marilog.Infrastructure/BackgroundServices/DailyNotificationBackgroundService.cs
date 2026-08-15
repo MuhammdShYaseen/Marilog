@@ -1,6 +1,4 @@
-﻿
-
-using Marilog.Contracts.DTOs.EmailNotificationDTOs;
+﻿using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Infrastructure.Helpers.EmailNotification;
@@ -10,14 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Mail;
-using System.Text;
+namespace Marilog.Infrastructure.BackgroundServices;
 
 public sealed class DailyNotificationBackgroundService : BackgroundService
 {
-    private static readonly TimeZoneInfo NotificationTimeZone = TimeZoneInfo.Utc;
     private readonly ILogger<DailyNotificationBackgroundService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    
 
     public DailyNotificationBackgroundService(ILogger<DailyNotificationBackgroundService> logger, IServiceScopeFactory serviceScopeFactory)
     {
@@ -28,14 +24,32 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Daily notification background service started.");
-
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var _notificationSchedule = scope.ServiceProvider.GetRequiredService<INotificationSchedule>();
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var delay = CalculateDelayUntilNextExecution();
+                var nextExecution =
+                    await _notificationSchedule.GetNextExecutionAsync(
+                        DateTimeOffset.UtcNow,
+                        stoppingToken);
 
-                _logger.LogInformation("Next daily notification execution is scheduled at {ExecutionTimeUtc}.", DateTime.UtcNow.Add(delay));
+                if (nextExecution is null)
+                {
+                    _logger.LogInformation("Daily notifications are disabled.");
+
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+
+                    continue;
+                }
+
+                var delay = nextExecution.Value - DateTimeOffset.UtcNow;
+
+                if (delay < TimeSpan.Zero)
+                    delay = TimeSpan.Zero;
+
+                _logger.LogInformation("Next daily notification execution is scheduled at {ExecutionTimeUtc}.", nextExecution.Value);
 
                 await Task.Delay(delay, stoppingToken);
 
@@ -260,25 +274,6 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
         {
             return false;
         }
-    }
-
-    private static TimeSpan CalculateDelayUntilNextExecution()
-    {
-        var now = DateTime.UtcNow;
-
-        var nextExecution = new DateTime(
-            now.Year,
-            now.Month,
-            now.Day,
-            8,
-            26,
-            20,
-            DateTimeKind.Utc);
-
-        if (nextExecution <= now)
-            nextExecution = nextExecution.AddDays(1);
-
-        return nextExecution - now;
     }
    
 }
