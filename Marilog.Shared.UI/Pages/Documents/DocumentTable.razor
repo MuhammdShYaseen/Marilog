@@ -8,17 +8,19 @@
              Hover="true"
              Dense="true"
              Striped="true"
-             Breakpoint="Breakpoint.Sm">
+             Breakpoint="Breakpoint.Sm"
+             Elevation="1"
+             Class="rounded-lg">
 
     <Columns>
 
         <HierarchyColumn T="DocumentResponse"
                          ButtonDisabledFunc="x => !x.HasChildren" />
 
-        <TemplateColumn Title="Doc No."
-                        SortBy="x => x.DocNumber">
+        <TemplateColumn Title="Doc No." SortBy="x => x.DocNumber">
             <CellTemplate>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1"
+                          Class="@(context.Item.Depth > 0 ? "pl-2" : "")">
                     @if (context.Item.Depth > 0)
                     {
                         <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight"
@@ -27,24 +29,38 @@
                                  Style="@($"margin-left:{context.Item.Depth * 16}px")" />
                     }
                     <MudLink OnClick="() => OnRowClick.InvokeAsync(context.Item)"
-                             Style="cursor:pointer">
+                             Style="cursor:pointer; font-weight:500">
                         @context.Item.DocNumber
                     </MudLink>
                 </MudStack>
             </CellTemplate>
         </TemplateColumn>
 
-        <PropertyColumn Property="x => x.DocTypeName" Title="Type" />
-        <PropertyColumn Property="x => x.DocDate" Title="Date" />
+        <TemplateColumn Title="Type" SortBy="x => x.DocTypeName">
+            <CellTemplate>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                    @context.Item.DocTypeName
+                </MudChip>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <PropertyColumn Property="x => x.DocDate" Title="Date" Format="dd MMM yyyy" />
         <PropertyColumn Property="x => x.SupplierName" Title="Supplier" />
         <PropertyColumn Property="x => x.VesselName" Title="Vessel" />
         <PropertyColumn Property="x => x.CurrencyCode" Title="Currency" />
-        <PropertyColumn Property="x => x.TotalAmount" Title="Total" Format="N2" />
-        <PropertyColumn Property="x => x.TotalPaid" Title="Paid" Format="N2" />
 
-        <TemplateColumn Title="Balance" SortBy="x => x.RemainingBalance">
+        <TemplateColumn Title="Total" SortBy="x => x.TotalAmount" HeaderStyle="text-align:right" CellStyle="text-align:right">
+            <CellTemplate>@context.Item.TotalAmount.ToString("N2")</CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Paid" SortBy="x => x.TotalPaid" HeaderStyle="text-align:right" CellStyle="text-align:right">
+            <CellTemplate>@context.Item.TotalPaid.ToString("N2")</CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Balance" SortBy="x => x.RemainingBalance" HeaderStyle="text-align:right" CellStyle="text-align:right">
             <CellTemplate>
-                <MudText Color="@(context.Item.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+                <MudText Color="@(context.Item.RemainingBalance > 0 ? Color.Warning : Color.Success)"
+                         Style="font-weight:600">
                     @context.Item.RemainingBalance.ToString("N2")
                 </MudText>
             </CellTemplate>
@@ -53,6 +69,7 @@
         <TemplateColumn Title="Status" SortBy="x => x.IsFullyPaid">
             <CellTemplate>
                 <MudChip T="string"
+                         Icon="@(context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
                          Color="@(context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
                          Size="Size.Small"
                          Variant="Variant.Filled">
@@ -64,18 +81,24 @@
         <TemplateColumn Title="" Sortable="false" CellStyle="width:120px">
             <CellTemplate>
                 <MudStack Row="true" Spacing="1">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Document))" />
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       Color="Color.Primary"
+                                       OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+                    </MudTooltip>
+                    <MudTooltip Text="Attachments">
+                        <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                       Size="Size.Small"
+                                       Color="Color.Primary"
+                                       OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Document))" />
+                    </MudTooltip>
                 </MudStack>
             </CellTemplate>
         </TemplateColumn>
@@ -83,22 +106,23 @@
     </Columns>
 
     <ChildRowContent>
-
         @foreach (var child in context.Item.Children)
         {
-            <DocumentTreeRow Item="child"
-                             OnRowClick="OnRowClick"
-                             OnEditClicked="OnEditClicked"
-                             OnDeleteClicked="OnDeleteClicked"
-                             OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+            <MudElement HtmlTag="div" Class="mud-background-gray-light">
+                <DocumentTreeRow Item="child"
+                                 OnRowClick="OnRowClick"
+                                 OnEditClicked="OnEditClicked"
+                                 OnDeleteClicked="OnDeleteClicked"
+                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+            </MudElement>
         }
-
     </ChildRowContent>
 
     <NoRecordsContent>
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
-            No documents found.
-        </MudText>
+        <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">No documents found.</MudText>
+        </MudStack>
     </NoRecordsContent>
 
 </MudDataGrid>
@@ -109,8 +133,4 @@
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-    protected override void OnParametersSet()
-    {
-        Console.WriteLine($"DocumentTable Items count: {Items?.Count()}");
-    }
 }

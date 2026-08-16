@@ -1,4 +1,3 @@
-
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @using Kernel.Enums
@@ -10,37 +9,79 @@
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                       OnClick="OnBackClicked" />
-        <MudText Typo="Typo.h5">@Document.DocNumber</MudText>
-        <MudSpacer />
-        <MudChip T="string"
-                 Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
-                 Size="Size.Medium">
-            @(Document.IsFullyPaid ? "Fully Paid" : "Unpaid")
-        </MudChip>
-        @if (!Document.IsActive)
-        {
-            <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactive</MudChip>
-        }
-    </MudStack>
+    @* ── Sticky header with primary actions ──────────────────── *@
+    <MudPaper Class="pa-3 mb-4" Elevation="2" Style="position:sticky; top:0; z-index:10;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="OnBackClicked" />
+
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5">@Document.DocNumber</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @(Document.DocTypeName ?? "—") &middot; @Document.DocDate.ToString("dd MMM yyyy")
+                </MudText>
+            </MudStack>
+
+            <MudChip T="string"
+                     Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
+                     Size="Size.Small">
+                @(Document.IsFullyPaid ? "Fully Paid" : "Unpaid")
+            </MudChip>
+
+            @if (!Document.IsActive)
+            {
+                <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactive</MudChip>
+            }
+
+            <MudSpacer />
+
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Payment"
+                           OnClick="() => OnAddPaymentClicked.InvokeAsync(Document)"
+                           Disabled="Document.IsFullyPaid">
+                    Add Payment
+                </MudButton>
+                <MudTooltip Text="Edit">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Primary"
+                                   OnClick="() => OnEditClicked.InvokeAsync(Document)" />
+                </MudTooltip>
+                <MudTooltip Text="Attachments">
+                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                   Color="Color.Default"
+                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))" />
+                </MudTooltip>
+                <MudTooltip Text="Delete">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
+                                   OnClick="() => OnDeleteClicked.InvokeAsync(Document)" />
+                </MudTooltip>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @* ── Validation alert — only shown when there's a mismatch ── *@
+    @if (!Document.Is_TotalAmount_Equal_TotalItemsAmount)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.WarningAmber">
+            Document total (@Document.TotalAmount.ToString("N2") @Document.CurrencyCode) doesn't match
+            items total (@Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode) —
+            difference of @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode.
+        </MudAlert>
+    }
 
     <MudGrid>
 
         @* ── Header Info ───────────────────────────────────────── *@
-        <MudItem xs="12" md="8">
+        <MudItem xs="12" md="7">
             <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">Document Info</MudText>
-                <MudGrid Spacing="2">
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Type</MudText>
-                        <MudText Typo="Typo.body2">@(Document.DocTypeName ?? "—")</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Date</MudText>
-                        <MudText Typo="Typo.body2">@Document.DocDate.ToString("dd MMM yyyy")</MudText>
-                    </MudItem>
+                <MudText Typo="Typo.subtitle1" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
+                    Document Info
+                </MudText>
+                <MudGrid Spacing="3">
                     <MudItem xs="6" sm="3">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Currency</MudText>
                         <MudText Typo="Typo.body2">@Document.CurrencyCode</MudText>
@@ -67,12 +108,59 @@ else
                     </MudItem>
                 </MudGrid>
             </MudPaper>
+
+            @* ── Items Validation ─────────────────────────────── *@
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small" Class="mr-1" />
+                    Items Validation
+                </MudText>
+                <MudStack Spacing="2">
+                    <MudStack Row="true">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Items Total</MudText>
+                        <MudSpacer />
+                        <MudText Typo="Typo.body2" Style="font-weight:600">
+                            @Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode
+                        </MudText>
+                    </MudStack>
+                    <MudStack Row="true">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Difference</MudText>
+                        <MudSpacer />
+                        <MudText Typo="Typo.body2"
+                                 Color="@(Document.TotalAmount_Minus_TotalItemsAmount == 0 ? Color.Success : Color.Warning)"
+                                 Style="font-weight:600">
+                            @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode
+                        </MudText>
+                    </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Validation</MudText>
+                        <MudSpacer />
+                        @if (Document.Is_TotalAmount_Equal_TotalItemsAmount)
+                        {
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small"
+                                     Icon="@Icons.Material.Filled.CheckCircle">
+                                Matched
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small"
+                                     Icon="@Icons.Material.Filled.ErrorOutline">
+                                Mismatch
+                            </MudChip>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
         </MudItem>
 
         @* ── Financial Summary ─────────────────────────────────── *@
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="5">
             <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">Financial Summary</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" Class="mr-1" />
+                    Financial Summary
+                </MudText>
                 <MudStack Spacing="2">
                     <MudStack Row="true">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Total Amount</MudText>
@@ -99,135 +187,36 @@ else
                         </MudText>
                     </MudStack>
                 </MudStack>
-                <MudDivider Class="my-2" />
 
-                <MudText Typo="Typo.subtitle2" Class="mb-1">
-                    Base Currency @Document.CurrencyCodeBase
-                </MudText>
-
-                <MudStack Row="true">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Total (Base)
-                    </MudText>
-                    <MudSpacer />
-                    <MudText Typo="Typo.body2" Style="font-weight:600">
-                        @Document.TotalAmountBase.ToString("N2") @Document.CurrencyCodeBase
-                    </MudText>
-                </MudStack>
-
-                <MudStack Row="true">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Paid (Base)
-                    </MudText>
-                    <MudSpacer />
-                    <MudText Typo="Typo.body2" Color="Color.Success">
-                        @Document.PaidAmountBase.ToString("N2") @Document.CurrencyCodeBase
-                    </MudText>
-                </MudStack>
-
-                <MudStack Row="true">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Remaining (Base)
-                    </MudText>
-                    <MudSpacer />
-                    <MudText Typo="Typo.body2"
-                             Color="@(Document.RemainingBase > 0 ? Color.Warning : Color.Success)"
-                             Style="font-weight:600">
-                        @Document.RemainingBase.ToString("N2") @Document.CurrencyCodeBase
-                    </MudText>
-                </MudStack>
-                <MudDivider Class="my-3" />
-                <MudText Typo="Typo.subtitle2" Class="mb-2">
-                    Items Validation
-                </MudText>
-
-                <MudStack Spacing="2">
-
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Items Total
-                        </MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2" Style="font-weight:600">
-                            @Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Difference
-                        </MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2"
-                                 Color="@(Document.TotalAmount_Minus_TotalItemsAmount == 0 ? Color.Success : Color.Warning)"
-                                 Style="font-weight:600">
-                            @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Validation
-                        </MudText>
-                        <MudSpacer />
-
-                        @if (Document.Is_TotalAmount_Equal_TotalItemsAmount)
-                        {
-                            <MudChip T="string"
-                                     Color="Color.Success"
-                                     Variant="Variant.Filled"
-                                     Size="Size.Small">
-                                Matched
-                            </MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string"
-                                     Color="Color.Error"
-                                     Variant="Variant.Filled"
-                                     Size="Size.Small">
-                                Mismatch
-                            </MudChip>
-                        }
-                    </MudStack>
-
-                </MudStack>
-
-                <MudDivider Class="my-3" />
-
-                <MudStack Spacing="1">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.Payment"
-                               OnClick="() => OnAddPaymentClicked.InvokeAsync(Document)"
-                               Disabled="Document.IsFullyPaid">
-                        Add Payment
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => OnEditClicked.InvokeAsync(Document)">
-                        Edit
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => OnDeleteClicked.InvokeAsync(Document)">
-                        Delete
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Inherit"
-                               FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.Receipt"
-                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))">
-                        Managing Attached Files
-                    </MudButton>
-
-                </MudStack>
-
+                <MudExpansionPanels Class="mt-3" Elevation="0">
+                    <MudExpansionPanel Text="@($"Base currency ({Document.CurrencyCodeBase})")" Dense="true">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total</MudText>
+                                <MudSpacer />
+                                <MudText Typo="Typo.body2" Style="font-weight:600">
+                                    @Document.TotalAmountBase.ToString("N2") @Document.CurrencyCodeBase
+                                </MudText>
+                            </MudStack>
+                            <MudStack Row="true">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Paid</MudText>
+                                <MudSpacer />
+                                <MudText Typo="Typo.body2" Color="Color.Success">
+                                    @Document.PaidAmountBase.ToString("N2") @Document.CurrencyCodeBase
+                                </MudText>
+                            </MudStack>
+                            <MudStack Row="true">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Remaining</MudText>
+                                <MudSpacer />
+                                <MudText Typo="Typo.body2"
+                                         Color="@(Document.RemainingBase > 0 ? Color.Warning : Color.Success)"
+                                         Style="font-weight:600">
+                                    @Document.RemainingBase.ToString("N2") @Document.CurrencyCodeBase
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
             </MudPaper>
         </MudItem>
 
@@ -235,7 +224,10 @@ else
         <MudItem xs="12">
             <MudPaper Class="pa-4 mb-4" Elevation="2">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.subtitle1">Items</MudText>
+                    <MudText Typo="Typo.subtitle1">
+                        <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Small" Class="mr-1" />
+                        Items
+                    </MudText>
                     <MudSpacer />
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
@@ -250,34 +242,40 @@ else
                         <MudTh>Product</MudTh>
                         <MudTh>Qty</MudTh>
                         <MudTh>Unit</MudTh>
-                        <MudTh>Unit Price</MudTh>
-                        <MudTh>Line Total</MudTh>
-                        <MudTh></MudTh>
+                        <MudTh Style="text-align:right">Unit Price</MudTh>
+                        <MudTh Style="text-align:right">Line Total</MudTh>
+                        <MudTh Style="width:96px"></MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>@context.ProductName</MudTd>
                         <MudTd>@context.Quantity.ToString("N2")</MudTd>
                         <MudTd>@(context.Unit ?? "—")</MudTd>
-                        <MudTd>@context.UnitPrice.ToString("N2")</MudTd>
-                        <MudTd Style="font-weight:600">@context.LineTotal.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:right">@context.UnitPrice.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:right; font-weight:600">@context.LineTotal.ToString("N2")</MudTd>
                         <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           OnClick="() => OnEditItemClicked.InvokeAsync((Document.Id, context))" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="() => OnRemoveItemClicked.InvokeAsync((Document.Id, context.Id))" />
+                            <MudStack Row="true" Spacing="0">
+                                <MudTooltip Text="Edit">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   OnClick="() => OnEditItemClicked.InvokeAsync((Document.Id, context))" />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="() => OnRemoveItemClicked.InvokeAsync((Document.Id, context.Id))" />
+                                </MudTooltip>
+                            </MudStack>
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText>No items.</MudText>
+                        <MudText Color="Color.Secondary">No items yet.</MudText>
                     </NoRecordsContent>
                     <FooterContent>
                         <MudTd colspan="4">
                             <MudText Typo="Typo.body2" Style="font-weight:600">Total</MudText>
                         </MudTd>
-                        <MudTd>
+                        <MudTd Style="text-align:right">
                             <MudText Typo="Typo.body2" Style="font-weight:600">
                                 @Document.Items.Sum(i => i.LineTotal).ToString("N2")
                             </MudText>
@@ -291,42 +289,52 @@ else
         @* ── Payments ──────────────────────────────────────────── *@
         <MudItem xs="12">
             <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">Payments</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Small" Class="mr-1" />
+                    Payments
+                </MudText>
                 <MudTable Items="Document.Payments" Dense="true" Hover="true" Striped="true">
                     <HeaderContent>
                         <MudTh>SWIFT Ref</MudTh>
                         <MudTh>Payment Method</MudTh>
                         <MudTh>Date</MudTh>
-                        <MudTh>Amount</MudTh>
+                        <MudTh Style="text-align:right">Amount</MudTh>
+                        <MudTh Style="width:96px"></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@context.SwiftTransfer?.SwiftReference</MudTd>
+                        <MudTd>@(context.SwiftTransfer?.SwiftReference ?? "—")</MudTd>
                         <MudTd>@context.PaymentMethod.ToString()</MudTd>
                         <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
-                        <MudTd Style="font-weight:600">@context.PaidAmount.ToString("N2")
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           OnClick="() => OnEditPaymentClicked.InvokeAsync((Document, context))" />
-
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
+                        <MudTd Style="text-align:right; font-weight:600">@context.PaidAmount.ToString("N2")</MudTd>
+                        <MudTd>
+                            <MudStack Row="true" Spacing="0">
+                                <MudTooltip Text="Edit">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   OnClick="() => OnEditPaymentClicked.InvokeAsync((Document, context))" />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
+                                </MudTooltip>
+                            </MudStack>
                         </MudTd>
-
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText>No payments recorded.</MudText>
+                        <MudText Color="Color.Secondary">No payments recorded.</MudText>
                     </NoRecordsContent>
                     <FooterContent>
-                        <MudTd colspan="2">
+                        <MudTd colspan="3">
                             <MudText Typo="Typo.body2" Style="font-weight:600">Total Paid</MudText>
                         </MudTd>
-                        <MudTd>
+                        <MudTd Style="text-align:right">
                             <MudText Typo="Typo.body2" Style="font-weight:600">
                                 @Document.Payments.Sum(p => p.PaidAmount).ToString("N2")
                             </MudText>
                         </MudTd>
+                        <MudTd />
                     </FooterContent>
                 </MudTable>
             </MudPaper>
