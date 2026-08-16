@@ -26,20 +26,16 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
         _logger.LogInformation("Daily notification background service started.");
         await using var scope = _scopeFactory.CreateAsyncScope();
         var _notificationSchedule = scope.ServiceProvider.GetRequiredService<INotificationSchedule>();
+        var _scheduleChangeNotifier = scope.ServiceProvider.GetRequiredService<INotificationScheduleChangeNotifier>();
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var nextExecution =
-                    await _notificationSchedule.GetNextExecutionAsync(
-                        DateTimeOffset.UtcNow,
-                        stoppingToken);
+                var nextExecution = await _notificationSchedule.GetNextExecutionAsync(DateTimeOffset.UtcNow, stoppingToken);
 
                 if (nextExecution is null)
                 {
-                    _logger.LogInformation("Daily notifications are disabled.");
-
-                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    await _scheduleChangeNotifier.WaitForChangeAsync(stoppingToken);
 
                     continue;
                 }
@@ -51,7 +47,18 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
 
                 _logger.LogInformation("Next daily notification execution is scheduled at {ExecutionTimeUtc}.", nextExecution.Value);
 
-                await Task.Delay(delay, stoppingToken);
+                var delayTask = Task.Delay(delay, stoppingToken);
+
+                var changeTask = _scheduleChangeNotifier.WaitForChangeAsync(stoppingToken);
+
+                var completedTask = await Task.WhenAny(delayTask, changeTask);
+
+                if (completedTask == changeTask)
+                {
+                    _logger.LogInformation("Notification schedule changed. Recalculating execution time.");
+
+                    continue;
+                }
 
                 if (stoppingToken.IsCancellationRequested)
                     break;
@@ -65,14 +72,11 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Unexpected error occurred while processing daily notifications.");
+                _logger.LogError(ex, "Unexpected error occurred while processing daily notifications.");
             }
         }
 
-        _logger.LogInformation(
-            "Daily notification background service stopped.");
+        _logger.LogInformation("Daily notification background service stopped.");
     }
 
     private async Task ProcessNotificationsAsync(CancellationToken cancellationToken)
@@ -123,8 +127,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
         // 3. Notification settings
         // ─────────────────────────────────────────────────────────────
 
-        var notificationSettings =
-            await _notificationSettingsStore.GetAsync(cancellationToken);
+        var notificationSettings = await _notificationSettingsStore.GetAsync(cancellationToken);
 
         if (!HasEnabledNotificationSettings(notificationSettings))
         {
@@ -220,8 +223,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
         };
     }
 
-    private static bool IsValidSenderEmailSettings(
-        NotificationSenderEmailSettingsOptions options)
+    private static bool IsValidSenderEmailSettings(NotificationSenderEmailSettingsOptions options)
     {
         return
             !string.IsNullOrWhiteSpace(options.SmtpHost) &&
@@ -234,8 +236,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             IsValidEmail(options.FromEmail);
     }
 
-    private static bool HasEnabledNotificationSettings(
-        NotificationSettingsOptions settings)
+    private static bool HasEnabledNotificationSettings(NotificationSettingsOptions settings)
     {
         return
             settings.UnpaidDocuments ||
@@ -245,8 +246,7 @@ public sealed class DailyNotificationBackgroundService : BackgroundService
             settings.ExpiredPersonCertificates;
     }
 
-    private static bool HasNotificationData(
-        NotificationDataResponse data)
+    private static bool HasNotificationData(NotificationDataResponse data)
     {
         return
             data.UnpaidDocuments.Count > 0 ||

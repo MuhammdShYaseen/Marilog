@@ -15,7 +15,6 @@ using Marilog.Infrastructure.BackgroundServices;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.Interfaces.EmailNotification;
-using Marilog.Infrastructure.Models.EmailNotification;
 using Marilog.Infrastructure.Persistence;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
@@ -109,6 +108,7 @@ namespace Marilog.Infrastructure
             services.AddScoped<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();
             services.AddScoped<INotificationEmailSender, NotificationEmailSender>();
             services.AddScoped<INotificationSchedule, NotificationSchedule>();
+            services.AddSingleton<INotificationScheduleChangeNotifier, NotificationScheduleChangeNotifier>();
             services.AddHostedService<DailyNotificationBackgroundService>();
             return services;
 

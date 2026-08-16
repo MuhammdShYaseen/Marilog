@@ -1,24 +1,27 @@
 ﻿using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
+using Marilog.Infrastructure.Interfaces.EmailNotification;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
-namespace Marilog.Infrastructure.Models.EmailNotification
+namespace Marilog.Infrastructure.Services.EmailNotification
 {
     public class NotificationSchedule: INotificationSchedule
     {
         private const string DefaultFileName = "notification-schedule.json";
 
         private readonly string _filePath;
-
+        private readonly INotificationScheduleChangeNotifier _changeNotifier;
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
 
-        public NotificationSchedule(IConfiguration configuration)
+        public NotificationSchedule(IConfiguration configuration, INotificationScheduleChangeNotifier changeNotifier)
         {
+            _changeNotifier = changeNotifier;
+
             var configuredPath = configuration["DailyNotification:ScheduleFilePath"];
 
             _filePath = string.IsNullOrWhiteSpace(configuredPath)
@@ -60,6 +63,8 @@ namespace Marilog.Infrastructure.Models.EmailNotification
             await using var stream = new FileStream(_filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
 
             await JsonSerializer.SerializeAsync(stream, options, JsonOptions, cancellationToken);
+
+            _changeNotifier.NotifyChanged();
         }
 
         public async Task<DateTimeOffset?> GetNextExecutionAsync(DateTimeOffset now, CancellationToken cancellationToken = default)
