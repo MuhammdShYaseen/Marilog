@@ -21,6 +21,8 @@
                 Label="Document Number"
                 Required="true"
                 Variant="Variant.Outlined"
+                Error="@_isDocNumberDuplicate"
+                ErrorText="@_docNumberErrorText"
                 Margin="Margin.Dense" />
             </MudItem>
 
@@ -269,6 +271,9 @@
 
     [Parameter]public Func<int, Task<IReadOnlyList<VoyageResponse>>>? GetVoyagesByVessel { get; set; }
 
+
+    [Parameter] public Func<string, Task<DocumentResponse>>? GetDocByNumber { get; set; }
+
     private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
     private IReadOnlyList<VoyageResponse> AllVoyages { get; set; } = [];
 
@@ -299,6 +304,10 @@
         StateHasChanged();
     }
     private string?   _DocNumber;
+    private bool _isDocNumberDuplicate;
+    private string? _docNumberErrorText;
+
+
     private decimal   _TotalAmount;
     private string?   _Reference;
     private DateOnly? _docDate;
@@ -325,7 +334,8 @@
         && _docDate is not null
         && _DocTypeId > 0
         && _CurrencyId > 0
-        && _TotalAmount > 0;
+        && _TotalAmount > 0
+        && !_isDocNumberDuplicate;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -359,10 +369,16 @@
     }
 
 
-    private void Submit()
+    private async void Submit()
     {
         if (Document is null)
         {
+            _isDocNumberDuplicate = await IsDocNumberDuplicateAsync();
+            if (_isDocNumberDuplicate)
+            {
+                _docNumberErrorText = "Document number already exists.";
+                return;
+            }
             MudDialog.Close(DialogResult.Ok(new CreateDocumentRequest
             {
                  DocDate = _docDate!.Value,
@@ -370,7 +386,7 @@
                  VesselId = _VesselId,
                  CurrencyId = _CurrencyId,
                  BuyerId = _BuyerId,
-                 DocNumber = _DocNumber ?? "NON",
+                 DocNumber = _DocNumber ?? "NONE",
                  DocTypeId = _DocTypeId,
                  ParentDocumentId = _ParentDocumentId,
                  PortId = _PortId,
@@ -448,6 +464,34 @@
             .Where(x => x.VoyageId != Voyage?.VoyageId)
             .Where(x => string.IsNullOrEmpty(value) || x.VoyageNumber.Contains(value, StringComparison.OrdinalIgnoreCase))
             .Select(x => (int?)x.VoyageId));
+
+
+    private async Task CheckDocNumberDuplicate(FocusEventArgs args)
+    {
+        _isDocNumberDuplicate = await IsDocNumberDuplicateAsync();
+        _docNumberErrorText = _isDocNumberDuplicate ? "Document number already exists." : null;
+    }
+
+    private async Task<bool> IsDocNumberDuplicateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_DocNumber) || GetDocByNumber is null)
+            return false;
+
+        try
+        {
+            var existing = await GetDocByNumber(_DocNumber);
+
+            // لو عم تعدل document موجود، ما تعتبرش رقمه هو نفسه "مكرر"
+            if (Document is not null && existing?.Id == Document.Id)
+                return false;
+
+            return existing is not null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     
 }

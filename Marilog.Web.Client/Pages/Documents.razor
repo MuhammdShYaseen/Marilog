@@ -172,7 +172,8 @@ else
             ["Vessels"] = _vessels,
             ["Ports"] = _ports,
             ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId),
-            ["GetVoyagesByVessel"] = async (int vesselId) => await VoyageService.GetByVesselAsync(vesselId)
+            ["GetVoyagesByVessel"] = async (int vesselId) => await VoyageService.GetByVesselAsync(vesselId),
+            ["GetDocByNumber"] = async (string docNumber) => await DocumentService.GetByNumberAsync(docNumber)
         };
 
         var dialog = await DialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
