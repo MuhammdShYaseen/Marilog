@@ -5,9 +5,10 @@
 @* ────────────────────────────────────────────────────────────────────────────
    SharedSwiftTransferPage
    Overall page shell: header + Add button, table, detail panel below on
-   selection. Owns local UI-only state (selected id, detail-loading flag) —
-   never fetches business data itself. Add/Edit/Delete bubble up unchanged
-   to the Platform host, which is the only place that owns a service ref.
+   selection. Owns local UI-only state (selected id, detail-loading flag,
+   drawer-open flag) — never fetches business data itself. Add/Edit/Delete
+   bubble up unchanged to the Platform host, which is the only place that
+   owns a service ref.
    ──────────────────────────────────────────────────────────────────────── *@
 <MudPaper Class="pa-4" Elevation="0">
     <div class="d-flex justify-space-between align-center mb-4">
@@ -20,18 +21,26 @@
     </div>
 
     <SharedSwiftTransferTable Items="@Items"
-                               IsLoading="@IsLoading"
-                               SelectedItem="@_selectedSummary"
-                               OnRowSelected="@HandleRowSelectedAsync"
-                               OnEditClicked="@OnEditClicked"
-                               OnDeleteClicked="@OnDeleteClicked"
-                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+                              IsLoading="@IsLoading"
+                              SelectedItem="@_selectedSummary"
+                              OnRowSelected="@HandleRowSelectedAsync"
+                              OnEditClicked="@OnEditClicked"
+                              OnDeleteClicked="@OnDeleteClicked"
+                              OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
 
-    @if (_selectedDetail is not null)
-    {
-        <SharedSwiftTransferDetailPanel Transfer="@_selectedDetail"
-                                         IsLoadingPayments="@_isLoadingDetail" />
-    }
+    <MudDrawer @bind-Open="_isDetailDrawerOpen"
+               Anchor="Anchor.Right"
+               Variant="DrawerVariant.Temporary"
+               Elevation="8"
+               Width="560px">
+
+        @if (_selectedDetail is not null)
+        {
+            <SharedSwiftTransferDetailPanel Transfer="@_selectedDetail"
+                                            IsLoadingPayments="@_isLoadingDetail" />
+        }
+
+    </MudDrawer>
 </MudPaper>
 
 @code {
@@ -46,9 +55,11 @@
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
     SwiftTransferResponse? _selectedSummary;
     SwiftTransferResponse? _selectedDetail;
     bool _isLoadingDetail;
+    bool _isDetailDrawerOpen;
 
     async Task HandleRowSelectedAsync(SwiftTransferResponse item)
     {
@@ -60,11 +71,13 @@
         {
             _selectedSummary = null;
             _selectedDetail = null;
+            _isDetailDrawerOpen = false;
             return;
         }
 
         _selectedSummary = item;
         _isLoadingDetail = true;
+        _isDetailDrawerOpen = true;
         StateHasChanged();
 
         _selectedDetail = await LoadDetailFunc(item.Id, CancellationToken.None) ?? item;
