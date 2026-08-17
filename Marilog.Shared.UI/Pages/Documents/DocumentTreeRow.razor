@@ -2,39 +2,56 @@
 @using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
-<MudTr>
-    <MudTd />
 
-    <MudTd>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+@* Column widths below MUST stay in sync with DocumentTable.razor's per-column
+   HeaderStyle/CellStyle widths, and with the <colgroup> in DocumentTable's
+   ChildRowContent wrapper table. That's what keeps every nesting level's
+   columns lined up under the same header regardless of Depth. *@
+
+<MudTr Class="@(Item.Depth > 0 ? "wa-tree-row-nested" : "")">
+    <MudTd Style="width:48px; overflow:hidden" />
+
+    <MudTd Style="width:220px; overflow:hidden">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="flex-nowrap">
             <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight"
                      Size="Size.Small"
                      Color="Color.Primary"
-                     Style="@($"margin-left:{Item.Depth * 16}px")" />
+                     Style="@($"margin-left:{Item.Depth * 16}px; flex-shrink:0")" />
 
             <MudLink OnClick="() => OnRowClick.InvokeAsync(Item)"
-                     Style="cursor:pointer">
+                     Style="cursor:pointer; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                     Title="@Item.DocNumber">
                 @Item.DocNumber
             </MudLink>
         </MudStack>
     </MudTd>
 
-    <MudTd>@(Item.DocTypeName ?? "—")</MudTd>
-    <MudTd>@Item.DocDate.ToString("dd MMM yyyy")</MudTd>
-    <MudTd>@(Item.SupplierName ?? "—")</MudTd>
-    <MudTd>@(Item.VesselName ?? "—")</MudTd>
-    <MudTd>@Item.CurrencyCode</MudTd>
-    <MudTd>@Item.TotalAmount.ToString("N2")</MudTd>
-    <MudTd>@Item.TotalPaid.ToString("N2")</MudTd>
+    <MudTd Style="width:130px; overflow:hidden">
+        <MudTooltip Text="@(Item.DocTypeName ?? "—")">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="wa-doctype-chip">
+                @(Item.DocTypeName ?? "—")
+            </MudChip>
+        </MudTooltip>
+    </MudTd>
 
-    <MudTd>
-        <MudText Color="@(Item.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+    <MudTd Style="width:120px; overflow:hidden">@Item.DocDate.ToString("dd MMM yyyy")</MudTd>
+    <MudTd Style="width:160px; overflow:hidden">@(Item.SupplierName ?? "—")</MudTd>
+    <MudTd Style="width:110px; overflow:hidden">@(Item.VesselName ?? "—")</MudTd>
+    <MudTd Style="width:90px; overflow:hidden">@Item.CurrencyCode</MudTd>
+
+    <MudTd Style="width:110px; text-align:right; overflow:hidden">@Item.TotalAmount.ToString("N2")</MudTd>
+    <MudTd Style="width:110px; text-align:right; overflow:hidden">@Item.TotalPaid.ToString("N2")</MudTd>
+
+    <MudTd Style="width:110px; text-align:right; overflow:hidden">
+        <MudText Color="@(Item.RemainingBalance > 0 ? Color.Warning : Color.Success)"
+                 Style="font-weight:600">
             @Item.RemainingBalance.ToString("N2")
         </MudText>
     </MudTd>
 
-    <MudTd>
+    <MudTd Style="width:100px; overflow:hidden">
         <MudChip T="string"
+                 Icon="@(Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
                  Color="@(Item.IsFullyPaid ? Color.Success : Color.Warning)"
                  Size="Size.Small"
                  Variant="Variant.Filled">
@@ -42,22 +59,28 @@
         </MudChip>
     </MudTd>
 
-    <MudTd>
+    <MudTd Style="width:120px; overflow:hidden">
         <MudStack Row="true" Spacing="1">
-            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                           Size="Size.Small"
-                           Color="Color.Primary"
-                           OnClick="() => OnEditClicked.InvokeAsync(Item)" />
+            <MudTooltip Text="Edit">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="() => OnEditClicked.InvokeAsync(Item)" />
+            </MudTooltip>
 
-            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                           Size="Size.Small"
-                           Color="Color.Error"
-                           OnClick="() => OnDeleteClicked.InvokeAsync(Item)" />
+            <MudTooltip Text="Delete">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               OnClick="() => OnDeleteClicked.InvokeAsync(Item)" />
+            </MudTooltip>
 
-            <MudIconButton Icon="@Icons.Material.Filled.Receipt"
-                           Size="Size.Small"
-                           Color="Color.Secondary"
-                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Item.Id, EntityType.Document))" />
+            <MudTooltip Text="Attachments">
+                <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                               Size="Size.Small"
+                               Color="Color.Secondary"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Item.Id, EntityType.Document))" />
+            </MudTooltip>
         </MudStack>
     </MudTd>
 </MudTr>
@@ -88,6 +111,6 @@
     [Parameter]
     public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 }

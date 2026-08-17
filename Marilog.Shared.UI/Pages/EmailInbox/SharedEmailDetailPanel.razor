@@ -112,8 +112,8 @@
 <style>
 
     /* =========================================================
-           Main panel
-           ========================================================= */
+               Main panel
+               ========================================================= */
 
     .email-detail-panel {
         height: 100%;
@@ -125,8 +125,8 @@
 
 
     /* =========================================================
-           Header
-           ========================================================= */
+               Header
+               ========================================================= */
 
     .email-header {
         padding: 16px 18px 14px 18px;
@@ -149,8 +149,8 @@
 
 
     /* =========================================================
-           Metadata
-           ========================================================= */
+               Metadata
+               ========================================================= */
 
     .email-metadata {
         margin-top: 12px;
@@ -186,22 +186,27 @@
 
 
     /* =========================================================
-           Email body
-           ========================================================= */
+               Email body
+               ========================================================= */
 
     .email-body {
         flex: 1 1 auto;
         min-height: 0;
         overflow-y: auto;
-        overflow-x: hidden;
+        /* Was "hidden" — arbitrary email HTML can contain tables/content
+               wider than this panel. Hiding overflow silently clipped text
+               (see the nth-child note below for the actual cause in most
+               cases). Keeping this as "auto" is a safety net for the rare
+               table that still doesn't fit after wrapping. */
+        overflow-x: auto;
         padding: 18px;
         line-height: 1.55;
     }
 
 
         /* =========================================================
-           HTML email content
-           ========================================================= */
+               HTML email content
+               ========================================================= */
 
         .email-body img {
             max-width: 100%;
@@ -230,21 +235,21 @@
             vertical-align: top;
             overflow-wrap: anywhere;
             word-break: normal;
+            /* NOTE: previously this stylesheet also forced nowrap +
+                   right-align on td:nth-child(3) and nowrap on td:nth-child(4),
+                   assuming those positions were always "amount" and "date"
+                   columns. That's true for some emails (e.g. laytime/PDA
+                   tables) but not others (e.g. a table whose 3rd column is a
+                   long supplier name) — forcing nowrap on a long text column,
+                   combined with overflow-x:hidden, silently clipped content.
+                   Column meaning varies per-email and can't be reliably
+                   guessed from position alone, so that rule was removed
+                   rather than patched. Cells now wrap naturally by default,
+                   which is safe for every table regardless of what's in it. */
         }
 
         .email-body tr:last-child td {
             border-bottom: none;
-        }
-
-        /* Numbers / currency */
-        .email-body td:nth-child(3) {
-            white-space: nowrap;
-            text-align: right;
-        }
-
-        /* Dates */
-        .email-body td:nth-child(4) {
-            white-space: nowrap;
         }
 
         .email-body h1,
@@ -261,8 +266,8 @@
 
 
     /* =========================================================
-           Actions
-           ========================================================= */
+               Actions
+               ========================================================= */
 
     .email-actions {
         flex-shrink: 0;
@@ -280,8 +285,8 @@
 
 
     /* =========================================================
-           Smaller screens
-           ========================================================= */
+               Smaller screens
+               ========================================================= */
 
     @@media (max-width: 600px) {
 
