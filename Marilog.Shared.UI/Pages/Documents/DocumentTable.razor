@@ -3,161 +3,174 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
 
-@* Column widths (HeaderStyle/CellStyle below) MUST stay in sync with the
-   <colgroup> widths in ChildRowContent and with DocumentTreeRow.razor's
-   per-MudTd widths. That's what keeps parent rows, child rows, and every
-   nesting depth lined up under the same header column. *@
+@* ============================================================================
+   Column widths are NOT trusted to HeaderStyle/CellStyle anymore. Confirmed
+   from the real rendered DOM (MudBlazor 9.4.0):
+     - HierarchyColumn's CellStyle is silently ignored (body <td> gets no
+       width at all, only the header <th> does).
+     - The Type column's HeaderStyle (170px) and CellStyle (130px) actually
+       render as two different widths on screen.
+   So every width below is enforced ONE way only: !important CSS by column
+   position (nth-child), in the <style> block at the bottom, applied
+   identically to the header, the parent rows, AND DocumentTreeRow.razor's
+   nested table. That is now the single source of truth — HeaderStyle/
+   CellStyle values below are left in place only as a harmless fallback and
+   must never be treated as authoritative again.
+   ============================================================================ *@
 
-<MudDataGrid T="DocumentResponse"
-             Items="Items"
-             Hover="true"
-             Dense="true"
-             Striped="false"
-             Breakpoint="Breakpoint.Sm"
-             Elevation="1"
-             Class="rounded-lg wa-doc-grid">
+<div class="wa-doc-grid-scroll">
 
-    <Columns>
+    <MudDataGrid T="DocumentResponse"
+                 Items="Items"
+                 Hover="true"
+                 Dense="true"
+                 Striped="false"
+                 Elevation="1"
+                 Breakpoint="Breakpoint.None"
+                 Class="rounded-lg wa-doc-grid">
 
-        <HierarchyColumn T="DocumentResponse"
-                         ButtonDisabledFunc="x => !x.HasChildren"
-                         HeaderStyle="width:48px; overflow:hidden" CellStyle="width:48px; overflow:hidden" />
+        <Columns>
 
-        <TemplateColumn Title="Doc No." SortBy="x => x.DocNumber"
-                        HeaderStyle="width:220px; overflow:hidden" CellStyle="width:220px; overflow:hidden">
-            <CellTemplate>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="flex-nowrap">
-                    <MudLink OnClick="() => OnRowClick.InvokeAsync(context.Item)"
-                             Style="cursor:pointer; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
-                             Title="@context.Item.DocNumber">
-                        @context.Item.DocNumber
-                    </MudLink>
-                </MudStack>
-            </CellTemplate>
-        </TemplateColumn>
+            <HierarchyColumn T="DocumentResponse"
+                             ButtonDisabledFunc="x => !x.HasChildren"
+                             HeaderStyle="width:48px; overflow:hidden" CellStyle="width:48px; overflow:hidden" />
 
-        <TemplateColumn Title="Type" SortBy="x => x.DocTypeName"
-                        HeaderStyle="width:170px; overflow:hidden" CellStyle="width:130px; overflow:hidden">
-            <CellTemplate>
-                <MudTooltip Text="@context.Item.DocTypeName">
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="wa-doctype-chip">
-                        @context.Item.DocTypeName
+            <TemplateColumn Title="Doc No." SortBy="x => x.DocNumber"
+                            HeaderStyle="width:220px; overflow:hidden" CellStyle="width:220px; overflow:hidden">
+                <CellTemplate>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="flex-nowrap">
+                        <MudLink OnClick="() => OnRowClick.InvokeAsync(context.Item)"
+                                 Style="cursor:pointer; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                                 Title="@context.Item.DocNumber">
+                            @context.Item.DocNumber
+                        </MudLink>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Type" SortBy="x => x.DocTypeName"
+                            HeaderStyle="width:150px; overflow:hidden" CellStyle="width:150px; overflow:hidden">
+                <CellTemplate>
+                    <MudTooltip Text="@context.Item.DocTypeName">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="wa-doctype-chip">
+                            @context.Item.DocTypeName
+                        </MudChip>
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.DocDate" Title="Date" Format="dd MMM yyyy"
+                            HeaderStyle="width:120px; overflow:hidden" CellStyle="width:120px; overflow:hidden" />
+            <PropertyColumn Property="x => x.SupplierName" Title="Supplier"
+                            HeaderStyle="width:160px; overflow:hidden" CellStyle="width:160px; overflow:hidden" />
+            <PropertyColumn Property="x => x.VesselName" Title="Vessel"
+                            HeaderStyle="width:110px; overflow:hidden" CellStyle="width:110px; overflow:hidden" />
+            <PropertyColumn Property="x => x.CurrencyCode" Title="Currency"
+                            HeaderStyle="width:90px; overflow:hidden" CellStyle="width:90px; overflow:hidden" />
+
+            <TemplateColumn Title="Total" SortBy="x => x.TotalAmount"
+                            HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
+                <CellTemplate>@context.Item.TotalAmount.ToString("N2")</CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Paid" SortBy="x => x.TotalPaid"
+                            HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
+                <CellTemplate>@context.Item.TotalPaid.ToString("N2")</CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Balance" SortBy="x => x.RemainingBalance"
+                            HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
+                <CellTemplate>
+                    <MudText Color="@(context.Item.RemainingBalance > 0 ? Color.Warning : Color.Success)"
+                             Style="font-weight:600">
+                        @context.Item.RemainingBalance.ToString("N2")
+                    </MudText>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Status" SortBy="x => x.IsFullyPaid"
+                            HeaderStyle="width:100px; overflow:hidden" CellStyle="width:100px; overflow:hidden">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Icon="@(context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
+                             Color="@(context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
+                             Size="Size.Small"
+                             Variant="Variant.Filled">
+                        @(context.Item.IsFullyPaid ? "Paid" : "Unpaid")
                     </MudChip>
-                </MudTooltip>
-            </CellTemplate>
-        </TemplateColumn>
+                </CellTemplate>
+            </TemplateColumn>
 
-        <PropertyColumn Property="x => x.DocDate" Title="Date" Format="dd MMM yyyy"
-                        HeaderStyle="width:120px; overflow:hidden" CellStyle="width:120px; overflow:hidden" />
-        <PropertyColumn Property="x => x.SupplierName" Title="Supplier"
-                        HeaderStyle="width:160px; overflow:hidden" CellStyle="width:160px; overflow:hidden" />
-        <PropertyColumn Property="x => x.VesselName" Title="Vessel"
-                        HeaderStyle="width:110px; overflow:hidden" CellStyle="width:110px; overflow:hidden" />
-        <PropertyColumn Property="x => x.CurrencyCode" Title="Currency"
-                        HeaderStyle="width:90px; overflow:hidden" CellStyle="width:90px; overflow:hidden" />
+            <TemplateColumn Title="" Sortable="false"
+                            HeaderStyle="width:120px; overflow:hidden" CellStyle="width:120px; overflow:hidden">
+                <CellTemplate>
+                    <MudStack Row="true" Spacing="1" Class="flex-nowrap">
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+                        </MudTooltip>
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+                        </MudTooltip>
+                        <MudTooltip Text="Attachments">
+                            <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Document))" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
 
-        <TemplateColumn Title="Total" SortBy="x => x.TotalAmount"
-                        HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
-            <CellTemplate>@context.Item.TotalAmount.ToString("N2")</CellTemplate>
-        </TemplateColumn>
+        </Columns>
 
-        <TemplateColumn Title="Paid" SortBy="x => x.TotalPaid"
-                        HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
-            <CellTemplate>@context.Item.TotalPaid.ToString("N2")</CellTemplate>
-        </TemplateColumn>
+        <ChildRowContent>
+            @* colgroup values now match the enforced widths exactly (see <style>
+               below) purely for tidiness — the actual enforcement is the
+               !important CSS, not these numbers. *@
+            <table class="wa-tree-table">
+                <colgroup>
+                    <col style="width:48px" />
+                    <col style="width:220px" />
+                    <col style="width:150px" />
+                    <col style="width:120px" />
+                    <col style="width:160px" />
+                    <col style="width:110px" />
+                    <col style="width:90px" />
+                    <col style="width:110px" />
+                    <col style="width:110px" />
+                    <col style="width:110px" />
+                    <col style="width:100px" />
+                    <col style="width:120px" />
+                </colgroup>
+                <tbody>
+                    @foreach (var child in context.Item.Children)
+                    {
+                        <DocumentTreeRow Item="child"
+                                         OnRowClick="OnRowClick"
+                                         OnEditClicked="OnEditClicked"
+                                         OnDeleteClicked="OnDeleteClicked"
+                                         OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+                    }
+                </tbody>
+            </table>
+        </ChildRowContent>
 
-        <TemplateColumn Title="Balance" SortBy="x => x.RemainingBalance"
-                        HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
-            <CellTemplate>
-                <MudText Color="@(context.Item.RemainingBalance > 0 ? Color.Warning : Color.Success)"
-                         Style="font-weight:600">
-                    @context.Item.RemainingBalance.ToString("N2")
-                </MudText>
-            </CellTemplate>
-        </TemplateColumn>
+        <NoRecordsContent>
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No documents found.</MudText>
+            </MudStack>
+        </NoRecordsContent>
 
-        <TemplateColumn Title="Status" SortBy="x => x.IsFullyPaid"
-                        HeaderStyle="width:100px; overflow:hidden" CellStyle="width:100px; overflow:hidden">
-            <CellTemplate>
-                <MudChip T="string"
-                         Icon="@(context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
-                         Color="@(context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
-                         Size="Size.Small"
-                         Variant="Variant.Filled">
-                    @(context.Item.IsFullyPaid ? "Paid" : "Unpaid")
-                </MudChip>
-            </CellTemplate>
-        </TemplateColumn>
+    </MudDataGrid>
 
-        <TemplateColumn Title="" Sortable="false"
-                        HeaderStyle="width:120px; overflow:hidden" CellStyle="width:120px; overflow:hidden">
-            <CellTemplate>
-                <MudStack Row="true" Spacing="1">
-                    <MudTooltip Text="Edit">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Size="Size.Small"
-                                       Color="Color.Primary"
-                                       OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
-                    </MudTooltip>
-                    <MudTooltip Text="Delete">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
-                    </MudTooltip>
-                    <MudTooltip Text="Attachments">
-                        <MudIconButton Icon="@Icons.Material.Filled.Receipt"
-                                       Size="Size.Small"
-                                       Color="Color.Primary"
-                                       OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Document))" />
-                    </MudTooltip>
-                </MudStack>
-            </CellTemplate>
-        </TemplateColumn>
-
-    </Columns>
-
-    <ChildRowContent>
-        @* A single real <table> wraps ALL descendants of this parent, so every
-           nesting depth shares one column-width computation instead of each
-           row sizing its own columns independently (that mismatch was the
-           actual cause of the misaligned columns at deeper nesting levels). *@
-        <table class="wa-tree-table">
-            <colgroup>
-                <col style="width:40px" />
-                <col style="width:222px" />
-                <col style="width:122px" />
-                <col style="width:112px" />
-                <col style="width:152px" />
-                <col style="width:102px" />
-                <col style="width:82px" />
-                <col style="width:102px" />
-                <col style="width:102px" />
-                <col style="width:102px" />
-                <col style="width:92px" />
-                <col style="width:112px" />
-            </colgroup>
-            <tbody>
-                @foreach (var child in context.Item.Children)
-                {
-                    <DocumentTreeRow Item="child"
-                                     OnRowClick="OnRowClick"
-                                     OnEditClicked="OnEditClicked"
-                                     OnDeleteClicked="OnDeleteClicked"
-                                     OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
-                }
-            </tbody>
-        </table>
-    </ChildRowContent>
-
-    <NoRecordsContent>
-        <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Typo="Typo.body2" Color="Color.Secondary">No documents found.</MudText>
-        </MudStack>
-    </NoRecordsContent>
-
-</MudDataGrid>
+</div>
 
 @code {
     [Parameter] public IEnumerable<DocumentResponse> Items { get; set; } = [];
@@ -168,14 +181,147 @@
 }
 
 <style>
-    .wa-doc-grid table {
+    /* ========================================================================
+       Horizontal scroll instead of MudDataGrid's Breakpoint card-mode.
+       That built-in responsive mode does not support HierarchyColumn +
+       ChildRowContent correctly (confirmed broken on your screen), so instead
+       the grid keeps its natural width and this wrapper scrolls on mobile —
+       the standard, reliable pattern for dense data tables.
+       ======================================================================== */
+    .wa-doc-grid-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+
+    
+    .wa-doc-grid table,
+    .wa-tree-table {
         table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .wa-doc-grid,
+    .wa-doc-grid *,
+    .wa-tree-table,
+    .wa-tree-table * {
+        box-sizing: border-box;
+    }
+
+    .wa-doc-grid thead th:nth-child(1),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(1),
+    .wa-tree-table td:nth-child(1) {
+        width: 48px !important;
+        min-width: 48px !important;
+        max-width: 48px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(2),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(2),
+    .wa-tree-table td:nth-child(2) {
+        width: 220px !important;
+        min-width: 220px !important;
+        max-width: 220px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(3),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(3),
+    .wa-tree-table td:nth-child(3) {
+        width: 150px !important;
+        min-width: 150px !important;
+        max-width: 150px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(4),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(4),
+    .wa-tree-table td:nth-child(4) {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(5),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(5),
+    .wa-tree-table td:nth-child(5) {
+        width: 160px !important;
+        min-width: 160px !important;
+        max-width: 160px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(6),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(6),
+    .wa-tree-table td:nth-child(6) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(7),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(7),
+    .wa-tree-table td:nth-child(7) {
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(8),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(8),
+    .wa-tree-table td:nth-child(8) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(9),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(9),
+    .wa-tree-table td:nth-child(9) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(10),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(10),
+    .wa-tree-table td:nth-child(10) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(11),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(11),
+    .wa-tree-table td:nth-child(11) {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+    }
+
+    .wa-doc-grid thead th:nth-child(12),
+    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(12),
+    .wa-tree-table td:nth-child(12) {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+    }
+
+    /* Total = 48+220+150+120+160+110+90+110+110+110+100+120 = 1448px.
+       Locks the table to a fixed real width instead of stretching to 100%,
+       so mobile scrolls horizontally instead of squeezing every column. */
+    .wa-doc-grid table {
+        min-width: 1448px;
+        width: 1448px;
     }
 
     .wa-tree-table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
+        min-width: 1448px;
+        width: 1448px;
+    }
+
+    .wa-doc-grid .mud-table-cell,
+    .wa-tree-table td {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
 
     .wa-tree-row-nested {

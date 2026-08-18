@@ -3,10 +3,17 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Documents
 
-@* Column widths below MUST stay in sync with DocumentTable.razor's per-column
-   HeaderStyle/CellStyle widths, and with the <colgroup> in DocumentTable's
-   ChildRowContent wrapper table. That's what keeps every nesting level's
-   columns lined up under the same header regardless of Depth. *@
+@* ============================================================================
+   These inline widths are now just a harmless fallback — the real,
+   authoritative widths are the !important CSS rules in DocumentTable.razor's
+   <style> block (targeting .wa-tree-table td:nth-child(n)). Confirmed from
+   the real rendered DOM that this table's own <colgroup> widths did NOT
+   match these <td> widths before, which was the actual cause of children
+   overflowing/misaligning under their parent. Both are now numerically
+   identical to DocumentTable.razor's values — if you ever change a width,
+   change it in DocumentTable.razor's <style> block first, then mirror it
+   here and in the colgroup there.
+   ============================================================================ *@
 
 <MudTr Class="@(Item.Depth > 0 ? "wa-tree-row-nested" : "")">
     <MudTd Style="width:48px; overflow:hidden" />
@@ -26,7 +33,7 @@
         </MudStack>
     </MudTd>
 
-    <MudTd Style="width:130px; overflow:hidden">
+    <MudTd Style="width:150px; overflow:hidden">
         <MudTooltip Text="@(Item.DocTypeName ?? "—")">
             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="wa-doctype-chip">
                 @(Item.DocTypeName ?? "—")
@@ -60,7 +67,7 @@
     </MudTd>
 
     <MudTd Style="width:120px; overflow:hidden">
-        <MudStack Row="true" Spacing="1">
+        <MudStack Row="true" Spacing="1" Class="flex-nowrap">
             <MudTooltip Text="Edit">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"
