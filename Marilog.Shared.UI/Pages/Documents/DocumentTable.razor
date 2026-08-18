@@ -92,11 +92,20 @@
                             HeaderStyle="width:100px; overflow:hidden" CellStyle="width:100px; overflow:hidden">
                 <CellTemplate>
                     <MudChip T="string"
-                             Icon="@(context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
-                             Color="@(context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
+                             Icon="@(context.Item.Side == FinancialSide.None ? Icons.Material.Filled.RemoveCircle
+                                            : context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle
+                                                : Icons.Material.Filled.Schedule)"
+                             Color="@(context.Item.Side == FinancialSide.None ? Color.Default
+                                            : context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
                              Size="Size.Small"
                              Variant="Variant.Filled">
-                        @(context.Item.IsFullyPaid ? "Paid" : "Unpaid")
+
+                        @(context.Item.Side == FinancialSide.None
+                            ? "None"
+                            : context.Item.IsFullyPaid
+                                ? "Paid"
+                                : "Upaid")
+
                     </MudChip>
                 </CellTemplate>
             </TemplateColumn>

@@ -58,11 +58,15 @@
 
     <MudTd Style="width:100px; overflow:hidden">
         <MudChip T="string"
-                 Icon="@(Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
-                 Color="@(Item.IsFullyPaid ? Color.Success : Color.Warning)"
+                 Icon="@(Item.Side == FinancialSide.None ? Icons.Material.Filled.RemoveCircle 
+                            : Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle: Icons.Material.Filled.Schedule)"
+                 Color="@(Item.Side == FinancialSide.None ? Color.Default
+                            : Item.IsFullyPaid ? Color.Success : Color.Warning)"
                  Size="Size.Small"
                  Variant="Variant.Filled">
-            @(Item.IsFullyPaid ? "Paid" : "Unpaid")
+
+            @(Item.Side == FinancialSide.None? "None" : Item.IsFullyPaid ? "Paid" : "Upaid")
+
         </MudChip>
     </MudTd>
 
