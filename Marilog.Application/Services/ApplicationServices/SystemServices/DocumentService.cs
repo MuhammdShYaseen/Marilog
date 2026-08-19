@@ -571,20 +571,25 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Include(p => p.Payments)
                 .FirstOrDefaultAsync(x => x.Id == documentId, ct) ?? throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            if(create.SwiftTransferId.HasValue == true)
+            if (create.SwiftTransferId.HasValue == true)
             {
-                var swiftExists = await _swiftRepo.Query()
-                .AnyAsync(x =>
-                    x.Id == create.SwiftTransferId &&
-                    x.IsActive &&
-                    (x.SenderCompanyId == document.BuyerId ||
-                     x.ReceiverCompanyId == document.SupplierId),
-                    ct);
+                var swift = await _swiftRepo.Query()
+                    .Where(x =>
+                        x.Id == create.SwiftTransferId &&
+                        x.IsActive &&
+                        (x.SenderCompanyId == document.BuyerId ||
+                         x.ReceiverCompanyId == document.SupplierId))
+                    .Select(x => new { x.CurrencyId })
+                    .FirstOrDefaultAsync(ct);
 
-                if (!swiftExists)
+                if (swift is null)
                     throw new KeyNotFoundException("SwiftTransfer not found or not allowed for this document.");
+
+                if (swift.CurrencyId != document.CurrencyId)
+                    throw new InvalidOperationException(
+                        "SwiftTransfer currency does not match the document currency.");
             }
-            
+
 
             var payment = document.AddPayment(create.SwiftTransferId, create.Method, create.PaidAmount, create.PaymentDate);
 
@@ -611,16 +616,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ?? throw new KeyNotFoundException(
                     $"Document {documentId} not found.");
 
-            if(update.SwiftTransferId.HasValue == true)
+            if (update.SwiftTransferId.HasValue == true)
             {
-                var swiftExists = await _swiftRepo.Query()
-                .AnyAsync(x => x.Id == update.SwiftTransferId && x.IsActive, ct);
+                var swift = await _swiftRepo.Query()
+                    .Where(x => x.Id == update.SwiftTransferId && x.IsActive)
+                    .Select(x => new { x.CurrencyId })
+                    .FirstOrDefaultAsync(ct);
 
-                if (!swiftExists)
+                if (swift is null)
                     throw new KeyNotFoundException(
                         $"SwiftTransfer {update.SwiftTransferId} not found or inactive.");
+
+                if (swift.CurrencyId != document.CurrencyId)
+                    throw new InvalidOperationException(
+                        "SwiftTransfer currency does not match the document currency.");
             }
-            
+
 
             document.UpdatePayment(paymentId, update.Method, update.SwiftTransferId, update.PaidAmount, update.PaymentDate);
 
