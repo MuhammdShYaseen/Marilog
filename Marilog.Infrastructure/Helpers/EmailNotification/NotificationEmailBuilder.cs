@@ -1,10 +1,6 @@
-﻿
-
-using Marilog.Contracts.DTOs.EmailNotificationDTOs;
+﻿using Marilog.Contracts.DTOs.EmailNotificationDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
-using Microsoft.VisualBasic;
-using System.Collections.ObjectModel;
 using System.Text;
 
 namespace Marilog.Infrastructure.Helpers.EmailNotification
@@ -87,58 +83,110 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
 
         private static void AppendUnpaidDocuments(StringBuilder builder, IReadOnlyList<DocumentResponse> documents)
         {
-            var filteredDocs = documents.Where(d => d.Side != FinancialSide.None).ToList() as IReadOnlyList<DocumentResponse>;
+            var filteredDocs = documents
+                .Where(d => d.Side != FinancialSide.None)
+                .ToList();
+
+            if (filteredDocs.Count == 0)
+            {
+                return;
+            }
+
             builder.Append("""
-            <h2 style="font-size:18px;margin:0 0 12px;">
+            <h2 style="font-size:18px;margin:0 0 16px;color:#1a1a1a;">
                 Unpaid Documents
             </h2>
-
-            <table style="width:100%;border-collapse:collapse;margin-bottom:30px;font-size:14px;">
-                <thead>
-                    <tr>
-                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Document</th>
-                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Vessel</th>
-                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Supplier</th>
-                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Description</th>
-                        <th style="text-align:right;padding:10px;border-bottom:2px solid #ddd;">Amount</th>
-                        <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Doc Date</th>
-                    </tr>
-                </thead>
-                <tbody>
             """);
 
-            foreach (var document in filteredDocs)
+            // Group by company (supplier), oldest -> newest within each group
+            var companyGroups = filteredDocs
+                        .GroupBy(d => string.IsNullOrWhiteSpace(d.SupplierName) ? "Unknown Supplier" : d.SupplierName)
+                        .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var companyGroup in companyGroups)
+            {
+                var orderedDocs = companyGroup
+                    .OrderBy(d => d.DocDate)
+                    .ToList();
+
+                AppendCompanyGroup(builder, companyGroup.Key, orderedDocs);
+            }
+        }
+
+        private static void AppendCompanyGroup(
+            StringBuilder builder,
+            string companyName,
+            IReadOnlyList<DocumentResponse> documents)
+        {
+            // Sum per currency separately - documents for the same supplier can be in different currencies
+            var totalsByCurrency = documents
+                .GroupBy(d => d.CurrencyCode)
+                .Select(g => new { Currency = g.Key, Total = g.Sum(d => d.TotalAmount) })
+                .OrderBy(t => t.Currency, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var totalsBadgesBuilder = new StringBuilder();
+            foreach (var t in totalsByCurrency)
+            {
+                totalsBadgesBuilder.Append($"""
+                <span style="display:inline-block;background:#eaf1fb;color:#1a56b0;font-weight:bold;font-size:13px;padding:5px 12px;border-radius:20px;margin-left:6px;white-space:nowrap;">
+                    {t.Total:N2} {HtmlEncode(t.Currency)}
+                </span>
+                """);
+            }
+
+            builder.Append($"""
+            <div style="border:1px solid #e2e5e9;border-left:4px solid #2c7be5;border-radius:8px;margin-bottom:18px;overflow:hidden;">
+
+                <div style="background:#f8fafc;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #e2e5e9;">
+                    <span style="font-size:15px;font-weight:bold;color:#1a1a1a;">
+                        {HtmlEncode(companyName)}
+                    </span>
+                    <span>
+                        {totalsBadgesBuilder}
+                    </span>
+                </div>
+
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;padding:10px 16px;border-bottom:1px solid #eee;color:#666;font-weight:600;">Document</th>
+                            <th style="text-align:left;padding:10px 16px;border-bottom:1px solid #eee;color:#666;font-weight:600;">Vessel</th>
+                            <th style="text-align:left;padding:10px 16px;border-bottom:1px solid #eee;color:#666;font-weight:600;">Description</th>
+                            <th style="text-align:right;padding:10px 16px;border-bottom:1px solid #eee;color:#666;font-weight:600;">Amount</th>
+                            <th style="text-align:left;padding:10px 16px;border-bottom:1px solid #eee;color:#666;font-weight:600;">Doc Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """);
+
+            foreach (var document in documents)
             {
                 builder.Append($"""
-                <tr>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {HtmlEncode(document.DocNumber)}
-                    </td>
-
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {HtmlEncode(document.VesselName)}
-                    </td>
-
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {HtmlEncode(document.SupplierName)}
-                    </td>
-
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {HtmlEncode(document.DocTypeName + " " + document.Reference)}
-                    </td>
-                    <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;">
-                        {document.TotalAmount:N2} {HtmlEncode(document.CurrencyCode)}
-                    </td>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
-                        {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue))}
-                    </td>
-                </tr>
+                        <tr>
+                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                                {HtmlEncode(document.DocNumber)}
+                            </td>
+                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                                {HtmlEncode(document.VesselName)}
+                            </td>
+                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                                {HtmlEncode(document.DocTypeName + " " + document.Reference)}
+                            </td>
+                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;text-align:right;">
+                                {document.TotalAmount:N2} {HtmlEncode(document.CurrencyCode)}
+                            </td>
+                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                                {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue))}
+                            </td>
+                        </tr>
                 """);
             }
 
             builder.Append("""
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
             """);
         }
 
