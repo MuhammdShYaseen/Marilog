@@ -1,6 +1,8 @@
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using MudBlazor
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
 @namespace Marilog.Shared.UI.Pages.Documents
 
 @* ============================================================================
@@ -16,9 +18,55 @@
    nested table. That is now the single source of truth — HeaderStyle/
    CellStyle values below are left in place only as a harmless fallback and
    must never be treated as authoritative again.
+
+   Column widths are also user-resizable (Excel-style drag on the header
+   border). The actual rendered width per column lives in CSS custom
+   properties (--col-N-width) set on #@ContainerId by DocumentTable.razor.js.
+   The px values in the !important rules below are only the FALLBACK used
+   before JS attaches / if JS fails to load — never edit them expecting it
+   to change the live layout, edit DefaultColumnWidths in @@code instead.
+
+   GROUPING (new): Groupable is toggled on the MudDataGrid only while a
+   grouping mode is active, and Grouping="true" is applied conditionally to
+   exactly one of the SupplierName / VesselName columns based on _groupBy.
+   NOT independently verified in combination with HierarchyColumn on
+   MudBlazor 9.4.0 — after wiring this up, check on the real rendered DOM:
+     (1) group header rows render as a single full-width cell (should not
+         fight the nth-child column width rules, since those only target
+         normal data <td> cells, not a colspanned group row);
+     (2) the hierarchy expand/collapse button on each document row still
+         works correctly *inside* a group.
+   If either breaks, fall back to manual server/C#-side grouping instead of
+   MudDataGrid's built-in Groupable.
    ============================================================================ *@
 
-<div class="wa-doc-grid-scroll">
+<div class="mb-3">
+    <MudMenu Variant="Variant.Outlined"
+             Color="Color.Primary"
+             Size="Size.Small"
+             StartIcon="@Icons.Material.Filled.GroupWork"
+             EndIcon="@Icons.Material.Filled.ArrowDropDown"
+             Label="@GroupByLabel"
+             Class="wa-group-menu-trigger">
+        <MudMenuItem OnClick="() => SetGroupBy(GroupByOption.None)"
+                     Icon="@Icons.Material.Filled.ClearAll"
+                     Class="@(_groupBy == GroupByOption.None ? "wa-group-menu-item-active" : "")">
+            No Grouping
+        </MudMenuItem>
+        <MudMenuItem OnClick="() => SetGroupBy(GroupByOption.Supplier)"
+                     Icon="@Icons.Material.Filled.Apartment"
+                     Class="@(_groupBy == GroupByOption.Supplier ? "wa-group-menu-item-active" : "")">
+            By Supplier
+        </MudMenuItem>
+        <MudMenuItem OnClick="() => SetGroupBy(GroupByOption.Vessel)"
+                     Icon="@Icons.Material.Filled.DirectionsBoat"
+                     Class="@(_groupBy == GroupByOption.Vessel ? "wa-group-menu-item-active" : "")">
+            By Vessel
+        </MudMenuItem>
+    </MudMenu>
+</div>
+
+<div class="wa-doc-grid-scroll" id="@ContainerId">
 
     <MudDataGrid T="DocumentResponse"
                  Items="Items"
@@ -27,6 +75,8 @@
                  Striped="false"
                  Elevation="1"
                  Breakpoint="Breakpoint.None"
+                 Groupable="@(_groupBy != GroupByOption.None)"
+                 GroupExpanded="true"
                  Class="rounded-lg wa-doc-grid">
 
         <Columns>
@@ -61,10 +111,29 @@
 
             <PropertyColumn Property="x => x.DocDate" Title="Date" Format="dd MMM yyyy"
                             HeaderStyle="width:120px; overflow:hidden" CellStyle="width:120px; overflow:hidden" />
+
             <PropertyColumn Property="x => x.SupplierName" Title="Supplier"
-                            HeaderStyle="width:160px; overflow:hidden" CellStyle="width:160px; overflow:hidden" />
+                            Grouping="@(_groupBy == GroupByOption.Supplier)"
+                            HeaderStyle="width:160px; overflow:hidden" CellStyle="width:160px; overflow:hidden">
+                <GroupTemplate>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="wa-group-header">
+                        <MudIcon Icon="@Icons.Material.Filled.Apartment" Color="Color.Primary" Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle2" Class="wa-group-header-text">@context.Grouping.Key</MudText>
+                    </MudStack>
+                </GroupTemplate>
+            </PropertyColumn>
+
             <PropertyColumn Property="x => x.VesselName" Title="Vessel"
-                            HeaderStyle="width:110px; overflow:hidden" CellStyle="width:110px; overflow:hidden" />
+                            Grouping="@(_groupBy == GroupByOption.Vessel)"
+                            HeaderStyle="width:110px; overflow:hidden" CellStyle="width:110px; overflow:hidden">
+                <GroupTemplate>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="wa-group-header">
+                        <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Color="Color.Primary" Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle2" Class="wa-group-header-text">@context.Grouping.Key</MudText>
+                    </MudStack>
+                </GroupTemplate>
+            </PropertyColumn>
+
             <PropertyColumn Property="x => x.CurrencyCode" Title="Currency"
                             HeaderStyle="width:90px; overflow:hidden" CellStyle="width:90px; overflow:hidden" />
 
@@ -93,10 +162,10 @@
                 <CellTemplate>
                     <MudChip T="string"
                              Icon="@(context.Item.Side == FinancialSide.None ? Icons.Material.Filled.RemoveCircle
-                                            : context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle
-                                                : Icons.Material.Filled.Schedule)"
+                                                                    : context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle
+                                                                        : Icons.Material.Filled.Schedule)"
                              Color="@(context.Item.Side == FinancialSide.None ? Color.Default
-                                            : context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
+                                                                    : context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
                              Size="Size.Small"
                              Variant="Variant.Filled">
 
@@ -141,7 +210,7 @@
         <ChildRowContent>
             @* colgroup values now match the enforced widths exactly (see <style>
                below) purely for tidiness — the actual enforcement is the
-               !important CSS, not these numbers. *@
+               !important CSS (now driven by --col-N-width), not these numbers. *@
             <table class="wa-tree-table">
                 <colgroup>
                     <col style="width:48px" />
@@ -187,151 +256,222 @@
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    /// <summary>
+    /// Unique key used both as the DOM id suffix and the localStorage key.
+    /// Override this if DocumentTable is ever reused twice on the same page
+    /// (e.g. two grids side by side), otherwise they'd share saved widths.
+    /// </summary>
+    [Parameter] public string GridStorageKey { get; set; } = "wa-doc-grid-widths";
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    // Must match the number of <th> in <Columns> above, in the same order.
+    // These are ALSO the fallback widths used before JS attaches.
+    private static readonly int[] DefaultColumnWidths =
+        [48, 220, 150, 120, 160, 110, 90, 110, 110, 110, 100, 120];
+
+    private const int MinColumnWidth = 60;
+
+    private string ContainerId => $"wa-doc-grid-scroll-{GridStorageKey}";
+
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _resizeController;
+
+    private enum GroupByOption { None, Supplier, Vessel }
+    private GroupByOption _groupBy = GroupByOption.None;
+
+    private void SetGroupBy(GroupByOption option) => _groupBy = option;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        // NOTE: adjust this path to wherever the file actually lives relative
+        // to wwwroot / the RCL's static web assets. See notes below the code.
+        _module = await JS.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Marilog.Shared.UI/Pages/Documents/DocumentTable.razor.js");
+
+        _resizeController = await _module.InvokeAsync<IJSObjectReference>(
+            "initColumnResize", ContainerId, GridStorageKey, DefaultColumnWidths, MinColumnWidth);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_resizeController is not null)
+            {
+                await _resizeController.InvokeVoidAsync("dispose");
+                await _resizeController.DisposeAsync();
+            }
+
+            if (_module is not null)
+            {
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (e.g. page navigation/tab close) - nothing to clean up.
+        }
+    }
+
+    private string GroupByLabel => _groupBy switch
+    {
+        GroupByOption.Supplier => "Grouped by Supplier",
+        GroupByOption.Vessel => "Grouped by Vessel",
+        _ => "No Grouping"
+    };
 }
 
 <style>
     /* ========================================================================
-       Horizontal scroll instead of MudDataGrid's Breakpoint card-mode.
-       That built-in responsive mode does not support HierarchyColumn +
-       ChildRowContent correctly (confirmed broken on your screen), so instead
-       the grid keeps its natural width and this wrapper scrolls on mobile —
-       the standard, reliable pattern for dense data tables.
-       ======================================================================== */
+           Horizontal scroll instead of MudDataGrid's Breakpoint card-mode.
+           That built-in responsive mode does not support HierarchyColumn +
+           ChildRowContent correctly (confirmed broken on your screen), so instead
+           the grid keeps its natural width and this wrapper scrolls on mobile —
+           the standard, reliable pattern for dense data tables.
+           ======================================================================== */
     .wa-doc-grid-scroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         border-radius: 8px;
     }
 
-    
     .wa-doc-grid table,
     .wa-tree-table {
         table-layout: fixed;
         border-collapse: collapse;
     }
 
-    .wa-doc-grid,
-    .wa-doc-grid *,
-    .wa-tree-table,
-    .wa-tree-table * {
-        box-sizing: border-box;
-    }
+        .wa-doc-grid,
+        .wa-doc-grid *,
+        .wa-tree-table,
+        .wa-tree-table * {
+            box-sizing: border-box;
+        }
 
-    .wa-doc-grid thead th:nth-child(1),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(1),
-    .wa-tree-table td:nth-child(1) {
-        width: 48px !important;
-        min-width: 48px !important;
-        max-width: 48px !important;
-    }
+            /* Column widths now read from CSS variables set by DocumentTable.razor.js.
+           The px after the comma is only the fallback before JS runs. */
 
-    .wa-doc-grid thead th:nth-child(2),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(2),
-    .wa-tree-table td:nth-child(2) {
-        width: 220px !important;
-        min-width: 220px !important;
-        max-width: 220px !important;
-    }
+            .wa-doc-grid thead th:nth-child(1),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(1),
+            .wa-tree-table td:nth-child(1) {
+                width: var(--col-1-width, 48px) !important;
+                min-width: var(--col-1-width, 48px) !important;
+                max-width: var(--col-1-width, 48px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(3),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(3),
-    .wa-tree-table td:nth-child(3) {
-        width: 150px !important;
-        min-width: 150px !important;
-        max-width: 150px !important;
-    }
+            .wa-doc-grid thead th:nth-child(2),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(2),
+            .wa-tree-table td:nth-child(2) {
+                width: var(--col-2-width, 220px) !important;
+                min-width: var(--col-2-width, 220px) !important;
+                max-width: var(--col-2-width, 220px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(4),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(4),
-    .wa-tree-table td:nth-child(4) {
-        width: 120px !important;
-        min-width: 120px !important;
-        max-width: 120px !important;
-    }
+            .wa-doc-grid thead th:nth-child(3),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(3),
+            .wa-tree-table td:nth-child(3) {
+                width: var(--col-3-width, 150px) !important;
+                min-width: var(--col-3-width, 150px) !important;
+                max-width: var(--col-3-width, 150px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(5),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(5),
-    .wa-tree-table td:nth-child(5) {
-        width: 160px !important;
-        min-width: 160px !important;
-        max-width: 160px !important;
-    }
+            .wa-doc-grid thead th:nth-child(4),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(4),
+            .wa-tree-table td:nth-child(4) {
+                width: var(--col-4-width, 120px) !important;
+                min-width: var(--col-4-width, 120px) !important;
+                max-width: var(--col-4-width, 120px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(6),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(6),
-    .wa-tree-table td:nth-child(6) {
-        width: 110px !important;
-        min-width: 110px !important;
-        max-width: 110px !important;
-    }
+            .wa-doc-grid thead th:nth-child(5),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(5),
+            .wa-tree-table td:nth-child(5) {
+                width: var(--col-5-width, 160px) !important;
+                min-width: var(--col-5-width, 160px) !important;
+                max-width: var(--col-5-width, 160px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(7),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(7),
-    .wa-tree-table td:nth-child(7) {
-        width: 90px !important;
-        min-width: 90px !important;
-        max-width: 90px !important;
-    }
+            .wa-doc-grid thead th:nth-child(6),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(6),
+            .wa-tree-table td:nth-child(6) {
+                width: var(--col-6-width, 110px) !important;
+                min-width: var(--col-6-width, 110px) !important;
+                max-width: var(--col-6-width, 110px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(8),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(8),
-    .wa-tree-table td:nth-child(8) {
-        width: 110px !important;
-        min-width: 110px !important;
-        max-width: 110px !important;
-    }
+            .wa-doc-grid thead th:nth-child(7),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(7),
+            .wa-tree-table td:nth-child(7) {
+                width: var(--col-7-width, 90px) !important;
+                min-width: var(--col-7-width, 90px) !important;
+                max-width: var(--col-7-width, 90px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(9),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(9),
-    .wa-tree-table td:nth-child(9) {
-        width: 110px !important;
-        min-width: 110px !important;
-        max-width: 110px !important;
-    }
+            .wa-doc-grid thead th:nth-child(8),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(8),
+            .wa-tree-table td:nth-child(8) {
+                width: var(--col-8-width, 110px) !important;
+                min-width: var(--col-8-width, 110px) !important;
+                max-width: var(--col-8-width, 110px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(10),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(10),
-    .wa-tree-table td:nth-child(10) {
-        width: 110px !important;
-        min-width: 110px !important;
-        max-width: 110px !important;
-    }
+            .wa-doc-grid thead th:nth-child(9),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(9),
+            .wa-tree-table td:nth-child(9) {
+                width: var(--col-9-width, 110px) !important;
+                min-width: var(--col-9-width, 110px) !important;
+                max-width: var(--col-9-width, 110px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(11),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(11),
-    .wa-tree-table td:nth-child(11) {
-        width: 100px !important;
-        min-width: 100px !important;
-        max-width: 100px !important;
-    }
+            .wa-doc-grid thead th:nth-child(10),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(10),
+            .wa-tree-table td:nth-child(10) {
+                width: var(--col-10-width, 110px) !important;
+                min-width: var(--col-10-width, 110px) !important;
+                max-width: var(--col-10-width, 110px) !important;
+            }
 
-    .wa-doc-grid thead th:nth-child(12),
-    .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(12),
-    .wa-tree-table td:nth-child(12) {
-        width: 120px !important;
-        min-width: 120px !important;
-        max-width: 120px !important;
-    }
+            .wa-doc-grid thead th:nth-child(11),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(11),
+            .wa-tree-table td:nth-child(11) {
+                width: var(--col-11-width, 100px) !important;
+                min-width: var(--col-11-width, 100px) !important;
+                max-width: var(--col-11-width, 100px) !important;
+            }
 
-    /* Total = 48+220+150+120+160+110+90+110+110+110+100+120 = 1448px.
-       Locks the table to a fixed real width instead of stretching to 100%,
-       so mobile scrolls horizontally instead of squeezing every column. */
-    .wa-doc-grid table {
-        min-width: 1448px;
-        width: 1448px;
-    }
+            .wa-doc-grid thead th:nth-child(12),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(12),
+            .wa-tree-table td:nth-child(12) {
+                width: var(--col-12-width, 120px) !important;
+                min-width: var(--col-12-width, 120px) !important;
+                max-width: var(--col-12-width, 120px) !important;
+            }
+
+            /* Total table width now follows the live sum of resized columns
+           (computed in JS), falling back to the original 1448px sum. */
+            .wa-doc-grid table {
+                min-width: var(--doc-grid-total-width, 1448px);
+                width: var(--doc-grid-total-width, 1448px);
+            }
 
     .wa-tree-table {
-        min-width: 1448px;
-        width: 1448px;
+        min-width: var(--doc-grid-total-width, 1448px);
+        width: var(--doc-grid-total-width, 1448px);
     }
 
-    .wa-doc-grid .mud-table-cell,
-    .wa-tree-table td {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-    }
+        .wa-doc-grid .mud-table-cell,
+        .wa-tree-table td {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
 
     .wa-tree-row-nested {
         background-color: var(--mud-palette-background-grey);
@@ -349,4 +489,57 @@
             white-space: nowrap;
             display: block;
         }
+
+    /* --- Column resize handle (added by DocumentTable.razor.js) --- */
+    .wa-doc-grid thead th {
+        position: relative;
+    }
+
+    .wa-col-resize-handle {
+        position: absolute;
+        top: 0;
+        right: -3px;
+        width: 6px;
+        height: 100%;
+        cursor: col-resize;
+        z-index: 5;
+        background-color: transparent;
+        transition: background-color 0.15s ease;
+    }
+
+        .wa-col-resize-handle:hover,
+        .wa-col-resize-handle.wa-col-resize-active {
+            background-color: var(--mud-palette-primary);
+            opacity: 0.5;
+        }
+
+    .wa-doc-grid thead th {
+        border-right: 1px solid var(--mud-palette-table-lines);
+    }
+
+        .wa-doc-grid thead th:last-child {
+            border-right: none;
+        }
+
+
+    /* --- Group header row: icon + name only, professional look --- */
+    .wa-group-header {
+        padding: 8px 4px;
+    }
+
+    .wa-group-header-text {
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .wa-group-menu-trigger {
+        text-transform: none;
+        font-weight: 500;
+    }
+
+    .wa-group-menu-item-active {
+        background-color: var(--mud-palette-primary-hover);
+        font-weight: 600;
+    }
 </style>
