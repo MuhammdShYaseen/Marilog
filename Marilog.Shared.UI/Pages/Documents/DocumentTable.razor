@@ -281,13 +281,26 @@
     private enum GroupByOption { None, Supplier, Vessel }
     private GroupByOption _groupBy = GroupByOption.None;
 
-    private void SetGroupBy(GroupByOption option) => _groupBy = option;
+    private string GroupByStorageKey => $"{GridStorageKey}-groupby";
+
+    private async Task SetGroupBy(GroupByOption option)
+    {
+        _groupBy = option;
+        await JS.InvokeVoidAsync("localStorage.setItem", GroupByStorageKey, option.ToString());
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
         {
             return;
+        }
+
+        var savedGroup = await JS.InvokeAsync<string?>("localStorage.getItem", GroupByStorageKey);
+        if (Enum.TryParse<GroupByOption>(savedGroup, out var parsedGroup))
+        {
+            _groupBy = parsedGroup;
+            StateHasChanged();
         }
 
         // NOTE: adjust this path to wherever the file actually lives relative
@@ -326,6 +339,9 @@
         GroupByOption.Vessel => "Grouped by Vessel",
         _ => "No Grouping"
     };
+
+
+
 }
 
 <style>
