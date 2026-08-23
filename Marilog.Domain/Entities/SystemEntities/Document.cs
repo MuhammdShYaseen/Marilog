@@ -202,6 +202,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (RemainingBalance < paidAmount)
                 throw new InvalidOperationException("PaidAmount exceeds remaining balance.");
 
+            if (Side == FinancialSide.None)
+                throw new InvalidOperationException("Cann't pay for Document with Financial Side is NONE");
+
             var payment = Payment.Create(Id, method, swiftTransferId, paidAmount, paymentDate);
             _payments.Add(payment);
             Touch();

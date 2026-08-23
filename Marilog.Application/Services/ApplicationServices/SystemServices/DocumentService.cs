@@ -356,7 +356,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
         public async Task UpdateAsync(int id, UpdateDocumentRequest updateDto, CancellationToken ct = default)
         {
-            var document = await GetOrThrowAsync(id, ct);
+            var document = await GetWithPaymentsOrThrowAsync(id, ct);
+            if (document.Payments.Count > 0 && updateDto.TotalAmount != document.TotalAmount)
+            {
+                throw new InvalidOperationException("Cannot modify TotalAmount for a document that has payments.");
+            }
             document.Update(
                 docTypeId : updateDto.DocTypeId,
                 side : updateDto.Side,

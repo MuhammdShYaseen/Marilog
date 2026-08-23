@@ -20,12 +20,62 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Daily Notifications</title>
+                <style>
+                    @media only screen and (max-width: 600px) {
+                        .email-outer {
+                            padding: 16px 8px !important;
+                        }
+                        .email-card {
+                            padding: 16px !important;
+                        }
+                        .email-title {
+                            font-size: 20px !important;
+                        }
+                        .company-header {
+                            flex-direction: column !important;
+                            align-items: flex-start !important;
+                        }
+                        .responsive-table thead {
+                            display: none;
+                        }
+                        .responsive-table,
+                        .responsive-table tbody,
+                        .responsive-table tr,
+                        .responsive-table td {
+                            display: block;
+                            width: 100%;
+                        }
+                        .responsive-table tr {
+                            border: 1px solid #eee;
+                            border-radius: 6px;
+                            margin-bottom: 10px;
+                        }
+                        .responsive-table td {
+                            text-align: right !important;
+                            padding: 8px 12px 8px 45% !important;
+                            border-bottom: none !important;
+                            position: relative;
+                        }
+                        .responsive-table td:before {
+                            content: attr(data-label);
+                            position: absolute;
+                            left: 12px;
+                            width: 40%;
+                            text-align: left;
+                            font-weight: 600;
+                            color: #666;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                    }
+                </style>
             </head>
             <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#333;">
-                <div style="max-width:900px;margin:0 auto;padding:30px 20px;">
-                    <div style="background:#ffffff;border-radius:8px;padding:30px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+                <div class="email-outer" style="max-width:900px;margin:0 auto;padding:30px 20px;">
+                    <div class="email-card" style="background:#ffffff;border-radius:8px;padding:30px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
 
-                        <h1 style="margin:0 0 8px;font-size:24px;">
+                        <h1 class="email-title" style="margin:0 0 8px;font-size:24px;">
                             Daily Notifications
                         </h1>
 
@@ -138,7 +188,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
             builder.Append($"""
             <div style="border:1px solid #e2e5e9;border-left:4px solid #2c7be5;border-radius:8px;margin-bottom:18px;overflow:hidden;">
 
-                <div style="background:#f8fafc;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #e2e5e9;">
+                <div class="company-header" style="background:#f8fafc;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #e2e5e9;">
                     <span style="font-size:15px;font-weight:bold;color:#1a1a1a;">
                         {HtmlEncode(companyName)}
                     </span>
@@ -147,7 +197,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                     </span>
                 </div>
 
-                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <table class="responsive-table" style="width:100%;border-collapse:collapse;font-size:14px;">
                     <thead>
                         <tr>
                             <th style="text-align:left;padding:10px 16px;border-bottom:1px solid #eee;color:#666;font-weight:600;">Document</th>
@@ -164,19 +214,19 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
             {
                 builder.Append($"""
                         <tr>
-                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                            <td data-label="Document" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
                                 {HtmlEncode(document.DocNumber)}
                             </td>
-                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                            <td data-label="Vessel" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
                                 {HtmlEncode(document.VesselName)}
                             </td>
-                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                            <td data-label="Description" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
                                 {HtmlEncode(document.DocTypeName + " " + document.Reference)}
                             </td>
-                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;text-align:right;">
+                            <td data-label="Amount" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;text-align:right;">
                                 {document.TotalAmount:N2} {HtmlEncode(document.CurrencyCode)}
                             </td>
-                            <td style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
+                            <td data-label="Doc Date" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
                                 {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue))}
                             </td>
                         </tr>
@@ -200,7 +250,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                 {HtmlEncode(title)}
             </h2>
 
-            <table style="width:100%;border-collapse:collapse;margin-bottom:30px;font-size:14px;">
+            <table class="responsive-table" style="width:100%;border-collapse:collapse;margin-bottom:30px;font-size:14px;">
                 <thead>
                     <tr>
                         <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Vessel</th>
@@ -215,13 +265,13 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
             {
                 builder.Append($"""
                 <tr>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                    <td data-label="Vessel" style="padding:10px;border-bottom:1px solid #eee;">
                         {HtmlEncode(certificate.VName)}
                     </td>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                    <td data-label="Certificate" style="padding:10px;border-bottom:1px solid #eee;">
                         {HtmlEncode(certificate.CertificateName)}
                     </td>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                    <td data-label="Expiry Date" style="padding:10px;border-bottom:1px solid #eee;">
                         {certificate.ExpiryDate:dd MMM yyyy}
                     </td>
                 </tr>
@@ -241,7 +291,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                 {HtmlEncode(title)}
             </h2>
 
-            <table style="width:100%;border-collapse:collapse;margin-bottom:30px;font-size:14px;">
+            <table class="responsive-table" style="width:100%;border-collapse:collapse;margin-bottom:30px;font-size:14px;">
                 <thead>
                     <tr>
                         <th style="text-align:left;padding:10px;border-bottom:2px solid #ddd;">Person</th>
@@ -256,13 +306,13 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
             {
                 builder.Append($"""
                 <tr>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                    <td data-label="Person" style="padding:10px;border-bottom:1px solid #eee;">
                         {HtmlEncode(certificate.PName)}
                     </td>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                    <td data-label="Certificate" style="padding:10px;border-bottom:1px solid #eee;">
                         {HtmlEncode(certificate.CertificateName)}
                     </td>
-                    <td style="padding:10px;border-bottom:1px solid #eee;">
+                    <td data-label="Expiry Date" style="padding:10px;border-bottom:1px solid #eee;">
                         {certificate.ExpiryDate:dd MMM yyyy}
                     </td>
                 </tr>
