@@ -171,7 +171,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
             // Sum per currency separately - documents for the same supplier can be in different currencies
             var totalsByCurrency = documents
                 .GroupBy(d => d.CurrencyCode)
-                .Select(g => new { Currency = g.Key, Total = g.Sum(d => d.TotalAmount) })
+                .Select(g => new { Currency = g.Key, Total = g.Sum(d => d.RemainingBalance) })
                 .OrderBy(t => t.Currency, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -224,7 +224,7 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                                 {HtmlEncode(document.DocTypeName + " " + document.Reference)}
                             </td>
                             <td data-label="Amount" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;text-align:right;">
-                                {document.TotalAmount:N2} {HtmlEncode(document.CurrencyCode)}
+                                {document.RemainingBalance:N2} {HtmlEncode(document.CurrencyCode)}
                             </td>
                             <td data-label="Doc Date" style="padding:10px 16px;border-bottom:1px solid #f2f2f2;">
                                 {FormatDate(document.DocDate.ToDateTime(TimeOnly.MinValue))}
