@@ -9,6 +9,15 @@ namespace Marilog.Domain.Entities.SystemEntities
         public int DocumentId { get; private set; }
         public int? SwiftTransferId { get; private set; }
         public SwiftTransfer SwiftTransfer { get; private set; } = null!;
+
+
+
+        #if false
+        public int? CreditBalanceId { get; private set; }
+        public CreditBalance CreditBalance { get; private set; } = null!;
+        #endif
+
+
         public decimal PaidAmount { get; private set; }
         public DateOnly PaymentDate { get; private set; }
         public PaymentMethod PaymentMethod { get; private set; }
