@@ -21,54 +21,57 @@ namespace Marilog.Infrastructure.Helpers.EmailNotification
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Daily Notifications</title>
                 <style>
-                    @media only screen and (max-width: 600px) {
-                        .email-outer {
-                            padding: 16px 8px !important;
-                        }
-                        .email-card {
-                            padding: 16px !important;
-                        }
-                        .email-title {
-                            font-size: 20px !important;
-                        }
-                        .company-header {
-                            flex-direction: column !important;
-                            align-items: flex-start !important;
-                        }
-                        .responsive-table thead {
-                            display: none;
-                        }
-                        .responsive-table,
-                        .responsive-table tbody,
-                        .responsive-table tr,
-                        .responsive-table td {
-                            display: block;
-                            width: 100%;
-                        }
-                        .responsive-table tr {
-                            border: 1px solid #eee;
-                            border-radius: 6px;
-                            margin-bottom: 10px;
-                        }
-                        .responsive-table td {
-                            text-align: right !important;
-                            padding: 8px 12px 8px 45% !important;
-                            border-bottom: none !important;
-                            position: relative;
-                        }
-                        .responsive-table td:before {
-                            content: attr(data-label);
-                            position: absolute;
-                            left: 12px;
-                            width: 40%;
-                            text-align: left;
-                            font-weight: 600;
-                            color: #666;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        }
+                        @media only screen and (max-width: 600px) {
+                    .email-outer {
+                        padding: 16px 8px !important;
                     }
+                    .email-card {
+                        padding: 16px !important;
+                    }
+                    .email-title {
+                        font-size: 20px !important;
+                    }
+                    .company-header {
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                    }
+                    .responsive-table thead {
+                        display: none;
+                    }
+                    .responsive-table,
+                    .responsive-table tbody,
+                    .responsive-table tr,
+                    .responsive-table td {
+                        display: block;
+                        width: 100%;
+                    }
+                    .responsive-table tr {
+                        border: 1px solid #eee;
+                        border-radius: 8px;
+                        margin-bottom: 10px;
+                        padding: 10px 14px;
+                    }
+                    .responsive-table td {
+                        text-align: left !important;
+                        padding: 6px 0 !important;
+                        border-bottom: none !important;
+                    }
+                    .responsive-table td:before {
+                        content: attr(data-label);
+                        display: block;
+                        font-size: 11px;
+                        text-transform: uppercase;
+                        letter-spacing: .03em;
+                        color: #999;
+                        font-weight: 600;
+                        margin-bottom: 2px;
+                    }
+                    .responsive-table td[data-label="Amount"] {
+                        font-weight: bold;
+                        color: #1a56b0;
+                        font-size: 15px;
+                    }
+                }
                 </style>
             </head>
             <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#333;">
