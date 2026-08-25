@@ -19,6 +19,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
             builder.HasIndex(x => x.DocumentId);
             builder.HasIndex(x => x.SwiftTransferId);
+            //builder.HasIndex(x => x.CreditBalance);
         }
     }
 }

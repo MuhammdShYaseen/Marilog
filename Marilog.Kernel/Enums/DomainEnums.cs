@@ -270,6 +270,8 @@
         CashOnBoard,   // نقداً على ظهر الباخرة 
         CashAtOffice,  // نقداً في مكتب الشركة 
         BankTransfer,
+
+        //CreditBalance,
         Swift,
         Cash,
         Cheque,
