@@ -590,6 +590,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (create.SwiftTransferId.HasValue == true)
             {
                 var swift = await _swiftRepo.Query()
+                    .Include(p => p.Payments)
                     .Where(x =>
                         x.Id == create.SwiftTransferId &&
                         x.IsActive &&
@@ -643,6 +644,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (update.SwiftTransferId.HasValue == true)
             {
                 var swift = await _swiftRepo.Query()
+                    .Include(p => p.Payments)
                     .Where(x => x.Id == update.SwiftTransferId && x.IsActive)
                     .Select(x => new { x.CurrencyId, x.UnallocatedAmount })
                     .FirstOrDefaultAsync(ct);
@@ -661,7 +663,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     : 0;
 
                 var availableAmount = swift.UnallocatedAmount + alreadyAllocated;
-
                 if (update.PaidAmount > availableAmount)
                     throw new InvalidOperationException(
                         $"Paid amount ({update.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({availableAmount}).");
