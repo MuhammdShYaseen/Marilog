@@ -16,9 +16,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<CreditBalance> _creditBalanceRepository;
         private readonly IRepository<Currency> _currencyRepository;
 
-        public CreditBalanceService(
-            IRepository<CreditBalance> creditBalanceRepository,
-            IRepository<Currency> currencyRepository)
+        public CreditBalanceService(IRepository<CreditBalance> creditBalanceRepository, IRepository<Currency> currencyRepository)
         {
             _creditBalanceRepository = creditBalanceRepository;
             _currencyRepository = currencyRepository;

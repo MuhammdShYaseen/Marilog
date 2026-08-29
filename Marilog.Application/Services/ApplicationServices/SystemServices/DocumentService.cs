@@ -325,9 +325,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 await EnsureUniqueDocNumberAsync(c.DocNumber, excludeId: null, ct);
 
-                var document = Document.Create(c.DocNumber, c.DocTypeId, c.Side, c.DocDate, c.CurrencyId,
-                                               c.TotalAmount, c.SupplierId, c.BuyerId, c.VesselId,
-                                               c.PortId, c.VoyageId, c.ParentDocumentId, c.Reference);
+                var document = Document.Create(
+                 docNumber: c.DocNumber,
+                 docTypeId: c.DocTypeId,
+                 side: c.Side,
+                 docDate: c.DocDate,
+                 currencyId: c.CurrencyId,
+                 totalAmount: c.TotalAmount,
+                 voyageId: c.VoyageId,
+                 supplierId: c.SupplierId,
+                 buyerId: c.BuyerId,
+                 vesselId: c.VesselId,
+                 portId: c.PortId,
+                 parentDocumentId: c.ParentDocumentId,
+                 reference: c.Reference
+                 );
                 documents.Add(document);
             }
 
