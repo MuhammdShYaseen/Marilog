@@ -61,6 +61,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             return await _repo.Query()
                 .AsNoTracking()
+                .Include(p => p.Payments)
                 .Where(x => x.SenderCompanyId == senderId && x.IsActive && x.ReceiverCompanyId == receverId && x.Amount > x.Payments.Sum(p => p.PaidAmount))
                 .OrderByDescending(x => x.TransactionDate)
                 .Select(ToResponse)

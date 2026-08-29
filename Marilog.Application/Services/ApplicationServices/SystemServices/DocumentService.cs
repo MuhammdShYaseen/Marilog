@@ -595,7 +595,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         x.IsActive &&
                         (x.SenderCompanyId == document.BuyerId ||
                          x.ReceiverCompanyId == document.SupplierId))
-                    .Select(x => new { x.CurrencyId })
+                    .Select(x => new { x.CurrencyId, x.UnallocatedAmount })
                     .FirstOrDefaultAsync(ct);
 
                 if (swift is null)
@@ -604,8 +604,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 if (swift.CurrencyId != document.CurrencyId)
                     throw new InvalidOperationException(
                         "SwiftTransfer currency does not match the document currency.");
-            }
 
+                if (create.PaidAmount > swift.UnallocatedAmount)
+                    throw new InvalidOperationException(
+                        $"Paid amount ({create.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({swift.UnallocatedAmount}).");
+            }
 
             var payment = document.AddPayment(create.SwiftTransferId, create.Method, create.PaidAmount, create.PaymentDate);
 
@@ -632,11 +635,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ?? throw new KeyNotFoundException(
                     $"Document {documentId} not found.");
 
+            var existingPayment = document.Payments
+                .FirstOrDefault(x => x.Id == paymentId)
+                ?? throw new KeyNotFoundException(
+                    $"Payment {paymentId} not found.");
+
             if (update.SwiftTransferId.HasValue == true)
             {
                 var swift = await _swiftRepo.Query()
                     .Where(x => x.Id == update.SwiftTransferId && x.IsActive)
-                    .Select(x => new { x.CurrencyId })
+                    .Select(x => new { x.CurrencyId, x.UnallocatedAmount })
                     .FirstOrDefaultAsync(ct);
 
                 if (swift is null)
@@ -646,8 +654,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 if (swift.CurrencyId != document.CurrencyId)
                     throw new InvalidOperationException(
                         "SwiftTransfer currency does not match the document currency.");
-            }
 
+                // إذا نفس الـ SwiftTransfer القديم، لازم نرجع المبلغ القديم قبل ما نقارن
+                var alreadyAllocated = existingPayment.SwiftTransferId == update.SwiftTransferId
+                    ? existingPayment.PaidAmount
+                    : 0;
+
+                var availableAmount = swift.UnallocatedAmount + alreadyAllocated;
+
+                if (update.PaidAmount > availableAmount)
+                    throw new InvalidOperationException(
+                        $"Paid amount ({update.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({availableAmount}).");
+            }
 
             document.UpdatePayment(paymentId, update.Method, update.SwiftTransferId, update.PaidAmount, update.PaymentDate);
 
