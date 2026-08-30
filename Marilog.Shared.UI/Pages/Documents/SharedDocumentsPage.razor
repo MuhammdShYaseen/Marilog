@@ -599,6 +599,13 @@
                                    OnClick="ClearPaymentFilter">
                             Clear
                         </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                                   Disabled="_paymentReport is null"
+                                   OnClick="@(() => OnDownloadPaymentPdf.InvokeAsync((_paymentReport!, "Payment Report","PaymentReport")))">
+                            Download PDF
+                        </MudButton>
                     </MudItem>
 
                 </MudGrid>
@@ -888,7 +895,7 @@
     [Parameter] public EventCallback<DocumentFilterOptions> OnDocumentReportRequested { get; set; }
     [Parameter] public EventCallback<FilterPaymentOptionsRequest> OnPaymentReportRequested { get; set; }
     [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdfRequested { get; set; }
-
+    [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnDownloadPaymentPdf { get; set; }
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
     private int? _selectedTypeId;
