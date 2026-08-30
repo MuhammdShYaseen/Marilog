@@ -63,6 +63,7 @@ else
                          OnPaymentReportRequested="HandlePaymentReportRequestedAsync"
                          OnExportPdfRequested="HandleExportPdfAsync"
                          OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
+                         OnSearch = "HandelSearchAsync"
                          @ref="_documentsPage" />
 }
 
@@ -381,7 +382,10 @@ else
         await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", base64);
     }
 
-
+    private async Task<IReadOnlyList<DocumentResponse>> HandelSearchAsync(string searchString, bool isTreeView)
+    {
+        return await DocumentService.SearchAsync(searchString, isTreeView);
+    }
    
 
 }

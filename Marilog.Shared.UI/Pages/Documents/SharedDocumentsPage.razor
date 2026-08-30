@@ -29,6 +29,55 @@
                            OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
         </MudTabPanel>
 
+        @* ── Search ────────────────────────────────────────────── *@
+        @* ── Search ────────────────────────────────────────────── *@
+        <MudTabPanel Text="Search">
+
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2" Class="align-center">
+                    <MudItem xs="12" sm="6" md="7">
+                        <MudTextField T="string"
+                                      @bind-Value="_searchText"
+                                      Label="Search"
+                                      Placeholder="Doc #, Supplier, Buyer, Vessel..."
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Clearable="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3" md="3" Class="d-flex align-center">
+                        <MudSwitch T="bool"
+                                   @bind-Value="_isTreeView"
+                                   Color="Color.Primary"
+                                   Label="Show as Tree View" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3" md="2" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   FullWidth="true"
+                                   Disabled="_searchingDocuments"
+                                   OnClick="RunSearchAsync">
+                            Search
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            @if (_searchingDocuments)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+            }
+
+            <DocumentTable Items="_searchResults"
+                           OnRowClick="OnDocumentClick"
+                           OnEditClicked="OnEditClicked"
+                           OnDeleteClicked="OnDeleteClicked"
+                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+
+        </MudTabPanel>
+
         @* ── By Vessel ─────────────────────────────────────────── *@
         <MudTabPanel Text="By Vessel">
             <MudSelect T="int?"
@@ -97,7 +146,7 @@
                            OnDeleteClicked="OnDeleteClicked" />
         </MudTabPanel>
         @* ── Report ───────────────────────────────────────────── *@
-        <MudTabPanel Text="Report">
+        <MudTabPanel Text="Docs Report">
 
             @* ── Filter Bar ──────────────────────────────────────── *@
             <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
@@ -877,6 +926,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<DocumentResponse> Unpaid { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentResponse> SearchResult { get; set; } = [];
     [Parameter] public IReadOnlyList<DocumentResponse> ByVessel { get; set; } = [];
     [Parameter] public IReadOnlyList<DocumentResponse> BySupplier { get; set; } = [];
     [Parameter] public IReadOnlyList<DocumentResponse> ByType { get; set; } = [];
@@ -896,6 +946,7 @@
     [Parameter] public EventCallback<FilterPaymentOptionsRequest> OnPaymentReportRequested { get; set; }
     [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdfRequested { get; set; }
     [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnDownloadPaymentPdf { get; set; }
+    [Parameter] public Func<string, bool, Task<IReadOnlyList<DocumentResponse>>>? OnSearch { get; set; }
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
     private int? _selectedTypeId;
@@ -903,7 +954,10 @@
     private DocumentReport? _documentReport;
     private bool _loadingDocumentReport;
     private bool _exportingPdf;
-
+    private string? _searchText;
+    private bool _isTreeView;
+    private bool _searchingDocuments;
+    private IReadOnlyList<DocumentResponse> _searchResults = [];
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
 
@@ -1025,6 +1079,23 @@
         return string.Join("_", parts) + ".pdf";
     }
 
+    private async Task RunSearchAsync()
+    {
+        if (OnSearch is null)
+            return;
+
+        _searchingDocuments = true;
+        StateHasChanged();
+
+        try
+        {
+            _searchResults = await OnSearch.Invoke(_searchText ?? string.Empty, _isTreeView);
+        }
+        finally
+        {
+            _searchingDocuments = false;
+        }
+    }
 
 
     // ─── Payment Report ──────────────────────────────────────────────────
