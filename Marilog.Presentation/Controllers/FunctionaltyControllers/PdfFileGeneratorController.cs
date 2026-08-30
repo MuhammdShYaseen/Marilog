@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -24,6 +25,17 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
 
             return File(pdfBytes, "application/pdf", fileName);
         }
+
+        [HttpPost("PaymentReport")]
+        public async Task<IActionResult> ExportPaymentReport([FromBody] PaymentsReport report, [FromQuery] string? title = null, CancellationToken ct = default)
+        {
+            var pdfTitle = title ?? "Payments Report";
+            var pdfBytes = await _pdfGeneratorService.GeneratePaymentReportPdf(report, pdfTitle, ct);
+            var fileName = $"PaymentsReport_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+
         [HttpGet("BillOfLadingPdf/{id:int}")]
         public async Task<IActionResult> ExportBillOfLadingFile(int id, CancellationToken ct = default)
         {

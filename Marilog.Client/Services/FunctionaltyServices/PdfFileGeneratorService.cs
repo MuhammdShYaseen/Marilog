@@ -1,5 +1,6 @@
 ﻿using Marilog.Client.Extensions;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using System;
@@ -33,6 +34,20 @@ namespace Marilog.Client.Services.FunctionaltyServices
             var url = string.IsNullOrWhiteSpace(title)
          ? "api/PdfFileGenerator/DocumentReport"
          : $"api/PdfFileGenerator/DocumentReport?title={Uri.EscapeDataString(title)}";
+
+            var response = await _http.PostAsJsonAsync(url, report, ct);
+
+            if (!response.IsSuccessStatusCode)
+                return [];
+
+            return await response.Content.ReadAsByteArrayAsync(ct);
+        }
+
+        public async Task<byte[]> GeneratePaymentReportPdf(PaymentsReport report, string title, CancellationToken ct = default)
+        {
+            var url = string.IsNullOrWhiteSpace(title)
+         ? "api/PdfFileGenerator/PaymentReport"
+         : $"api/PdfFileGenerator/PaymentReport?title={Uri.EscapeDataString(title)}";
 
             var response = await _http.PostAsJsonAsync(url, report, ct);
 

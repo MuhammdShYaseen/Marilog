@@ -1,5 +1,5 @@
-﻿
-using Marilog.Contracts.DTOs.Reports.DocumentReports;
+﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.PaymentReports; // ⚠️ عدّل المسار إذا كان الـ namespace الفعلي مختلف
 
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -333,158 +333,6 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
             });
         };
 
-        // ── Content ───────────────────────────────────────────────────────────
-        private static Action<IContainer> ComposeContent(DocumentReport report) => container =>
-        {
-            container.Column(col =>
-            {
-                col.Spacing(12);
-
-                // ── KPI Cards ─────────────────────────────────────────────
-                col.Item().Row(row =>
-                {
-                    row.Spacing(6);
-                    KpiCard(row.RelativeItem(), "Total Docs", report.Count.ToString(), Colors.Blue.Lighten4, Colors.Blue.Darken2);
-                    KpiCard(row.RelativeItem(), "Total Value", $"{report.TotalValue:N2}", Colors.Grey.Lighten3, Colors.Grey.Darken3);
-                    KpiCard(row.RelativeItem(), "Total Paid", $"{report.TotalPaid:N2}", Colors.Green.Lighten4, Colors.Green.Darken2);
-                    KpiCard(row.RelativeItem(), "Remaining", $"{report.TotalRemaining:N2}", Colors.Red.Lighten4, Colors.Red.Darken2);
-                });
-
-                // ── Financial Overview ─────────────────────────────────────
-                if (report.RevenueSideSummary?.Any() == true || report.ExpenseSideSummary?.Any() == true)
-                {
-                    var revenue = report.RevenueSideSummary?.Sum(x => x.TotalValue) ?? 0m;
-                    var expense = report.ExpenseSideSummary?.Sum(x => x.TotalValue) ?? 0m;
-                    var net = report.NetPosition;
-
-                    col.Item().Element(SectionTitle("Financial Overview"));
-                    col.Item().Row(row =>
-                    {
-                        row.Spacing(6);
-                        KpiCard(row.RelativeItem(), "Revenue", $"{revenue:N2}", Colors.Green.Lighten4, Colors.Green.Darken2);
-                        KpiCard(row.RelativeItem(), "Expense", $"{expense:N2}", Colors.Red.Lighten4, Colors.Red.Darken2);
-                        KpiCard(row.RelativeItem(), "Net Position", $"{net:N2}",
-                            net >= 0 ? Colors.Green.Lighten4 : Colors.Red.Lighten4,
-                            net >= 0 ? Colors.Green.Darken2 : Colors.Red.Darken2);
-                    });
-                }
-
-                // ── Monthly Breakdown ──────────────────────────────────────
-                if (report.MonthlySummary.Any())
-                {
-                    col.Item().Element(SectionTitle("Monthly Breakdown"));
-                    col.Item().Element(c => BuildTable(c,
-                        headers: ["Year", "Month", "Count", "Value", "Paid", "Remaining", "Revenue", "Expense", "Net"],
-                        rows: report.MonthlySummary.Select(m => new string?[]
-                        {
-                            m.Year.ToString(),
-                            System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(m.Month),
-                            m.Count.ToString(),
-                            $"{m.TotalValue:N2}",
-                            $"{m.TotalPaid:N2}",
-                            $"{m.TotalRemain:N2}",
-                            $"{m.Revenue:N2}",
-                            $"{m.Expense:N2}",
-                            $"{m.NetPosition:N2}",
-                        }).ToList(),
-                        coloredColumns: new Dictionary<int, (string positive, string negative)>
-                        {
-                            [4] = (Colors.Green.Darken1, Colors.Green.Darken1),
-                            [5] = (Colors.Red.Darken1, Colors.Red.Darken1),
-                            [6] = (Colors.Green.Darken1, Colors.Green.Darken1),
-                            [7] = (Colors.Red.Darken1, Colors.Red.Darken1),
-                            [8] = (Colors.Green.Darken1, Colors.Red.Darken1),
-                        },
-                        netColumnIndex: 8,
-                        netValues: report.MonthlySummary.Select(m => m.NetPosition).ToList(),
-                        columnWidths: [1f, 1.5f, 0.8f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f]
-                    ));
-                }
-
-                // ── By Supplier ────────────────────────────────────────────
-                if (report.SupplierSummary.Any())
-                {
-                    col.Item().Element(SectionTitle("By Supplier"));
-                    col.Item().Element(c => BuildTable(c,
-                        headers: ["Supplier", "Count", "Value", "Paid", "Remaining"],
-                        rows: report.SupplierSummary.Select(s => new string?[]
-                        {
-                            s.SupplierName,
-                            s.Count.ToString(),
-                            $"{s.TotalValue:N2}",
-                            $"{s.TotalPaid:N2}",
-                            $"{s.TotalRemain:N2}",
-                        }).ToList(),
-                        coloredColumns: new Dictionary<int, (string positive, string negative)>
-                        {
-                            [3] = (Colors.Green.Darken1, Colors.Green.Darken1),
-                            [4] = (Colors.Red.Darken1, Colors.Red.Darken1),
-                        },
-                        columnWidths: [3f, 0.8f, 1.5f, 1.5f, 1.5f]
-                    ));
-                }
-
-                // ── By Vessel ──────────────────────────────────────────────
-                if (report.VesselSummary.Any())
-                {
-                    col.Item().Element(SectionTitle("By Vessel"));
-                    col.Item().Element(c => BuildTable(c,
-                        headers: ["Vessel", "Count", "Value", "Paid", "Remaining", "Revenue", "Expense", "Net"],
-                        rows: report.VesselSummary.Select(v => new string?[]
-                        {
-                            v.VesselName,
-                            v.Count.ToString(),
-                            $"{v.TotalValue:N2}",
-                            $"{v.TotalPaid:N2}",
-                            $"{v.TotalRemain:N2}",
-                            $"{v.Revenue:N2}",
-                            $"{v.Expense:N2}",
-                            $"{v.NetPosition:N2}",
-                        }).ToList(),
-                        coloredColumns: new Dictionary<int, (string positive, string negative)>
-                        {
-                            [3] = (Colors.Green.Darken1, Colors.Green.Darken1),
-                            [4] = (Colors.Red.Darken1, Colors.Red.Darken1),
-                            [5] = (Colors.Green.Darken1, Colors.Green.Darken1),
-                            [6] = (Colors.Red.Darken1, Colors.Red.Darken1),
-                            [7] = (Colors.Green.Darken1, Colors.Red.Darken1),
-                        },
-                        netColumnIndex: 7,
-                        netValues: report.VesselSummary.Select(v => v.NetPosition).ToList(),
-                        columnWidths: [2f, 0.8f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f]
-                    ));
-                }
-
-                // ── Documents ──────────────────────────────────────────────
-                if (report.Documents.Any())
-                {
-                    col.Item().Element(SectionTitle($"Documents ({report.Count})"));
-                    col.Item().Element(c => BuildTable(c,
-                        headers: ["Doc #", "Date", "Type", "Supplier", "Vessel", "Currency", "Amount", "Paid", "Remaining", "Side"],
-                        rows: report.Documents.Select(d => new string?[]
-                        {
-                            d.DocNumber ?? "-",
-                            d.DocDate.ToString("yyyy-MM-dd"),
-                            d.DocTypeName ?? "-",
-                            d.SupplierName ?? d.BuyerName ?? "-",
-                            d.VesselName ?? "-",
-                            d.CurrencyCode ?? "-",
-                            $"{d.TotalAmount:N2}",
-                            $"{d.PaidAmount:N2}",
-                            $"{d.Remaining:N2}",
-                            d.Side.ToString(),
-                        }).ToList(),
-                        coloredColumns: new Dictionary<int, (string positive, string negative)>
-                        {
-                            [7] = (Colors.Green.Darken1, Colors.Green.Darken1),
-                            [8] = (Colors.Red.Darken1, Colors.Red.Darken1),
-                        },
-                        columnWidths: [1.2f, 1.2f, 1f, 2f, 1.2f, 1f, 1.5f, 1.5f, 1.5f, 1f]
-                    ));
-                }
-            });
-        };
-
         // ── Helpers ───────────────────────────────────────────────────────────
         private static void KpiCard(IContainer container, string label, string value,
                                     string bgColor, string textColor)
@@ -539,7 +387,10 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                             "Revenue" or
                             "Expense" or
                             "Net" or
-                            "Amount";
+                            "Amount" or
+                            "Cash In" or
+                            "Cash Out" or
+                            "Total";
 
                         var cell = headerRow.Cell()
                             .Background(Colors.Blue.Darken2)
@@ -600,7 +451,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                 }
             });
         }
-//============BILL OF LADIN============================================================================================
+        //============BILL OF LADIN============================================================================================
         public async Task<byte[]> GenerateBillOfLadingFile(int blId, CancellationToken ct = default)
         {
             var bl = await _billService.GetByIdAsync(blId, ct);
@@ -709,11 +560,312 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
             return document.GeneratePdf();
         }
 
+        //============PAYMENT REPORT============================================================================================
+        public Task<byte[]> GeneratePaymentReportPdf(PaymentsReport report, string title, CancellationToken ct = default)
+        {
+            ct.ThrowIfCancellationRequested();
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var bytes = Document.Create(container =>
+            {
+                // ── صفحة Portrait للملخصات ────────────────────────────────
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1.5f, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+
+                    page.Header().Element(ComposeHeader(title, report.BaseCurrencyCode ?? ""));
+                    page.Content().Element(ComposePaymentSummaryContent(report));
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span("Page ").FontSize(8).FontColor(Colors.Grey.Medium);
+                        x.CurrentPageNumber().FontSize(8).FontColor(Colors.Grey.Medium);
+                        x.Span(" of ").FontSize(8).FontColor(Colors.Grey.Medium);
+                        x.TotalPages().FontSize(8).FontColor(Colors.Grey.Medium);
+                    });
+                });
+
+                // ── صفحة Landscape للدفعات ──────────────────────────────
+                if (report.Payments.Any())
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(1.5f, Unit.Centimetre);
+                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+
+                        page.Header().Element(ComposeHeader($"{title} — Payments", report.BaseCurrencyCode ?? ""));
+                        page.Content().Element(ComposePaymentsContent(report));
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Page ").FontSize(8).FontColor(Colors.Grey.Medium);
+                            x.CurrentPageNumber().FontSize(8).FontColor(Colors.Grey.Medium);
+                            x.Span(" of ").FontSize(8).FontColor(Colors.Grey.Medium);
+                            x.TotalPages().FontSize(8).FontColor(Colors.Grey.Medium);
+                        });
+                    });
+                }
+            }).GeneratePdf();
+
+            return Task.FromResult(bytes);
+        }
+
+        // ── Payment Summary Content (Portrait) ─────────────────────────────────
+        private static Action<IContainer> ComposePaymentSummaryContent(PaymentsReport report) => container =>
+        {
+            container.Column(col =>
+            {
+                col.Spacing(12);
+
+                // KPI Cards
+                col.Item().Row(row =>
+                {
+                    row.Spacing(6);
+                    KpiCard(row.RelativeItem(), "Total Payments", report.Count.ToString(), Colors.Blue.Lighten4, Colors.Blue.Darken2);
+                    KpiCard(row.RelativeItem(), "Cash In", $"{report.CashIn:N2}", Colors.Green.Lighten4, Colors.Green.Darken2);
+                    KpiCard(row.RelativeItem(), "Cash Out", $"{report.CashOut:N2}", Colors.Red.Lighten4, Colors.Red.Darken2);
+                    KpiCard(row.RelativeItem(), "Net Cash Flow", $"{report.NetCashFlow:N2}",
+                        report.NetCashFlow >= 0 ? Colors.Green.Lighten4 : Colors.Red.Lighten4,
+                        report.NetCashFlow >= 0 ? Colors.Green.Darken2 : Colors.Red.Darken2);
+                });
+
+                // Monthly Breakdown
+                if (report.MonthlySummary.Any())
+                {
+                    col.Item().Element(SectionTitle("Monthly Breakdown"));
+                    col.Item().Element(c => BuildTable(c,
+                        headers: ["Year", "Month", "Count", "Cash In", "Cash Out", "Net"],
+                        rows: report.MonthlySummary.Select(m => new string?[]
+                        {
+                            m.Year.ToString(),
+                            System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(m.Month),
+                            m.Count.ToString(),
+                            $"{m.CashIn:N2}",
+                            $"{m.CashOut:N2}",
+                            $"{m.NetCashFlow:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [3] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                            [4] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                            [5] = (Colors.Green.Darken1, Colors.Red.Darken1),
+                        },
+                        netColumnIndex: 5,
+                        netValues: report.MonthlySummary.Select(m => m.NetCashFlow).ToList(),
+                        columnWidths:
+                        [
+                            0.8f, // Year
+                            1.6f, // Month
+                            0.8f, // Count
+                            1.6f, // Cash In
+                            1.6f, // Cash Out
+                            1.6f  // Net
+                        ]
+                    ));
+                }
+
+                // By Method
+                if (report.MethodSummary.Any())
+                {
+                    col.Item().Element(SectionTitle("By Method"));
+                    col.Item().Element(c => BuildTable(c,
+                        headers: ["Method", "Count", "Cash In", "Cash Out", "Total"],
+                        rows: report.MethodSummary.Select(m => new string?[]
+                        {
+                            m.Method,
+                            m.Count.ToString(),
+                            $"{m.CashIn:N2}",
+                            $"{m.CashOut:N2}",
+                            $"{m.TotalBase:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [2] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                            [3] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                        },
+                        columnWidths:
+                        [
+                            2.4f, // Method
+                            0.8f, // Count
+                            1.6f, // Cash In
+                            1.6f, // Cash Out
+                            1.6f  // Total
+                        ]
+                    ));
+                }
+
+                // By Vessel
+                if (report.VesselSummary.Any())
+                {
+                    col.Item().Element(SectionTitle("By Vessel"));
+                    col.Item().Element(c => BuildTable(c,
+                        headers: ["Vessel", "Count", "Cash In", "Cash Out", "Net"],
+                        rows: report.VesselSummary.Select(v => new string?[]
+                        {
+                            v.VesselName,
+                            v.Count.ToString(),
+                            $"{v.CashIn:N2}",
+                            $"{v.CashOut:N2}",
+                            $"{v.NetCashFlow:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [2] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                            [3] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                            [4] = (Colors.Green.Darken1, Colors.Red.Darken1),
+                        },
+                        netColumnIndex: 4,
+                        netValues: report.VesselSummary.Select(v => v.NetCashFlow).ToList(),
+                        columnWidths:
+                        [
+                            2.4f, // Vessel
+                            0.8f, // Count
+                            1.6f, // Cash In
+                            1.6f, // Cash Out
+                            1.6f  // Net
+                        ]
+                    ));
+                }
+
+                // By Supplier
+                if (report.SupplierSummary.Any())
+                {
+                    col.Item().Element(SectionTitle("By Supplier"));
+                    col.Item().Element(c => BuildTable(c,
+                        headers: ["Supplier", "Count", "Total Paid"],
+                        rows: report.SupplierSummary.Select(s => new string?[]
+                        {
+                            s.SupplierName,
+                            s.Count.ToString(),
+                            $"{s.TotalPaidBase:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [2] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                        },
+                        columnWidths:
+                        [
+                            3.6f, // Supplier
+                            0.8f, // Count
+                            1.6f  // Total Paid
+                        ]
+                    ));
+                }
+
+                // By Buyer
+                if (report.BuyerSummary.Any())
+                {
+                    col.Item().Element(SectionTitle("By Buyer"));
+                    col.Item().Element(c => BuildTable(c,
+                        headers: ["Buyer", "Count", "Total Received"],
+                        rows: report.BuyerSummary.Select(b => new string?[]
+                        {
+                            b.BuyerName,
+                            b.Count.ToString(),
+                            $"{b.TotalReceivedBase:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [2] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                        },
+                        columnWidths:
+                        [
+                            3.6f, // Buyer
+                            0.8f, // Count
+                            1.6f  // Total Received
+                        ]
+                    ));
+                }
+
+                // By Voyage
+                if (report.VoyageSummary.Any())
+                {
+                    col.Item().Element(SectionTitle("By Voyage"));
+                    col.Item().Element(c => BuildTable(c,
+                        headers: ["Voyage", "Count", "Cash In", "Cash Out", "Net"],
+                        rows: report.VoyageSummary.Select(v => new string?[]
+                        {
+                            v.VoyageNumber,
+                            v.Count.ToString(),
+                            $"{v.CashIn:N2}",
+                            $"{v.CashOut:N2}",
+                            $"{v.NetCashFlow:N2}",
+                        }).ToList(),
+                        coloredColumns: new Dictionary<int, (string positive, string negative)>
+                        {
+                            [2] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                            [3] = (Colors.Red.Darken1, Colors.Red.Darken1),
+                            [4] = (Colors.Green.Darken1, Colors.Red.Darken1),
+                        },
+                        netColumnIndex: 4,
+                        netValues: report.VoyageSummary.Select(v => v.NetCashFlow).ToList(),
+                        columnWidths:
+                        [
+                            2.4f, // Voyage
+                            0.8f, // Count
+                            1.6f, // Cash In
+                            1.6f, // Cash Out
+                            1.6f  // Net
+                        ]
+                    ));
+                }
+            });
+        };
+
+        // ── Payments Content (Landscape) ────────────────────────────────────────
+        private static Action<IContainer> ComposePaymentsContent(PaymentsReport report) => container =>
+        {
+            container.Column(col =>
+            {
+                col.Spacing(12);
+                col.Item().Element(SectionTitle($"Payments ({report.Count})"));
+                col.Item().Element(c => BuildTable(c,
+                    headers: ["Payment #", "Date", "Doc #", "Doc Type", "Party", "Vessel", "Voyage", "Currency", "Method", "Paid", "Paid Base", "Side"],
+                    rows: report.Payments.Select(p => new string?[]
+                    {
+                        p.PaymentId.ToString(),
+                        p.PaymentDate.ToString("yyyy-MM-dd"),
+                        p.DocNumber ?? "-",
+                        p.DocTypeName ?? "-",
+                        p.SupplierName ?? p.BuyerName ?? "-",
+                        p.VesselName ?? "-",
+                        p.VoyageNumber ?? "-",
+                        p.CurrencyCode ?? "-",
+                        p.PaymentMethod.ToString(),
+                        $"{p.PaidAmount:N2}",
+                        $"{p.PaidAmountBase:N2}",
+                        p.Side.ToString(),
+                    }).ToList(),
+                    coloredColumns: new Dictionary<int, (string positive, string negative)>
+                    {
+                        [9] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                        [10] = (Colors.Green.Darken1, Colors.Green.Darken1),
+                    },
+                    columnWidths:
+                    [
+                        1.0f, // Payment #
+                        1.2f, // Date
+                        1.2f, // Doc #
+                        1.3f, // Doc Type
+                        2.2f, // Party
+                        1.4f, // Vessel
+                        1.2f, // Voyage
+                        1.0f, // Currency
+                        1.2f, // Method
+                        1.3f, // Paid
+                        1.3f, // Paid Base
+                        0.9f  // Side
+                    ]
+                ));
+            });
+        };
+
         private sealed class FieldBlock(string label, string? value, bool bold = false) : IComponent
         {
             public void Compose(IContainer container)
             {
-                if(bold == false)
+                if (bold == false)
                 {
                     container.Column(col =>
                     {
@@ -734,7 +886,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
                            .Bold();
                     });
                 }
-                
+
             }
         }
     }

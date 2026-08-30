@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Responses;
 
 namespace Marilog.Contracts.Interfaces.Services.FunctionaltyServices
@@ -7,5 +8,7 @@ namespace Marilog.Contracts.Interfaces.Services.FunctionaltyServices
     {
         Task<byte[]> GenerateDocumentReportPdf(DocumentReport report, string title, CancellationToken ct =default);
         Task<byte[]> GenerateBillOfLadingFile(int blId, CancellationToken ct = default);
+
+        Task<byte[]> GeneratePaymentReportPdf(PaymentsReport report, string title, CancellationToken ct = default);
     }
 }
