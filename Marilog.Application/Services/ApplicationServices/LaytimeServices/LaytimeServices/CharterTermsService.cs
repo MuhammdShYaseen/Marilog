@@ -99,7 +99,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             await _charterTermsRepo.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<CharterTermsResponse> GetCharterTermsAsync(
+        public async Task<CharterTermsResponse?> GetCharterTermsAsync(
             int contractId,
             CancellationToken cancellationToken = default)
         {
