@@ -2,12 +2,14 @@
 using Marilog.Client.Services.DataManagment;
 using Marilog.Client.Services.EmailNotification;
 using Marilog.Client.Services.FunctionaltyServices;
+using Marilog.Client.Services.LaytimeServices;
 using Marilog.Client.Services.Logging;
 using Marilog.Client.Services.SystemServices;
 using Marilog.Client.Services.UiServices;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
+using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
@@ -63,6 +65,10 @@ namespace Marilog.Client.Extensions
             services.AddScoped<INotificationSettingsStore, JsonNotificationSettingsStore>();
             services.AddScoped<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();
             services.AddScoped<INotificationSchedule, NotificationSchedule>();
+
+
+            //==Laytime=======================================
+            services.AddScoped<ICharterTermsService, CharterTermsService>();
             return services;
         }
     }

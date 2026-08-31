@@ -27,6 +27,6 @@ namespace Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
         Task UpdateRuleOptionsAsync(int contractId, LaytimeRuleOptionsRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>جلب Charter Terms لعقد معين</summary>
-        Task<CharterTermsResponse> GetCharterTermsAsync(int contractId, CancellationToken cancellationToken = default);
+        Task<CharterTermsResponse?> GetCharterTermsAsync(int contractId, CancellationToken cancellationToken = default);
     }
 }
