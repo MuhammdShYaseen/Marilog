@@ -1,8 +1,5 @@
 ﻿using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
 {
@@ -12,7 +9,7 @@ namespace Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
         Task<LaytimeCalculationResponse> CreateCalculationAsync(CreateLaytimeCalculationRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>جلب Calculation بالمعرف</summary>
-        Task<LaytimeCalculationResponse> GetCalculationAsync(int calculationId, CancellationToken cancellationToken = default);
+        Task<LaytimeCalculationResponse?> GetCalculationAsync(int calculationId, CancellationToken cancellationToken = default);
 
         /// <summary>جلب جميع Calculations لرحلة معينة</summary>
         Task<IReadOnlyList<LaytimeCalculationSummaryResponse>> GetCalculationsByVoyageAsync(int voyageId, CancellationToken cancellationToken = default);

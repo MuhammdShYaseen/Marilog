@@ -26,6 +26,9 @@ namespace Marilog.Presentation.Controllers.LaytimeControllers
         public async Task<IActionResult> Get(int contractId, CancellationToken cancellationToken)
         {
             var result = await _service.GetCharterTermsAsync(contractId, cancellationToken);
+            if (result == null)
+                throw new ArgumentNullException(nameof(result));
+
             return Ok(ApiResponse<CharterTermsResponse>.Ok(result));
         }
 
