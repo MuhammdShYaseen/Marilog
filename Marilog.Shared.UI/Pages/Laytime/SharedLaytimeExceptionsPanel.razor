@@ -1,0 +1,71 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudStack Spacing="3">
+
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Manual overrides that affect the computed result (rain, crane breakdown, inspection, strikes, etc.)
+        </MudText>
+
+        @if (!IsReadOnly)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => OnAdd.InvokeAsync())">
+                Add Exception
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudTable T="LaytimeExceptionResponse" Items="Items.OrderBy(e => e.From)" Hover="true" Dense="true">
+
+        <HeaderContent>
+            <MudTh>From</MudTh>
+            <MudTh>To</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Duration</MudTh>
+            <MudTh>Factor</MudTh>
+            <MudTh>Notes</MudTh>
+            @if (!IsReadOnly)
+            {
+                <MudTh></MudTh>
+            }
+        </HeaderContent>
+
+        <RowTemplate Context="ex">
+            <MudTd DataLabel="From">@ex.From.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd DataLabel="To">@ex.To.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd DataLabel="Type">@LaytimeEnumLabels.Label(ex.ExceptionType)</MudTd>
+            <MudTd DataLabel="Duration">@ex.DurationDisplay</MudTd>
+            <MudTd DataLabel="Factor">@ex.Factor.ToString("P0")</MudTd>
+            <MudTd DataLabel="Notes">@ex.Notes</MudTd>
+            @if (!IsReadOnly)
+            {
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => OnDelete.InvokeAsync(ex))" />
+                </MudTd>
+            }
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">No exceptions recorded.</MudText>
+        </NoRecordsContent>
+
+    </MudTable>
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LaytimeExceptionResponse> Items { get; set; } = Array.Empty<LaytimeExceptionResponse>();
+
+    [Parameter]
+    public bool IsReadOnly { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnAdd { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<LaytimeExceptionResponse> OnDelete { get; set; }
+}

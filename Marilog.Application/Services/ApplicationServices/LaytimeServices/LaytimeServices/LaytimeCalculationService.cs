@@ -36,7 +36,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             return _laytimeHelpper.MapCalculationResponse(calculation);
         }
 
-        public async Task<LaytimeCalculationResponse> GetCalculationAsync(
+        public async Task<LaytimeCalculationResponse?> GetCalculationAsync(
             int calculationId,
             CancellationToken cancellationToken = default)
         {

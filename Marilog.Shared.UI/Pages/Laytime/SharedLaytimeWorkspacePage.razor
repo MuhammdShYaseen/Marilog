@@ -1,0 +1,143 @@
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Components.Laytime
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudStack Spacing="4">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+            <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" Size="Size.Large" />
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5">
+                    Laytime Calculation #@Calculation.Id — @Calculation.OperationType
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Voyage #@Calculation.VoyageId · Contract #@Calculation.ContractId · Port #@Calculation.PortId · @Calculation.CargoQuantityMt.ToString("N0") MT
+                </MudText>
+            </MudStack>
+            <MudChip T="string" Size="Size.Medium" Variant="Variant.Filled" Color="@GetStatusColor(Calculation.Status)">
+                @Calculation.Status
+            </MudChip>
+        </MudStack>
+
+        <MudStack Row="true" Spacing="2">
+
+            @if (Calculation.Status != LaytimeStatus.Finalized)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PlayArrow"
+                           Disabled="@(SofEventCount < 2 || IsBusy)"
+                           OnClick="@(() => OnCompute.InvokeAsync())">
+                    @(Calculation.Status == LaytimeStatus.Computed ? "Recompute" : "Compute")
+                </MudButton>
+            }
+
+            @if (Calculation.Status == LaytimeStatus.Computed)
+            {
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.Lock"
+                           Disabled="@IsBusy"
+                           OnClick="@(() => OnFinalize.InvokeAsync())">
+                    Finalize
+                </MudButton>
+            }
+
+            <MudMenu Icon="@Icons.Material.Filled.Download" Color="Color.Primary" Variant="Variant.Outlined" Label="Reports">
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.Summary, ReportFormat.Pdf)))">Summary (PDF)</MudMenuItem>
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.Summary, ReportFormat.Excel)))">Summary (Excel)</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.Detailed, ReportFormat.Pdf)))">Detailed (PDF)</MudMenuItem>
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.Detailed, ReportFormat.Excel)))">Detailed (Excel)</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.Delays, ReportFormat.Pdf)))">Delays (PDF)</MudMenuItem>
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.Delays, ReportFormat.Excel)))">Delays (Excel)</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => OnDownloadReport.InvokeAsync((LaytimeReportType.TimeSheetExcel, ReportFormat.Excel)))">Time Sheet (Excel)</MudMenuItem>
+            </MudMenu>
+
+        </MudStack>
+    </MudStack>
+
+    @if (Calculation.Status == LaytimeStatus.Draft)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            This calculation is in Draft. Add SOF events, then click Compute to generate the result.
+        </MudAlert>
+    }
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+
+        <MudTabPanel Text="SOF Events" Icon="@Icons.Material.Filled.EventNote">
+            <SharedSofEventsPanel Items="SofEvents" IsReadOnly="@(Calculation.Status == LaytimeStatus.Finalized)"
+                                   OnAdd="OnAddSofEvent" OnDelete="OnDeleteSofEvent" />
+        </MudTabPanel>
+
+        <MudTabPanel Text="Exceptions" Icon="@Icons.Material.Filled.RemoveCircleOutline">
+            <SharedLaytimeExceptionsPanel Items="Exceptions" IsReadOnly="@(Calculation.Status == LaytimeStatus.Finalized)"
+                                           OnAdd="OnAddException" OnDelete="OnDeleteException" />
+        </MudTabPanel>
+
+        <MudTabPanel Text="Segments" Icon="@Icons.Material.Filled.Timeline">
+            <SharedLaytimeSegmentsPanel Items="Segments" />
+        </MudTabPanel>
+
+        <MudTabPanel Text="Result" Icon="@Icons.Material.Filled.Assessment">
+            <SharedLaytimeResultPanel Result="Calculation.Result" />
+        </MudTabPanel>
+
+    </MudTabs>
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public LaytimeCalculationResponse Calculation { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<SofEventResponse> SofEvents { get; set; } = Array.Empty<SofEventResponse>();
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LaytimeExceptionResponse> Exceptions { get; set; } = Array.Empty<LaytimeExceptionResponse>();
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LaytimeSegmentResponse> Segments { get; set; } = Array.Empty<LaytimeSegmentResponse>();
+
+    [Parameter, EditorRequired]
+    public bool IsBusy { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnCompute { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnFinalize { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnAddSofEvent { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<SofEventResponse> OnDeleteSofEvent { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnAddException { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<LaytimeExceptionResponse> OnDeleteException { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<(LaytimeReportType ReportType, ReportFormat Format)> OnDownloadReport { get; set; }
+
+    private int SofEventCount => SofEvents.Count;
+
+    private static Color GetStatusColor(LaytimeStatus status) => status switch
+    {
+        LaytimeStatus.Draft => Color.Default,
+        LaytimeStatus.Computed => Color.Info,
+        LaytimeStatus.Finalized => Color.Success,
+        _ => Color.Default
+    };
+}

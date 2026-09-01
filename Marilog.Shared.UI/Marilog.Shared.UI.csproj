@@ -33,6 +33,7 @@
     <Folder Include="Pages\EmailOutbox\" />
     <Folder Include="Pages\EmailDraft\" />
     <Folder Include="Pages\EmailNotification\" />
+    <Folder Include="Pages\Laytime\" />
     <Folder Include="Pages\StoredFiles\" />
     <Folder Include="Styles\" />
   </ItemGroup>

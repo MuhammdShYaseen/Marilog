@@ -1,0 +1,133 @@
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+@* Shown when no CharterTerms exist yet for this contract — collects everything
+   InitializeCharterTermsRequest needs in one go. *@
+
+<MudPaper Outlined="true" Class="pa-4">
+    <MudStack Spacing="4">
+
+        <MudAlert Severity="Severity.Info" Dense="true">
+            No Charter Terms configured for this contract yet. Fill in the details below to enable Laytime calculations.
+        </MudAlert>
+
+        <MudNumericField T="decimal" @bind-Value="_cargoQuantityMt" Label="Cargo Quantity (MT)" Min="0.01m" />
+
+        <MudDivider />
+        <MudText Typo="Typo.subtitle1">Loading Terms</MudText>
+        <MudCheckBox T="bool" @bind-Value="_hasLoading" Label="This contract includes Loading" Color="Color.Primary" />
+        @if (_hasLoading)
+        {
+            <CargoOperationTermsForm OperationType="OperationType.Loading" @bind-Values="_loading" />
+        }
+
+        <MudDivider />
+        <MudText Typo="Typo.subtitle1">Discharging Terms</MudText>
+        <MudCheckBox T="bool" @bind-Value="_hasDischarging" Label="This contract includes Discharging" Color="Color.Primary" />
+        @if (_hasDischarging)
+        {
+            <CargoOperationTermsForm OperationType="OperationType.Discharging" @bind-Values="_discharging" />
+        }
+
+        <MudDivider />
+        <MudText Typo="Typo.subtitle1">Demurrage</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="6">
+                <MudNumericField T="decimal" @bind-Value="_demurrageRate" Label="Rate (USD/day)" Min="0.01m" />
+            </MudItem>
+            <MudItem xs="6" Class="d-flex align-center">
+                <MudCheckBox T="bool" @bind-Value="_onceOnDemurrage" Label="Once on Demurrage, Always on Demurrage" Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider />
+        <MudText Typo="Typo.subtitle1">Despatch (optional)</MudText>
+        <MudCheckBox T="bool" @bind-Value="_hasDespatch" Label="This contract includes Despatch" Color="Color.Primary" />
+        @if (_hasDespatch)
+        {
+            <MudGrid Spacing="2">
+                <MudItem xs="6">
+                    <MudNumericField T="decimal" @bind-Value="_despatchRate" Label="Rate (USD/day)" Min="0.01m" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudSelect T="DespatchBasis" @bind-Value="_despatchBasis" Label="Basis">
+                        @foreach (var value in Enum.GetValues<DespatchBasis>())
+                        {
+                            <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        }
+
+        <MudDivider />
+        <MudText Typo="Typo.subtitle1">Rule Options</MudText>
+        <LaytimeRuleOptionsForm @bind-Values="_ruleOptions" />
+
+        <MudStack Row="true" Justify="Justify.FlexEnd">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Check"
+                       Disabled="@(!IsValid || IsSaving)"
+                       OnClick="Submit">
+                @(IsSaving ? "Saving..." : "Initialize Charter Terms")
+            </MudButton>
+        </MudStack>
+
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public int ContractId { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool IsSaving { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<InitializeCharterTermsRequest> OnSubmit { get; set; }
+
+    private decimal _cargoQuantityMt = 1000;
+
+    private bool _hasLoading = true;
+    private CargoOperationFormValues _loading = new();
+
+    private bool _hasDischarging;
+    private CargoOperationFormValues _discharging = new();
+
+    private decimal _demurrageRate = 10000;
+    private bool _onceOnDemurrage;
+
+    private bool _hasDespatch;
+    private decimal _despatchRate = 5000;
+    private DespatchBasis _despatchBasis;
+
+    private LaytimeRuleOptionsFormValues _ruleOptions = new();
+
+    private bool IsValid =>
+        _cargoQuantityMt > 0
+        && (_hasLoading || _hasDischarging)
+        && _demurrageRate > 0
+        && (!_hasLoading || _loading.IsValid)
+        && (!_hasDischarging || _discharging.IsValid)
+        && (!_hasDespatch || _despatchRate > 0);
+
+    private void Submit()
+    {
+        if (!IsValid)
+            return;
+
+        var request = new InitializeCharterTermsRequest(
+            ContractId,
+            _cargoQuantityMt,
+            _hasLoading ? _loading.ToRequest(OperationType.Loading) : null,
+            _hasDischarging ? _discharging.ToRequest(OperationType.Discharging) : null,
+            new DemurrageTermsRequest(_demurrageRate, _onceOnDemurrage),
+            _hasDespatch ? new DespatchTermsRequest(_despatchRate, _despatchBasis) : null,
+            _ruleOptions.ToRequest());
+
+        OnSubmit.InvokeAsync(request);
+    }
+}

@@ -69,6 +69,11 @@ namespace Marilog.Client.Extensions
 
             //==Laytime=======================================
             services.AddScoped<ICharterTermsService, CharterTermsService>();
+            services.AddScoped<ILaytimeCalculationService, LaytimeCalculationService>();
+            services.AddScoped<ISofEventService, SofEventService>();
+            services.AddScoped<ILaytimeExceptionService, LaytimeExceptionService>();
+            services.AddScoped<ILaytimeQueryService, LaytimeQueryService>();
+            services.AddScoped<ILaytimeReportService, LaytimeReportService>();
             return services;
         }
     }

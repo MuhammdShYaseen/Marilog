@@ -1,0 +1,54 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudGrid Spacing="2">
+    <MudItem xs="6">
+        <MudCheckBox T="bool" Value="Values.WeekendIncluded" ValueChanged="@(v => Update(x => x.WeekendIncluded = v))" Label="Weekend Included (counts toward Laytime)" Color="Color.Primary" />
+    </MudItem>
+    <MudItem xs="6">
+        <MudCheckBox T="bool" Value="Values.HolidaysIncluded" ValueChanged="@(v => Update(x => x.HolidaysIncluded = v))" Label="Holidays Included" Color="Color.Primary" />
+    </MudItem>
+    <MudItem xs="6">
+        <MudCheckBox T="bool" Value="Values.DraftSurveyCounts" ValueChanged="@(v => Update(x => x.DraftSurveyCounts = v))" Label="Draft Survey Counts" Color="Color.Primary" />
+    </MudItem>
+    <MudItem xs="6">
+        <MudCheckBox T="bool" Value="Values.TimeReversible" ValueChanged="@(v => Update(x => x.TimeReversible = v))" Label="Time Reversible" Color="Color.Primary" />
+    </MudItem>
+    <MudItem xs="6">
+        <MudCheckBox T="bool" Value="Values.AllowShiftingTime" ValueChanged="@(v => Update(x => x.AllowShiftingTime = v))" Label="Allow Shifting Time" Color="Color.Primary" />
+    </MudItem>
+
+    @if (!Values.WeekendIncluded)
+    {
+        <MudItem xs="6">
+            <MudSelect T="DayOfWeek" Value="Values.WeekendDay1" ValueChanged="@(v => Update(x => x.WeekendDay1 = v))" Label="Weekend Day 1">
+                @foreach (var day in Enum.GetValues<DayOfWeek>())
+                {
+                    <MudSelectItem Value="day">@day</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6">
+            <MudSelect T="DayOfWeek" Value="Values.WeekendDay2" ValueChanged="@(v => Update(x => x.WeekendDay2 = v))" Label="Weekend Day 2">
+                @foreach (var day in Enum.GetValues<DayOfWeek>())
+                {
+                    <MudSelectItem Value="day">@day</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public LaytimeRuleOptionsFormValues Values { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<LaytimeRuleOptionsFormValues> ValuesChanged { get; set; }
+
+    private void Update(Action<LaytimeRuleOptionsFormValues> apply)
+    {
+        apply(Values);
+        ValuesChanged.InvokeAsync(Values);
+    }
+}

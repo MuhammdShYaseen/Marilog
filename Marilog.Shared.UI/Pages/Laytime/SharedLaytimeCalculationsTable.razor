@@ -1,0 +1,77 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudTable T="LaytimeCalculationSummaryResponse" Items="Items" Hover="true" OnRowClick="HandleRowClick" Class="laytime-calc-table">
+
+    <HeaderContent>
+        <MudTh>Operation</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Allowed (d)</MudTh>
+        <MudTh>Used (d)</MudTh>
+        <MudTh>Demurrage (USD)</MudTh>
+        <MudTh>Despatch (USD)</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="calc">
+        <MudTd DataLabel="Operation">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@(calc.OperationType == OperationType.Loading ? Icons.Material.Filled.ArrowDownward : Icons.Material.Filled.ArrowUpward)" Size="Size.Small" Color="Color.Primary" />
+                <MudText>@calc.OperationType</MudText>
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="Status">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(calc.Status)">@calc.Status</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Allowed">@(calc.AllowedDays?.ToString("N2") ?? "-")</MudTd>
+        <MudTd DataLabel="Used">@(calc.UsedDays?.ToString("N2") ?? "-")</MudTd>
+        <MudTd DataLabel="Demurrage">
+            @if (calc.IsDemurrage == true)
+            {
+                <MudText Color="Color.Error">@(calc.DemurrageAmount?.ToString("N2") ?? "-")</MudText>
+            }
+            else
+            {
+                <MudText Color="Color.Secondary">-</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Despatch">
+            @if (calc.IsDemurrage == false && calc.DespatchAmount is > 0)
+            {
+                <MudText Color="Color.Success">@calc.DespatchAmount?.ToString("N2")</MudText>
+            }
+            else
+            {
+                <MudText Color="Color.Secondary">-</MudText>
+            }
+        </MudTd>
+    </RowTemplate>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">No Laytime calculations yet for this voyage.</MudText>
+    </NoRecordsContent>
+
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<LaytimeCalculationSummaryResponse> Items { get; set; } = Array.Empty<LaytimeCalculationSummaryResponse>();
+
+    [Parameter, EditorRequired]
+    public EventCallback<LaytimeCalculationSummaryResponse> OnSelect { get; set; }
+
+    private static Color GetStatusColor(LaytimeStatus status) => status switch
+    {
+        LaytimeStatus.Draft => Color.Default,
+        LaytimeStatus.Computed => Color.Info,
+        LaytimeStatus.Finalized => Color.Success,
+        _ => Color.Default
+    };
+
+    private void HandleRowClick(TableRowClickEventArgs<LaytimeCalculationSummaryResponse> args)
+    {
+        if (args.Item is null) return;
+        OnSelect.InvokeAsync(args.Item);
+    }
+}

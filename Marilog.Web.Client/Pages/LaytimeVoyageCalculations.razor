@@ -1,0 +1,103 @@
+@page "/operations/laytime/voyage/{VoyageId:int}"
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
+@using MudBlazor
+@using Marilog.Shared.UI.Pages.Laytime
+@inject ILaytimeCalculationService CalculationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<MudStack Spacing="4">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.h5">Laytime Calculations — Voyage #@VoyageId</MudText>
+        </MudStack>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialogAsync">
+            New Calculation
+        </MudButton>
+    </MudStack>
+
+    @if (_isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </MudStack>
+    }
+    else
+    {
+        <MudPaper Outlined="true" Class="pa-0">
+            <SharedLaytimeCalculationsTable Items="_calculations" OnSelect="OpenWorkspace" />
+        </MudPaper>
+    }
+
+</MudStack>
+
+@code {
+    [Parameter]
+    public int VoyageId { get; set; }
+
+    private IReadOnlyList<LaytimeCalculationSummaryResponse> _calculations = Array.Empty<LaytimeCalculationSummaryResponse>();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            _calculations = await CalculationService.GetCalculationsByVoyageAsync(VoyageId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load calculations: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var parameters = new DialogParameters<LaytimeCalculationCreateDialog>
+        {
+            { x => x.VoyageId, VoyageId }
+        };
+
+        var dialog = await DialogService.ShowAsync<LaytimeCalculationCreateDialog>("New Calculation", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var request = (Marilog.Contracts.DTOs.Requests.LayTimeDTOs.CreateLaytimeCalculationRequest)result.Data!;
+
+        try
+        {
+            var created = await CalculationService.CreateCalculationAsync(request);
+            Snackbar.Add("Calculation created.", Severity.Success);
+            Nav.NavigateTo($"/operations/laytime/calculation/{created.Id}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to create calculation: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OpenWorkspace(LaytimeCalculationSummaryResponse calc)
+    {
+        Nav.NavigateTo($"/operations/laytime/calculation/{calc.Id}");
+    }
+}

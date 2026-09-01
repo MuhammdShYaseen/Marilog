@@ -1,0 +1,253 @@
+@page "/operations/laytime/calculation/{CalculationId:int}"
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Components.Laytime
+@using Marilog.Shared.UI.Pages.Laytime
+@using Microsoft.JSInterop
+@using MudBlazor
+@inject ILaytimeCalculationService CalculationService
+@inject ISofEventService SofEventService
+@inject ILaytimeExceptionService ExceptionService
+@inject ILaytimeQueryService QueryService
+@inject ILaytimeReportService ReportService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JsRuntime
+
+@if (_isLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="py-8">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </MudStack>
+}
+else if (_calculation is null)
+{
+    <MudAlert Severity="Severity.Error">Calculation not found.</MudAlert>
+}
+else
+{
+    <SharedLaytimeWorkspacePage Calculation="_calculation"
+                                 SofEvents="_sofEvents"
+                                 Exceptions="_exceptions"
+                                 Segments="_segments"
+                                 IsBusy="_isBusy"
+                                 OnCompute="ComputeAsync"
+                                 OnFinalize="FinalizeAsync"
+                                 OnAddSofEvent="OpenAddSofEventAsync"
+                                 OnDeleteSofEvent="DeleteSofEventAsync"
+                                 OnAddException="OpenAddExceptionAsync"
+                                 OnDeleteException="DeleteExceptionAsync"
+                                 OnDownloadReport="DownloadReportAsync" />
+}
+
+@code {
+    [Parameter]
+    public int CalculationId { get; set; }
+
+    private LaytimeCalculationResponse? _calculation;
+    private IReadOnlyList<SofEventResponse> _sofEvents = Array.Empty<SofEventResponse>();
+    private IReadOnlyList<LaytimeExceptionResponse> _exceptions = Array.Empty<LaytimeExceptionResponse>();
+    private IReadOnlyList<LaytimeSegmentResponse> _segments = Array.Empty<LaytimeSegmentResponse>();
+    private bool _isLoading = true;
+    private bool _isBusy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            _calculation = await CalculationService.GetCalculationAsync(CalculationId);
+
+            if (_calculation is not null)
+            {
+                _sofEvents = await SofEventService.GetSofEventsAsync(CalculationId);
+                _exceptions = await ExceptionService.GetExceptionsAsync(CalculationId);
+                _segments = await QueryService.GetSegmentsAsync(CalculationId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load calculation: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ComputeAsync()
+    {
+        _isBusy = true;
+        StateHasChanged();
+
+        try
+        {
+            if (_calculation!.Status == LaytimeStatus.Computed)
+                await CalculationService.RecomputeAsync(CalculationId);
+            else
+                await CalculationService.ComputeAsync(CalculationId);
+
+            Snackbar.Add("Laytime computed.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Compute failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task FinalizeAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Finalize Calculation",
+            "Once finalized, this calculation can no longer be edited or recomputed. Continue?",
+            yesText: "Finalize",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        _isBusy = true;
+        StateHasChanged();
+
+        try
+        {
+            await CalculationService.FinalizeAsync(CalculationId);
+            Snackbar.Add("Calculation finalized.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Finalize failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenAddSofEventAsync()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<SofEventDialog>("Add SOF Event", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var request = (AddSofEventRequest)result.Data!;
+
+        try
+        {
+            await SofEventService.AddSofEventAsync(CalculationId, request);
+            Snackbar.Add("Event added.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to add event: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteSofEventAsync(SofEventResponse ev)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Event",
+            $"Remove the {ev.EventType} event at {ev.EventTime:yyyy-MM-dd HH:mm}?",
+            yesText: "Remove",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await SofEventService.RemoveSofEventAsync(CalculationId, ev.Id);
+            Snackbar.Add("Event removed.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to remove event: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenAddExceptionAsync()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<LaytimeExceptionDialog>("Add Exception", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        var request = (AddLaytimeExceptionRequest)result.Data!;
+
+        try
+        {
+            await ExceptionService.AddExceptionAsync(CalculationId, request);
+            Snackbar.Add("Exception added.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to add exception: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteExceptionAsync(LaytimeExceptionResponse ex)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Exception",
+            $"Remove this {ex.ExceptionType} exception?",
+            yesText: "Remove",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await ExceptionService.RemoveExceptionAsync(CalculationId, ex.Id);
+            Snackbar.Add("Exception removed.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception exc)
+        {
+            Snackbar.Add($"Failed to remove exception: {exc.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DownloadReportAsync((LaytimeReportType ReportType, ReportFormat Format) args)
+    {
+        var url = args.ReportType switch
+        {
+            LaytimeReportType.Summary => ReportService.GenerateSummaryReportAsync(CalculationId, args.Format),
+            LaytimeReportType.Detailed => ReportService.GenerateDetailedReportAsync(CalculationId, args.Format),
+            LaytimeReportType.Delays => ReportService.GenerateDelayReportAsync(CalculationId, args.Format),
+            LaytimeReportType.TimeSheetExcel => ReportService.GenerateTimeSheetExcelAsync(CalculationId),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        await JsRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+}

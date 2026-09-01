@@ -1,0 +1,163 @@
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+@* Shown once CharterTerms already exist — tabbed editor, one Save per section. *@
+
+<MudPaper Outlined="true" Class="pa-0">
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+
+        <MudTabPanel Text="Loading" Icon="@Icons.Material.Filled.ArrowDownward" Disabled="@(!HasLoading && !AllowAddLoading)">
+            @if (HasLoading)
+            {
+                <MudStack Spacing="3">
+                    <CargoOperationTermsForm OperationType="OperationType.Loading" @bind-Values="LoadingValues" />
+                    <MudStack Row="true" Justify="Justify.FlexEnd">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@IsSavingLoading"
+                                   OnClick="@(() => OnSaveLoading.InvokeAsync(LoadingValues))">
+                            @(IsSavingLoading ? "Saving..." : "Save Loading Terms")
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            }
+            else
+            {
+                <MudText Color="Color.Secondary">This contract has no Loading terms configured.</MudText>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Discharging" Icon="@Icons.Material.Filled.ArrowUpward">
+            @if (HasDischarging)
+            {
+                <MudStack Spacing="3">
+                    <CargoOperationTermsForm OperationType="OperationType.Discharging" @bind-Values="DischargingValues" />
+                    <MudStack Row="true" Justify="Justify.FlexEnd">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@IsSavingDischarging"
+                                   OnClick="@(() => OnSaveDischarging.InvokeAsync(DischargingValues))">
+                            @(IsSavingDischarging ? "Saving..." : "Save Discharging Terms")
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            }
+            else
+            {
+                <MudText Color="Color.Secondary">This contract has no Discharging terms configured.</MudText>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Demurrage / Despatch" Icon="@Icons.Material.Filled.AttachMoney">
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Demurrage</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal" Value="DemurrageRate" ValueChanged="@(v => DemurrageRate = v)" Label="Rate (USD/day)" Min="0.01m" />
+                    </MudItem>
+                    <MudItem xs="6" Class="d-flex align-center">
+                        <MudCheckBox T="bool" Value="OnceOnDemurrage" ValueChanged="@(v => OnceOnDemurrage = v)" Label="Once on Demurrage, Always on Demurrage" Color="Color.Primary" />
+                    </MudItem>
+                </MudGrid>
+                <MudStack Row="true" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@IsSavingDemurrage"
+                               OnClick="@(() => OnSaveDemurrage.InvokeAsync(new DemurrageTermsRequest(DemurrageRate, OnceOnDemurrage)))">
+                        @(IsSavingDemurrage ? "Saving..." : "Save Demurrage")
+                    </MudButton>
+                </MudStack>
+
+                <MudDivider Class="my-2" />
+
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Despatch</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal" Value="DespatchRate" ValueChanged="@(v => DespatchRate = v)" Label="Rate (USD/day)" Min="0.01m" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudSelect T="DespatchBasis" Value="DespatchBasisValue" ValueChanged="@(v => DespatchBasisValue = v)" Label="Basis">
+                            @foreach (var value in Enum.GetValues<DespatchBasis>())
+                            {
+                                <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+                <MudStack Row="true" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@IsSavingDespatch"
+                               OnClick="@(() => OnSaveDespatch.InvokeAsync(new DespatchTermsRequest(DespatchRate, DespatchBasisValue)))">
+                        @(IsSavingDespatch ? "Saving..." : "Save Despatch")
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Rule Options" Icon="@Icons.Material.Filled.Rule">
+            <MudStack Spacing="3">
+                <LaytimeRuleOptionsForm @bind-Values="RuleOptionsValues" />
+                <MudStack Row="true" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@IsSavingRuleOptions"
+                               OnClick="@(() => OnSaveRuleOptions.InvokeAsync(RuleOptionsValues))">
+                        @(IsSavingRuleOptions ? "Saving..." : "Save Rule Options")
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudTabPanel>
+
+    </MudTabs>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public CharterTermsResponse Terms { get; set; } = default!;
+
+    [Parameter]
+    public bool AllowAddLoading { get; set; }
+
+    [Parameter, EditorRequired]
+    public bool IsSavingLoading { get; set; }
+    [Parameter, EditorRequired]
+    public bool IsSavingDischarging { get; set; }
+    [Parameter, EditorRequired]
+    public bool IsSavingDemurrage { get; set; }
+    [Parameter, EditorRequired]
+    public bool IsSavingDespatch { get; set; }
+    [Parameter, EditorRequired]
+    public bool IsSavingRuleOptions { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<CargoOperationFormValues> OnSaveLoading { get; set; }
+    [Parameter, EditorRequired]
+    public EventCallback<CargoOperationFormValues> OnSaveDischarging { get; set; }
+    [Parameter, EditorRequired]
+    public EventCallback<DemurrageTermsRequest> OnSaveDemurrage { get; set; }
+    [Parameter, EditorRequired]
+    public EventCallback<DespatchTermsRequest> OnSaveDespatch { get; set; }
+    [Parameter, EditorRequired]
+    public EventCallback<LaytimeRuleOptionsFormValues> OnSaveRuleOptions { get; set; }
+
+    private bool HasLoading;
+    private bool HasDischarging;
+    private CargoOperationFormValues LoadingValues = new();
+    private CargoOperationFormValues DischargingValues = new();
+    private decimal DemurrageRate;
+    private bool OnceOnDemurrage;
+    private decimal DespatchRate;
+    private DespatchBasis DespatchBasisValue;
+    private LaytimeRuleOptionsFormValues RuleOptionsValues = new();
+
+    protected override void OnParametersSet()
+    {
+        HasLoading = Terms.Loading is not null;
+        HasDischarging = Terms.Discharging is not null;
+
+        if (Terms.Loading is not null) LoadingValues = CargoOperationFormValues.FromResponse(Terms.Loading);
+        if (Terms.Discharging is not null) DischargingValues = CargoOperationFormValues.FromResponse(Terms.Discharging);
+
+        DemurrageRate = Terms.Demurrage.RateUsdPerDay;
+        OnceOnDemurrage = Terms.Demurrage.OnceOnDemurrageAlwaysOnDemurrage;
+
+        DespatchRate = Terms.Despatch?.RateUsdPerDay ?? 0;
+        DespatchBasisValue = Terms.Despatch?.Basis ?? default;
+
+        RuleOptionsValues = LaytimeRuleOptionsFormValues.FromResponse(Terms.RuleOptions);
+    }
+}

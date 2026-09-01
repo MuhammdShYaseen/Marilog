@@ -1,0 +1,61 @@
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">New Laytime Calculation</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudNumericField T="int" @bind-Value="_contractId" Label="Contract ID" Min="1" />
+            <MudNumericField T="int" @bind-Value="_portId" Label="Port ID" Min="1" />
+            <MudSelect T="OperationType" @bind-Value="_operationType" Label="Operation Type">
+                @foreach (var value in Enum.GetValues<OperationType>())
+                {
+                    <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudNumericField T="decimal" @bind-Value="_cargoQuantityMt" Label="Cargo Quantity (MT)" Min="0.01m" />
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!IsValid)" OnClick="Submit">
+            Create
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public int VoyageId { get; set; }
+
+    private int _contractId;
+    private int _portId;
+    private OperationType _operationType;
+    private decimal _cargoQuantityMt = 1000;
+
+    private bool IsValid => _contractId > 0 && _portId > 0 && _cargoQuantityMt > 0;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (!IsValid) return;
+
+        var request = new CreateLaytimeCalculationRequest(VoyageId, _contractId, _portId, _operationType, _cargoQuantityMt);
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+}

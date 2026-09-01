@@ -1,0 +1,30 @@
+@page "/laytime/calculations"
+@using MudBlazor
+@inject NavigationManager Nav
+
+<MudStack AlignItems="AlignItems.Center" Class="py-12" Spacing="4">
+
+    <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" Style="font-size: 4rem;" />
+    <MudText Typo="Typo.h4">Laytime Calculator</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="text-center" Style="max-width: 480px">
+        Enter a Voyage ID to view or create Laytime calculations for that voyage.
+    </MudText>
+
+    <MudStack Row="true" Spacing="2" Style="max-width: 320px; width: 100%">
+        <MudNumericField T="int?" @bind-Value="_voyageId" Label="Voyage ID" Min="1" Immediate="true" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_voyageId is null or <= 0)" OnClick="GoToVoyage" Class="mt-1">
+            Go
+        </MudButton>
+    </MudStack>
+
+</MudStack>
+
+@code {
+    private int? _voyageId;
+
+    private void GoToVoyage()
+    {
+        if (_voyageId is > 0)
+            Nav.NavigateTo($"/operations/laytime/voyage/{_voyageId}");
+    }
+}

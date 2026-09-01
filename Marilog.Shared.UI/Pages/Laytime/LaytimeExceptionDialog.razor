@@ -1,0 +1,75 @@
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.RemoveCircleOutline" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Add Exception</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudGrid Spacing="2">
+                <MudItem xs="6"><MudDatePicker @bind-Date="_fromDate" Label="From Date" /></MudItem>
+                <MudItem xs="6"><MudTimePicker @bind-Time="_fromTime" Label="From Time" /></MudItem>
+                <MudItem xs="6"><MudDatePicker @bind-Date="_toDate" Label="To Date" /></MudItem>
+                <MudItem xs="6"><MudTimePicker @bind-Time="_toTime" Label="To Time" /></MudItem>
+            </MudGrid>
+
+            <MudSelect T="LaytimeExceptionType" @bind-Value="_exceptionType" Label="Exception Type">
+                @foreach (var value in Enum.GetValues<LaytimeExceptionType>())
+                {
+                    <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSlider T="decimal" @bind-Value="_factor" Min="0" Max="1" Step="0.05m">
+                Counted Factor: @_factor.ToString("P0")
+            </MudSlider>
+
+            <MudTextField T="string" @bind-Value="_notes" Label="Notes (optional)" Lines="2" />
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!IsValid)" OnClick="Submit">Add Exception</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private DateTime? _fromDate = DateTime.Today;
+    private TimeSpan? _fromTime = DateTime.Now.TimeOfDay;
+    private DateTime? _toDate = DateTime.Today;
+    private TimeSpan? _toTime = DateTime.Now.TimeOfDay;
+    private LaytimeExceptionType _exceptionType;
+    private decimal _factor = 0m;
+    private string? _notes;
+
+    private bool IsValid =>
+        _fromDate is not null && _fromTime is not null &&
+        _toDate is not null && _toTime is not null &&
+        (_fromDate.Value.Date + _fromTime.Value) < (_toDate.Value.Date + _toTime.Value);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (!IsValid) return;
+
+        var from = _fromDate!.Value.Date + _fromTime!.Value;
+        var to = _toDate!.Value.Date + _toTime!.Value;
+
+        var request = new AddLaytimeExceptionRequest(from, to, _exceptionType, _factor, _notes);
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+}

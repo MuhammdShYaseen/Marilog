@@ -1,0 +1,79 @@
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Laytime
+
+<MudDialog>
+
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.EventNote" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Add SOF Event</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudDatePicker @bind-Date="_eventDate" Label="Date" />
+            <MudTimePicker @bind-Time="_eventTimeOfDay" Label="Time" />
+
+            <MudSelect T="SofEventType" @bind-Value="_eventType" Label="Event Type">
+                @foreach (var group in LaytimeEnumLabels.SofEventGroups)
+                {
+                    <MudListSubheader>@group.GroupLabel</MudListSubheader>
+                    @foreach (var value in group.Events)
+                    {
+                        <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+
+            <MudSelect T="LaytimeImpactType" @bind-Value="_impactType" Label="Impact on Laytime">
+                @foreach (var value in Enum.GetValues<LaytimeImpactType>())
+                {
+                    <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (_impactType == LaytimeImpactType.ProRata)
+            {
+                <MudSlider T="decimal" @bind-Value="_factor" Min="0" Max="1" Step="0.05m">Factor: @_factor.ToString("P0")</MudSlider>
+            }
+
+            <MudTextField T="string" @bind-Value="_description" Label="Description (optional)" Lines="2" />
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!IsValid)" OnClick="Submit">Add Event</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private DateTime? _eventDate = DateTime.Today;
+    private TimeSpan? _eventTimeOfDay = DateTime.Now.TimeOfDay;
+    private SofEventType _eventType;
+    private LaytimeImpactType _impactType;
+    private decimal _factor = 1.0m;
+    private string? _description;
+
+    private bool IsValid => _eventDate is not null && _eventTimeOfDay is not null;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (!IsValid) return;
+
+        var eventTime = _eventDate!.Value.Date + _eventTimeOfDay!.Value;
+        var factor = _impactType == LaytimeImpactType.ProRata ? _factor : 1.0m;
+
+        var request = new AddSofEventRequest(eventTime, _eventType, _impactType, factor, _description);
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+}

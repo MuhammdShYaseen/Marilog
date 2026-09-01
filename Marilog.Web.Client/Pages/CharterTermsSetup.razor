@@ -1,0 +1,163 @@
+@page "/operations/laytime/charter-terms/{ContractId:int}"
+@using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
+@using Marilog.Shared.UI.Pages.Laytime
+@using MudBlazor
+@inject ICharterTermsService CharterTermsService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="4">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.h5">Charter Terms — Contract #@ContractId</MudText>
+    </MudStack>
+
+    @if (_isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </MudStack>
+    }
+    else if (_terms is null)
+    {
+        <SharedCharterTermsSetupForm ContractId="ContractId" IsSaving="_isSaving" OnSubmit="InitializeAsync" />
+    }
+    else
+    {
+        <SharedCharterTermsEditPage Terms="_terms"
+                                     IsSavingLoading="_isSaving"
+                                     IsSavingDischarging="_isSaving"
+                                     IsSavingDemurrage="_isSaving"
+                                     IsSavingDespatch="_isSaving"
+                                     IsSavingRuleOptions="_isSaving"
+                                     OnSaveLoading="SaveLoadingAsync"
+                                     OnSaveDischarging="SaveDischargingAsync"
+                                     OnSaveDemurrage="SaveDemurrageAsync"
+                                     OnSaveDespatch="SaveDespatchAsync"
+                                     OnSaveRuleOptions="SaveRuleOptionsAsync" />
+    }
+
+</MudStack>
+
+@code {
+    [Parameter]
+    public int ContractId { get; set; }
+
+    private CharterTermsResponse? _terms;
+    private bool _isLoading = true;
+    private bool _isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            _terms = await CharterTermsService.GetCharterTermsAsync(ContractId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load charter terms: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task InitializeAsync(InitializeCharterTermsRequest request)
+    {
+        _isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            await CharterTermsService.InitializeCharterTermsAsync(request);
+            Snackbar.Add("Charter Terms initialized.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initialize: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveLoadingAsync(CargoOperationFormValues values)
+    {
+        _isSaving = true; StateHasChanged();
+        try
+        {
+            await CharterTermsService.UpdateLoadingTermsAsync(ContractId, values.ToRequest(Marilog.Kernel.Enums.OperationType.Loading));
+            Snackbar.Add("Loading terms saved.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _isSaving = false; StateHasChanged(); }
+    }
+
+    private async Task SaveDischargingAsync(CargoOperationFormValues values)
+    {
+        _isSaving = true; StateHasChanged();
+        try
+        {
+            await CharterTermsService.UpdateDischargingTermsAsync(ContractId, values.ToRequest(Marilog.Kernel.Enums.OperationType.Discharging));
+            Snackbar.Add("Discharging terms saved.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _isSaving = false; StateHasChanged(); }
+    }
+
+    private async Task SaveDemurrageAsync(DemurrageTermsRequest request)
+    {
+        _isSaving = true; StateHasChanged();
+        try
+        {
+            await CharterTermsService.UpdateDemurrageTermsAsync(ContractId, request);
+            Snackbar.Add("Demurrage terms saved.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _isSaving = false; StateHasChanged(); }
+    }
+
+    private async Task SaveDespatchAsync(DespatchTermsRequest request)
+    {
+        _isSaving = true; StateHasChanged();
+        try
+        {
+            await CharterTermsService.UpdateDespatchTermsAsync(ContractId, request);
+            Snackbar.Add("Despatch terms saved.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _isSaving = false; StateHasChanged(); }
+    }
+
+    private async Task SaveRuleOptionsAsync(LaytimeRuleOptionsFormValues values)
+    {
+        _isSaving = true; StateHasChanged();
+        try
+        {
+            await CharterTermsService.UpdateRuleOptionsAsync(ContractId, values.ToRequest());
+            Snackbar.Add("Rule options saved.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _isSaving = false; StateHasChanged(); }
+    }
+}
