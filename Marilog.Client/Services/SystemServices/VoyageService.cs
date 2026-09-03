@@ -59,7 +59,11 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/active", ct);
             return response?.Data ?? [];
         }
-
+        public async Task<IReadOnlyList<VoyageLookupResponse>> GetAllLookupAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageLookupResponse>>>($"{Base}/lookup", ct);
+            return response?.Data ?? [];
+        }
         public Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions options, CancellationToken ct = default)
             => throw new NotImplementedException("Endpoint in reports endpoint");
 
@@ -195,5 +199,7 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.DeleteAsync($"{Base}/{voyageId}/stops/{stopOrder}", ct);
             http.EnsureSuccessStatusCode();
         }
+
+       
     }
 }

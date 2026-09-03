@@ -221,5 +221,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.RemoveStopAsync(voyageId, stopOrder, ct);
             return NoContent();
         }
+
+        [HttpGet("lookup")]
+        public async Task<ActionResult<IReadOnlyList<VoyageLookupResponse>>> GetLookup(CancellationToken ct)
+        {
+            var result = await _service.GetAllLookupAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<VoyageLookupResponse>>.Ok(result));
+        }
     }
 }

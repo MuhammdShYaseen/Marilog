@@ -1,18 +1,32 @@
 @page "/laytime/calculations"
+
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
 @using MudBlazor
 @inject NavigationManager Nav
+@inject IVoyageService VoyageApiClient
 
 <MudStack AlignItems="AlignItems.Center" Class="py-12" Spacing="4">
 
     <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" Style="font-size: 4rem;" />
     <MudText Typo="Typo.h4">Laytime Calculator</MudText>
     <MudText Typo="Typo.body1" Color="Color.Secondary" Class="text-center" Style="max-width: 480px">
-        Enter a Voyage ID to view or create Laytime calculations for that voyage.
+        Search for a voyage to view or create Laytime calculations for that voyage.
     </MudText>
 
-    <MudStack Row="true" Spacing="2" Style="max-width: 320px; width: 100%">
-        <MudNumericField T="int?" @bind-Value="_voyageId" Label="Voyage ID" Min="1" Immediate="true" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_voyageId is null or <= 0)" OnClick="GoToVoyage" Class="mt-1">
+    <MudStack Row="true" Spacing="2" Style="max-width: 480px; width: 100%">
+        <MudAutocomplete T="VoyageLookupResponse"
+                         Label="Voyage"
+                         Value="_selectedVoyage"
+                         ValueChanged="OnVoyageSelected"
+                         SearchFunc="SearchVoyages"
+                         ToStringFunc="@(v => v?.DisplayText)"
+                         Clearable="true"
+                         ResetValueOnEmptyText="true"
+                         CoerceText="true"
+                         Immediate="true"
+                         Class="flex-grow-1" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_selectedVoyage is null)" OnClick="GoToVoyage" Class="mt-1">
             Go
         </MudButton>
     </MudStack>
@@ -20,11 +34,32 @@
 </MudStack>
 
 @code {
-    private int? _voyageId;
+    private VoyageLookupResponse? _selectedVoyage;
+    private IReadOnlyList<VoyageLookupResponse> _voyages = new List<VoyageLookupResponse>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _voyages = await VoyageApiClient.GetAllLookupAsync();
+    }
+
+    private Task<IEnumerable<VoyageLookupResponse>> SearchVoyages(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_voyages.AsEnumerable());
+
+        return Task.FromResult(_voyages.Where(v =>
+            v?.DisplayText != null &&
+            v.DisplayText.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void OnVoyageSelected(VoyageLookupResponse? voyage)
+    {
+        _selectedVoyage = voyage;
+    }
 
     private void GoToVoyage()
     {
-        if (_voyageId is > 0)
-            Nav.NavigateTo($"/operations/laytime/voyage/{_voyageId}");
+        if (_selectedVoyage is not null)
+            Nav.NavigateTo($"/operations/laytime/voyage/{_selectedVoyage.Id}");
     }
 }

@@ -45,7 +45,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(ToResponseWithStops)
                 .FirstOrDefaultAsync(ct);
         }
-
+        // ==== الميثود ====
+        public async Task<IReadOnlyList<VoyageLookupResponse>> GetAllLookupAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .Where(v => v.IsActive == true)
+                .AsNoTracking()
+                .Select(ToLookupResponse)
+                .ToListAsync(ct);
+        }
         public async Task<IReadOnlyList<VoyageResponse>> GetByVesselAsync(int vesselId,
             CancellationToken ct = default)
         {
@@ -595,6 +603,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 PortName = s.Port.PortName,
                 PurposeOfCall = s.PurposeOfCall
             }).ToList(),
+        };
+
+        private static readonly Expression<Func<Voyage, VoyageLookupResponse>> ToLookupResponse = x => new VoyageLookupResponse
+        {
+            Id = x.Id,
+            DisplayText = x.VoyageNumber
+                    + " - " + x.VoyageMonth.Year
+                    + " (" + (x.DeparturePort != null ? x.DeparturePort.PortName : "?")
+                    + " → " + (x.ArrivalPort != null ? x.ArrivalPort.PortName : "?") + ")"
         };
     }
 }
