@@ -28,22 +28,30 @@
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-else if (_detail is not null)
-{
-    <SharedDocumentDetailPage Document="_detail"
-                              OnBackClicked="CloseDetail"
-                              OnEditClicked="OpenEditDialog"
-                              OnDeleteClicked="ConfirmDelete"
-                              OnAddPaymentClicked="OpenAddPaymentDialog"
-                              OnAddItemClicked="OpenAddItemDialog"
-                              OnEditItemClicked="OpenEditItemDialog"
-                              OnRemoveItemClicked="ConfirmRemoveItem"
-                              OnRemovePaymentClicked="ConfirmRemovePayment"
-                              OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))" 
-                              OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"/>
-}
-else
-{
+
+    <MudDrawer @bind-Open="_isDetailDrawerOpen"
+               Anchor="Anchor.End"
+               Variant="DrawerVariant.Temporary"
+               Elevation="8"
+               Width="70%">
+
+        @if (_detail is not null)
+        {
+            <SharedDocumentDetailPage Document="_detail"
+                                      OnBackClicked="CloseDetail"
+                                      OnEditClicked="OpenEditDialog"
+                                      OnDeleteClicked="ConfirmDelete"
+                                      OnAddPaymentClicked="OpenAddPaymentDialog"
+                                      OnAddItemClicked="OpenAddItemDialog"
+                                      OnEditItemClicked="OpenEditItemDialog"
+                                      OnRemoveItemClicked="ConfirmRemoveItem"
+                                      OnRemovePaymentClicked="ConfirmRemovePayment"
+                                      OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))"
+                                      OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+        }
+
+    </MudDrawer>
+
     <SharedDocumentsPage Unpaid="_unpaid"
                          ByVessel="_byVessel"
                          BySupplier="_bySupplier"
@@ -56,16 +64,15 @@ else
                          OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
                          OnDocumentSelected="LoadDetail"
                          OnVesselSelected="LoadByVessel"
-                         OnSupplierSelected="LoadBySupplier" 
-                         OnTypeSelected ="LoadByType"
+                         OnSupplierSelected="LoadBySupplier"
+                         OnTypeSelected="LoadByType"
                          DocTypes="_docTypes"
                          OnDocumentReportRequested="HandleDocumentReportRequestedAsync"
                          OnPaymentReportRequested="HandlePaymentReportRequestedAsync"
                          OnExportPdfRequested="HandleExportPdfAsync"
                          OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
-                         OnSearch = "HandelSearchAsync"
+                         OnSearch="HandelSearchAsync"
                          @ref="_documentsPage" />
-}
 
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -85,9 +92,13 @@ else
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
     private int? _selectedTypeId;
-
+    private bool _isDetailDrawerOpen;
     protected override async Task OnInitializedAsync() => await LoadAsync();
-
+    protected override void OnParametersSet()
+    {
+        var shouldLock = _detail is not null;
+        _ = JS.InvokeVoidAsync("document.body.classList.toggle", "drawer-scroll-lock", shouldLock);
+    }
     private async Task LoadAsync()
     {
         _loading = true;
@@ -161,9 +172,15 @@ else
     private async Task LoadDetail(int id)
     {
         _detail = await DocumentService.GetFullAsync(id);
+        _isDetailDrawerOpen = true;
     }
 
-    private void CloseDetail() => _detail = null;
+    private void CloseDetail()
+    {
+        _detail = null;
+        _isDetailDrawerOpen = false;
+    }
+    
 
     private async Task OpenAddDialog()
     {
@@ -386,6 +403,16 @@ else
     {
         return await DocumentService.SearchAsync(searchString, isTreeView);
     }
-   
+    private Task OnDetailDrawerOpenChanged(bool open)
+    {
+        if (!open)
+            CloseDetail();
 
+        return Task.CompletedTask;
+    }
 }
+<style>
+    body.drawer-scroll-lock {
+        overflow: hidden;
+    }
+</style>
