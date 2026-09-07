@@ -16,6 +16,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.PaymentMethod).IsRequired();
             // ── Matching query filter to avoid global filter warning ─────────
             builder.HasQueryFilter(x => !x.SwiftTransfer!.IsDeleted);
+            builder.HasIndex(x => x.DocumentId)
+                   .IncludeProperties(x => x.PaidAmount);
 
             builder.HasIndex(x => x.DocumentId);
             builder.HasIndex(x => x.SwiftTransferId);

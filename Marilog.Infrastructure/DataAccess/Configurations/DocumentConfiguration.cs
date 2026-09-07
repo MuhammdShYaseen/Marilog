@@ -87,6 +87,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasIndex(x => x.VesselId);
             builder.HasIndex(x => x.ParentDocumentId);
             builder.HasIndex(x => x.SearchVector);
+            builder.HasIndex(x => new { x.IsActive, x.DocDate })
+                   .IncludeProperties(x => x.TotalAmount);
         }
     }
 }
