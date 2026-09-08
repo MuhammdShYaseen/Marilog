@@ -625,6 +625,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 PaidAmount = payment.PaidAmount,
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
+                Discreption = payment.Discreption
             };
         }
 
@@ -685,6 +686,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 PaidAmount = payment.PaidAmount,
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
+                Discreption = payment.Discreption
             };
         }
 
@@ -1445,6 +1447,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     PaidAmount = p.PaidAmount,
                     PaymentMethod = p.PaymentMethod,
                     PaymentDate = p.PaymentDate,
+                    Discreption = p.Discreption,
                     SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
                     {
                         AllocatedAmount = p.SwiftTransfer!.AllocatedAmount,
@@ -1513,6 +1516,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     PaymentMethod = p.PaymentMethod,
                     SwiftTransferId = p.SwiftTransferId,
                     DocumentId = p.DocumentId,
+                    Discreption = p.Discreption,
                     PaidAmount = p.PaidAmount,
                     PaymentDate = p.PaymentDate,
                     SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse

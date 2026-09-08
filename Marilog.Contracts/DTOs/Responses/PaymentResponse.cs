@@ -12,5 +12,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public DateOnly PaymentDate { get;  set; }
         public PaymentMethod PaymentMethod { get; set; }
         public bool IsActive {  get; set; }
+        public string? Discreption { get; set; }
     }
 }

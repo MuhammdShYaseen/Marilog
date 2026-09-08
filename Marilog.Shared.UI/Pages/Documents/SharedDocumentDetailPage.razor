@@ -297,6 +297,7 @@ else
                     <HeaderContent>
                         <MudTh>SWIFT Ref</MudTh>
                         <MudTh>Payment Method</MudTh>
+                        <MudTh>Discreption</MudTh>
                         <MudTh>Date</MudTh>
                         <MudTh Style="text-align:right">Amount</MudTh>
                         <MudTh Style="width:96px"></MudTh>
@@ -304,6 +305,7 @@ else
                     <RowTemplate>
                         <MudTd>@(context.SwiftTransfer?.SwiftReference ?? "—")</MudTd>
                         <MudTd>@context.PaymentMethod.ToString()</MudTd>
+                        <MudTd>@(context.Discreption ?? "—")</MudTd>
                         <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
                         <MudTd Style="text-align:right; font-weight:600">@context.PaidAmount.ToString("N2")</MudTd>
                         <MudTd>

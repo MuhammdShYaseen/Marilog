@@ -56,7 +56,17 @@
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense" />
             </MudItem>
+
+            
         </MudGrid>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_discreption"
+                          Label="Description"
+                          Required="false"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          FullWidth="true" />
+        </MudItem>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -78,6 +88,7 @@
     private decimal _amount;
     private DateTime? _paymentDate = DateTime.Today;
     private PaymentMethod _method;
+    private string? _discreption;
     protected override void OnInitialized()
     {
         if (ExistingPayment is not null)
@@ -86,6 +97,7 @@
             _amount = ExistingPayment.PaidAmount;
             _paymentDate = ExistingPayment.PaymentDate.ToDateTime(TimeOnly.MinValue);
             _method = ExistingPayment.PaymentMethod;
+            _discreption = ExistingPayment.Discreption;
         }
     }
 
@@ -102,6 +114,7 @@
         _swiftTransferId,
         _amount,
         DateOnly.FromDateTime(_paymentDate!.Value),
-        _method
+        _method,
+        _discreption
     )));
 }
