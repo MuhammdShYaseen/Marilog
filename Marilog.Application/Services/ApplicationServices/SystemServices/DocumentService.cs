@@ -611,7 +611,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         $"Paid amount ({create.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({swift.UnallocatedAmount}).");
             }
 
-            var payment = document.AddPayment(create.SwiftTransferId, create.Method, create.PaidAmount, create.PaymentDate);
+            var payment = document.AddPayment(create.SwiftTransferId, create.Method, create.PaidAmount, create.PaymentDate, create.Discreption);
 
             _repo.Update(document);
 
@@ -668,7 +668,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         $"Paid amount ({update.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({availableAmount}).");
             }
 
-            document.UpdatePayment(paymentId, update.Method, update.SwiftTransferId, update.PaidAmount, update.PaymentDate);
+            document.UpdatePayment(paymentId, update.Method, update.SwiftTransferId, update.PaidAmount, update.PaymentDate, update.Discreption);
 
             _repo.Update(document);
 

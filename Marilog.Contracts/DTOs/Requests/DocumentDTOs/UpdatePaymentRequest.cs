@@ -10,5 +10,6 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
         public decimal PaidAmount { get; set; }
         public DateOnly PaymentDate { get; set; }
         public PaymentMethod Method { get; set; }
+        public string? Discreption { get; set; }
     }
 }

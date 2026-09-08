@@ -195,7 +195,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         // ── Payments ─────────────────────────────────────────────────────────────
-        public Payment AddPayment(int? swiftTransferId, PaymentMethod method, decimal paidAmount, DateOnly paymentDate)
+        public Payment AddPayment(int? swiftTransferId, PaymentMethod method, decimal paidAmount, DateOnly paymentDate, string? discreption)
         {
             if (paidAmount <= 0)
                 throw new ArgumentException("PaidAmount must be positive.");
@@ -205,7 +205,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (Side == FinancialSide.None)
                 throw new InvalidOperationException("Cann't pay for Document with Financial Side is NONE");
 
-            var payment = Payment.Create(Id, method, swiftTransferId, paidAmount, paymentDate);
+            var payment = Payment.Create(Id, method, swiftTransferId, paidAmount, paymentDate, discreption);
             _payments.Add(payment);
             Touch();
 
@@ -215,7 +215,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             return payment;
         }
 
-        public void UpdatePayment(int paymentId, PaymentMethod method, int? swiftTransferId, decimal paidAmount, DateOnly paymentDate)
+        public void UpdatePayment(int paymentId, PaymentMethod method, int? swiftTransferId, decimal paidAmount, DateOnly paymentDate, string? discreption)
         {
             var payment = _payments
                 .FirstOrDefault(x => x.Id == paymentId)
@@ -236,7 +236,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 swiftTransferId,
                 method,
                 paidAmount,
-                paymentDate);
+                paymentDate,
+                discreption);
 
             Touch();
 

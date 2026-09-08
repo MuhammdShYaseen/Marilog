@@ -10,12 +10,12 @@ namespace Marilog.Domain.Entities.SystemEntities
         public int? SwiftTransferId { get; private set; }
         public SwiftTransfer SwiftTransfer { get; private set; } = null!;
 
-
+        public string? Discreption { get; private set; }
 
         #if false
         public int? CreditBalanceId { get; private set; }
         public CreditBalance CreditBalance { get; private set; } = null!;
-        #endif
+#endif
 
 
         public decimal PaidAmount { get; private set; }
@@ -23,7 +23,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public PaymentMethod PaymentMethod { get; private set; }
         private Payment() { }
         internal static Payment Create(int documentId, PaymentMethod method, int? swiftTransferId,
-            decimal paidAmount, DateOnly paymentDate)
+            decimal paidAmount, DateOnly paymentDate, string? discreption)
         {
             if (paidAmount <= 0) throw new ArgumentException("PaidAmount must be positive.");
 
@@ -33,11 +33,12 @@ namespace Marilog.Domain.Entities.SystemEntities
                 SwiftTransferId = swiftTransferId,
                 PaidAmount = paidAmount,
                 PaymentDate = paymentDate,
-                PaymentMethod = method
+                PaymentMethod = method,
+                Discreption = discreption
             };
         }
 
-        internal void Update(int? swiftTransferId, PaymentMethod method, decimal paidAmount, DateOnly paymentDate)
+        internal void Update(int? swiftTransferId, PaymentMethod method, decimal paidAmount, DateOnly paymentDate, string? discreption)
         {
             
 
@@ -48,6 +49,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             PaidAmount = paidAmount;
             PaymentDate = paymentDate;
             PaymentMethod = method;
+            Discreption = discreption;
         }
 
 
