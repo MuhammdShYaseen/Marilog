@@ -254,7 +254,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var expiryDate = today.AddDays(30);
+            var expiryDate = today.AddDays(60);
 
             return await _repo
                 .Query()
