@@ -89,6 +89,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var docs = await _service.GetByVesselAsync(vesselId,treeView, ct);
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
+
+        [HttpGet("last-added/{days:int}")]
+        public async Task<IActionResult> GetLastAdded( int days, [FromQuery] bool treeView = false, CancellationToken ct = default)
+        {
+            var result = await _service.GetLastAddedAsync(days, treeView, ct);
+            return result is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(result));
+        }
         [HttpGet("by-voyage/{voyageId:int}")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetByVoyage(int voyageId, CancellationToken ct, [FromQuery] bool treeView = false)
         {

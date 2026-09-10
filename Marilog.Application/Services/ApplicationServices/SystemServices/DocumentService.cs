@@ -177,6 +177,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return BuildTree(result, parentId: null, depth: 0);
         }
 
+        public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(int days, bool treeView = false,
+            CancellationToken ct = default)
+        {
+            var result = await _repo.Query().AsNoTracking()
+                          .Where(x => x.CreatedAt >= DateTime.Today.AddDays(-days) && x.IsActive)
+                          .OrderByDescending(x => x.DocDate)
+                          .Select(ToResponse())
+                          .ToListAsync(ct);
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView == false)
+                return result;
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result, parentId: null, depth: 0);
+        }
+
         public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(int voyageId, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()

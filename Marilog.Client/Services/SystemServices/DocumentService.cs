@@ -72,6 +72,11 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-vessel/{vesselId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
+        public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(int days, bool treeView = false, CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/last-added/{days}?treeView={treeView}", ct);
+            return response?.Data ?? [];
+        }
         public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(int voyageId, bool treeView = false, CancellationToken ct = default)
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-voyage/{voyageId}?treeView={treeView}", ct);
