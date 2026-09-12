@@ -29,7 +29,53 @@
                            OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
         </MudTabPanel>
 
-        @* ── Search ────────────────────────────────────────────── *@
+        @* ── Last Added ────────────────────────────────────────────── *@
+        <MudTabPanel Text="Last Added">
+
+            <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2" Class="align-center">
+                    <MudItem xs="12" sm="6" md="7">
+                        <MudNumericField T="int"
+                                         @bind-Value="_lastAddedDays"
+                                         Label="Days"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="1"
+                                         Max="365"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Filled.CalendarToday" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3" md="3" Class="d-flex align-center">
+                        <MudSwitch T="bool"
+                                   @bind-Value="_isTreeView"
+                                   Color="Color.Primary"
+                                   Label="Show as Tree View" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3" md="2" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   FullWidth="true"
+                                   Disabled="_loadingLastAdded"
+                                   OnClick="RunGetLastAddAsync">
+                            Refresh
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            @if (_loadingLastAdded)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+            }
+
+            <DocumentTable Items="_lastAddResult"
+                           OnRowClick="OnDocumentClick"
+                           OnEditClicked="OnEditClicked"
+                           OnDeleteClicked="OnDeleteClicked"
+                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+
+        </MudTabPanel>
         @* ── Search ────────────────────────────────────────────── *@
         <MudTabPanel Text="Search">
 
@@ -947,6 +993,8 @@
     [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdfRequested { get; set; }
     [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnDownloadPaymentPdf { get; set; }
     [Parameter] public Func<string, bool, Task<IReadOnlyList<DocumentResponse>>>? OnSearch { get; set; }
+    [Parameter] public Func<int, bool, Task<IReadOnlyList<DocumentResponse>>>? OnLoadLastAdded { get; set; }
+
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
     private int? _selectedTypeId;
@@ -955,9 +1003,12 @@
     private bool _loadingDocumentReport;
     private bool _exportingPdf;
     private string? _searchText;
+    private int _lastAddedDays;
+    private bool _loadingLastAdded;
     private bool _isTreeView;
     private bool _searchingDocuments;
     private IReadOnlyList<DocumentResponse> _searchResults = [];
+    private IReadOnlyList<DocumentResponse> _lastAddResult = [];
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
 
@@ -997,7 +1048,7 @@
     {
         _loadingPaymentReport = true;
         StateHasChanged();
-         await OnPaymentReportRequested.InvokeAsync(_paymentFilter);
+        await OnPaymentReportRequested.InvokeAsync(_paymentFilter);
         _loadingPaymentReport = false;
     }
 
@@ -1094,6 +1145,24 @@
         finally
         {
             _searchingDocuments = false;
+        }
+    }
+
+    private async Task RunGetLastAddAsync()
+    {
+        if (OnLoadLastAdded is null)
+            return;
+
+        _loadingLastAdded = true;
+        StateHasChanged();
+
+        try
+        {
+            _lastAddResult = await OnLoadLastAdded.Invoke(_lastAddedDays < 0 ? 5 : _lastAddedDays, _isTreeView);
+        }
+        finally
+        {
+            _loadingLastAdded = false;
         }
     }
 

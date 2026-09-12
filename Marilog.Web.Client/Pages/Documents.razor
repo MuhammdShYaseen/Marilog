@@ -72,6 +72,7 @@
                          OnExportPdfRequested="HandleExportPdfAsync"
                          OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
                          OnSearch="HandelSearchAsync"
+                         OnLoadLastAdded="HandelGetLastAddAsync"
                          @ref="_documentsPage" />
 
 @code {
@@ -404,6 +405,11 @@
     private async Task<IReadOnlyList<DocumentResponse>> HandelSearchAsync(string searchString, bool isTreeView)
     {
         return await DocumentService.SearchAsync(searchString, isTreeView);
+    }
+
+    private async Task<IReadOnlyList<DocumentResponse>> HandelGetLastAddAsync(int addDays, bool isTreeView)
+    {
+        return await DocumentService.GetLastAddedAsync(addDays, isTreeView);
     }
     private Task OnDetailDrawerOpenChanged(bool open)
     {
