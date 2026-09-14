@@ -85,7 +85,7 @@
 <DateRangeFilter Value="Filter" Vessels="VesselLookups" DocTypes="DocTypes" Companies="Companies" OnFilterChanged="OnFilterChanged" />
 
 @* ── Charts ────────────────────────────────────────────────── *@
-<FinancialSummaryChart Data="FinancialData" />
+<FinancialSummaryChart Data="FinancialData" FilterSummary="@GetFilterSummary()" />
 <VoyageSummaryChart Data="VoyageData" />
 
 @* ── Vessels ───────────────────────────────────────────────── *@
@@ -277,4 +277,48 @@
     [Parameter] public IReadOnlyList<DocumentTypeResponse>? DocTypes { get; set; }
     [Parameter] public IReadOnlyList<CompanyResponse>? Companies { get; set; }
     [Parameter] public EventCallback<DocumentFilterOptions> OnFilterChanged { get; set; }
+
+    private string GetFilterSummary()
+    {
+        var parts = new List<string>();
+
+        if (Filter.FromDate.HasValue || Filter.ToDate.HasValue)
+        {
+            var from = Filter.FromDate?.ToString("dd MMM yyyy") ?? "…";
+            var to = Filter.ToDate?.ToString("dd MMM yyyy") ?? "…";
+            parts.Add($"{from} – {to}");
+        }
+
+        if (Filter.VesselId.HasValue)
+        {
+            var name = VesselLookups?.FirstOrDefault(v => v.Id == Filter.VesselId)?.Name;
+            if (name is not null) parts.Add($"Vessel: {name}");
+        }
+
+        if (Filter.DocTypeId.HasValue)
+        {
+            var name = DocTypes?.FirstOrDefault(t => t.Id == Filter.DocTypeId)?.Name;
+            if (name is not null) parts.Add($"Doc Type: {name}");
+        }
+
+        if (Filter.SupplierId.HasValue)
+        {
+            var name = Companies?.FirstOrDefault(c => c.Id == Filter.SupplierId)?.Name;
+            if (name is not null) parts.Add($"Supplier: {name}");
+        }
+
+        if (Filter.BuyerId.HasValue)
+        {
+            var name = Companies?.FirstOrDefault(c => c.Id == Filter.BuyerId)?.Name;
+            if (name is not null) parts.Add($"Buyer: {name}");
+        }
+
+        if (Filter.Side.HasValue)
+            parts.Add($"Type: {Filter.Side}");
+
+        if (Filter.UnpaidOnly)
+            parts.Add("Unpaid Only");
+
+        return parts.Count == 0 ? "No filters applied" : string.Join("  •  ", parts);
+    }
 }

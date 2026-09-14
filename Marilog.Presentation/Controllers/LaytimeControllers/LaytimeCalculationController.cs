@@ -30,6 +30,8 @@ namespace Marilog.Presentation.Controllers.LaytimeControllers
             CancellationToken cancellationToken)
         {
             var result = await _service.GetCalculationAsync(calculationId, cancellationToken);
+            if(result == null)
+                throw new ArgumentNullException(nameof(calculationId));
             return ApiResponse<LaytimeCalculationResponse>.Ok(result);
         }
 

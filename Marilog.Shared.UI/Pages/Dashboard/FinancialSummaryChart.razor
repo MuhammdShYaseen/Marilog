@@ -9,6 +9,10 @@
         {
             <MudChip T="string" Size="Size.Small" Color="Color.Default">@Data[0].CurrencyCode</MudChip>
         }
+        @if (!string.IsNullOrWhiteSpace(FilterSummary))
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Filter: @FilterSummary</MudText>
+        }
     </MudStack>
 
     @if (Data is null || Data.Count == 0)
@@ -27,6 +31,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<FinancialChartPointResponse>? Data { get; set; }
+    [Parameter] public string? FilterSummary { get; set; }
 
     private List<ChartSeries<decimal>> _series = new();
     private string[] _labels = Array.Empty<string>();
