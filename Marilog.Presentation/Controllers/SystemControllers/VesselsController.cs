@@ -41,6 +41,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<IReadOnlyList<VesselResponse>>.Ok(result));
         }
 
+        [HttpGet("lookup")]
+        public async Task<ActionResult<IReadOnlyList<VesselLookupResponse>>> GetAsLookUpAll(CancellationToken ct)
+        {
+            var result = await _service.GetAllAsLookUpAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<VesselLookupResponse>>.Ok(result));
+        }
+
         [HttpGet("active")]
         public async Task<ActionResult<IReadOnlyList<VesselResponse>>> GetActive(CancellationToken ct)
         {

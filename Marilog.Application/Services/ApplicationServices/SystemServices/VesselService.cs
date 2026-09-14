@@ -51,6 +51,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<VesselLookupResponse>> GetAllAsLookUpAsync(CancellationToken ct = default)
+        {
+            return await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.VesselName)
+                .Select(ToLookUpResponse)
+                .ToListAsync(ct);
+        }
+
         public async Task<IReadOnlyList<VesselResponse>> GetActiveAsync(CancellationToken ct = default)
         {
             return await _repo.Query()
@@ -254,7 +263,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var expiryDate = today.AddDays(60);
+            var expiryDate = today.AddDays(90);
 
             return await _repo
                 .Query()
@@ -329,6 +338,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new InvalidOperationException(
                     $"IMO number '{imoNumber}' is already registered.");
         }
+
+        private static readonly Expression<Func<Vessel, VesselLookupResponse>> ToLookUpResponse =
+        x => new VesselLookupResponse
+        {
+            Id = x.Id,
+            Name = x.VesselName,
+            IMONumber = x.IMONumber,
+            CompanyName = x.Company != null ? x.Company.CompanyName  : null,
+        };
 
         private static readonly Expression<Func<Vessel, VesselResponse>> ToResponse =
         x => new VesselResponse

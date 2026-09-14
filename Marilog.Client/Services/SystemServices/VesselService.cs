@@ -33,7 +33,11 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VesselResponse>>>(Base, ct);
             return response?.Data ?? [];
         }
-
+        public async Task<IReadOnlyList<VesselLookupResponse>> GetAllAsLookUpAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VesselLookupResponse>>>($"{Base}/lookup", ct);
+            return response?.Data ?? []; ;
+        }
         public async Task<IReadOnlyList<VesselResponse>> GetActiveAsync(CancellationToken ct = default)
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VesselResponse>>>($"{Base}/active", ct);
@@ -130,5 +134,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             throw new NotImplementedException();
         }
+
+        
     }
 }

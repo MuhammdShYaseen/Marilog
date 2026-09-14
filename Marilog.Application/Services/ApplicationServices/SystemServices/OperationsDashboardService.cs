@@ -1,4 +1,6 @@
 ﻿using Marilog.Application.Interfaces.Services;
+using Marilog.Contracts.DTOs.Reports.DocumentReports;
+using Marilog.Contracts.DTOs.Reports.VoyageReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 
@@ -96,5 +98,55 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Alerts = alerts
             };
         }
+
+        public async Task<IReadOnlyList<FinancialChartPointResponse>> GetFinancialSummaryAsync(DocumentFilterOptions options, CancellationToken ct = default)
+        {
+            var report = await _documentService.GetFilteredDocsReportAsync(options, ct);
+
+            return report.MonthlySummary
+                .Select(m =>
+                {
+                    var periodStart = new DateTime(m.Year, m.Month, 1);
+                    return new FinancialChartPointResponse
+                    {
+                        PeriodStart = periodStart,
+                        PeriodLabel = periodStart.ToString("MMM yyyy"),
+                        Revenue = m.Revenue,
+                        Expense = m.Expense,
+                        CurrencyCode = report.BaseCurrencyCode
+                    };
+                })
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, int? vesselId = null, CancellationToken ct = default)
+        {
+            var report = await _voyageService.GetVoyagesReportAsync(
+                new VoyageReportFilterOptions
+                {
+                    FromDate = from.ToDateTime(TimeOnly.MinValue),
+                    ToDate = to.ToDateTime(TimeOnly.MaxValue),
+                    VesselId = vesselId
+                },
+                ct);
+
+            return report.Voyages
+                .Where(v => v.DepartureDate.HasValue)
+                .GroupBy(v => new { v.DepartureDate!.Value.Year, v.DepartureDate.Value.Month })
+                .Select(g =>
+                {
+                    var periodStart = new DateTime(g.Key.Year, g.Key.Month, 1);
+                    return new VoyageChartPointResponse
+                    {
+                        PeriodStart = periodStart,
+                        PeriodLabel = periodStart.ToString("MMM yyyy"),
+                        VoyageCount = g.Count(),
+                        CargoMT = g.Sum(v => v.CargoQuantityMT ?? 0)
+                    };
+                })
+                .OrderBy(p => p.PeriodStart)
+                .ToList();
+        }
     }
 }
+    

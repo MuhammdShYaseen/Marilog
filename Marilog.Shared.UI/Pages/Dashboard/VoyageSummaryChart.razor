@@ -1,0 +1,48 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Dashboard
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Voyages & Cargo</MudText>
+
+    @if (Data is null || Data.Count == 0)
+    {
+        <MudText Color="Color.Secondary">No Data for this period.</MudText>
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Count of Voyages Per Month</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@_countSeries" ChartLabels="@_labels"
+                          ChartOptions="@_countOptions" Width="100%" Height="300px" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Cargo Quantaty MT. Per Month</MudText>
+                <MudChart ChartType="ChartType.Line" ChartSeries="@_cargoSeries" ChartLabels="@_labels"
+                          ChartOptions="@_cargoOptions" Width="100%" Height="300px" />
+            </MudItem>
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public IReadOnlyList<VoyageChartPointResponse>? Data { get; set; }
+
+    private string[] _labels = Array.Empty<string>();
+    private List<ChartSeries<int>> _countSeries = new();
+    private List<ChartSeries<decimal>> _cargoSeries = new();
+
+    private readonly BarChartOptions _countOptions = new() { YAxisTicks = 5, ChartPalette = new[] { "#1E88E5" } };
+    private readonly LineChartOptions _cargoOptions = new() { YAxisTicks = 5, ChartPalette = new[] { "#FB8C00" } };
+
+    protected override void OnParametersSet()
+    {
+        if (Data is null || Data.Count == 0) return;
+
+        _labels = Data.Select(d => d.PeriodLabel ?? string.Empty).ToArray();
+
+        _countSeries = new List<ChartSeries<int>> { new() { Name = "{Voyages Count}", Data = Data.Select(d => d.VoyageCount).ToArray() } };
+        _cargoSeries = new List<ChartSeries<decimal>> { new() { Name = "Cargo (MT)", Data = Data.Select(d => d.CargoMT).ToArray() } };
+    }
+}

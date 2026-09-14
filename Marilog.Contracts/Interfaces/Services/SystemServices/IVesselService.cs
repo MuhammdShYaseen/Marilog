@@ -12,7 +12,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<VesselResponse>> GetAllAsync(CancellationToken ct = default);
         Task<IReadOnlyList<VesselResponse>> GetActiveAsync(CancellationToken ct = default);
         Task<IReadOnlyList<VesselResponse>> GetByCompanyAsync(int companyId, CancellationToken ct = default);
-
+        Task<IReadOnlyList<VesselLookupResponse>> GetAllAsLookUpAsync(CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<VesselResponse> CreateAsync(int companyId, string vesselName,

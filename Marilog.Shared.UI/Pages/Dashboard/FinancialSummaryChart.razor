@@ -1,0 +1,55 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Dashboard
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudText Typo="Typo.h6">Revenues and Expenses</MudText>
+        @if (Data is { Count: > 0 } && !string.IsNullOrEmpty(Data[0].CurrencyCode))
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Default">@Data[0].CurrencyCode</MudChip>
+        }
+    </MudStack>
+
+    @if (Data is null || Data.Count == 0)
+    {
+        <MudText Color="Color.Secondary">There is no data for this period.</MudText>
+    }
+    else
+    {
+        <MudChart ChartType="ChartType.Bar"
+                  ChartSeries="@_series"
+                  ChartLabels="@_labels"
+                  ChartOptions="@_options"
+                  Width="100%" Height="350px" />
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public IReadOnlyList<FinancialChartPointResponse>? Data { get; set; }
+
+    private List<ChartSeries<decimal>> _series = new();
+    private string[] _labels = Array.Empty<string>();
+
+    // أخضر = إيرادات، أحمر = مصاريف
+    private readonly BarChartOptions _options = new()
+    {
+        YAxisTicks = 5,
+        YAxisFormat = "#,##0",
+        BarWidthRatio = 0.55,
+        ChartPalette = new[] { "#2E7D32", "#C62828" }
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (Data is null || Data.Count == 0) return;
+
+        _labels = Data.Select(d => d.PeriodLabel ?? string.Empty).ToArray();
+
+        _series = new List<ChartSeries<decimal>>
+        {
+            new() { Name = "Revenues", Data = Data.Select(d => d.Revenue).ToArray() },
+            new() { Name = "Expenses", Data = Data.Select(d => d.Expense).ToArray() }
+        };
+    }
+}

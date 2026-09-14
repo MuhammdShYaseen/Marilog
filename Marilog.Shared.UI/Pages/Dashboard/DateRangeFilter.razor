@@ -1,0 +1,164 @@
+@using System.Text.Json
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Microsoft.JSInterop
+@using MudBlazor
+@inject IJSRuntime JS
+@namespace Marilog.Shared.UI.Pages.Dashboard
+
+<MudExpansionPanels Elevation="2" Class="mb-4">
+    <MudExpansionPanel Text="Filter Options">
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudDatePicker Label="From" @bind-Date="_fromDate" DateFormat="dd MMM yyyy"
+                               Editable="true" PickerVariant="PickerVariant.Dialog" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudDatePicker Label="To" @bind-Date="_toDate" DateFormat="dd MMM yyyy"
+                               Editable="true" PickerVariant="PickerVariant.Dialog" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="int?" Label="Vessel" @bind-Value="_vesselId" Clearable="true">
+                    @foreach (var v in Vessels ?? [])
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="int?" Label="Document Type" @bind-Value="_docTypeId" Clearable="true">
+                    @foreach (var t in DocTypes ?? [])
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="int?" Label="Supplier" @bind-Value="_supplierId" Clearable="true">
+                    @foreach (var c in Companies ?? [])
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="int?" Label="Buyer" @bind-Value="_buyerId" Clearable="true">
+                    @foreach (var c in Companies ?? [])
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="FinancialSide?" Label="Type" @bind-Value="_side" Clearable="true">
+                    <MudSelectItem T="FinancialSide?" Value="FinancialSide.Revenue">Revenue</MudSelectItem>
+                    <MudSelectItem T="FinancialSide?" Value="FinancialSide.Expense">Expense</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                <MudCheckBox T="bool" @bind-Value="_unpaidOnly" Label="Unpaid Only" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                    <MudButton OnClick="@(() => SetPreset(3))">3 Months</MudButton>
+                    <MudButton OnClick="@(() => SetPreset(6))">6 Months</MudButton>
+                    <MudButton OnClick="@(() => SetPreset(12))">1 Year</MudButton>
+                </MudButtonGroup>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Apply" FullWidth="true">Apply</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public DocumentFilterOptions Value { get; set; } = new();
+    [Parameter] public IReadOnlyList<VesselLookupResponse>? Vessels { get; set; }
+    [Parameter] public IReadOnlyList<DocumentTypeResponse>? DocTypes { get; set; }
+    [Parameter] public IReadOnlyList<CompanyResponse>? Companies { get; set; }
+    [Parameter] public EventCallback<DocumentFilterOptions> OnFilterChanged { get; set; }
+
+    private const string StorageKey = "marilog.dashboard.filters";
+
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private int? _vesselId;
+    private int? _docTypeId;
+    private int? _supplierId;
+    private int? _buyerId;
+    private FinancialSide? _side;
+    private bool _unpaidOnly;
+    private bool _initialized;
+
+    protected override void OnParametersSet()
+    {
+        if (_initialized) return;
+
+        _fromDate = Value.FromDate?.ToDateTime(TimeOnly.MinValue);
+        _toDate = Value.ToDate?.ToDateTime(TimeOnly.MinValue);
+        _vesselId = Value.VesselId;
+        _docTypeId = Value.DocTypeId;
+        _supplierId = Value.SupplierId;
+        _buyerId = Value.BuyerId;
+        _side = Value.Side;
+        _unpaidOnly = Value.UnpaidOnly;
+        _initialized = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var saved = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+        if (string.IsNullOrWhiteSpace(saved)) return;
+
+        try
+        {
+            var state = JsonSerializer.Deserialize<DocumentFilterOptions>(saved);
+            if (state is null) return;
+
+            _fromDate = state.FromDate?.ToDateTime(TimeOnly.MinValue);
+            _toDate = state.ToDate?.ToDateTime(TimeOnly.MinValue);
+            _vesselId = state.VesselId;
+            _docTypeId = state.DocTypeId;
+            _supplierId = state.SupplierId;
+            _buyerId = state.BuyerId;
+            _side = state.Side;
+            _unpaidOnly = state.UnpaidOnly;
+            StateHasChanged();
+
+            await OnFilterChanged.InvokeAsync(state);
+        }
+        catch
+        {
+            // Ignore any stale or corrupted localStorage data
+        }
+    }
+
+    private void SetPreset(int months)
+    {
+        _toDate = DateTime.Today;
+        _fromDate = DateTime.Today.AddMonths(-months);
+        _ = Apply();
+    }
+
+    private async Task Apply()
+    {
+        var options = new DocumentFilterOptions
+        {
+            FromDate = _fromDate.HasValue ? DateOnly.FromDateTime(_fromDate.Value) : null,
+            ToDate = _toDate.HasValue ? DateOnly.FromDateTime(_toDate.Value) : null,
+            VesselId = _vesselId,
+            DocTypeId = _docTypeId,
+            SupplierId = _supplierId,
+            BuyerId = _buyerId,
+            Side = _side,
+            UnpaidOnly = _unpaidOnly
+        };
+
+        await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, JsonSerializer.Serialize(options));
+        await OnFilterChanged.InvokeAsync(options);
+    }
+}

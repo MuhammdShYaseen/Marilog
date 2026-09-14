@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Dashboard
@@ -66,7 +67,50 @@
         </MudPaper>
     </MudItem>
 
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Vessels</MudText>
+                    <MudText Typo="Typo.h4">@Vessels?.Count</MudText>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
 </MudGrid>
+
+@* ── Filter ────────────────────────────────────────────────── *@
+<DateRangeFilter Value="Filter" Vessels="VesselLookups" DocTypes="DocTypes" Companies="Companies" OnFilterChanged="OnFilterChanged" />
+
+@* ── Charts ────────────────────────────────────────────────── *@
+<FinancialSummaryChart Data="FinancialData" />
+<VoyageSummaryChart Data="VoyageData" />
+
+@* ── Vessels ───────────────────────────────────────────────── *@
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Vessels</MudText>
+    <MudTable Items="Vessels" Dense="true" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>IMO</MudTh>
+            <MudTh>Flag</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudLink @onclick="() => OnVesselClick.InvokeAsync(context.Id)" Class="cursor-pointer">
+                    @context.Name
+                </MudLink>
+            </MudTd>
+            <MudTd>@context.IMONumber</MudTd>
+            <MudTd>@context.FlagCountryName</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No vessels found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
 
 @* ── Active Voyages ────────────────────────────────────────── *@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
@@ -222,4 +266,15 @@
     [Parameter] public OperationsDashboardResponse? Data { get; set; }
     [Parameter] public EventCallback<int> OnVoyageClick { get; set; }
     [Parameter] public EventCallback<int> OnDocumentClick { get; set; }
+
+    [Parameter] public IReadOnlyList<VesselResponse>? Vessels { get; set; }
+    [Parameter] public IReadOnlyList<FinancialChartPointResponse>? FinancialData { get; set; }
+    [Parameter] public IReadOnlyList<VoyageChartPointResponse>? VoyageData { get; set; }
+    [Parameter] public EventCallback<int> OnVesselClick { get; set; }
+
+    [Parameter] public DocumentFilterOptions Filter { get; set; } = new();
+    [Parameter] public IReadOnlyList<VesselLookupResponse>? VesselLookups { get; set; }
+    [Parameter] public IReadOnlyList<DocumentTypeResponse>? DocTypes { get; set; }
+    [Parameter] public IReadOnlyList<CompanyResponse>? Companies { get; set; }
+    [Parameter] public EventCallback<DocumentFilterOptions> OnFilterChanged { get; set; }
 }
