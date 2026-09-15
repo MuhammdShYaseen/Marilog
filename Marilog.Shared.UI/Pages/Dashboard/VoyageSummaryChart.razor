@@ -2,29 +2,97 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Dashboard
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudText Typo="Typo.h6" Class="mb-2">Voyages & Cargo</MudText>
+<div class="az-card az-voyage-card mb-4">
+
+    <div class="az-card-header">
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Insights" Size="Size.Small" Color="Color.Primary" />
+            <span class="az-card-title">Voyages &amp; Cargo</span>
+        </div>
+
+        @if (Data is { Count: > 0 })
+        {
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="az-currency-chip">
+                @Data.Count periods
+            </MudChip>
+        }
+    </div>
 
     @if (Data is null || Data.Count == 0)
     {
-        <MudText Color="Color.Secondary">No Data for this period.</MudText>
+        <div class="az-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.QueryStats" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">No data for this period.</MudText>
+        </div>
     }
     else
     {
-        <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Count of Voyages Per Month</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@_countSeries" ChartLabels="@_labels"
-                          ChartOptions="@_countOptions" Width="100%" Height="300px" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Cargo Quantaty MT. Per Month</MudText>
-                <MudChart ChartType="ChartType.Line" ChartSeries="@_cargoSeries" ChartLabels="@_labels"
-                          ChartOptions="@_cargoOptions" Width="100%" Height="300px" />
-            </MudItem>
-        </MudGrid>
+        @* ── Totals strip ──────────────────────────────────── *@
+        <div class="az-metrics">
+
+            <div class="az-metric az-metric--voyages">
+                <div class="az-metric-label">Total Voyages</div>
+                <div class="az-metric-value">@Data.Sum(d => d.VoyageCount)</div>
+            </div>
+
+            <div class="az-metric az-metric--cargo">
+                <div class="az-metric-label">Total Cargo</div>
+                <div class="az-metric-value">
+                    @Data.Sum(d => d.CargoMT).ToString("N2") <span class="az-metric-unit">MT</span>
+                </div>
+            </div>
+
+            <div class="az-metric az-metric--voyages">
+                <div class="az-metric-label">Peak Month</div>
+                <div class="az-metric-value az-metric-value--sm">
+                    @Data.OrderByDescending(d => d.VoyageCount).First().PeriodLabel
+                </div>
+            </div>
+
+            <div class="az-metric az-metric--cargo">
+                <div class="az-metric-label">Avg Cargo / Period</div>
+                <div class="az-metric-value">
+                    @Data.Average(d => d.CargoMT).ToString("N2") <span class="az-metric-unit">MT</span>
+                </div>
+            </div>
+
+        </div>
+
+        @* ── Charts ────────────────────────────────────────── *@
+        <div class="az-chart-split">
+
+            <div class="az-chart-pane">
+                <div class="az-chart-caption">
+                    <span class="az-dot az-dot--voyages"></span>
+                    <span>Count of Voyages Per Month</span>
+                </div>
+                <div class="az-chart">
+                    <MudChart ChartType="ChartType.Bar"
+                              ChartSeries="@_countSeries"
+                              ChartLabels="@_labels"
+                              ChartOptions="@_countOptions"
+                              Width="100%" Height="300px" />
+                </div>
+            </div>
+
+            <div class="az-chart-pane">
+                <div class="az-chart-caption">
+                    <span class="az-dot az-dot--cargo"></span>
+                    <span>Cargo Quantity (MT) Per Month</span>
+                </div>
+                <div class="az-chart az-chart--line">
+                    <MudChart ChartType="ChartType.Line"
+                              ChartSeries="@_cargoSeries"
+                              ChartLabels="@_labels"
+                              ChartOptions="@_cargoOptions"
+                              Width="100%" Height="300px" />
+                </div>
+            </div>
+
+        </div>
     }
-</MudPaper>
+
+</div>
 
 @code {
     [Parameter] public IReadOnlyList<VoyageChartPointResponse>? Data { get; set; }
@@ -46,3 +114,198 @@
         _cargoSeries = new List<ChartSeries<decimal>> { new() { Name = "Cargo (MT)", Data = Data.Select(d => d.CargoMT).ToArray() } };
     }
 }
+<style>
+    .az-card {
+        background-color: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .az-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        background-color: var(--mud-palette-background-grey);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-card-title {
+        font-size: .875rem;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .az-currency-chip {
+        border-radius: 2px;
+        height: 20px;
+        font-size: .6875rem;
+        font-weight: 600;
+    }
+
+    /* ── Totals strip ──────────────────────────────────────── */
+    .az-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-metric {
+        position: relative;
+        padding: 12px 16px;
+        border-right: 1px solid var(--mud-palette-lines-default);
+    }
+
+        .az-metric:last-child {
+            border-right: none;
+        }
+
+        .az-metric::before {
+            content: "";
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            left: 0;
+            width: 3px;
+            background-color: transparent;
+        }
+
+    .az-metric--voyages::before {
+        background-color: var(--mud-palette-primary);
+    }
+
+    .az-metric--cargo::before {
+        background-color: var(--mud-palette-warning);
+    }
+
+    .az-metric-label {
+        font-size: .6875rem;
+        font-weight: 600;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 4px;
+    }
+
+    .az-metric-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .az-metric-value--sm {
+        font-size: .9375rem;
+    }
+
+    .az-metric-unit {
+        font-size: .6875rem;
+        font-weight: 400;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-metric--voyages .az-metric-value {
+        color: var(--mud-palette-primary);
+    }
+
+    .az-metric--cargo .az-metric-value {
+        color: var(--mud-palette-warning);
+    }
+
+    /* ── Split charts ──────────────────────────────────────── */
+    .az-chart-split {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .az-chart-pane {
+        border-right: 1px solid var(--mud-palette-lines-default);
+        padding: 12px 8px 8px;
+    }
+
+        .az-chart-pane:last-child {
+            border-right: none;
+        }
+
+    .az-chart-caption {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px 4px;
+        font-size: .6875rem;
+        font-weight: 600;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 1px;
+        flex: 0 0 auto;
+    }
+
+    .az-dot--voyages {
+        background-color: var(--mud-palette-primary);
+    }
+
+    .az-dot--cargo {
+        background-color: var(--mud-palette-warning);
+    }
+
+    /* ── Chart canvas ──────────────────────────────────────── */
+    .az-chart svg text {
+        fill: var(--mud-palette-text-secondary);
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .az-chart svg [class*="grid"] line,
+    .az-chart svg [class*="grid"] path {
+        stroke: var(--mud-palette-lines-default);
+        stroke-width: 1;
+        opacity: .7;
+    }
+
+    .az-chart .mud-chart-legend {
+        justify-content: flex-start;
+        padding-left: 8px;
+    }
+
+        .az-chart .mud-chart-legend .mud-typography {
+            font-size: .75rem;
+            font-weight: 500;
+            color: var(--mud-palette-text-secondary);
+        }
+
+    .az-chart svg path {
+        transition: opacity .15s ease;
+    }
+
+    .az-chart svg:hover path {
+        opacity: .85;
+    }
+
+    .az-chart svg path:hover {
+        opacity: 1;
+    }
+
+    /* line chart: thin markers, no heavy fill */
+    .az-chart--line svg circle {
+        stroke-width: 2;
+    }
+
+    /* ── Empty state ───────────────────────────────────────── */
+    .az-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 48px 0;
+    }
+</style>

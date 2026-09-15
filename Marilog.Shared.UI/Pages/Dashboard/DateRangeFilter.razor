@@ -6,72 +6,119 @@
 @using MudBlazor
 @inject IJSRuntime JS
 @namespace Marilog.Shared.UI.Pages.Dashboard
+<div class="az-filter mb-4">
+    <MudExpansionPanels Elevation="0" Class="az-filter-panels">
+        <MudExpansionPanel>
 
-<MudExpansionPanels Elevation="2" Class="mb-4">
-    <MudExpansionPanel Text="Filter Options">
-        <MudGrid>
-            <MudItem xs="12" sm="6" md="3">
-                <MudDatePicker Label="From" @bind-Date="_fromDate" DateFormat="dd MMM yyyy"
-                               Editable="true" PickerVariant="PickerVariant.Dialog" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudDatePicker Label="To" @bind-Date="_toDate" DateFormat="dd MMM yyyy"
-                               Editable="true" PickerVariant="PickerVariant.Dialog" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?" Label="Vessel" @bind-Value="_vesselId" Clearable="true">
-                    @foreach (var v in Vessels ?? [])
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?" Label="Document Type" @bind-Value="_docTypeId" Clearable="true">
-                    @foreach (var t in DocTypes ?? [])
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?" Label="Supplier" @bind-Value="_supplierId" Clearable="true">
-                    @foreach (var c in Companies ?? [])
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?" Label="Buyer" @bind-Value="_buyerId" Clearable="true">
-                    @foreach (var c in Companies ?? [])
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="FinancialSide?" Label="Type" @bind-Value="_side" Clearable="true">
-                    <MudSelectItem T="FinancialSide?" Value="FinancialSide.Revenue">Revenue</MudSelectItem>
-                    <MudSelectItem T="FinancialSide?" Value="FinancialSide.Expense">Expense</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
-                <MudCheckBox T="bool" @bind-Value="_unpaidOnly" Label="Unpaid Only" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
-                <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-                    <MudButton OnClick="@(() => SetPreset(3))">3 Months</MudButton>
-                    <MudButton OnClick="@(() => SetPreset(6))">6 Months</MudButton>
-                    <MudButton OnClick="@(() => SetPreset(12))">1 Year</MudButton>
-                </MudButtonGroup>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Apply" FullWidth="true">Apply</MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudExpansionPanel>
-</MudExpansionPanels>
+            <TitleContent>
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Outlined.FilterAlt" Size="Size.Small" Color="Color.Primary" />
+                    <span class="az-filter-title">Filter Options</span>
+                </div>
+            </TitleContent>
+
+            <ChildContent>
+
+                <MudGrid Spacing="2" Class="az-filter-grid">
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker Label="From" @bind-Date="_fromDate" DateFormat="dd MMM yyyy"
+                                       Editable="true" PickerVariant="PickerVariant.Dialog"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker Label="To" @bind-Date="_toDate" DateFormat="dd MMM yyyy"
+                                       Editable="true" PickerVariant="PickerVariant.Dialog"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?" Label="Vessel" @bind-Value="_vesselId" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var v in Vessels ?? [])
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?" Label="Document Type" @bind-Value="_docTypeId" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var t in DocTypes ?? [])
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?" Label="Supplier" @bind-Value="_supplierId" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var c in Companies ?? [])
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int?" Label="Buyer" @bind-Value="_buyerId" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var c in Companies ?? [])
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="FinancialSide?" Label="Type" @bind-Value="_side" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="FinancialSide?" Value="FinancialSide.Revenue">Revenue</MudSelectItem>
+                            <MudSelectItem T="FinancialSide?" Value="FinancialSide.Expense">Expense</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool" @bind-Value="_unpaidOnly" Label="Unpaid Only"
+                                     Color="Color.Primary" Size="Size.Small" Class="az-filter-check" />
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+
+                @* ── Command bar ───────────────────────────────── *@
+                <div class="az-filter-actions">
+
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                        <span class="az-filter-label">Quick range</span>
+                        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" Class="az-btn-group">
+                            <MudButton OnClick="@(() => SetPreset(3))">3 Months</MudButton>
+                            <MudButton OnClick="@(() => SetPreset(6))">6 Months</MudButton>
+                            <MudButton OnClick="@(() => SetPreset(12))">1 Year</MudButton>
+                        </MudButtonGroup>
+                    </div>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               DisableElevation="true"
+                               StartIcon="@Icons.Material.Filled.Check"
+                               OnClick="Apply"
+                               Class="az-apply">
+                        Apply
+                    </MudButton>
+
+                </div>
+
+            </ChildContent>
+
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+</div>
 
 @code {
     [Parameter] public DocumentFilterOptions Value { get; set; } = new();
@@ -162,3 +209,96 @@
         await OnFilterChanged.InvokeAsync(options);
     }
 }
+
+<style>
+    /* ── Filter panel (Azure command bar) ──────────────────── */
+    .az-filter {
+        background-color: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .az-filter-panels .mud-expand-panel {
+        background-color: transparent;
+        border-radius: 0;
+    }
+
+    .az-filter-panels .mud-expand-panel-header {
+        background-color: var(--mud-palette-background-grey);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        min-height: 44px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .az-filter-panels .mud-expand-panel.mud-panel-expanded {
+        margin: 0;
+    }
+
+    .az-filter-title {
+        font-size: .8125rem;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .az-filter-grid {
+        padding-top: 4px;
+    }
+
+    /* Inputs: square, compact, Azure-like */
+    .az-filter .mud-input-outlined-border {
+        border-radius: 2px;
+        border-color: var(--mud-palette-lines-inputs);
+    }
+
+    .az-filter .mud-input-label {
+        font-size: .8125rem;
+    }
+
+    .az-filter .mud-input-root {
+        font-size: .8125rem;
+    }
+
+    .az-filter-check .mud-typography {
+        font-size: .8125rem;
+    }
+
+    /* ── Actions row ───────────────────────────────────────── */
+    .az-filter-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .az-filter-label {
+        font-size: .6875rem;
+        font-weight: 600;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-btn-group .mud-button-root {
+        border-radius: 2px;
+        font-size: .75rem;
+        font-weight: 400;
+        text-transform: none;
+        border-color: var(--mud-palette-lines-default);
+        color: var(--mud-palette-text-primary);
+    }
+
+        .az-btn-group .mud-button-root:hover {
+            background-color: var(--mud-palette-action-default-hover);
+            border-color: var(--mud-palette-primary);
+        }
+
+    .az-apply {
+        border-radius: 2px;
+        text-transform: none;
+        font-weight: 600;
+        min-width: 110px;
+    }
+</style>

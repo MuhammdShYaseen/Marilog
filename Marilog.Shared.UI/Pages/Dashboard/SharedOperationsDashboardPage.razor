@@ -500,7 +500,7 @@
                 }
                 };
 
-                if (IsSupplierExpanded(group.Key))
+                if (IsSupplierExpanded(group.Key!))
                 {
                     rows.AddRange(
                         group.Select(document => new GroupedDocumentRow
