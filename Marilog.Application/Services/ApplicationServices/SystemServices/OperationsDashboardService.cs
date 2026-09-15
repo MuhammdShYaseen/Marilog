@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.VoyageReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Kernel.Enums;
 
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
@@ -36,9 +37,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 await _crewService.GetExpiredAsync(ct)
                 ?? new List<CrewContractResponse>();
 
-            var unpaidDocuments =
-                await _documentService.GetUnpaidAsync(false, ct)
-                ?? new List<DocumentResponse>();
+            var unpaidDocuments = await _documentService.GetUnpaidAsync(false, ct);
+            if (unpaidDocuments == null)
+                unpaidDocuments = new List<DocumentResponse>();
+            unpaidDocuments = unpaidDocuments.Where(d => d.Side != FinancialSide.None).ToList();
 
             // Date logic
 
