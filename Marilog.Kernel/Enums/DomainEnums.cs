@@ -274,6 +274,7 @@
         Cash,
         Cheque,
         CreditBalance,
+        CreditCard,
         Other
     }
     public enum DisbursementStatus { Pending, Confirmed, Cancelled }
