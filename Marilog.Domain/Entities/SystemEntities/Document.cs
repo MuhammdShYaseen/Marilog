@@ -35,9 +35,10 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private readonly List<DocumentItem> _items = new();
         private readonly List<Payment> _payments = new();
-        
+        private readonly List<DocumentAdjustment> _adjustments = new();
         public IReadOnlyCollection<DocumentItem> Items => _items.AsReadOnly();
         public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
+        public IReadOnlyCollection<DocumentAdjustment> Adjustments => _adjustments.AsReadOnly();
         public int? VoyageId { get; private set; }
         public Voyage? Voyage { get; private set; }
         private Document() { }
@@ -104,6 +105,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (docTypeId <= 0) throw new ArgumentException("Invalid DocTypeId.");
             if (currencyId <= 0) throw new ArgumentException("Invalid CurrencyId.");
             if (totalAmount < 0) throw new ArgumentException("TotalAmount cannot be negative.");
+            if (totalAmount + AdjustmentsTotal < TotalPaid) throw new InvalidOperationException( "New total is lower than the already paid amount.");
             if (string.IsNullOrEmpty(docNumber))
             {
                 throw new ArgumentException("Invalid doc number");
@@ -191,6 +193,59 @@ namespace Marilog.Domain.Entities.SystemEntities
             var item = _items.FirstOrDefault(x => x.Id == itemId)
                 ?? throw new InvalidOperationException($"Item {itemId} not found.");
             _items.Remove(item);
+            Touch();
+        }
+
+
+        // ── Adjustments ──────────────────────────────────────────────────────────
+        public DocumentAdjustment AddAdjustment(decimal amount, DateOnly adjustmentDate,
+            string? reason = null)
+        {
+            if (amount == 0)
+                throw new ArgumentException("Adjustment amount cannot be zero.");
+
+            if (NetAmount + amount < TotalPaid)
+                throw new InvalidOperationException(
+                    "Adjustment would make document amount lower than the already paid amount.");
+
+            var adjustment = DocumentAdjustment.Create(Id, amount, adjustmentDate, reason);
+            _adjustments.Add(adjustment);
+            Touch();
+
+            if (IsFullyPaid)
+                AddDomainEvent(new DocumentFullyPaidEvent(Id));
+
+            return adjustment;
+        }
+
+        public void UpdateAdjustment(int adjustmentId, decimal amount,
+            DateOnly adjustmentDate, string? reason = null)
+        {
+            var adjustment = _adjustments.FirstOrDefault(x => x.Id == adjustmentId)
+                ?? throw new InvalidOperationException($"Adjustment {adjustmentId} not found.");
+
+            var othersTotal = _adjustments.Where(x => x.Id != adjustmentId).Sum(x => x.Amount);
+            if (TotalAmount + othersTotal + amount < TotalPaid)
+                throw new InvalidOperationException(
+                    "Adjustment would make document amount lower than the already paid amount.");
+
+            adjustment.Update(amount, adjustmentDate, reason);
+            Touch();
+
+            if (IsFullyPaid)
+                AddDomainEvent(new DocumentFullyPaidEvent(Id));
+        }
+
+        public void RemoveAdjustment(int adjustmentId)
+        {
+            var adjustment = _adjustments.FirstOrDefault(x => x.Id == adjustmentId)
+                ?? throw new InvalidOperationException($"Adjustment {adjustmentId} not found.");
+
+            if (NetAmount - adjustment.Amount < TotalPaid)
+                throw new InvalidOperationException(
+                    "Removing this adjustment would make document amount lower than the already paid amount.");
+
+            _adjustments.Remove(adjustment);
             Touch();
         }
 
@@ -296,14 +351,10 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         // ── Computed ─────────────────────────────────────────────────────────────
         public decimal TotalPaid => _payments.Sum(p => p.PaidAmount);
-        public decimal RemainingBalance => TotalAmount - TotalPaid;
+        public decimal AdjustmentsTotal => _adjustments.Sum(a => a.Amount);
+        public decimal NetAmount => TotalAmount + AdjustmentsTotal;
+        public decimal RemainingBalance => NetAmount - TotalPaid;
         public bool IsFullyPaid => RemainingBalance <= 0;
-
-        
-       
-
-
-
 
     }
 }
