@@ -40,6 +40,14 @@ namespace Marilog.Contracts.DTOs.Responses
         public decimal TotalAmountBase { get; set; }
         public decimal PaidAmountBase { get; set; }
         public decimal RemainingBase { get; set; }
+
+
+        public decimal AdjustmentsTotal { get; set; }
+        public decimal NetAmount { get; set; }
+        public decimal NetAmountBase { get; set; }
+        public List<AdjustmentResponse> Adjustments { get; set; } = new();
+
+
         public string CurrencyCodeBase { get; set; } = string.Empty;
         public string CurrencyNameBase { get; set; } = string.Empty;
         public FinancialSide Side { get; set; }

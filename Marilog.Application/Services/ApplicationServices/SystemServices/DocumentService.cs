@@ -1,13 +1,13 @@
-using DocumentFormat.OpenXml.InkML;
+
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
+using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
-using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -20,13 +20,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<Currency> _currencyRepo;
         private readonly IRepository<Payment> _paymentRepo;
         private readonly IRepository<DocumentType> _DocTypeRepo;
-        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo, IRepository<Payment> paymentRepo, IRepository<DocumentType> docTypeRepo)
+        private readonly IRepository<DocumentAdjustment> _adjustmentRepo;
+        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo, IRepository<Payment> paymentRepo, IRepository<DocumentType> docTypeRepo, IRepository<DocumentAdjustment> docAdjustRepo)
         {
             _repo      = repo;
             _swiftRepo = swiftRepo;
             _currencyRepo = currencyRepo;
             _paymentRepo = paymentRepo;
             _DocTypeRepo = docTypeRepo;
+            _adjustmentRepo = docAdjustRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -226,9 +228,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
         {
             var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive && x.TotalAmount > x.Payments
-                                          .Where(p => p.DocumentId == x.Id)
-                                          .Sum(p => p.PaidAmount))
+                          .Where(x => x.IsActive && x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) > x.Payments.Sum(p => p.PaidAmount))
                           .OrderBy(x => x.DocDate)
                           .Select(ToResponse())
                           .ToListAsync(ct);
@@ -328,6 +328,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Reference = document.Reference,
                 Side = document.Side,
                 VoyageId = document.VoyageId,
+                NetAmount = document.TotalAmount,
             };
 
         }
@@ -378,7 +379,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     PortId = doc.PortId,
                     ParentDocumentId = doc.ParentDocumentId,
                     Reference = doc.Reference,
-                    Side = doc.Side
+                    Side = doc.Side,
+                    NetAmount = doc.TotalAmount,
                 })
                 .ToList();
         }
@@ -387,7 +389,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var document = await GetWithPaymentsOrThrowAsync(id, ct);
             if (document.Payments.Count > 0 && updateDto.TotalAmount != document.TotalAmount)
             {
-                throw new InvalidOperationException("Cannot modify TotalAmount for a document that has payments.");
+                throw new InvalidOperationException("Cannot modify TotalAmount for a document that has payments. Add an adjustment instead.");
             }
             document.Update(
                 docTypeId : updateDto.DocTypeId,
@@ -593,6 +595,77 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             document.RemoveItem(itemId);
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
+        }
+
+        //---- Adjustments ----------------------------------------------------------
+        public async Task<AdjustmentResponse> AddAdjustmentAsync(CreateAdjustmentRequest request, CancellationToken ct = default)
+        {
+            var document = await _repo.Query()
+                .Include(d => d.Payments)
+                .Include(d => d.Adjustments)
+                .FirstOrDefaultAsync(d => d.Id == request.DocumentId, ct);
+
+            if (document is null)
+                throw new ArgumentNullException(nameof(document));
+
+            var adjustment = document.AddAdjustment(
+                request.Amount,
+                request.AdjustmentDate,
+                request.Reason);
+
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+
+            return new AdjustmentResponse
+            {
+                Id = adjustment.Id,
+                DocumentId = document.Id,
+                Amount = adjustment.Amount,
+                AdjustmentDate = adjustment.AdjustmentDate,
+                Reason = adjustment.Reason
+            };
+        }
+
+        public async Task<AdjustmentResponse> UpdateAdjustmentAsync(int adjustmentId, UpdateAdjustmentRequest request, CancellationToken ct = default)
+        {
+            var document = await _repo.Query()
+                .Include(d => d.Payments)
+                .Include(d => d.Adjustments)
+                .FirstOrDefaultAsync(d => d.Adjustments.Any(a => a.Id == adjustmentId), ct);
+
+            if (document is null)
+                throw new ArgumentNullException(nameof(document));
+
+            document.UpdateAdjustment(
+                adjustmentId,
+                request.Amount,
+                request.AdjustmentDate,
+                request.Reason);
+
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+           return await _adjustmentRepo.Query()
+                                       .AsNoTracking()
+                                       .Where(j => j.Id == adjustmentId)
+                                       .Select(ToAdjustmentResponse)
+                                       .FirstOrDefaultAsync(ct) ?? new AdjustmentResponse();
+        }
+
+        public async Task RemoveAdjustmentAsync(int adjustmentId, CancellationToken ct = default)
+        {
+            var document = await _repo.Query()
+                .Include(d => d.Payments)
+                .Include(d => d.Adjustments)
+                .FirstOrDefaultAsync(d => d.Adjustments.Any(a => a.Id == adjustmentId), ct);
+
+            if (document is null)
+                throw new ArgumentNullException(nameof(document));
+
+            document.RemoveAdjustment(adjustmentId);
+
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+
         }
 
         // ── Payments ──────────────────────────────────────────────────────────────
@@ -988,7 +1061,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             if (options.UnpaidOnly == true)
                 query = query.Where(x =>
-                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount);
+                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
 
             if (options.FromDate.HasValue || options.ToDate.HasValue)
             {
@@ -1041,6 +1114,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocDate = x.DocDate,
                 TotalAmount = x.TotalAmount,
+                Adjustments = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
                 //CurrencySymbol = x.Currency.Symbol,
@@ -1069,15 +1143,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocDate = x.DocDate,
                 TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments,
+                NetAmount = x.TotalAmount + x.Adjustments,
                 PaidAmount = x.Paid,
-                Remaining = x.TotalAmount - x.Paid,
+                Remaining = x.TotalAmount + x.Adjustments - x.Paid,
                 CurrencyCode = x.CurrencyCode,
                 CurrencyId = x.CurrencyId,
                 //CurrencySymbol = x.CurrencySymbol,
                 // المبالغ بالعملة الأساسية للمقارنة
-                TotalAmountBase = x.TotalAmount * x.ExchangeRate / baseRate.ExchangeRate,
+                TotalAmountBase = (x.TotalAmount + x.Adjustments) * x.ExchangeRate / baseRate.ExchangeRate,
                 PaidAmountBase = x.Paid * x.ExchangeRate / baseRate.ExchangeRate,
-                RemainingBase = (x.TotalAmount - x.Paid) * x.ExchangeRate / baseRate.ExchangeRate,
+                RemainingBase = (x.TotalAmount + x.Adjustments - x.Paid) * x.ExchangeRate / baseRate.ExchangeRate,
                 SupplierName = x.SupplierName,
                 BuyerName = x.BuyerName,
                 VesselName = x.VesselName,
@@ -1266,6 +1342,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var baseC = await GetBaseCurrencyExchangeRate(ct);
 
             document.TotalAmountBase /= baseC.ExchangeRate;
+            document.NetAmountBase /= baseC.ExchangeRate;
             document.PaidAmountBase /= baseC.ExchangeRate;
             document.RemainingBase /= baseC.ExchangeRate;
             document.CurrencyNameBase = baseC.Name;
@@ -1292,6 +1369,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 document.TotalAmountBase /= baseC.ExchangeRate;
                 document.PaidAmountBase /= baseC.ExchangeRate;
                 document.RemainingBase /= baseC.ExchangeRate;
+                document.NetAmountBase /= baseC.ExchangeRate;
                 document.CurrencyNameBase = baseC.Name;
                 document.CurrencyCodeBase = baseC.Code;
             }
@@ -1352,20 +1430,27 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
                 VoyageNumber = x.Voyage!=null ? x.Voyage.VoyageNumber : null,
+
+
                 TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) <= x.Payments.Sum(p => p.PaidAmount),
+
 
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
                 IsActive = x.IsActive,
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
 
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate ,
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) * x.Currency.ExchangeRate,
 
                 PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate,
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
+
 
             };
         }
@@ -1393,9 +1478,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CurrencyCode = x.Currency.CurrencyCode,
 
                 TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) <= x.Payments.Sum(p => p.PaidAmount),
+
                 Side = x.Side,
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
@@ -1418,9 +1506,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
 
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) * x.Currency.ExchangeRate,
+
                 PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
+
             };
         }
 
@@ -1446,10 +1537,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
                 VoyageId = x.VoyageId,
+
+
                 TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) <= x.Payments.Sum(p => p.PaidAmount),
+
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
                 IsActive = x.IsActive,
@@ -1486,11 +1582,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     }
 
                 }).ToList(),
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate ,
 
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate ,
+                Adjustments = x.Adjustments.Select(a => new AdjustmentResponse
+                {
+                    Id = a.Id,
+                    DocumentId = a.DocumentId,
+                    Amount = a.Amount,
+                    AdjustmentDate = a.AdjustmentDate,
+                    Reason = a.Reason
+                }).ToList(),
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) * x.Currency.ExchangeRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
+
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
 
             };
         }
@@ -1518,9 +1625,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CurrencyCode = x.Currency.CurrencyCode,
 
                 TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
                 TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount == x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) -x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)  <= x.Payments.Sum(p => p.PaidAmount),
+
+
                 VoyageId = x.VoyageId,
                 Reference = x.Reference,
                 ParentDocumentId = x.ParentDocumentId,
@@ -1568,6 +1679,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     LineTotal = i.LineTotal,
                     Unit = i.Unit,
                 }).ToList(),
+
+                Adjustments = x.Adjustments.Select(a => new AdjustmentResponse
+                {
+                    Id = a.Id,
+                    DocumentId = a.DocumentId,
+                    Amount = a.Amount,
+                    AdjustmentDate = a.AdjustmentDate,
+                    Reason = a.Reason
+                }).ToList(),
                 TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
 
                 Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
@@ -1576,12 +1696,27 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
 
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) *x.Currency.ExchangeRate,
+
                 PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
 
-                RemainingBase = (x.TotalAmount - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) -x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
 
             };
         }
+
+
+        public static Expression<Func<DocumentAdjustment, AdjustmentResponse>> ToAdjustmentResponse =>
+        a => new AdjustmentResponse 
+        {
+            Id =   a.Id,
+            DocumentId = a.DocumentId,
+            Amount = a.Amount,
+            AdjustmentDate = a.AdjustmentDate,
+            Reason =  a.Reason
+        };
+
+
 
         // ── Private Helpers ───────────────────────────────────────────────────────────
 

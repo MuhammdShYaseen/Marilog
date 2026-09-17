@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Marilog.Application.Services.ApplicationServices.SystemServices;
 using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
 using Marilog.Contracts.DTOs.Responses;
@@ -275,6 +276,32 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
             return Ok(result);
         }
+
+        //---------------------------------------------
+        // Adjustments
+        //---------------------------------------------
+        [HttpPost("adjustments")]
+        public async Task<ActionResult<AdjustmentResponse>> AddAdjustment([FromBody] CreateAdjustmentRequest request, CancellationToken ct)
+        {
+            var adjustment = await _service.AddAdjustmentAsync(request, ct);
+            return Ok(adjustment);
+        }
+
+        [HttpPut("adjustments/{adjustmentId:int}")]
+        public async Task<ActionResult<IActionResult>> Updateadjustment(int adjustmentId, [FromBody] UpdateAdjustmentRequest request, CancellationToken ct)
+        {
+            var updatedAdjustment =  await _service.UpdateAdjustmentAsync(adjustmentId, request, ct);
+
+            return Ok(updatedAdjustment);
+        }
+
+        [HttpDelete("adjustment/{adjustmentId:int}")]
+        public async Task<IActionResult> Removeadjustment(int adjustmentId, CancellationToken ct)
+        {
+            await _service.RemoveAdjustmentAsync(adjustmentId, ct);
+            return NoContent();
+        }
+
         // ─────────────────────────────────────────────
         // Payments
         // ─────────────────────────────────────────────

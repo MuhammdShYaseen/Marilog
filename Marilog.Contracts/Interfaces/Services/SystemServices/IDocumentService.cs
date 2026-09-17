@@ -1,5 +1,6 @@
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
+using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
@@ -51,6 +52,12 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
 
         Task<IReadOnlyList<PriceHistoryResponse>> GetPriceHistoryAsync(string productName, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+
+
+        //---- Adjustments ----------------------------------------------------------
+        Task<AdjustmentResponse> AddAdjustmentAsync(CreateAdjustmentRequest request, CancellationToken ct = default);
+        Task<AdjustmentResponse> UpdateAdjustmentAsync(int adjustmentId, UpdateAdjustmentRequest request, CancellationToken ct = default);
+        Task RemoveAdjustmentAsync(int adjustmentId, CancellationToken ct = default);
 
         // ── Payments ──────────────────────────────────────────────────────────────
         Task<PaymentResponse> AddPaymentAsync(int documentId,AddPaymentRequest create, CancellationToken ct = default);

@@ -2,11 +2,13 @@
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
+using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Enums;
 using System.Net.Http.Json;
+using System.Reflection.Metadata;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -221,6 +223,33 @@ namespace Marilog.Client.Services.SystemServices
 
             return await _http.GetFromJsonAsync<IReadOnlyList<PriceHistoryResponse>>(url,  cancellationToken) ?? [];
         }
+
+        // -- Adjustment ------------------------------------------------------------
+        public async Task<AdjustmentResponse> AddAdjustmentAsync(CreateAdjustmentRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync($"{Base}/adjustments", request, ct);
+            http.EnsureSuccessStatusCode();
+            var response = await http.Content.ReadFromJsonAsync<AdjustmentResponse>(ct);
+            return response!;
+        }
+
+        public async Task<AdjustmentResponse> UpdateAdjustmentAsync(int adjustmentId, UpdateAdjustmentRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync($"{Base}/adjustments/{adjustmentId}", request, ct);
+
+            http.EnsureSuccessStatusCode();
+
+            var response = await http.Content.ReadFromJsonAsync<AdjustmentResponse>(ct);
+
+            return response!;
+
+        }
+
+        public async Task RemoveAdjustmentAsync(int adjustmentId, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/adjustment/{adjustmentId}", ct);
+            http.EnsureSuccessStatusCode();
+        }
         // ── Payments ──────────────────────────────────────────────────────────────
 
         public async Task<PaymentResponse> AddPaymentAsync(int documentId, AddPaymentRequest create, CancellationToken ct = default)
@@ -234,7 +263,6 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update, CancellationToken ct = default)
         {
-            
 
             var http = await _http.PutAsJsonAsync( $"{Base}/{documentId}/payments/{paymentId}", update, ct);
 
@@ -363,6 +391,6 @@ namespace Marilog.Client.Services.SystemServices
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 
-
+       
     }
 }
