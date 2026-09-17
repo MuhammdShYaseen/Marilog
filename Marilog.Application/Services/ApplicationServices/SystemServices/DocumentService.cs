@@ -1,4 +1,3 @@
-
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
@@ -15,65 +14,68 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class DocumentService : IDocumentService
     {
-        private readonly IRepository<Document>      _repo;
+        private readonly IRepository<Document> _repo;
         private readonly IRepository<SwiftTransfer> _swiftRepo;
         private readonly IRepository<Currency> _currencyRepo;
-        private readonly IRepository<Payment> _paymentRepo;
-        private readonly IRepository<DocumentType> _DocTypeRepo;
-        private readonly IRepository<DocumentAdjustment> _adjustmentRepo;
-        public DocumentService(IRepository<Document> repo, IRepository<SwiftTransfer> swiftRepo, IRepository<Currency> currencyRepo, IRepository<Payment> paymentRepo, IRepository<DocumentType> docTypeRepo, IRepository<DocumentAdjustment> docAdjustRepo)
+        private readonly IRepository<DocumentType> _docTypeRepo;
+
+        public DocumentService(
+            IRepository<Document> repo,
+            IRepository<SwiftTransfer> swiftRepo,
+            IRepository<Currency> currencyRepo,
+            IRepository<DocumentType> docTypeRepo)
         {
-            _repo      = repo;
+            _repo = repo;
             _swiftRepo = swiftRepo;
             _currencyRepo = currencyRepo;
-            _paymentRepo = paymentRepo;
-            _DocTypeRepo = docTypeRepo;
-            _adjustmentRepo = docAdjustRepo;
+            _docTypeRepo = docTypeRepo;
         }
 
-        // ── Queries ───────────────────────────────────────────────────────────────
+        // ══ Queries ═══════════════════════════════════════════════════════════════
 
-        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, bool treeView = false, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(
+            string term, bool treeView = false, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(term))
                 return [];
 
-            var normalized = term.Trim().ToLowerInvariant();
-
-            var tokens = normalized
+            var tokens = term.Trim().ToLowerInvariant()
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Distinct()
                 .ToArray();
 
             var docs = await _repo.Query()
-                    .AsNoTracking()
-                    .Where(x => x.IsActive && tokens.All(t => x.SearchVector.Contains(t)))
-                    .OrderByDescending(x => x.DocDate)
-                    .Take(80)
-                    .Select(ToResponse())
-                    .ToListAsync(ct);
-
+                .AsNoTracking()
+                .Where(x => x.IsActive && tokens.All(t => x.SearchVector.Contains(t)))
+                .OrderByDescending(x => x.DocDate)
+                .Take(80)
+                .Select(ToResponse())
+                .ToListAsync(ct);
 
             if (treeView == false)
                 return docs;
+
             await ApplyBaseRateToTreeAsync(docs, ct);
-            return BuildTree(docs, parentId: null, depth: 0);
+            return BuildTree(docs);
         }
-        public async Task<DocumentResponse?> GetByIdAsync(int id, bool treeView = false, CancellationToken ct = default)
+
+        public async Task<DocumentResponse?> GetByIdAsync(
+            int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
                 .Select(ToResponse())
                 .FirstOrDefaultAsync(ct);
+
             if (result != null)
-            {
                 await ApplyBaseRateAsync(result, ct);
-            }
+
             return result;
         }
 
-        public async Task<DocumentResponse?> GetWithItemsAsync(int id, bool treeView = false, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetWithItemsAsync(
+            int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
@@ -82,13 +84,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .FirstOrDefaultAsync(ct);
 
             if (result != null)
-            {
                 await ApplyBaseRateAsync(result, ct);
-            }
+
             return result;
         }
 
-        public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, bool treeView = false, CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetWithPaymentsAsync(
+            int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
@@ -97,180 +99,207 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .FirstOrDefaultAsync(ct);
 
             if (result != null)
-            {
                 await ApplyBaseRateAsync(result, ct);
-            }
+
             return result;
         }
-        public async Task<DocumentResponse?> GetFullAsync(int id, bool treeView = false, CancellationToken ct = default)
-        {
-            var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.Id == id)
-                          .Select(ToResponseFully())
-                          .FirstOrDefaultAsync(x => x.Id == id, ct);
-            if (result != null)
-            {
-                await ApplyBaseRateAsync(result, ct);
-            }
-            return result;
-        } 
 
-        public async Task<DocumentResponse?> GetByNumberAsync(string docNumber, bool treeView = false,
-            CancellationToken ct = default)
-        {
-            var result = await _repo.Query().AsNoTracking()
-                              .Where(x => x.DocNumber == docNumber)
-                              .Select(ToResponse())
-                              .FirstOrDefaultAsync(x => x.DocNumber == docNumber, ct);
-            if (result != null)
-            {
-                await ApplyBaseRateAsync(result, ct);
-            }
-            return result;
-
-        }
-
-        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, bool treeView = false,
-            CancellationToken ct = default)
-        {
-           
-            var result =  await _repo.Query().AsNoTracking()
-                          .Where(x => x.SupplierId == supplierId && x.IsActive)
-                          .Select(ToResponse())
-                          .OrderByDescending(x => x.DocDate)
-                          .ToListAsync(ct);
-            await ApplyBaseRateAsync(result, ct);
-
-            if (treeView == false)
-                return result;
-            await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
-        }
-
-        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false,
-            CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetFullAsync(
+            int id, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
-                          .AsNoTracking()
-                          .Where(x => x.BuyerId == buyerId && x.IsActive)
-                          .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse())
-                          .ToListAsync(ct);
-            await ApplyBaseRateAsync(result, ct);
-            if (treeView == false)
-                return result;
-            await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
-        } 
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(ToResponseFully())
+                .FirstOrDefaultAsync(ct);
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, bool treeView = false,
-            CancellationToken ct = default)
-        {
-            var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.VesselId == vesselId && x.IsActive)
-                          .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse())
-                          .ToListAsync(ct);
-            await ApplyBaseRateAsync(result, ct);
+            if (result != null)
+                await ApplyBaseRateAsync(result, ct);
 
-            if (treeView == false)
-                return result;
-            await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
+            return result;
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(int days, bool treeView = false,
-            CancellationToken ct = default)
+        public async Task<DocumentResponse?> GetByNumberAsync(
+            string docNumber, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.CreatedAt >= DateTime.Today.AddDays(-days) && x.IsActive)
-                          .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse())
-                          .ToListAsync(ct);
-            await ApplyBaseRateAsync(result, ct);
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.DocNumber == docNumber)
+                .Select(ToResponse())
+                .FirstOrDefaultAsync(ct);
 
-            if (treeView == false)
-                return result;
-            await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
+            if (result != null)
+                await ApplyBaseRateAsync(result, ct);
+
+            return result;
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(int voyageId, bool treeView = false, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(
+            int supplierId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query().AsNoTracking()
-                                    .Where(v => v.VoyageId == voyageId)
-                                    .Select(ToResponse())
-                                    .ToListAsync(ct);
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.SupplierId == supplierId && x.IsActive)
+                .OrderByDescending(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
             await ApplyBaseRateAsync(result, ct);
 
             if (treeView == false)
                 return result;
+
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
+            return BuildTree(result);
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false,
-            CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(
+            int buyerId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.DocTypeId == docTypeId && x.IsActive)
-                          .OrderByDescending(x => x.DocDate)
-                          .Select(ToResponse())
-                          .ToListAsync(ct);
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.BuyerId == buyerId && x.IsActive)
+                .OrderByDescending(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
             await ApplyBaseRateAsync(result, ct);
+
             if (treeView == false)
                 return result;
+
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
+            return BuildTree(result);
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false,
-            CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(
+            int vesselId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.IsActive && x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) > x.Payments.Sum(p => p.PaidAmount))
-                          .OrderBy(x => x.DocDate)
-                          .Select(ToResponse())
-                          .ToListAsync(ct);
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.VesselId == vesselId && x.IsActive)
+                .OrderByDescending(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
             await ApplyBaseRateAsync(result, ct);
-            if(treeView == false) 
+
+            if (treeView == false)
                 return result;
+
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result, parentId: null, depth: 0);
+            return BuildTree(result);
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId,
-            CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(
+            int days, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query().AsNoTracking()
-                          .Where(x => x.ParentDocumentId == parentDocumentId)
-                          .OrderBy(x => x.DocDate)
-                          .Select(ToResponse())
-                          .ToListAsync(ct);
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.CreatedAt >= DateTime.Today.AddDays(-days) && x.IsActive)
+                .OrderByDescending(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView == false)
+                return result;
+
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result);
+        }
+
+        public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(
+            int voyageId, bool treeView = false, CancellationToken ct = default)
+        {
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(v => v.VoyageId == voyageId)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView == false)
+                return result;
+
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result);
+        }
+
+        public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(
+            int docTypeId, bool treeView = false, CancellationToken ct = default)
+        {
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.DocTypeId == docTypeId && x.IsActive)
+                .OrderByDescending(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView == false)
+                return result;
+
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result);
+        }
+
+        public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
+            bool treeView = false, CancellationToken ct = default)
+        {
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive &&
+                            x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                            > x.Payments.Sum(p => p.PaidAmount))
+                .OrderBy(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView == false)
+                return result;
+
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(result);
+        }
+
+        public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(
+            int parentDocumentId, CancellationToken ct = default)
+        {
+            var result = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.ParentDocumentId == parentDocumentId)
+                .OrderBy(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
             await ApplyBaseRateAsync(result, ct);
             return result;
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default)
-        {
-            // ── Query واحدة تجلب كل المستندات ────────────────────────────────────────
-            var allDocs = await _repo.Query()
-                .AsNoTracking()
-                .OrderBy(x => x.DocDate)
-                .Select(ToResponseFully())
-                .ToListAsync(ct);
-
-            await ApplyBaseRateToTreeAsync(allDocs, ct);
-            return BuildTree(allDocs, parentId: null, depth: 0);
-        }
-
-        
-
-        public async Task<DocumentResponse?> GetTreeByDocumentIdAsync(
-            int documentId,
+        public async Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(
             CancellationToken ct = default)
         {
-            // ── نجلب كل المستندات مرة واحدة ─────────────────────────────────────────
+            // ── Query واحدة تجلب كل المستندات ────────────────────────────────────
+            var allDocs = await _repo.Query()
+                .AsNoTracking()
+                .OrderBy(x => x.DocDate)
+                .Select(ToResponseFully())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateToTreeAsync(allDocs, ct);
+            return BuildTree(allDocs);
+        }
+
+        public async Task<DocumentResponse?> GetTreeByDocumentIdAsync(
+            int documentId, CancellationToken ct = default)
+        {
+            // ── نجلب كل المستندات مرة واحدة ──────────────────────────────────────
             var allDocs = await _repo.Query()
                 .AsNoTracking()
                 .OrderBy(x => x.DocDate)
@@ -279,47 +308,48 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             await ApplyBaseRateToTreeAsync(allDocs, ct);
 
-            // ── نبحث عن الجذر الذي ينتمي إليه هذا الـ document ─────────────────────
+            // ── نبحث عن الجذر الذي ينتمي إليه هذا الـ document ───────────────────
             var rootId = FindRootId(allDocs, documentId);
             if (rootId is null) return null;
 
-            // ── نبني الشجرة كاملة ابتداءً من الجذر ──────────────────────────────────
-            var roots = BuildTree(allDocs, parentId: null, depth: 0);
+            // ── نبني الشجرة كاملة ابتداءً من الجذر ───────────────────────────────
+            var roots = BuildTree(allDocs);
             return roots.FirstOrDefault(r => r.Id == rootId);
         }
 
+        // ══ Commands ══════════════════════════════════════════════════════════════
 
-       
-
-        // ── Commands ─────────────────────────────────────────────────────────────
-
-        public async Task<DocumentResponse> CreateAsync(CreateDocumentRequest createDto, CancellationToken ct = default)
+        public async Task<DocumentResponse> CreateAsync(
+            CreateDocumentRequest createDto, CancellationToken ct = default)
         {
             await EnsureUniqueDocNumberAsync(createDto.DocNumber, excludeId: null, ct);
 
             var document = Document.Create(
-                docNumber : createDto.DocNumber,
-                docTypeId  : createDto.DocTypeId,
-                side : createDto.Side,
-                docDate : createDto.DocDate,
-                currencyId : createDto.CurrencyId,
-                totalAmount : createDto.TotalAmount,
-                voyageId : createDto.VoyageId,
-                supplierId : createDto.SupplierId,
-                buyerId : createDto.BuyerId,
-                vesselId : createDto.VesselId,
-                portId : createDto.PortId,
-                parentDocumentId : createDto.ParentDocumentId,
-                reference : createDto.Reference
-                );
+                docNumber: createDto.DocNumber,
+                docTypeId: createDto.DocTypeId,
+                side: createDto.Side,
+                docDate: createDto.DocDate,
+                currencyId: createDto.CurrencyId,
+                totalAmount: createDto.TotalAmount,
+                voyageId: createDto.VoyageId,
+                supplierId: createDto.SupplierId,
+                buyerId: createDto.BuyerId,
+                vesselId: createDto.VesselId,
+                portId: createDto.PortId,
+                parentDocumentId: createDto.ParentDocumentId,
+                reference: createDto.Reference);
+
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
+
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
+
             return new DocumentResponse
             {
                 DocNumber = document.DocNumber,
                 TotalAmount = document.TotalAmount,
+                NetAmount = document.TotalAmount,
                 SupplierId = document.SupplierId,
                 BuyerId = document.BuyerId,
                 VesselId = document.VesselId,
@@ -328,13 +358,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Reference = document.Reference,
                 Side = document.Side,
                 VoyageId = document.VoyageId,
-                NetAmount = document.TotalAmount,
             };
-
         }
+
         public async Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(
-        IEnumerable<CreateDocumentRequest> commands,
-        CancellationToken ct = default)
+            IEnumerable<CreateDocumentRequest> commands, CancellationToken ct = default)
         {
             var documents = new List<Document>();
 
@@ -342,22 +370,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 await EnsureUniqueDocNumberAsync(c.DocNumber, excludeId: null, ct);
 
-                var document = Document.Create(
-                 docNumber: c.DocNumber,
-                 docTypeId: c.DocTypeId,
-                 side: c.Side,
-                 docDate: c.DocDate,
-                 currencyId: c.CurrencyId,
-                 totalAmount: c.TotalAmount,
-                 voyageId: c.VoyageId,
-                 supplierId: c.SupplierId,
-                 buyerId: c.BuyerId,
-                 vesselId: c.VesselId,
-                 portId: c.PortId,
-                 parentDocumentId: c.ParentDocumentId,
-                 reference: c.Reference
-                 );
-                documents.Add(document);
+                documents.Add(Document.Create(
+                    docNumber: c.DocNumber,
+                    docTypeId: c.DocTypeId,
+                    side: c.Side,
+                    docDate: c.DocDate,
+                    currencyId: c.CurrencyId,
+                    totalAmount: c.TotalAmount,
+                    voyageId: c.VoyageId,
+                    supplierId: c.SupplierId,
+                    buyerId: c.BuyerId,
+                    vesselId: c.VesselId,
+                    portId: c.PortId,
+                    parentDocumentId: c.ParentDocumentId,
+                    reference: c.Reference));
             }
 
             await _repo.AddRangeAsync(documents, ct);
@@ -373,6 +399,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     DocNumber = doc.DocNumber,
                     TotalAmount = doc.TotalAmount,
+                    NetAmount = doc.TotalAmount,
                     SupplierId = doc.SupplierId,
                     BuyerId = doc.BuyerId,
                     VesselId = doc.VesselId,
@@ -380,44 +407,48 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     ParentDocumentId = doc.ParentDocumentId,
                     Reference = doc.Reference,
                     Side = doc.Side,
-                    NetAmount = doc.TotalAmount,
                 })
                 .ToList();
         }
-        public async Task UpdateAsync(int id, UpdateDocumentRequest updateDto, CancellationToken ct = default)
+
+        public async Task UpdateAsync(
+            int id, UpdateDocumentRequest updateDto, CancellationToken ct = default)
         {
             var document = await GetWithPaymentsOrThrowAsync(id, ct);
+
             if (document.Payments.Count > 0 && updateDto.TotalAmount != document.TotalAmount)
-            {
-                throw new InvalidOperationException("Cannot modify TotalAmount for a document that has payments. Add an adjustment instead.");
-            }
+                throw new InvalidOperationException(
+                    "Cannot modify TotalAmount for a document that has payments. Add an adjustment instead.");
+
             document.Update(
-                docTypeId : updateDto.DocTypeId,
-                side : updateDto.Side,
-                docNumber : updateDto.DocNumber,
-                docDate : updateDto.DocDate,
-                currencyId : updateDto.CurrencyId,
-                totalAmount : updateDto.TotalAmount,
-                voyageId : updateDto.VoyageId,
-                parentDocumentId : updateDto.ParentDocumentId,
-                supplierId : updateDto.SupplierId,
-                buyerId : updateDto.BuyerId,
-                vesselId : updateDto.VesselId,
-                portId : updateDto.PortId,
-                reference : updateDto.Reference
-                );
+                docTypeId: updateDto.DocTypeId,
+                side: updateDto.Side,
+                docNumber: updateDto.DocNumber,
+                docDate: updateDto.DocDate,
+                currencyId: updateDto.CurrencyId,
+                totalAmount: updateDto.TotalAmount,
+                voyageId: updateDto.VoyageId,
+                parentDocumentId: updateDto.ParentDocumentId,
+                supplierId: updateDto.SupplierId,
+                buyerId: updateDto.BuyerId,
+                vesselId: updateDto.VesselId,
+                portId: updateDto.PortId,
+                reference: updateDto.Reference);
+
             _repo.Update(document);
             await BuildSearchVectorAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
-               
         }
 
-        public async Task LinkToParentAsync(int id, int parentDocumentId,
-            CancellationToken ct = default)
+        public async Task LinkToParentAsync(
+            int id, int parentDocumentId, CancellationToken ct = default)
         {
             var document = await GetOrThrowAsync(id, ct);
-            var parentExists = await _repo.Query().AsNoTracking()
+
+            var parentExists = await _repo.Query()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == parentDocumentId, ct);
+
             if (!parentExists)
                 throw new KeyNotFoundException($"Parent document {parentDocumentId} not found.");
 
@@ -450,7 +481,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var document = await _repo.Query()
@@ -458,12 +488,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new KeyNotFoundException($"Document {id} not found.");
 
-            // ── Guard 1: له مدفوعات ──────────────────────────────────────────────────
+            // ── Guard 1: له مدفوعات ──────────────────────────────────────────────
             if (document.Payments.Any())
                 throw new InvalidOperationException(
                     "Cannot delete a document that has payments. Deactivate it instead.");
 
-            // ── Guard 2: له أبناء ────────────────────────────────────────────────────
+            // ── Guard 2: له أبناء ────────────────────────────────────────────────
             var hasChildren = await _repo.Query()
                 .AnyAsync(x => x.ParentDocumentId == id, ct);
 
@@ -476,32 +506,33 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-        // ── Items ─────────────────────────────────────────────────────────────────
+        // ══ Items ═════════════════════════════════════════════════════════════════
 
-        public async Task<DocumentItemResponse> AddItemAsync(int documentId, string productName,
-            decimal quantity, decimal unitPrice, string? unit = null,
-            CancellationToken ct = default)
+        public async Task<DocumentItemResponse> AddItemAsync(
+            int documentId, string productName, decimal quantity, decimal unitPrice,
+            string? unit = null, CancellationToken ct = default)
         {
             var document = await GetWithItemsOrThrowAsync(documentId, ct);
+
             var item = document.AddItem(productName, quantity, unitPrice, unit);
+
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
+
             return new DocumentItemResponse
             {
                 Id = item.Id,
-                LineTotal = item.LineTotal,
                 ProductName = item.ProductName,
-                UnitPrice = item.UnitPrice,
                 Quantity = item.Quantity,
-                Unit = item.Unit
-
+                UnitPrice = item.UnitPrice,
+                LineTotal = item.LineTotal,
+                Unit = item.Unit,
             };
         }
 
         public async Task<IReadOnlyList<DocumentItemResponse>> AddItemsRangeAsync(
-        int documentId,
-        IEnumerable<AddDocumentItemRequest> commands,
-        CancellationToken ct = default)
+            int documentId, IEnumerable<AddDocumentItemRequest> commands,
+            CancellationToken ct = default)
         {
             var document = await GetWithItemsOrThrowAsync(documentId, ct);
 
@@ -512,20 +543,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
 
-            return items.Select(i => new DocumentItemResponse 
-            {
-                Id = i.Id,
-                LineTotal = i.LineTotal,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                Unit = i.Unit,
-                UnitPrice = i.UnitPrice
-            }).ToList();
+            return items
+                .Select(i => new DocumentItemResponse
+                {
+                    Id = i.Id,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    LineTotal = i.LineTotal,
+                    Unit = i.Unit,
+                })
+                .ToList();
         }
 
-        public async Task UpdateItemAsync(int documentId, int itemId, string productName,
-            decimal quantity, decimal unitPrice, string? unit = null,
-            CancellationToken ct = default)
+        public async Task UpdateItemAsync(
+            int documentId, int itemId, string productName, decimal quantity,
+            decimal unitPrice, string? unit = null, CancellationToken ct = default)
         {
             var document = await GetWithItemsOrThrowAsync(documentId, ct);
             document.UpdateItem(itemId, productName, quantity, unitPrice, unit);
@@ -533,27 +566,38 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-        public async Task<IReadOnlyList<PriceHistoryResponse>> GetPriceHistoryAsync(string productName, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        public async Task RemoveItemAsync(
+            int documentId, int itemId, CancellationToken ct = default)
         {
-            var invoiceTypeId = await _DocTypeRepo.Query()
-                                                  .AsNoTracking()
-                                                  .Where(t => t.Code == "INV")
-                                                  .Select(i => i.Id)
-                                                  .FirstOrDefaultAsync(ct);
-            var query = _repo.Query()
-                             .AsNoTracking()
-                             .Include(i => i.Items)
-                             .Include(v => v.Vessel)
-                             .Include(c => c.Currency)
-                             .Include(b => b.Buyer)
-                             .Include(s => s.Supplier)
-                             .Where(d => d.DocTypeId == invoiceTypeId)
-                             .SelectMany(d => d.Items, (doc, item) => new { doc, item })
-                             .Where(x => x.item.ProductName.ToLower().Trim() == productName.ToLower().Trim());
+            var document = await GetWithItemsOrThrowAsync(documentId, ct);
+            document.RemoveItem(itemId);
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+        }
 
-            
+        public async Task<IReadOnlyList<PriceHistoryResponse>> GetPriceHistoryAsync(
+            string productName, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        {
+            var invoiceTypeId = await _docTypeRepo.Query()
+                .AsNoTracking()
+                .Where(t => t.Code == "INV")
+                .Select(i => i.Id)
+                .FirstOrDefaultAsync(ct);
+
+            var query = _repo.Query()
+                .AsNoTracking()
+                .Include(i => i.Items)
+                .Include(v => v.Vessel)
+                .Include(c => c.Currency)
+                .Include(b => b.Buyer)
+                .Include(s => s.Supplier)
+                .Where(d => d.DocTypeId == invoiceTypeId)
+                .SelectMany(d => d.Items, (doc, item) => new { doc, item })
+                .Where(x => x.item.ProductName.ToLower().Trim() == productName.ToLower().Trim());
+
             if (from.HasValue)
                 query = query.Where(x => x.doc.DocDate >= from);
+
             if (to.HasValue)
                 query = query.Where(x => x.doc.DocDate <= to);
 
@@ -572,16 +616,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     UnitPriceInBaseCurrency = x.item.UnitPrice * x.doc.Currency.ExchangeRate,
                     Quantity = x.item.Quantity,
                 })
-                .ToListAsync();
-            await ApplyBaseRateAsync(results, ct);
+                .ToListAsync(ct);
 
+            await ApplyBaseRateAsync(results, ct);
 
             // حساب نسبة التغير بين كل سعرين متتاليين (في C# بعد سحب البيانات، مو بالـ query)
             for (int i = 1; i < results.Count; i++)
             {
                 if (results[i - 1].UnitPriceInBaseCurrency != 0)
                 {
-                    var change = (results[i].UnitPriceInBaseCurrency - results[i - 1].UnitPriceInBaseCurrency) / results[i - 1].UnitPriceInBaseCurrency * 100;
+                    var change = (results[i].UnitPriceInBaseCurrency - results[i - 1].UnitPriceInBaseCurrency)
+                               / results[i - 1].UnitPriceInBaseCurrency * 100;
+
                     results[i].ChangePercent = Math.Round(change, 1);
                 }
             }
@@ -589,24 +635,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return results;
         }
 
-        public async Task RemoveItemAsync(int documentId, int itemId, CancellationToken ct = default)
-        {
-            var document = await GetWithItemsOrThrowAsync(documentId, ct);
-            document.RemoveItem(itemId);
-            _repo.Update(document);
-            await _repo.SaveChangesAsync(ct);
-        }
+        // ══ Adjustments ═══════════════════════════════════════════════════════════
 
-        //---- Adjustments ----------------------------------------------------------
-        public async Task<AdjustmentResponse> AddAdjustmentAsync(CreateAdjustmentRequest request, CancellationToken ct = default)
+        public async Task<AdjustmentResponse> AddAdjustmentAsync(
+            CreateAdjustmentRequest request, CancellationToken ct = default)
         {
-            var document = await _repo.Query()
-                .Include(d => d.Payments)
-                .Include(d => d.Adjustments)
-                .FirstOrDefaultAsync(d => d.Id == request.DocumentId, ct);
-
-            if (document is null)
-                throw new ArgumentNullException(nameof(document));
+            var document = await GetWithAdjustmentsOrThrowAsync(
+                d => d.Id == request.DocumentId,
+                $"Document {request.DocumentId} not found.",
+                ct);
 
             var adjustment = document.AddAdjustment(
                 request.Amount,
@@ -616,25 +653,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
 
-            return new AdjustmentResponse
-            {
-                Id = adjustment.Id,
-                DocumentId = document.Id,
-                Amount = adjustment.Amount,
-                AdjustmentDate = adjustment.AdjustmentDate,
-                Reason = adjustment.Reason
-            };
+            return ToAdjustmentResponse(document.Id, adjustment);
         }
 
-        public async Task<AdjustmentResponse> UpdateAdjustmentAsync(int adjustmentId, UpdateAdjustmentRequest request, CancellationToken ct = default)
+        public async Task<AdjustmentResponse> UpdateAdjustmentAsync(
+            int adjustmentId, UpdateAdjustmentRequest request, CancellationToken ct = default)
         {
-            var document = await _repo.Query()
-                .Include(d => d.Payments)
-                .Include(d => d.Adjustments)
-                .FirstOrDefaultAsync(d => d.Adjustments.Any(a => a.Id == adjustmentId), ct);
-
-            if (document is null)
-                throw new ArgumentNullException(nameof(document));
+            var document = await GetWithAdjustmentsOrThrowAsync(
+                d => d.Adjustments.Any(a => a.Id == adjustmentId),
+                $"Adjustment {adjustmentId} not found.",
+                ct);
 
             document.UpdateAdjustment(
                 adjustmentId,
@@ -644,39 +672,37 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
-           return await _adjustmentRepo.Query()
-                                       .AsNoTracking()
-                                       .Where(j => j.Id == adjustmentId)
-                                       .Select(ToAdjustmentResponse)
-                                       .FirstOrDefaultAsync(ct) ?? new AdjustmentResponse();
+
+            var updated = document.Adjustments.First(a => a.Id == adjustmentId);
+            return ToAdjustmentResponse(document.Id, updated);
         }
 
-        public async Task RemoveAdjustmentAsync(int adjustmentId, CancellationToken ct = default)
+        public async Task RemoveAdjustmentAsync(
+            int adjustmentId, CancellationToken ct = default)
         {
-            var document = await _repo.Query()
-                .Include(d => d.Payments)
-                .Include(d => d.Adjustments)
-                .FirstOrDefaultAsync(d => d.Adjustments.Any(a => a.Id == adjustmentId), ct);
-
-            if (document is null)
-                throw new ArgumentNullException(nameof(document));
+            var document = await GetWithAdjustmentsOrThrowAsync(
+                d => d.Adjustments.Any(a => a.Id == adjustmentId),
+                $"Adjustment {adjustmentId} not found.",
+                ct);
 
             document.RemoveAdjustment(adjustmentId);
 
             _repo.Update(document);
             await _repo.SaveChangesAsync(ct);
-
         }
 
-        // ── Payments ──────────────────────────────────────────────────────────────
+        // ══ Payments ══════════════════════════════════════════════════════════════
 
-        public async Task<PaymentResponse> AddPaymentAsync(int documentId, AddPaymentRequest create, CancellationToken ct = default)
+        public async Task<PaymentResponse> AddPaymentAsync(
+            int documentId, AddPaymentRequest create, CancellationToken ct = default)
         {
             var document = await _repo.Query()
                 .Include(p => p.Payments)
-                .FirstOrDefaultAsync(x => x.Id == documentId, ct) ?? throw new KeyNotFoundException($"Document {documentId} not found.");
+                .Include(a => a.Adjustments)
+                .FirstOrDefaultAsync(x => x.Id == documentId, ct)
+                ?? throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            if (create.SwiftTransferId.HasValue == true)
+            if (create.SwiftTransferId.HasValue)
             {
                 var swift = await _swiftRepo.Query()
                     .Include(p => p.Payments)
@@ -689,7 +715,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     .FirstOrDefaultAsync(ct);
 
                 if (swift is null)
-                    throw new KeyNotFoundException("SwiftTransfer not found or not allowed for this document.");
+                    throw new KeyNotFoundException(
+                        "SwiftTransfer not found or not allowed for this document.");
 
                 if (swift.CurrencyId != document.CurrencyId)
                     throw new InvalidOperationException(
@@ -700,10 +727,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         $"Paid amount ({create.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({swift.UnallocatedAmount}).");
             }
 
-            var payment = document.AddPayment(create.SwiftTransferId, create.Method, create.PaidAmount, create.PaymentDate, create.Discreption);
+            var payment = document.AddPayment(
+                create.SwiftTransferId,
+                create.Method,
+                create.PaidAmount,
+                create.PaymentDate,
+                create.Discreption);
 
             _repo.Update(document);
-
             await _repo.SaveChangesAsync(ct);
 
             return new PaymentResponse
@@ -714,24 +745,24 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 PaidAmount = payment.PaidAmount,
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
-                Discreption = payment.Discreption
+                Discreption = payment.Discreption,
             };
         }
 
-        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update, CancellationToken ct = default)
+        public async Task<PaymentResponse> UpdatePaymentAsync(
+            int documentId, int paymentId, UpdatePaymentRequest update,
+            CancellationToken ct = default)
         {
             var document = await _repo.Query()
                 .Include(x => x.Payments)
+                .Include(x => x.Adjustments)
                 .FirstOrDefaultAsync(x => x.Id == documentId, ct)
-                ?? throw new KeyNotFoundException(
-                    $"Document {documentId} not found.");
+                ?? throw new KeyNotFoundException($"Document {documentId} not found.");
 
-            var existingPayment = document.Payments
-                .FirstOrDefault(x => x.Id == paymentId)
-                ?? throw new KeyNotFoundException(
-                    $"Payment {paymentId} not found.");
+            var existingPayment = document.Payments.FirstOrDefault(x => x.Id == paymentId)
+                ?? throw new KeyNotFoundException($"Payment {paymentId} not found.");
 
-            if (update.SwiftTransferId.HasValue == true)
+            if (update.SwiftTransferId.HasValue)
             {
                 var swift = await _swiftRepo.Query()
                     .Include(p => p.Payments)
@@ -753,34 +784,38 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     : 0;
 
                 var availableAmount = swift.UnallocatedAmount + alreadyAllocated;
+
                 if (update.PaidAmount > availableAmount)
                     throw new InvalidOperationException(
                         $"Paid amount ({update.PaidAmount}) exceeds the unallocated SwiftTransfer amount ({availableAmount}).");
             }
 
-            document.UpdatePayment(paymentId, update.Method, update.SwiftTransferId, update.PaidAmount, update.PaymentDate, update.Discreption);
+            document.UpdatePayment(
+                paymentId,
+                update.Method,
+                update.SwiftTransferId,
+                update.PaidAmount,
+                update.PaymentDate,
+                update.Discreption);
 
             _repo.Update(document);
-
             await _repo.SaveChangesAsync(ct);
 
-            var payment = document.Payments
-                .First(x => x.Id == paymentId);
+            var payment = document.Payments.First(x => x.Id == paymentId);
 
             return new PaymentResponse
             {
                 Id = payment.Id,
-                SwiftTransferId = payment.SwiftTransferId,
                 DocumentId = payment.DocumentId,
+                SwiftTransferId = payment.SwiftTransferId,
                 PaidAmount = payment.PaidAmount,
                 PaymentDate = payment.PaymentDate,
                 PaymentMethod = payment.PaymentMethod,
-                Discreption = payment.Discreption
+                Discreption = payment.Discreption,
             };
         }
 
-
-        public async Task RemovePaymentAsync (int documentId, int  paymentId, CancellationToken ct)
+        public async Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct)
         {
             var document = await GetWithPaymentsOrThrowAsync(documentId, ct);
             document.RemovePayment(paymentId);
@@ -788,7 +823,36 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
-        public async Task<PaymentsReport> GetPaymentsReportAsync(FilterPaymentOptionsRequest options, CancellationToken ct = default)
+        // ══ Email ═════════════════════════════════════════════════════════════════
+
+        public async Task LogEmailAsync(
+            int documentId, string subject, string body,
+            IReadOnlyList<EmailParticipantResponse> participants,
+            EmailDirection direction = EmailDirection.Outbound,
+            CancellationToken ct = default)
+        {
+            var dtoParticipants = participants
+                .Select(x => new Domain.Events.EmailParticipantData(
+                    x.Role,
+                    x.ParticipantType,
+                    x.ParticipantId,
+                    x.DisplayName,
+                    x.EmailAddress))
+                .ToList()
+                .AsReadOnly();
+
+            var document = await GetOrThrowAsync(documentId, ct);
+
+            document.LogEmail(subject, body, dtoParticipants, direction);
+
+            _repo.Update(document);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        // ══ Reports ═══════════════════════════════════════════════════════════════
+
+        public async Task<PaymentsReport> GetPaymentsReportAsync(
+            FilterPaymentOptionsRequest options, CancellationToken ct = default)
         {
             var baseRate = await GetBaseCurrencyExchangeRate(ct);
 
@@ -796,7 +860,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(p => p.IsActive && p.Side != FinancialSide.None);
 
-            // ─── فلترة الكيانات (على مستوى المستند) ───────────────────────────────
+            // ─── فلترة الكيانات (على مستوى المستند) ──────────────────────────────
             if (options.VesselId.HasValue)
                 documentsQuery = documentsQuery.Where(p => p.VesselId == options.VesselId.Value);
 
@@ -815,14 +879,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.Side.HasValue)
                 documentsQuery = documentsQuery.Where(p => p.Side == options.Side.Value);
 
-            // ─── النزول لمستوى الدفعة الفعلي — هون المفتاح ─────────────────────────
-            var paymentsQuery = documentsQuery.SelectMany(d => d.Payments, (d, payment) => new
-            {
-                Document = d,
-                Payment = payment
-            });
+            // ─── النزول لمستوى الدفعة الفعلي — هون المفتاح ───────────────────────
+            var paymentsQuery = documentsQuery.SelectMany(
+                d => d.Payments,
+                (d, payment) => new { Document = d, Payment = payment });
 
-            // ─── فلترة على مستوى الدفعة نفسها ──────────────────────────────────────
+            // ─── فلترة على مستوى الدفعة نفسها ────────────────────────────────────
             if (options.FromDate.HasValue)
                 paymentsQuery = paymentsQuery.Where(x => x.Payment.PaymentDate >= options.FromDate.Value);
 
@@ -876,32 +938,34 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToListAsync(ct);
 
-            var payments = rows.Select(r => new PaymentReportRow
-            {
-                PaymentId = r.PaymentId,
-                PaymentDate = r.PaymentDate,
-                PaidAmount = r.PaidAmount,
-                PaidAmountBase = r.PaidAmount * r.ExchangeRate / baseRate.ExchangeRate,
-                PaymentMethod = r.PaymentMethod,
-                SwiftTransferId = r.SwiftTransferId,
-                DocumentId = r.DocumentId,
-                DocNumber = r.DocNumber,
-                DocDate = r.DocDate,
-                DocTypeId = r.DocTypeId,
-                DocTypeName = r.DocTypeName,
-                Side = r.Side,
-                CurrencyCode = r.CurrencyCode,
-                SupplierId = r.SupplierId,
-                SupplierName = r.SupplierName,
-                BuyerId = r.BuyerId,
-                BuyerName = r.BuyerName,
-                VesselId = r.VesselId,
-                VesselName = r.VesselName,
-                VoyageId = r.VoyageId,
-                VoyageNumber = r.VoyageNumber,
-            }).ToList();
+            var payments = rows
+                .Select(r => new PaymentReportRow
+                {
+                    PaymentId = r.PaymentId,
+                    PaymentDate = r.PaymentDate,
+                    PaidAmount = r.PaidAmount,
+                    PaidAmountBase = r.PaidAmount * r.ExchangeRate / baseRate.ExchangeRate,
+                    PaymentMethod = r.PaymentMethod,
+                    SwiftTransferId = r.SwiftTransferId,
+                    DocumentId = r.DocumentId,
+                    DocNumber = r.DocNumber,
+                    DocDate = r.DocDate,
+                    DocTypeId = r.DocTypeId,
+                    DocTypeName = r.DocTypeName,
+                    Side = r.Side,
+                    CurrencyCode = r.CurrencyCode,
+                    SupplierId = r.SupplierId,
+                    SupplierName = r.SupplierName,
+                    BuyerId = r.BuyerId,
+                    BuyerName = r.BuyerName,
+                    VesselId = r.VesselId,
+                    VesselName = r.VesselName,
+                    VoyageId = r.VoyageId,
+                    VoyageNumber = r.VoyageNumber,
+                })
+                .ToList();
 
-            // ─── الموقع المالي الفعلي (cash basis) ────────────────────────────────
+            // ─── الموقع المالي الفعلي (cash basis) ───────────────────────────────
             var cashIn = payments.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase);
             var cashOut = payments.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase);
             var netCashFlow = cashIn - cashOut;
@@ -915,8 +979,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
                     CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
                     NetCashFlow = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase)
-                                 - g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
-                    Count = g.Count()
+                                - g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
+                    Count = g.Count(),
                 })
                 .OrderBy(m => m.Year).ThenBy(m => m.Month)
                 .ToList();
@@ -929,12 +993,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     TotalBase = g.Sum(p => p.PaidAmountBase),
                     CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
                     CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
-                    Count = g.Count()
+                    Count = g.Count(),
                 })
                 .OrderByDescending(m => m.TotalBase)
                 .ToList();
 
-            var vesselSummary = payments.Where(p => p.VesselId.HasValue)
+            var vesselSummary = payments
+                .Where(p => p.VesselId.HasValue)
                 .GroupBy(p => p.VesselId!.Value)
                 .Select(g => new VesselPaymentSummary
                 {
@@ -944,36 +1009,39 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
                     NetCashFlow = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase)
                                 - g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
-                    Count = g.Count()
+                    Count = g.Count(),
                 })
                 .OrderByDescending(v => v.CashIn + v.CashOut)
                 .ToList();
 
-            var supplierSummary = payments.Where(p => p.SupplierId.HasValue)
+            var supplierSummary = payments
+                .Where(p => p.SupplierId.HasValue)
                 .GroupBy(p => p.SupplierId!.Value)
                 .Select(g => new SupplierPaymentSummary
                 {
                     SupplierId = g.Key,
                     SupplierName = g.First().SupplierName ?? string.Empty,
                     TotalPaidBase = g.Sum(p => p.PaidAmountBase),
-                    Count = g.Count()
+                    Count = g.Count(),
                 })
                 .OrderByDescending(s => s.TotalPaidBase)
                 .ToList();
 
-            var buyerSummary = payments.Where(p => p.BuyerId.HasValue)
+            var buyerSummary = payments
+                .Where(p => p.BuyerId.HasValue)
                 .GroupBy(p => p.BuyerId!.Value)
                 .Select(g => new BuyerPaymentSummary
                 {
                     BuyerId = g.Key,
                     BuyerName = g.First().BuyerName ?? string.Empty,
                     TotalReceivedBase = g.Sum(p => p.PaidAmountBase),
-                    Count = g.Count()
+                    Count = g.Count(),
                 })
                 .OrderByDescending(b => b.TotalReceivedBase)
                 .ToList();
 
-            var voyageSummary = payments.Where(p => p.VoyageId.HasValue)
+            var voyageSummary = payments
+                .Where(p => p.VoyageId.HasValue)
                 .GroupBy(p => p.VoyageId!.Value)
                 .Select(g => new VoyagePaymentSummary
                 {
@@ -981,7 +1049,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VoyageNumber = g.First().VoyageNumber ?? string.Empty,
                     CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
                     CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
-                    Count = g.Count()
+                    Count = g.Count(),
                 })
                 .OrderByDescending(v => v.CashIn + v.CashOut)
                 .ToList();
@@ -1001,44 +1069,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 BuyerSummary = buyerSummary,
                 VoyageSummary = voyageSummary,
                 Count = payments.Count,
-                BaseCurrencyCode = await GetBaseCurrencyCode(ct)
+                BaseCurrencyCode = await GetBaseCurrencyCode(ct),
             };
         }
-        // ── Email ──────────────────────────────────────────────────────────────────
 
-        public async Task LogEmailAsync(int documentId, string subject, string body,
-            IReadOnlyList<EmailParticipantResponse> participants, EmailDirection direction = EmailDirection.Outbound,
-            CancellationToken ct = default)
-        {
-
-            var dtoParticipants = participants
-                .Select(x => new Domain.Events.EmailParticipantData(
-                     x.Role,
-                     x.ParticipantType,
-                     x.ParticipantId,
-                     x.DisplayName,
-                     x.EmailAddress))
-                .ToList()
-                .AsReadOnly();
-            var document = await GetOrThrowAsync(documentId, ct);
-            document.LogEmail(subject, body, dtoParticipants, direction);
-            _repo.Update(document);
-            await _repo.SaveChangesAsync(ct);
-        }
-
-
-        //----Reports----------------------------------------------------------------
         public async Task<DocumentReport> GetFilteredDocsReportAsync(
-        DocumentFilterOptions options,
-        CancellationToken ct = default)
+            DocumentFilterOptions options, CancellationToken ct = default)
         {
             var baseRate = await GetBaseCurrencyExchangeRate(ct);
-            var query = _repo.Query().AsNoTracking()
-                             .Include(v => v.Voyage)
-                             .Include(ve => ve.Vessel)
-                             .Include(p => p.Port)
-                             .Where(x => x.IsActive)
-                             .Where(x => x.Side != FinancialSide.None);
+
+            var query = _repo.Query()
+                .AsNoTracking()
+                .Include(v => v.Voyage)
+                .Include(ve => ve.Vessel)
+                .Include(p => p.Port)
+                .Where(x => x.IsActive)
+                .Where(x => x.Side != FinancialSide.None);
 
             // ─── فلترة ───────────────────────────────────────────────────────────
             if (options.SupplierId.HasValue)
@@ -1056,12 +1102,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.DocTypeId.HasValue)
                 query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
 
-            if(options.Side.HasValue)
+            if (options.Side.HasValue)
                 query = query.Where(x => x.Side == options.Side.Value);
 
             if (options.UnpaidOnly == true)
                 query = query.Where(x =>
-                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m) < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
+                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
+                    < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
 
             if (options.FromDate.HasValue || options.ToDate.HasValue)
             {
@@ -1071,12 +1118,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 if (options.ToDate.HasValue)
                     query = query.Where(x => x.DocDate <= options.ToDate.Value);
             }
-
             else if (options.LastDays.HasValue)
             {
                 var threshold = DateTime.UtcNow.AddDays(-options.LastDays.Value);
-                query = query.Where(x =>
-                    x.DocDate.ToDateTime(TimeOnly.MinValue) >= threshold);
+                query = query.Where(x => x.DocDate.ToDateTime(TimeOnly.MinValue) >= threshold);
             }
             else
             {
@@ -1090,105 +1135,94 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderByDescending(x => x.DocDate);
 
-            // ─── الإحصاءات من DB — رحلة واحدة ───────────────────────────────────
-            var dbSummary = await query
-                .GroupBy(_ => 1)
-                .Select(g => new
-                {
-                    TotalValue = g.Sum(x => x.TotalAmount),
-                    TotalPaid = g.Sum(x => x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m),
-                    TotalRemaining = g.Sum(x => x.TotalAmount
-                                              - (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)),
-                    Count = g.Count(),
-                })
-                .FirstOrDefaultAsync(ct);
-
             var docs = await query
-            .Select(x => new
-            {
-                Paid = x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m,
-                Id = x.Id,
-                SupplierId = x.SupplierId,
-                BuyerId = x.BuyerId,
-                VesselId = x.VesselId,
-                DocTypeId = x.DocTypeId,
-                DocDate = x.DocDate,
-                TotalAmount = x.TotalAmount,
-                Adjustments = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
-                CurrencyId = x.CurrencyId,
-                CurrencyCode = x.Currency.CurrencyCode,
-                //CurrencySymbol = x.Currency.Symbol,
-                ExchangeRate = x.Currency.ExchangeRate,         // ← أضف هذا
-                IsBaseCurrency = x.Currency.IsBaseCurrency,     // ← أضف هذا
-                SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
-                BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
-                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-                DocTypeName = x.DocType != null ? x.DocType.Name : null,
-                DocNumber = x.DocNumber,
-                Side = x.Side,
-                VoyageId = x.VoyageId,
-                VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
-                VoyageSummary = x.Voyage != null ? "From : " + x.Voyage.DeparturePort!.PortName + " To : " + x.Voyage.ArrivalPort!.PortName : null
-
-            })
-        .ToListAsync(ct);
+                .Select(x => new
+                {
+                    Id = x.Id,
+                    Paid = x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m,
+                    SupplierId = x.SupplierId,
+                    BuyerId = x.BuyerId,
+                    VesselId = x.VesselId,
+                    DocTypeId = x.DocTypeId,
+                    DocDate = x.DocDate,
+                    TotalAmount = x.TotalAmount,
+                    Adjustments = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                    CurrencyId = x.CurrencyId,
+                    CurrencyCode = x.Currency.CurrencyCode,
+                    ExchangeRate = x.Currency.ExchangeRate,
+                    SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
+                    BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
+                    VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                    DocTypeName = x.DocType != null ? x.DocType.Name : null,
+                    DocNumber = x.DocNumber,
+                    Side = x.Side,
+                    VoyageId = x.VoyageId,
+                    VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
+                    VoyageSummary = x.Voyage != null
+                        ? "From : " + x.Voyage.DeparturePort!.PortName + " To : " + x.Voyage.ArrivalPort!.PortName
+                        : null,
+                })
+                .ToListAsync(ct);
 
             // ─── تحويل إلى DTO مع المبالغ بالعملة الأصلية والمبالغ بالعملة الأساسية ──
-            var documents = docs.Select(x => new DocumentResponse
-            {
-                Id = x.Id,
-                SupplierId = x.SupplierId,
-                BuyerId = x.BuyerId,
-                VesselId = x.VesselId,
-                DocTypeId = x.DocTypeId,
-                DocDate = x.DocDate,
-                TotalAmount = x.TotalAmount,
-                AdjustmentsTotal = x.Adjustments,
-                NetAmount = x.TotalAmount + x.Adjustments,
-                PaidAmount = x.Paid,
-                Remaining = x.TotalAmount + x.Adjustments - x.Paid,
-                CurrencyCode = x.CurrencyCode,
-                CurrencyId = x.CurrencyId,
-                //CurrencySymbol = x.CurrencySymbol,
-                // المبالغ بالعملة الأساسية للمقارنة
-                TotalAmountBase = (x.TotalAmount + x.Adjustments) * x.ExchangeRate / baseRate.ExchangeRate,
-                PaidAmountBase = x.Paid * x.ExchangeRate / baseRate.ExchangeRate,
-                RemainingBase = (x.TotalAmount + x.Adjustments - x.Paid) * x.ExchangeRate / baseRate.ExchangeRate,
-                SupplierName = x.SupplierName,
-                BuyerName = x.BuyerName,
-                VesselName = x.VesselName,
-                DocTypeName = x.DocTypeName,
-                DocNumber = x.DocNumber,
-                Side = x.Side,
-                VoyageId = x.VoyageId,
-                VoyageNumber = x.VoyageNumber,
-                VoyageSummary = x.VoyageSummary,
-            }).ToList();
+            var documents = docs
+                .Select(x => new DocumentResponse
+                {
+                    Id = x.Id,
+                    SupplierId = x.SupplierId,
+                    BuyerId = x.BuyerId,
+                    VesselId = x.VesselId,
+                    DocTypeId = x.DocTypeId,
+                    DocDate = x.DocDate,
+                    TotalAmount = x.TotalAmount,
+                    AdjustmentsTotal = x.Adjustments,
+                    NetAmount = x.TotalAmount + x.Adjustments,
+                    PaidAmount = x.Paid,
+                    Remaining = x.TotalAmount + x.Adjustments - x.Paid,
+                    CurrencyCode = x.CurrencyCode,
+                    CurrencyId = x.CurrencyId,
+
+                    // المبالغ بالعملة الأساسية للمقارنة
+                    TotalAmountBase = (x.TotalAmount + x.Adjustments) * x.ExchangeRate / baseRate.ExchangeRate,
+                    PaidAmountBase = x.Paid * x.ExchangeRate / baseRate.ExchangeRate,
+                    RemainingBase = (x.TotalAmount + x.Adjustments - x.Paid) * x.ExchangeRate / baseRate.ExchangeRate,
+
+                    SupplierName = x.SupplierName,
+                    BuyerName = x.BuyerName,
+                    VesselName = x.VesselName,
+                    DocTypeName = x.DocTypeName,
+                    DocNumber = x.DocNumber,
+                    Side = x.Side,
+                    VoyageId = x.VoyageId,
+                    VoyageNumber = x.VoyageNumber,
+                    VoyageSummary = x.VoyageSummary,
+                })
+                .ToList();
 
             var totalValueBase = documents.Sum(d => d.TotalAmountBase);
             var totalPaidBase = documents.Sum(d => d.PaidAmountBase);
             var totalRemainingBase = documents.Sum(d => d.RemainingBase);
 
-            // Monthly
+            // ─── Monthly ─────────────────────────────────────────────────────────
             var monthlySummary = documents
                 .GroupBy(d => new { d.DocDate.Year, d.DocDate.Month })
                 .Select(g => new MonthlyDocumentSummary
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
-                    TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
+                    TotalValue = g.Sum(d => d.TotalAmountBase),
                     TotalPaid = g.Sum(d => d.PaidAmountBase),
                     TotalRemain = g.Sum(d => d.RemainingBase),
                     Revenue = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase),
                     Expense = g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
                     NetPosition = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase)
-            - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
-                    Count = g.Count()
+                                - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    Count = g.Count(),
                 })
                 .OrderBy(m => m.Year).ThenBy(m => m.Month)
                 .ToList();
 
-            // Supplier
+            // ─── Supplier ────────────────────────────────────────────────────────
             var supplierSummary = documents
                 .Where(d => d.SupplierId.HasValue)
                 .GroupBy(d => d.SupplierId!.Value)
@@ -1196,15 +1230,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     SupplierId = g.Key,
                     SupplierName = g.First().SupplierName ?? string.Empty,
-                    TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
+                    TotalValue = g.Sum(d => d.TotalAmountBase),
                     TotalPaid = g.Sum(d => d.PaidAmountBase),
                     TotalRemain = g.Sum(d => d.RemainingBase),
-                    Count = g.Count()
+                    Count = g.Count(),
                 })
                 .OrderBy(s => s.SupplierName)
                 .ToList();
 
-            // Vessel
+            // ─── Vessel ──────────────────────────────────────────────────────────
             var vesselSummary = documents
                 .Where(d => d.VesselId.HasValue)
                 .GroupBy(d => d.VesselId!.Value)
@@ -1212,18 +1246,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     VesselId = g.Key,
                     VesselName = g.First().VesselName ?? string.Empty,
-                    TotalValue = g.Sum(d => d.TotalAmountBase),     // ← base
+                    TotalValue = g.Sum(d => d.TotalAmountBase),
                     TotalPaid = g.Sum(d => d.PaidAmountBase),
                     TotalRemain = g.Sum(d => d.RemainingBase),
                     Revenue = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase),
                     Expense = g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
                     NetPosition = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase)
-            - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
-                    Count = g.Count()
+                                - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    Count = g.Count(),
                 })
                 .OrderBy(v => v.VesselName)
                 .ToList();
-            // Voyage
+
+            // ─── Voyage ──────────────────────────────────────────────────────────
             var voyageSummary = documents
                 .Where(d => d.VoyageId.HasValue)
                 .GroupBy(d => d.VoyageId!.Value)
@@ -1239,29 +1274,32 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Revenue = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase),
                     Expense = g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
                     NetPosition = g.Where(d => d.Side == FinancialSide.Revenue).Sum(d => d.TotalAmountBase)
-                                 - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
-                    Count = g.Count()
+                                - g.Where(d => d.Side == FinancialSide.Expense).Sum(d => d.TotalAmountBase),
+                    Count = g.Count(),
                 })
                 .OrderBy(v => v.VoyageNumber)
                 .ToList();
 
+            // ─── Financial side ──────────────────────────────────────────────────
             var sideSummaries = documents
-            .GroupBy(d => d.Side)
-            .Select(g => new FinancelSideDocumentSummary
-            {
-                Side = g.Key.ToString(),
-                Count = g.Count(),
-                TotalValue = g.Sum(d => d.TotalAmountBase),
-                TotalPaid = g.Sum(d => d.PaidAmountBase),
-                TotalRemain = g.Sum(d => d.RemainingBase),
-            })
-            .ToList();
+                .GroupBy(d => d.Side)
+                .Select(g => new FinancelSideDocumentSummary
+                {
+                    Side = g.Key.ToString(),
+                    Count = g.Count(),
+                    TotalValue = g.Sum(d => d.TotalAmountBase),
+                    TotalPaid = g.Sum(d => d.PaidAmountBase),
+                    TotalRemain = g.Sum(d => d.RemainingBase),
+                })
+                .ToList();
 
             var revenue = sideSummaries.Where(x => x.Side == FinancialSide.Revenue.ToString()).ToList();
             var expense = sideSummaries.Where(x => x.Side == FinancialSide.Expense.ToString()).ToList();
             var none = sideSummaries.Where(x => x.Side == FinancialSide.None.ToString()).ToList();
-            // ─── Net Position ─────────────────────────────────────────────────────
-            var netPosition = (revenue.Sum(x => x.TotalValue)) - (expense.Sum(x => x.TotalValue));
+
+            // ─── Net Position ────────────────────────────────────────────────────
+            var netPosition = revenue.Sum(x => x.TotalValue) - expense.Sum(x => x.TotalValue);
+
             return new DocumentReport
             {
                 Documents = documents,
@@ -1272,107 +1310,57 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 MonthlySummary = monthlySummary,
                 SupplierSummary = supplierSummary,
                 VesselSummary = vesselSummary,
-                RevenueSideSummary = revenue ?? [],
-                ExpenseSideSummary = expense ?? [],
-                VoyageSummary = voyageSummary ?? [],
+                RevenueSideSummary = revenue,
+                ExpenseSideSummary = expense,
+                VoyageSummary = voyageSummary,
                 NoneSideSummary = none,
                 NetPosition = netPosition,
-                BaseCurrencyCode = await GetBaseCurrencyCode(ct)
+                BaseCurrencyCode = await GetBaseCurrencyCode(ct),
             };
         }
 
-        
+        // ══ Private — data access helpers ═════════════════════════════════════════
 
-        // ── Private ───────────────────────────────────────────────────────────────
-
-        private async Task<string> GetBaseCurrencyCode(CancellationToken ct = default)
-        {
-            return await _currencyRepo
-                        .Query()
-                        .AsNoTracking()
-                        .Where(b => b.IsBaseCurrency == true)
-                        .Select(bc => bc.CurrencyCode)
-                        .FirstOrDefaultAsync(ct) ?? "";
-        }
         private async Task<Document> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
-                           
                ?? throw new KeyNotFoundException($"Document {id} not found.");
 
         private async Task<Document> GetWithItemsOrThrowAsync(int id, CancellationToken ct)
             => await _repo.Query()
-                          .Include(x => x.Items)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct)
+                   .Include(x => x.Items)
+                   .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Document {id} not found.");
+
         private async Task<Document> GetWithPaymentsOrThrowAsync(int id, CancellationToken ct)
-                   => await _repo.Query()
-                                 .Include(x => x.Payments)
-                                 .FirstOrDefaultAsync(x => x.Id == id, ct)
-                      ?? throw new KeyNotFoundException($"Document {id} not found.");
-        private async Task EnsureUniqueDocNumberAsync(string docNumber,
-            int? excludeId, CancellationToken ct)
+            => await _repo.Query()
+                   .Include(x => x.Payments)
+                   .FirstOrDefaultAsync(x => x.Id == id, ct)
+               ?? throw new KeyNotFoundException($"Document {id} not found.");
+
+        /// <summary>
+        /// يجلب الـ aggregate مع Payments و Adjustments معاً — مطلوبان معاً
+        /// لأن guards التسوية في الدومين تقارن NetAmount مع TotalPaid.
+        /// </summary>
+        private async Task<Document> GetWithAdjustmentsOrThrowAsync(
+            Expression<Func<Document, bool>> predicate,
+            string notFoundMessage,
+            CancellationToken ct)
+            => await _repo.Query()
+                   .Include(d => d.Payments)
+                   .Include(d => d.Adjustments)
+                   .FirstOrDefaultAsync(predicate, ct)
+               ?? throw new KeyNotFoundException(notFoundMessage);
+
+        private async Task EnsureUniqueDocNumberAsync(
+            string docNumber, int? excludeId, CancellationToken ct)
         {
             var conflict = await _repo.Query()
                 .AnyAsync(x => x.DocNumber == docNumber &&
                                (excludeId == null || x.Id != excludeId), ct);
+
             if (conflict)
                 throw new InvalidOperationException(
                     $"Document number '{docNumber}' already exists.");
-        }
-
-        private async Task<CurrencyResponse> GetBaseCurrencyExchangeRate(CancellationToken ct = default)
-        {
-            var result = await _currencyRepo.Query()
-                                      .AsNoTracking()
-                                      .Where(c => c.IsBaseCurrency == true)
-                                      .Select(r => new CurrencyResponse
-                                      {
-                                          Code = r.CurrencyCode,
-                                          ExchangeRate = r.ExchangeRate
-                                      })
-                                      .FirstOrDefaultAsync(ct);
-            if (result == null)
-                throw new InvalidOperationException("there is not Base Currency was set");
-
-            return result;
-        }
-
-        private async Task ApplyBaseRateAsync(DocumentResponse document, CancellationToken ct = default)
-        {
-            var baseC = await GetBaseCurrencyExchangeRate(ct);
-
-            document.TotalAmountBase /= baseC.ExchangeRate;
-            document.NetAmountBase /= baseC.ExchangeRate;
-            document.PaidAmountBase /= baseC.ExchangeRate;
-            document.RemainingBase /= baseC.ExchangeRate;
-            document.CurrencyNameBase = baseC.Name;
-            document.CurrencyCodeBase = baseC.Code;
-        }
-
-        private async Task ApplyBaseRateAsync(IEnumerable<PriceHistoryResponse> priceHistories, CancellationToken ct = default)
-        {
-            var baseC = await GetBaseCurrencyExchangeRate(ct);
-
-            foreach (var p in priceHistories)
-            {
-                p.UnitPriceInBaseCurrency /= baseC.ExchangeRate;
-                p.CurrencyCodeBase = baseC.Code;
-            }
-        }
-
-        private async Task ApplyBaseRateAsync(IEnumerable<DocumentResponse> documents, CancellationToken ct = default)
-        {
-            var baseC = await GetBaseCurrencyExchangeRate(ct);
-
-            foreach (var document in documents)
-            {
-                document.TotalAmountBase /= baseC.ExchangeRate;
-                document.PaidAmountBase /= baseC.ExchangeRate;
-                document.RemainingBase /= baseC.ExchangeRate;
-                document.NetAmountBase /= baseC.ExchangeRate;
-                document.CurrencyNameBase = baseC.Name;
-                document.CurrencyCodeBase = baseC.Code;
-            }
         }
 
         private async Task BuildSearchVectorAsync(Document document, CancellationToken ct)
@@ -1405,337 +1393,108 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 port: data.Port,
                 reference: data.Reference,
                 docType: data.DocTypeName,
-                side : data.Side
-            );
+                side: data.Side);
         }
-        private static Expression<Func<Document, DocumentResponse>> ToResponse()
+
+        // ══ Private — base currency ═══════════════════════════════════════════════
+
+        private async Task<string> GetBaseCurrencyCode(CancellationToken ct = default)
         {
-            return x => new DocumentResponse
+            return await _currencyRepo.Query()
+                .AsNoTracking()
+                .Where(b => b.IsBaseCurrency == true)
+                .Select(bc => bc.CurrencyCode)
+                .FirstOrDefaultAsync(ct) ?? "";
+        }
+
+        private async Task<CurrencyResponse> GetBaseCurrencyExchangeRate(CancellationToken ct = default)
+        {
+            var result = await _currencyRepo.Query()
+                .AsNoTracking()
+                .Where(c => c.IsBaseCurrency == true)
+                .Select(r => new CurrencyResponse
+                {
+                    Code = r.CurrencyCode,
+                    ExchangeRate = r.ExchangeRate,
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (result == null)
+                throw new InvalidOperationException("there is not Base Currency was set");
+
+            return result;
+        }
+
+        private async Task ApplyBaseRateAsync(
+            DocumentResponse document, CancellationToken ct = default)
+        {
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
+
+            document.TotalAmountBase /= baseC.ExchangeRate;
+            document.NetAmountBase /= baseC.ExchangeRate;
+            document.PaidAmountBase /= baseC.ExchangeRate;
+            document.RemainingBase /= baseC.ExchangeRate;
+            document.CurrencyNameBase = baseC.Name;
+            document.CurrencyCodeBase = baseC.Code;
+        }
+
+        private async Task ApplyBaseRateAsync(
+            IEnumerable<DocumentResponse> documents, CancellationToken ct = default)
+        {
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
+
+            foreach (var document in documents)
             {
-                Id = x.Id,
-                DocNumber = x.DocNumber,
-                DocTypeId = x.DocTypeId,
-                DocTypeName = x.DocType.Name,
-                DocDate = x.DocDate,
-                Side = x.Side,
-                SupplierId = x.SupplierId,
-                SupplierName = x.Supplier!.CompanyName,
-                BuyerId = x.BuyerId,
-                BuyerName = x.Buyer!.CompanyName,
-                VesselId = x.VesselId,
-                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-                PortId = x.PortId,
-                PortName = x.Port != null ? x.Port.PortName : null,
-                VoyageId = x.VoyageId,
-                CurrencyId = x.CurrencyId,
-                CurrencyCode = x.Currency.CurrencyCode,
-                VoyageNumber = x.Voyage!=null ? x.Voyage.VoyageNumber : null,
-
-
-                TotalAmount = x.TotalAmount,
-                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
-                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
-                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) <= x.Payments.Sum(p => p.PaidAmount),
-
-
-                Reference = x.Reference,
-                ParentDocumentId = x.ParentDocumentId,
-                IsActive = x.IsActive,
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
-
-                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) * x.Currency.ExchangeRate,
-
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
-
-                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
-
-
-            };
+                document.TotalAmountBase /= baseC.ExchangeRate;
+                document.NetAmountBase /= baseC.ExchangeRate;
+                document.PaidAmountBase /= baseC.ExchangeRate;
+                document.RemainingBase /= baseC.ExchangeRate;
+                document.CurrencyNameBase = baseC.Name;
+                document.CurrencyCodeBase = baseC.Code;
+            }
         }
 
-        private static Expression<Func<Document, DocumentResponse>> ToResponseWithItems()
+        private async Task ApplyBaseRateAsync(
+            IEnumerable<PriceHistoryResponse> priceHistories, CancellationToken ct = default)
         {
-            return x => new DocumentResponse
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
+
+            foreach (var p in priceHistories)
             {
-                Id = x.Id,
-                DocNumber = x.DocNumber,
-                DocTypeId = x.DocTypeId,
-                DocTypeName = x.DocType.Name,
-                DocDate = x.DocDate,
-
-                SupplierId = x.SupplierId,
-                SupplierName = x.Supplier!.CompanyName,
-                BuyerId = x.BuyerId,
-                BuyerName = x.Buyer!.CompanyName,
-                VesselId = x.VesselId,
-                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-                PortId = x.PortId,
-                PortName = x.Port != null ? x.Port.PortName : null,
-                VoyageId = x.VoyageId,
-                CurrencyId = x.CurrencyId,
-                CurrencyCode = x.Currency.CurrencyCode,
-
-                TotalAmount = x.TotalAmount,
-                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
-                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
-                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) <= x.Payments.Sum(p => p.PaidAmount),
-
-                Side = x.Side,
-                Reference = x.Reference,
-                ParentDocumentId = x.ParentDocumentId,
-                IsActive = x.IsActive,
-                Items = x.Items.Select(i => new DocumentItemResponse
-                {
-                    Id = i.Id,
-                    ProductName = i.ProductName,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
-                    LineTotal = i.LineTotal,
-                    Unit = i.Unit,
-                }).ToList(),
-
-                TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
-
-                Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
-
-                TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
-
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
-
-                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) * x.Currency.ExchangeRate,
-
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
-
-                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
-
-            };
+                p.UnitPriceInBaseCurrency /= baseC.ExchangeRate;
+                p.CurrencyCodeBase = baseC.Code;
+            }
         }
 
-        private static Expression<Func<Document, DocumentResponse>> ToResponseWithPayments()
+        /// <summary>
+        /// تطبيق base currency على flat list قبل بناء الشجرة.
+        /// لا نحتاجها على DocumentTreeResponse حالياً لكن نتركها للتوسع.
+        /// </summary>
+        private async Task ApplyBaseRateToTreeAsync(
+            IReadOnlyList<DocumentResponse> docs, CancellationToken ct)
         {
-            return x => new DocumentResponse
-            {
-                Id = x.Id,
-                DocNumber = x.DocNumber,
-                DocTypeId = x.DocTypeId,
-                DocTypeName = x.DocType.Name,
-                DocDate = x.DocDate,
+            if (!docs.Any()) return;
 
-                SupplierId = x.SupplierId,
-                SupplierName = x.Supplier!.CompanyName,
-                BuyerId = x.BuyerId,
-                BuyerName = x.Buyer!.CompanyName,
-                VesselId = x.VesselId,
-                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-                PortId = x.PortId,
-                PortName = x.Port != null ? x.Port.PortName : null,
-                Side = x.Side,
-                CurrencyId = x.CurrencyId,
-                CurrencyCode = x.Currency.CurrencyCode,
-                VoyageId = x.VoyageId,
-
-
-                TotalAmount = x.TotalAmount,
-                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
-                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
-                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) <= x.Payments.Sum(p => p.PaidAmount),
-
-                Reference = x.Reference,
-                ParentDocumentId = x.ParentDocumentId,
-                IsActive = x.IsActive,
-
-                Payments = x.Payments.Select(p => new PaymentResponse
-                {
-                    Id = p.Id,
-                    SwiftTransferId = p.SwiftTransferId,
-                    IsActive = p.IsActive,
-                    DocumentId = p.DocumentId,
-                    PaidAmount = p.PaidAmount,
-                    PaymentMethod = p.PaymentMethod,
-                    PaymentDate = p.PaymentDate,
-                    Discreption = p.Discreption,
-                    SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
-                    {
-                        AllocatedAmount = p.SwiftTransfer!.AllocatedAmount,
-                        SenderBankId = p.SwiftTransfer.SenderBankId,
-                        SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
-                        SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
-                        SwiftReference = p.SwiftTransfer.SwiftReference,
-                        Amount = p.SwiftTransfer.Amount,
-                        CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
-                        Id = p.SwiftTransferId ?? 0,
-                        CurrencyId = p.SwiftTransfer.CurrencyId,
-                        IsActive = p.SwiftTransfer.IsActive,
-                        IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
-                        PaymentReference = p.SwiftTransfer.PaymentReference,
-                        ReceiverBankId = p.SwiftTransfer.ReceiverBankId,
-                        ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
-                        ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
-                        TransactionDate = p.SwiftTransfer.TransactionDate,
-                        UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
-                    }
-
-                }).ToList(),
-
-                Adjustments = x.Adjustments.Select(a => new AdjustmentResponse
-                {
-                    Id = a.Id,
-                    DocumentId = a.DocumentId,
-                    Amount = a.Amount,
-                    AdjustmentDate = a.AdjustmentDate,
-                    Reason = a.Reason
-                }).ToList(),
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
-
-                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) * x.Currency.ExchangeRate,
-
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
-
-                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
-
-            };
+            // نجلب الـ base rate مرة واحدة فقط
+            var baseC = await GetBaseCurrencyExchangeRate(ct);
+            _ = baseC; // مستخدمة للتوسع لاحقاً إذا أضفت TotalAmountBase للـ TreeResponse
         }
 
-        private static Expression<Func<Document, DocumentResponse>> ToResponseFully()
-        {
-            return x => new DocumentResponse
-            {
-                Id = x.Id,
-                DocNumber = x.DocNumber,
-                DocTypeId = x.DocTypeId,
-                DocTypeName = x.DocType.Name,
-                DocDate = x.DocDate,
-                Side = x.Side,
-                SupplierId = x.SupplierId,
-                SupplierName = x.Supplier!.CompanyName,
-                BuyerId = x.BuyerId,
-                BuyerName = x.Buyer!.CompanyName,
-                VesselId = x.VesselId,
-                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
-                PortId = x.PortId,
-                PortName = x.Port != null ? x.Port.PortName : null,
-
-                CurrencyId = x.CurrencyId,
-                CurrencyCode = x.Currency.CurrencyCode,
-
-                TotalAmount = x.TotalAmount,
-                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
-                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
-                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
-                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) -x.Payments.Sum(p => p.PaidAmount),
-                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)  <= x.Payments.Sum(p => p.PaidAmount),
-
-
-                VoyageId = x.VoyageId,
-                Reference = x.Reference,
-                ParentDocumentId = x.ParentDocumentId,
-                IsActive = x.IsActive,
-                Payments = x.Payments.Select(p => new PaymentResponse
-                {
-                    Id = p.Id,
-                    IsActive = p.IsActive,
-                    PaymentMethod = p.PaymentMethod,
-                    SwiftTransferId = p.SwiftTransferId,
-                    DocumentId = p.DocumentId,
-                    Discreption = p.Discreption,
-                    PaidAmount = p.PaidAmount,
-                    PaymentDate = p.PaymentDate,
-                    SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
-                    {
-                        AllocatedAmount = p.SwiftTransfer!.AllocatedAmount,
-                        SenderBankId = p.SwiftTransfer.SenderBankId,
-                        SenderBankName = p.SwiftTransfer.SenderBank != null ? p.SwiftTransfer.SenderBank.Name : null,
-                        SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
-                        SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
-                        SwiftReference = p.SwiftTransfer.SwiftReference,
-                        Amount = p.SwiftTransfer.Amount,
-                        CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
-                        Id = p.SwiftTransferId ?? 0,
-                        CurrencyId = p.SwiftTransfer.CurrencyId,
-                        IsActive = p.SwiftTransfer.IsActive,
-                        IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
-                        PaymentReference = p.SwiftTransfer.PaymentReference,
-                        ReceiverBankId = p.SwiftTransfer.ReceiverBankId,
-                        ReceiverBankName = p.SwiftTransfer.ReceiverBank != null ? p.SwiftTransfer.ReceiverBank.Name : null,
-                        ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
-                        ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
-                        TransactionDate = p.SwiftTransfer.TransactionDate,
-                        UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount
-                    },
-
-                }).ToList(),
-                Items = x.Items.Select(i => new DocumentItemResponse
-                {
-                    Id = i.Id,
-                    ProductName = i.ProductName,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
-                    LineTotal = i.LineTotal,
-                    Unit = i.Unit,
-                }).ToList(),
-
-                Adjustments = x.Adjustments.Select(a => new AdjustmentResponse
-                {
-                    Id = a.Id,
-                    DocumentId = a.DocumentId,
-                    Amount = a.Amount,
-                    AdjustmentDate = a.AdjustmentDate,
-                    Reason = a.Reason
-                }).ToList(),
-                TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
-
-                Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
-
-                TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
-
-                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
-
-                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)) *x.Currency.ExchangeRate,
-
-                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
-
-                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m) -x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate
-
-            };
-        }
-
-
-        public static Expression<Func<DocumentAdjustment, AdjustmentResponse>> ToAdjustmentResponse =>
-        a => new AdjustmentResponse 
-        {
-            Id =   a.Id,
-            DocumentId = a.DocumentId,
-            Amount = a.Amount,
-            AdjustmentDate = a.AdjustmentDate,
-            Reason =  a.Reason
-        };
-
-
-
-        // ── Private Helpers ───────────────────────────────────────────────────────────
+        // ══ Private — tree helpers ════════════════════════════════════════════════
 
         /// <summary>
         /// يبني الشجرة هرمياً بشكل recursive.
         /// يأخذ كل المستندات flat ويرتبها كـ parent → children.
         /// </summary>
         private static IReadOnlyList<DocumentResponse> BuildTree(
-            IReadOnlyList<DocumentResponse> allDocs,
-            int? parentId,
-            int depth)
+            IReadOnlyList<DocumentResponse> allDocs)
         {
             var lookup = allDocs.ToLookup(x => x.ParentDocumentId);
-
             return BuildTreeInternal(lookup, parentId: null, depth: 0);
         }
 
-        private static List<DocumentResponse> BuildTreeInternal(ILookup<int?, DocumentResponse> lookup,
-                                                                int? parentId, int depth)
+        private static List<DocumentResponse> BuildTreeInternal(
+            ILookup<int?, DocumentResponse> lookup, int? parentId, int depth)
         {
             var children = lookup[parentId].ToList();
 
@@ -1753,8 +1512,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         /// يعيد Id الجذر (الذي ParentDocumentId == null).
         /// </summary>
         private static int? FindRootId(
-            IReadOnlyList<DocumentResponse> allDocs,
-            int documentId)
+            IReadOnlyList<DocumentResponse> allDocs, int documentId)
         {
             var lookup = allDocs.ToDictionary(d => d.Id);
 
@@ -1771,20 +1529,324 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return current.Id;
         }
 
-        /// <summary>
-        /// تطبيق base currency على flat list قبل بناء الشجرة.
-        /// لا نحتاجها على DocumentTreeResponse حالياً لكن نتركها للتوسع.
-        /// </summary>
-        private async Task ApplyBaseRateToTreeAsync(IReadOnlyList<DocumentResponse> docs,
-            CancellationToken ct)
-        {
-            if (!docs.Any()) return;
+        // ══ Private — projections ═════════════════════════════════════════════════
 
-            // نجلب الـ base rate مرة واحدة فقط
-            var baseC = await GetBaseCurrencyExchangeRate(ct);
-            _ = baseC; // مستخدمة للتوسع لاحقاً إذا أضفت TotalAmountBase للـ TreeResponse
+        private static AdjustmentResponse ToAdjustmentResponse(
+            int documentId, DocumentAdjustment adjustment)
+            => new()
+            {
+                Id = adjustment.Id,
+                DocumentId = documentId,
+                Amount = adjustment.Amount,
+                AdjustmentDate = adjustment.AdjustmentDate,
+                Reason = adjustment.Reason,
+            };
+
+        private static Expression<Func<Document, DocumentResponse>> ToResponse()
+        {
+            return x => new DocumentResponse
+            {
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
+                Side = x.Side,
+
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
+                VoyageId = x.VoyageId,
+                VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+
+                TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                              <= x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
+
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m))
+                                * x.Currency.ExchangeRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
+
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate,
+            };
         }
 
-        
+        private static Expression<Func<Document, DocumentResponse>> ToResponseWithItems()
+        {
+            return x => new DocumentResponse
+            {
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
+                Side = x.Side,
+
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
+                VoyageId = x.VoyageId,
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+
+                TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                              <= x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+
+                Items = x.Items.Select(i => new DocumentItemResponse
+                {
+                    Id = i.Id,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    LineTotal = i.LineTotal,
+                    Unit = i.Unit,
+                }).ToList(),
+
+                // ملاحظة: مقارنة البنود تتم مع السعر الأصلي — البنود لا تشمل التسويات
+                TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+                Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+                TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
+
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m))
+                                * x.Currency.ExchangeRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
+
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate,
+            };
+        }
+
+        private static Expression<Func<Document, DocumentResponse>> ToResponseWithPayments()
+        {
+            return x => new DocumentResponse
+            {
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
+                Side = x.Side,
+
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
+                VoyageId = x.VoyageId,
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+
+                TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                              <= x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+
+                Payments = x.Payments.Select(p => new PaymentResponse
+                {
+                    Id = p.Id,
+                    SwiftTransferId = p.SwiftTransferId,
+                    IsActive = p.IsActive,
+                    DocumentId = p.DocumentId,
+                    PaidAmount = p.PaidAmount,
+                    PaymentMethod = p.PaymentMethod,
+                    PaymentDate = p.PaymentDate,
+                    Discreption = p.Discreption,
+                    SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
+                    {
+                        Id = p.SwiftTransferId ?? 0,
+                        SwiftReference = p.SwiftTransfer!.SwiftReference,
+                        PaymentReference = p.SwiftTransfer.PaymentReference,
+                        Amount = p.SwiftTransfer.Amount,
+                        AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                        UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount,
+                        IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
+                        CurrencyId = p.SwiftTransfer.CurrencyId,
+                        CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
+                        SenderBankId = p.SwiftTransfer.SenderBankId,
+                        SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
+                        SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
+                        ReceiverBankId = p.SwiftTransfer.ReceiverBankId,
+                        ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
+                        ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
+                        TransactionDate = p.SwiftTransfer.TransactionDate,
+                        IsActive = p.SwiftTransfer.IsActive,
+                    },
+                }).ToList(),
+
+                Adjustments = x.Adjustments.Select(a => new AdjustmentResponse
+                {
+                    Id = a.Id,
+                    DocumentId = a.DocumentId,
+                    Amount = a.Amount,
+                    AdjustmentDate = a.AdjustmentDate,
+                    Reason = a.Reason,
+                }).ToList(),
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
+
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m))
+                                * x.Currency.ExchangeRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
+
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate,
+            };
+        }
+
+        private static Expression<Func<Document, DocumentResponse>> ToResponseFully()
+        {
+            return x => new DocumentResponse
+            {
+                Id = x.Id,
+                DocNumber = x.DocNumber,
+                DocTypeId = x.DocTypeId,
+                DocTypeName = x.DocType.Name,
+                DocDate = x.DocDate,
+                Side = x.Side,
+
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier!.CompanyName,
+                BuyerId = x.BuyerId,
+                BuyerName = x.Buyer!.CompanyName,
+                VesselId = x.VesselId,
+                VesselName = x.Vessel != null ? x.Vessel.VesselName : null,
+                PortId = x.PortId,
+                PortName = x.Port != null ? x.Port.PortName : null,
+                VoyageId = x.VoyageId,
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
+
+                TotalAmount = x.TotalAmount,
+                AdjustmentsTotal = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
+                NetAmount = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m),
+                TotalPaid = x.Payments.Sum(p => p.PaidAmount),
+                RemainingBalance = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount),
+                IsFullyPaid = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                              <= x.Payments.Sum(p => p.PaidAmount),
+
+                Reference = x.Reference,
+                ParentDocumentId = x.ParentDocumentId,
+                IsActive = x.IsActive,
+
+                Payments = x.Payments.Select(p => new PaymentResponse
+                {
+                    Id = p.Id,
+                    IsActive = p.IsActive,
+                    PaymentMethod = p.PaymentMethod,
+                    SwiftTransferId = p.SwiftTransferId,
+                    DocumentId = p.DocumentId,
+                    Discreption = p.Discreption,
+                    PaidAmount = p.PaidAmount,
+                    PaymentDate = p.PaymentDate,
+                    SwiftTransfer = p.SwiftTransferId == null ? null : new SwiftTransferResponse
+                    {
+                        Id = p.SwiftTransferId ?? 0,
+                        SwiftReference = p.SwiftTransfer!.SwiftReference,
+                        PaymentReference = p.SwiftTransfer.PaymentReference,
+                        Amount = p.SwiftTransfer.Amount,
+                        AllocatedAmount = p.SwiftTransfer.AllocatedAmount,
+                        UnallocatedAmount = p.SwiftTransfer.UnallocatedAmount,
+                        IsFullyAllocated = p.SwiftTransfer.IsFullyAllocated,
+                        CurrencyId = p.SwiftTransfer.CurrencyId,
+                        CurrencyCode = p.SwiftTransfer.Currency.CurrencyCode,
+                        SenderBankId = p.SwiftTransfer.SenderBankId,
+                        SenderBankName = p.SwiftTransfer.SenderBank != null ? p.SwiftTransfer.SenderBank.Name : null,
+                        SenderCompanyId = p.SwiftTransfer.SenderCompanyId,
+                        SenderCompanyName = p.SwiftTransfer.SenderCompany!.CompanyName,
+                        ReceiverBankId = p.SwiftTransfer.ReceiverBankId,
+                        ReceiverBankName = p.SwiftTransfer.ReceiverBank != null ? p.SwiftTransfer.ReceiverBank.Name : null,
+                        ReceiverCompanyId = p.SwiftTransfer.ReceiverCompanyId,
+                        ReceiverCompanyName = p.SwiftTransfer.ReceiverCompany!.CompanyName,
+                        TransactionDate = p.SwiftTransfer.TransactionDate,
+                        IsActive = p.SwiftTransfer.IsActive,
+                    },
+                }).ToList(),
+
+                Items = x.Items.Select(i => new DocumentItemResponse
+                {
+                    Id = i.Id,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    LineTotal = i.LineTotal,
+                    Unit = i.Unit,
+                }).ToList(),
+
+                Adjustments = x.Adjustments.Select(a => new AdjustmentResponse
+                {
+                    Id = a.Id,
+                    DocumentId = a.DocumentId,
+                    Amount = a.Amount,
+                    AdjustmentDate = a.AdjustmentDate,
+                    Reason = a.Reason,
+                }).ToList(),
+
+                // ملاحظة: مقارنة البنود تتم مع السعر الأصلي — البنود لا تشمل التسويات
+                TotalItemsAmount = x.Items.Sum(i => i.LineTotal),
+                Is_TotalAmount_Equal_TotalItemsAmount = x.TotalAmount == x.Items.Sum(i => i.LineTotal),
+                TotalAmount_Minus_TotalItemsAmount = x.TotalAmount - x.Items.Sum(i => i.LineTotal),
+
+                TotalAmountBase = x.TotalAmount * x.Currency.ExchangeRate,
+
+                NetAmountBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m))
+                                * x.Currency.ExchangeRate,
+
+                PaidAmountBase = x.Payments.Sum(p => p.PaidAmount) * x.Currency.ExchangeRate,
+
+                RemainingBase = (x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                                 - x.Payments.Sum(p => p.PaidAmount)) * x.Currency.ExchangeRate,
+            };
+        }
     }
 }
