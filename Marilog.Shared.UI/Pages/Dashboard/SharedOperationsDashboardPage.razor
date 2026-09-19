@@ -304,12 +304,22 @@
             <span class="az-card-title">Documents</span>
         </div>
 
-        @if (Data?.Documents?.Any() == true)
-        {
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
-                @Data.Documents.Count documents
-            </MudChip>
-        }
+        <div class="d-flex align-center gap-2">
+            @if (AdjustedDocumentCount > 0)
+            {
+                <MudTooltip Text="Documents whose price was settled after issue — the Amount column shows the agreed net.">
+                    <span class="az-flag">
+                        @AdjustedDocumentCount adjusted
+                    </span>
+                </MudTooltip>
+            }
+            @if (Data?.Documents?.Any() == true)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                    @Data.Documents.Count documents
+                </MudChip>
+            }
+        </div>
     </div>
 
     <MudTable Items="GroupedDocuments"
@@ -324,15 +334,16 @@
             <MudTh>Doc No.</MudTh>
             <MudTh>Supplier</MudTh>
             <MudTh>Vessel</MudTh>
-            <MudTh Class="text-right">Amount</MudTh>
             <MudTh>Date</MudTh>
+            <MudTh Class="text-right">Amount</MudTh>
+            <MudTh Class="text-right">Outstanding</MudTh>
         </HeaderContent>
 
         <RowTemplate>
 
             @if (context.IsGroupHeader)
             {
-                <MudTd ColSpan="5" Class="pa-0">
+                <MudTd ColSpan="6" Class="pa-0">
                     <div class="az-group">
 
                         <div class="d-flex justify-space-between align-center flex-wrap gap-3">
@@ -340,8 +351,8 @@
                             <div class="d-flex align-center gap-2">
 
                                 <MudIconButton Icon="@(IsSupplierExpanded(context.SupplierName!)
-                                                                                        ? Icons.Material.Filled.KeyboardArrowDown
-                                                                                        : Icons.Material.Filled.ChevronRight)"
+                                                        ? Icons.Material.Filled.KeyboardArrowDown
+                                                        : Icons.Material.Filled.ChevronRight)"
                                                Size="Size.Small"
                                                OnClick="@(() => ToggleSupplier(context.SupplierName!))" />
 
@@ -351,7 +362,14 @@
 
                                 <div>
                                     <div class="az-group-title">@context.SupplierName</div>
-                                    <div class="az-group-sub">@context.DocumentCount documents</div>
+                                    <div class="az-group-sub">
+                                        @context.DocumentCount documents
+                                        @if (context.AdjustedCount > 0)
+                                        {
+                                            <span class="az-group-dot">&middot;</span>
+                                            <span class="az-group-adj">@context.AdjustedCount adjusted</span>
+                                        }
+                                    </div>
                                 </div>
 
                             </div>
@@ -360,15 +378,22 @@
 
                                 <span class="az-group-label">Outstanding</span>
 
-                                @foreach (var total in context.SupplierTotals!)
+                                @if (context.SupplierTotals!.Count == 0)
                                 {
-                                    <MudChip T="string"
-                                             Size="Size.Small"
-                                             Variant="Variant.Outlined"
-                                             Color="Color.Primary"
-                                             Class="az-total-chip">
-                                        @total.CurrencyCode&nbsp;@total.Amount.ToString("N2")
-                                    </MudChip>
+                                    <span class="az-settled">Fully settled</span>
+                                }
+                                else
+                                {
+                                    @foreach (var total in context.SupplierTotals!)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Variant="Variant.Outlined"
+                                                 Color="Color.Warning"
+                                                 Class="az-total-chip">
+                                            @total.CurrencyCode&nbsp;@total.Amount.ToString("N2")
+                                        </MudChip>
+                                    }
                                 }
 
                             </div>
@@ -395,13 +420,41 @@
                     <MudText Typo="Typo.body2">@context.Document.VesselName</MudText>
                 </MudTd>
 
-                <MudTd Class="text-right">
-                    <span class="az-num">@context.Document.TotalAmount.ToString("N2")</span>
-                    <span class="az-currency">@context.Document.CurrencyCode</span>
-                </MudTd>
-
                 <MudTd Class="az-muted">
                     @context.Document.DocDate.ToString("dd MMM yyyy")
+                </MudTd>
+
+                @* ── Amount: net agreed price, with the original + adjustment
+                       spelled out underneath whenever a settlement occurred ── *@
+                <MudTd Class="text-right">
+                    <div class="az-amount">
+                        <div>
+                            <span class="az-num">@context.Document.NetAmount.ToString("N2")</span>
+                            <span class="az-currency">@context.Document.CurrencyCode</span>
+                        </div>
+                        @if (context.Document.AdjustmentsTotal != 0)
+                        {
+                            <div class="az-amount-sub">
+                                <span class="az-amount-orig">@context.Document.TotalAmount.ToString("N2")</span>
+                                <span class="@($"az-adj {(context.Document.AdjustmentsTotal < 0 ? "az-adj-down" : "az-adj-up")}")">
+                                    @FormatSigned(context.Document.AdjustmentsTotal)
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </MudTd>
+
+                @* ── Outstanding: what is still unpaid against the net ── *@
+                <MudTd Class="text-right">
+                    @if (Outstanding(context.Document) > 0)
+                    {
+                        <span class="az-num az-out-due">@Outstanding(context.Document).ToString("N2")</span>
+                        <span class="az-currency">@context.Document.CurrencyCode</span>
+                    }
+                    else
+                    {
+                        <span class="az-settled">Settled</span>
+                    }
                 </MudTd>
             }
 
@@ -431,6 +484,20 @@
     [Parameter] public IReadOnlyList<DocumentTypeResponse>? DocTypes { get; set; }
     [Parameter] public IReadOnlyList<CompanyResponse>? Companies { get; set; }
     [Parameter] public EventCallback<DocumentFilterOptions> OnFilterChanged { get; set; }
+
+    private static string FormatSigned(decimal value)
+        => value > 0 ? $"+{value:N2}" : value.ToString("N2");
+
+    /// <summary>
+    /// What is still unpaid on a document, measured against the net (post-adjustment)
+    /// amount. DocumentResponse carries two remaining fields depending on which
+    /// projection filled it, so fall back rather than silently showing zero.
+    /// </summary>
+    private static decimal Outstanding(DocumentResponse d)
+        => d.RemainingBalance != 0 ? d.RemainingBalance : d.Remaining;
+
+    private int AdjustedDocumentCount
+        => Data?.Documents?.Count(d => d.AdjustmentsTotal != 0) ?? 0;
 
     private string GetFilterSummary()
     {
@@ -488,13 +555,17 @@
                     IsGroupHeader = true,
                     SupplierName = group.Key,
                     DocumentCount = group.Count(),
+                    AdjustedCount = group.Count(x => x.AdjustmentsTotal != 0),
+
+                    // Outstanding per currency — only currencies that still owe something
                     SupplierTotals = group
                         .GroupBy(x => x.CurrencyCode)
                         .Select(currencyGroup => new CurrencyTotal
                         {
                             CurrencyCode = currencyGroup.Key,
-                            Amount = currencyGroup.Sum(x => x.TotalAmount)
+                            Amount = currencyGroup.Sum(Outstanding)
                         })
+                        .Where(x => x.Amount > 0)
                         .OrderBy(x => x.CurrencyCode)
                         .ToList()
                 }
@@ -521,6 +592,8 @@
         public string? SupplierName { get; init; }
 
         public int DocumentCount { get; init; }
+
+        public int AdjustedCount { get; init; }
 
         public IReadOnlyList<CurrencyTotal>? SupplierTotals { get; init; }
 
@@ -743,6 +816,70 @@
         border-radius: 2px;
     }
 
+    /* ── Amount cell with adjustment trail ─────────────────── */
+    .az-amount {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: 1.25;
+    }
+
+    .az-amount-sub {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+        font-size: .6875rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .az-amount-orig {
+        color: var(--mud-palette-text-disabled);
+        text-decoration: line-through;
+    }
+
+    .az-adj {
+        font-weight: 600;
+        padding: 0 4px;
+        border-radius: 2px;
+    }
+
+    .az-adj-down {
+        color: var(--mud-palette-success);
+        background-color: var(--mud-palette-success-hover);
+    }
+
+    .az-adj-up {
+        color: var(--mud-palette-warning);
+        background-color: var(--mud-palette-warning-hover);
+    }
+
+    .az-out-due {
+        color: var(--mud-palette-warning);
+    }
+
+    .az-settled {
+        font-size: .6875rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--mud-palette-success);
+    }
+
+    /* Header flag: how many documents in view carry a settlement */
+    .az-flag {
+        font-size: .6875rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        padding: 2px 8px;
+        border-radius: 2px;
+        color: var(--mud-palette-info);
+        border: 1px solid var(--mud-palette-info);
+        background-color: var(--mud-palette-info-hover);
+        white-space: nowrap;
+    }
+
     /* ── Grouped documents ─────────────────────────────────── */
     .az-group {
         padding: 8px 16px;
@@ -761,6 +898,16 @@
     .az-group-sub {
         font-size: .6875rem;
         color: var(--mud-palette-text-secondary);
+    }
+
+    .az-group-dot {
+        margin: 0 4px;
+        color: var(--mud-palette-text-disabled);
+    }
+
+    .az-group-adj {
+        color: var(--mud-palette-info);
+        font-weight: 600;
     }
 
     .az-group-label {
