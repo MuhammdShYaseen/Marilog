@@ -1074,7 +1074,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         public async Task<DocumentReport> GetFilteredDocsReportAsync(
-            DocumentFilterOptions options, CancellationToken ct = default)
+     DocumentFilterOptions options, CancellationToken ct = default)
         {
             var baseRate = await GetBaseCurrencyExchangeRate(ct);
 
@@ -1164,6 +1164,29 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToListAsync(ct);
 
+            // ─── Adjustment rows — نفس الـ query المفلترة، نزول لمستوى التسوية ───
+            // للعرض التفصيلي فقط — بالعملة الأصلية، لا تدخل في أي حساب أدناه
+            var adjustments = await query
+                .SelectMany(d => d.Adjustments, (d, adj) => new AdjustmentReportRow
+                {
+                    AdjustmentId = adj.Id,
+                    AdjustmentDate = adj.AdjustmentDate,
+                    Amount = adj.Amount,
+                    Reason = adj.Reason,
+
+                    DocumentId = d.Id,
+                    DocNumber = d.DocNumber,
+                    DocDate = d.DocDate,
+                    DocTypeName = d.DocType != null ? d.DocType.Name : null,
+                    CurrencyCode = d.Currency.CurrencyCode,
+
+                    SupplierName = d.Supplier != null ? d.Supplier.CompanyName : null,
+                    BuyerName = d.Buyer != null ? d.Buyer.CompanyName : null,
+                    VesselName = d.Vessel != null ? d.Vessel.VesselName : null,
+                    Side = d.Side,
+                })
+                .ToListAsync(ct);
+
             // ─── تحويل إلى DTO مع المبالغ بالعملة الأصلية والمبالغ بالعملة الأساسية ──
             var documents = docs
                 .Select(x => new DocumentResponse
@@ -1202,6 +1225,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var totalValueBase = documents.Sum(d => d.TotalAmountBase);
             var totalPaidBase = documents.Sum(d => d.PaidAmountBase);
             var totalRemainingBase = documents.Sum(d => d.RemainingBase);
+
+            // ─── Adjustments reconciliation — base currency ──────────────────────
+            // الأصلي محسوب بالطرح حتى تُقفل المعادلة تماماً:
+            // TotalOriginalValue + TotalAdjustments == TotalValue
+            var totalAdjustmentsBase = docs
+                .Sum(x => x.Adjustments * x.ExchangeRate / baseRate.ExchangeRate);
+
+            var totalOriginalValueBase = totalValueBase - totalAdjustmentsBase;
 
             // ─── Monthly ─────────────────────────────────────────────────────────
             var monthlySummary = documents
@@ -1306,6 +1337,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 TotalValue = totalValueBase,
                 TotalPaid = totalPaidBase,
                 TotalRemaining = totalRemainingBase,
+                TotalOriginalValue = totalOriginalValueBase,
+                TotalAdjustments = totalAdjustmentsBase,
+                Adjustments = adjustments,
                 Count = documents.Count,
                 MonthlySummary = monthlySummary,
                 SupplierSummary = supplierSummary,

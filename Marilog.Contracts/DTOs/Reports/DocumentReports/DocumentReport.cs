@@ -13,6 +13,12 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
         public IReadOnlyList<YearlyTotal> YearlyTotals { get; set; } = Array.Empty<YearlyTotal>();
         public decimal TotalPaid { get; set; }
         public decimal TotalRemaining { get; set; }
+
+            // ── Adjustments reconciliation (base currency) ──
+        public decimal TotalOriginalValue { get; set; }
+        public decimal TotalAdjustments { get; set; }    
+        public IReadOnlyList<AdjustmentReportRow> Adjustments { get; init; } = [];
+
         public IReadOnlyList<MonthlyDocumentSummary> MonthlySummary { get; init; } = [];
         public IReadOnlyList<SupplierDocumentSummary> SupplierSummary { get; init; } = [];
         public IReadOnlyList<VesselDocumentSummary> VesselSummary { get; init; } = [];
