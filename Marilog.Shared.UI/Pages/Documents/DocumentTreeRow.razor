@@ -46,7 +46,24 @@
     <MudTd Style="width:110px; overflow:hidden">@(Item.VesselName ?? "—")</MudTd>
     <MudTd Style="width:90px; overflow:hidden">@Item.CurrencyCode</MudTd>
 
-    <MudTd Style="width:110px; text-align:right; overflow:hidden">@Item.TotalAmount.ToString("N2")</MudTd>
+    <MudTd Style="width:110px; text-align:right; overflow:hidden">
+        @if (Item.AdjustmentsTotal != 0)
+        {
+            <MudTooltip Text="@($"Original: {Item.TotalAmount:N2} · Adjustment: {(Item.AdjustmentsTotal > 0 ? "+" : "")}{Item.AdjustmentsTotal:N2}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1"
+                          Justify="Justify.FlexEnd" Class="flex-nowrap">
+                    <MudIcon Icon="@Icons.Material.Filled.PriceChange"
+                             Size="Size.Small"
+                             Color="Color.Info" />
+                    <span>@Item.NetAmount.ToString("N2")</span>
+                </MudStack>
+            </MudTooltip>
+        }
+        else
+        {
+            @Item.NetAmount.ToString("N2")
+        }
+    </MudTd>
     <MudTd Style="width:110px; text-align:right; overflow:hidden">@Item.TotalPaid.ToString("N2")</MudTd>
 
     <MudTd Style="width:110px; text-align:right; overflow:hidden">

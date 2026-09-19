@@ -8,6 +8,7 @@
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Documents
 @using Marilog.Web.Client.Services.Interfaces
+@using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
 @using MudBlazor
 @inject HttpClient Http
 @inject IDocumentService DocumentService
@@ -47,6 +48,9 @@
                                       OnRemoveItemClicked="ConfirmRemoveItem"
                                       OnRemovePaymentClicked="ConfirmRemovePayment"
                                       OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))"
+                                      OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
+                                      OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
+                                      OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
                                       OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
         }
 
@@ -418,6 +422,91 @@
 
         return Task.CompletedTask;
     }
+
+    //====Adjustment===============================================================================
+
+    private async Task OpenAddAdjustmentDialog(DocumentResponse doc)
+    {
+        var parameters = new DialogParameters { ["Document"] = doc };
+
+        var dialog = await DialogService.ShowAsync<AdjustmentDialog>("Add Price Adjustment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (amount, date, reason) = ((decimal, DateOnly, string?))result.Data;
+
+        try
+        {
+            await DocumentService.AddAdjustmentAsync(new CreateAdjustmentRequest
+            {
+                DocumentId = doc.Id,
+                Amount = amount,
+                AdjustmentDate = date,
+                Reason = reason
+            });
+
+            Snackbar.Add("Adjustment added.", Severity.Success);
+            await LoadDetail(doc.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task OpenEditAdjustmentDialog((DocumentResponse Doc, AdjustmentResponse Adjustment) args)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Document"] = args.Doc,
+            ["ExistingAdjustment"] = args.Adjustment
+        };
+
+        var dialog = await DialogService.ShowAsync<AdjustmentDialog>("Edit Price Adjustment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (amount, date, reason) = ((decimal, DateOnly, string?))result.Data;
+
+        try
+        {
+            await DocumentService.UpdateAdjustmentAsync(args.Adjustment.Id, new UpdateAdjustmentRequest
+            {
+                Amount = amount,
+                AdjustmentDate = date,
+                Reason = reason
+            });
+
+            Snackbar.Add("Adjustment updated.", Severity.Success);
+            await LoadDetail(args.Doc.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ConfirmRemoveAdjustment((int DocumentId, int AdjustmentId) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Adjustment",
+            "Remove this price adjustment? The document will revert to its previous amount.",
+            yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        try
+        {
+            await DocumentService.RemoveAdjustmentAsync(args.AdjustmentId);
+            Snackbar.Add("Adjustment removed.", Severity.Success);
+            await LoadDetail(args.DocumentId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+    
 }
 <style>
     body.drawer-scroll-lock {

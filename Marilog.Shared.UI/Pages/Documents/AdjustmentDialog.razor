@@ -1,0 +1,139 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:420px">
+
+            @if (Document is not null)
+            {
+                <MudPaper Class="pa-3" Elevation="0" Style="background:var(--mud-palette-background-grey)">
+                    <MudStack Spacing="1">
+                        <MudStack Row="true">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Original Amount</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.caption" Style="font-weight:600">
+                                @Document.TotalAmount.ToString("N2") @Document.CurrencyCode
+                            </MudText>
+                        </MudStack>
+                        <MudStack Row="true">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Already Paid</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.caption" Style="font-weight:600">
+                                @Document.TotalPaid.ToString("N2") @Document.CurrencyCode
+                            </MudText>
+                        </MudStack>
+                        <MudDivider />
+                        <MudStack Row="true">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Net After This Change</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.caption"
+                                     Color="@(IsBelowPaid ? Color.Error : Color.Info)"
+                                     Style="font-weight:700">
+                                @ResultingNet.ToString("N2") @Document.CurrencyCode
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <MudSelect T="bool" @bind-Value="_isIncrease" Label="Type" Variant="Variant.Outlined" Dense="true">
+                <MudSelectItem T="bool" Value="false">Decrease — reduce the invoice price</MudSelectItem>
+                <MudSelectItem T="bool" Value="true">Increase — raise the invoice price</MudSelectItem>
+            </MudSelect>
+
+            <MudNumericField T="decimal"
+                             @bind-Value="_amount"
+                             Label="@($"Amount ({Document?.CurrencyCode})")"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             HideSpinButtons="true"
+                             Immediate="true"
+                             Format="N2"
+                             HelperText="Enter a positive number — the type above sets the direction." />
+
+            <MudDatePicker @bind-Date="_date"
+                           Label="Adjustment Date"
+                           Variant="Variant.Outlined"
+                           DateFormat="dd MMM yyyy" />
+
+            <MudTextField T="string"
+                          @bind-Value="_reason"
+                          Label="Reason"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          HelperText="e.g. settlement with supplier, quantity correction, agreed discount." />
+
+            @if (IsBelowPaid)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">
+                    This would bring the document below the amount already paid
+                    (@Document!.TotalPaid.ToString("N2") @Document.CurrencyCode).
+                    Reduce the adjustment or remove a payment first.
+                </MudAlert>
+            }
+
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="!CanSubmit"
+                   OnClick="Submit">
+            @(ExistingAdjustment is null ? "Add" : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public DocumentResponse? Document { get; set; }
+    [Parameter] public AdjustmentResponse? ExistingAdjustment { get; set; }
+
+    private bool _isIncrease;
+    private decimal _amount;
+    private DateTime? _date = DateTime.Today;
+    private string? _reason;
+
+    protected override void OnInitialized()
+    {
+        if (ExistingAdjustment is not null)
+        {
+            _isIncrease = ExistingAdjustment.Amount > 0;
+            _amount = Math.Abs(ExistingAdjustment.Amount);
+            _date = ExistingAdjustment.AdjustmentDate.ToDateTime(TimeOnly.MinValue);
+            _reason = ExistingAdjustment.Reason;
+        }
+    }
+
+    private decimal SignedAmount => _isIncrease ? _amount : -_amount;
+
+    // مجموع التسويات الأخرى — بنستثني السطر اللي عم نعدّله
+    private decimal OtherAdjustments
+        => (Document?.AdjustmentsTotal ?? 0m) - (ExistingAdjustment?.Amount ?? 0m);
+
+    private decimal ResultingNet
+        => (Document?.TotalAmount ?? 0m) + OtherAdjustments + SignedAmount;
+
+    private bool IsBelowPaid
+        => Document is not null && _amount > 0 && ResultingNet < Document.TotalPaid;
+
+    private bool CanSubmit => _amount > 0 && _date.HasValue && !IsBelowPaid;
+
+    private void Submit()
+    {
+        if (!CanSubmit) return;
+
+        MudDialog.Close(DialogResult.Ok((
+            SignedAmount,
+            DateOnly.FromDateTime(_date!.Value),
+            string.IsNullOrWhiteSpace(_reason) ? null : _reason!.Trim()
+        )));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

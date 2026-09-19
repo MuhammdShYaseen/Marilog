@@ -27,6 +27,16 @@ else
                 @(Document.IsFullyPaid ? "Fully Paid" : "Unpaid")
             </MudChip>
 
+            @if (HasAdjustments)
+            {
+                <MudTooltip Text="@($"Original {Document.TotalAmount.ToString("N2")} → Net {Document.NetAmount.ToString("N2")} {Document.CurrencyCode}")">
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small"
+                             Icon="@Icons.Material.Filled.PriceChange">
+                        Price Adjusted
+                    </MudChip>
+                </MudTooltip>
+            }
+
             @if (!Document.IsActive)
             {
                 <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactive</MudChip>
@@ -69,6 +79,10 @@ else
             Document total (@Document.TotalAmount.ToString("N2") @Document.CurrencyCode) doesn't match
             items total (@Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode) —
             difference of @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode.
+            @if (HasAdjustments)
+            {
+                <text> This check uses the original amount; price adjustments are excluded.</text>
+            }
         </MudAlert>
     }
 
@@ -150,6 +164,12 @@ else
                             </MudChip>
                         }
                     </MudStack>
+                    @if (HasAdjustments)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Compared against the original amount — price adjustments are not part of the items.
+                        </MudText>
+                    }
                 </MudStack>
             </MudPaper>
         </MudItem>
@@ -163,12 +183,33 @@ else
                 </MudText>
                 <MudStack Spacing="2">
                     <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total Amount</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(HasAdjustments ? "Original Amount" : "Total Amount")
+                        </MudText>
                         <MudSpacer />
                         <MudText Typo="Typo.body2" Style="font-weight:600">
                             @Document.TotalAmount.ToString("N2") @Document.CurrencyCode
                         </MudText>
                     </MudStack>
+
+                    @if (HasAdjustments)
+                    {
+                        <MudStack Row="true">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Adjustments</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.body2" Color="Color.Info" Style="font-weight:600">
+                                @FormatSigned(Document.AdjustmentsTotal) @Document.CurrencyCode
+                            </MudText>
+                        </MudStack>
+                        <MudStack Row="true">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Net Amount</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700">
+                                @Document.NetAmount.ToString("N2") @Document.CurrencyCode
+                            </MudText>
+                        </MudStack>
+                    }
+
                     <MudStack Row="true">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Total Paid</MudText>
                         <MudSpacer />
@@ -192,12 +233,24 @@ else
                     <MudExpansionPanel Text="@($"Base currency ({Document.CurrencyCodeBase})")" Dense="true">
                         <MudStack Spacing="2">
                             <MudStack Row="true">
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @(HasAdjustments ? "Original" : "Total")
+                                </MudText>
                                 <MudSpacer />
                                 <MudText Typo="Typo.body2" Style="font-weight:600">
                                     @Document.TotalAmountBase.ToString("N2") @Document.CurrencyCodeBase
                                 </MudText>
                             </MudStack>
+                            @if (HasAdjustments)
+                            {
+                                <MudStack Row="true">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Net</MudText>
+                                    <MudSpacer />
+                                    <MudText Typo="Typo.body2" Style="font-weight:700">
+                                        @Document.NetAmountBase.ToString("N2") @Document.CurrencyCodeBase
+                                    </MudText>
+                                </MudStack>
+                            }
                             <MudStack Row="true">
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">Paid</MudText>
                                 <MudSpacer />
@@ -286,6 +339,98 @@ else
             </MudPaper>
         </MudItem>
 
+        @* ── Price Adjustments ─────────────────────────────────── *@
+        <MudItem xs="12">
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.subtitle1">
+                        <MudIcon Icon="@Icons.Material.Filled.PriceChange" Size="Size.Small" Class="mr-1" />
+                        Price Adjustments
+                    </MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Info"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="() => OnAddAdjustmentClicked.InvokeAsync(Document)">
+                        Add Adjustment
+                    </MudButton>
+                </MudStack>
+
+                <MudTable Items="Adjustments" Dense="true" Hover="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Reason</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh Style="text-align:right">Amount</MudTh>
+                        <MudTh Style="width:96px"></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.AdjustmentDate.ToString("dd MMM yyyy")</MudTd>
+                        <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "—" : context.Reason)</MudTd>
+                        <MudTd>
+                            @if (context.Amount >= 0)
+                            {
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small"
+                                         Icon="@Icons.Material.Filled.TrendingUp">
+                                    Increase
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Text" Size="Size.Small"
+                                         Icon="@Icons.Material.Filled.TrendingDown">
+                                    Decrease
+                                </MudChip>
+                            }
+                        </MudTd>
+                        <MudTd Style="text-align:right; font-weight:600">
+                            @FormatSigned(context.Amount)
+                        </MudTd>
+                        <MudTd>
+                            <MudStack Row="true" Spacing="0">
+                                <MudTooltip Text="Edit">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   OnClick="() => OnEditAdjustmentClicked.InvokeAsync((Document, context))" />
+                                </MudTooltip>
+                                <MudTooltip Text="Delete">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="() => OnRemoveAdjustmentClicked.InvokeAsync((Document.Id, context.Id))" />
+                                </MudTooltip>
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary">
+                            No price adjustments — the document is settled at its original amount.
+                        </MudText>
+                    </NoRecordsContent>
+                    <FooterContent>
+                        <MudTd colspan="3">
+                            <MudText Typo="Typo.body2" Style="font-weight:600">Net Adjustment</MudText>
+                        </MudTd>
+                        <MudTd Style="text-align:right">
+                            <MudText Typo="Typo.body2" Style="font-weight:600">
+                                @FormatSigned(Document.AdjustmentsTotal)
+                            </MudText>
+                        </MudTd>
+                        <MudTd />
+                    </FooterContent>
+                </MudTable>
+
+                @if (HasAdjustments)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                        Payments settle against the net amount
+                        (@Document.NetAmount.ToString("N2") @Document.CurrencyCode).
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
         @* ── Payments ──────────────────────────────────────────── *@
         <MudItem xs="12">
             <MudPaper Class="pa-4" Elevation="2">
@@ -319,7 +464,7 @@ else
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                    Size="Size.Small"
                                                    Color="Color.Error"
-                                                   OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
+                                                   OnClick="() => OnRemoveAdjustmentClicked.InvokeAsync((Document.Id, context.Id))" />
                                 </MudTooltip>
                             </MudStack>
                         </MudTd>
@@ -346,15 +491,31 @@ else
 }
 
 @code {
-    [Parameter] public EventCallback<(DocumentResponse doc, PaymentResponse Payment)> OnEditPaymentClicked { get; set; }
-    [Parameter] public EventCallback<(int DocumentId, int PaymentId)> OnRemovePaymentClicked { get; set; }
     [Parameter] public DocumentResponse? Document { get; set; }
+
     [Parameter] public EventCallback OnBackClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
-    [Parameter] public EventCallback<DocumentResponse> OnAddPaymentClicked { get; set; }
+
     [Parameter] public EventCallback<DocumentResponse> OnAddItemClicked { get; set; }
     [Parameter] public EventCallback<(int DocumentId, DocumentItemResponse Item)> OnEditItemClicked { get; set; }
     [Parameter] public EventCallback<(int DocumentId, int ItemId)> OnRemoveItemClicked { get; set; }
+
+    [Parameter] public EventCallback<DocumentResponse> OnAddAdjustmentClicked { get; set; }
+    [Parameter] public EventCallback<(DocumentResponse Doc, AdjustmentResponse Adjustment)> OnEditAdjustmentClicked { get; set; }
+    [Parameter] public EventCallback<(int DocumentId, int AdjustmentId)> OnRemoveAdjustmentClicked { get; set; }
+
+    [Parameter] public EventCallback<DocumentResponse> OnAddPaymentClicked { get; set; }
+    [Parameter] public EventCallback<(DocumentResponse doc, PaymentResponse Payment)> OnEditPaymentClicked { get; set; }
+    [Parameter] public EventCallback<(int DocumentId, int PaymentId)> OnRemovePaymentClicked { get; set; }
+
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    private IReadOnlyList<AdjustmentResponse> Adjustments
+        => Document?.Adjustments ?? [];
+
+    private bool HasAdjustments => Adjustments.Count > 0;
+
+    private static string FormatSigned(decimal value)
+        => value > 0 ? $"+{value:N2}" : value.ToString("N2");
 }

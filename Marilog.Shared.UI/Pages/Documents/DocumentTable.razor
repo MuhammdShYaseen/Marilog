@@ -137,10 +137,24 @@
             <PropertyColumn Property="x => x.CurrencyCode" Title="Currency"
                             HeaderStyle="width:90px; overflow:hidden" CellStyle="width:90px; overflow:hidden" />
 
-            <TemplateColumn Title="Total" SortBy="x => x.TotalAmount"
+            <TemplateColumn Title="Total" SortBy="x => x.NetAmount"
                             HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
-                <CellTemplate>@context.Item.TotalAmount.ToString("N2")</CellTemplate>
-            </TemplateColumn>
+                <CellTemplate>
+                    @if (context.Item.AdjustmentsTotal != 0)
+                    {
+                        <MudTooltip Text="@($"Original: {context.Item.TotalAmount:N2} · Adjustment: {(context.Item.AdjustmentsTotal > 0 ? "+" : "")}{context.Item.AdjustmentsTotal:N2}")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.FlexEnd" Class="flex-nowrap">
+                                <MudIcon Icon="@Icons.Material.Filled.PriceChange" Size="Size.Small" Color="Color.Info" />
+                                <span>@context.Item.NetAmount.ToString("N2")</span>
+                            </MudStack>
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        @context.Item.NetAmount.ToString("N2")
+                    }
+                </CellTemplate>
+           </TemplateColumn>
 
             <TemplateColumn Title="Paid" SortBy="x => x.TotalPaid"
                             HeaderStyle="width:110px; text-align:right; overflow:hidden" CellStyle="width:110px; text-align:right; overflow:hidden">
