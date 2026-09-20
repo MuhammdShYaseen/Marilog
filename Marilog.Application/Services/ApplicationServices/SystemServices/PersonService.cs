@@ -1,3 +1,4 @@
+using Marilog.Contracts.DTOs.Reports.PersonReports;
 using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -91,6 +92,160 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                 x.PassportExpiry.HasValue &&
                                 x.PassportExpiry.Value <= threshold)
                     .OrderBy(x => x.PassportExpiry), ct);
+        }
+
+        //-----Report---------------------------------------------------------------
+        public async Task<IReadOnlyList<PersonResponse>> GetFilteredPersonsAsync(PersonFilterOptions f, CancellationToken ct = default)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var q = _repo.Query();
+
+            // ── General ──
+            if (f.IsActive.HasValue)
+            {
+                var isActive = f.IsActive.Value;
+                q = q.Where(p => p.IsActive == isActive);
+            }
+
+            if (!string.IsNullOrWhiteSpace(f.SearchTerm))
+            {
+                var term = f.SearchTerm.Trim();
+                q = q.Where(p => p.FullName.Contains(term) ||
+                                 p.PassportNo!.Contains(term) ||
+                                 p.SeamanBookNo!.Contains(term));
+            }
+
+            if (f.NationalityIds is { Count: > 0 })
+            {
+                var nationalityIds = f.NationalityIds;
+                q = q.Where(p => p.Nationality != null && nationalityIds.Contains(p.Nationality.Value));
+            }
+
+            if (f.MinAge.HasValue)
+            {
+                var latestDob = today.AddYears(-f.MinAge.Value);
+                q = q.Where(p => p.DateOfBirth.HasValue && p.DateOfBirth.Value <= latestDob);
+            }
+
+            if (f.MaxAge.HasValue)
+            {
+                var earliestDob = today.AddYears(-(f.MaxAge.Value + 1));
+                q = q.Where(p => p.DateOfBirth.HasValue && p.DateOfBirth.Value > earliestDob);
+            }
+
+            // ── Passport ──
+            if (f.HasValidPassport == true)
+                q = q.Where(p => p.PassportExpiry.HasValue && p.PassportExpiry.Value >= today);
+            else if (f.HasValidPassport == false)
+                q = q.Where(p => !p.PassportExpiry.HasValue || p.PassportExpiry.Value < today);
+
+            if (f.PassportExpiringWithinDays.HasValue)
+            {
+                var threshold = today.AddDays(f.PassportExpiringWithinDays.Value);
+                q = q.Where(p => p.PassportExpiry.HasValue &&
+                                 p.PassportExpiry.Value >= today &&
+                                 p.PassportExpiry.Value <= threshold);
+            }
+
+            // ── Certificates ──
+            var certNames = f.CertificateNames?
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n.Trim())
+                .Distinct()
+                .ToList();
+
+            if (certNames is { Count: > 0 })
+            {
+                var validOnly = f.OnlyValidCertificates;
+
+                if (f.RequireAllCertificates)
+                {
+                    foreach (var name in certNames)
+                    {
+                        q = q.Where(p => p.Certificates.Any(c =>
+                            c.Certificate.CertificateName == name &&
+                            (!validOnly ||
+                             !c.Certificate.ExpiryDate.HasValue ||
+                             c.Certificate.ExpiryDate.Value >= today)));
+                    }
+                }
+                else
+                {
+                    q = q.Where(p => p.Certificates.Any(c =>
+                        certNames.Contains(c.Certificate.CertificateName) &&
+                        (!validOnly ||
+                         !c.Certificate.ExpiryDate.HasValue ||
+                         c.Certificate.ExpiryDate.Value >= today)));
+                }
+            }
+
+            var certTypes = f.CertificateTypes?.Distinct().ToList();
+
+            if (certTypes is { Count: > 0 })
+            {
+                var validOnly = f.OnlyValidCertificates;
+
+                if (f.RequireAllCertificates)
+                {
+                    foreach (var type in certTypes)
+                    {
+                        q = q.Where(p => p.Certificates.Any(c =>
+                            c.Type == type &&
+                            (!validOnly ||
+                             !c.Certificate.ExpiryDate.HasValue ||
+                             c.Certificate.ExpiryDate.Value >= today)));
+                    }
+                }
+                else
+                {
+                    q = q.Where(p => p.Certificates.Any(c =>
+                        certTypes.Contains(c.Type) &&
+                        (!validOnly ||
+                         !c.Certificate.ExpiryDate.HasValue ||
+                         c.Certificate.ExpiryDate.Value >= today)));
+                }
+            }
+
+            // ── Sea Services ──
+            if (f.MinSeaServicesCount.HasValue)
+            {
+                var min = f.MinSeaServicesCount.Value;
+                q = q.Where(p => p.SeaServices.Count() >= min);
+            }
+
+            if (f.MaxSeaServicesCount.HasValue)
+            {
+                var max = f.MaxSeaServicesCount.Value;
+                q = q.Where(p => p.SeaServices.Count() <= max);
+            }
+
+            // الرتبة + الخبرة فيها + حجم السفينة لازم يتحققوا بنفس الـ sea service
+            if (f.RankIds is { Count: > 0 } || f.MinExperienceInRankMonths.HasValue || f.MinVesselSizeInMT.HasValue)
+            {
+                var rankIds = f.RankIds ?? [];
+                var hasRanks = rankIds.Count > 0;
+                var minExp = f.MinExperienceInRankMonths;
+                var minSize = f.MinVesselSizeInMT;
+
+                q = q.Where(p => p.SeaServices.Any(s =>
+                    (!hasRanks || rankIds.Contains(s.RankId)) &&
+                    (minExp == null || s.ExperienceInMonths >= minExp) &&
+                    (minSize == null || s.VesselSizeInMT >= minSize)));
+            }
+
+            if (f.MinTotalExperienceMonths.HasValue)
+            {
+                var minTotal = f.MinTotalExperienceMonths.Value;
+                q = q.Where(p => p.SeaServices.Sum(s => s.ExperienceInMonths) >= minTotal);
+            }
+
+            // ── Bank ──
+            if (f.HasBankAccount == true)
+                q = q.Where(p => p.IBAN != null);
+            else if (f.HasBankAccount == false)
+                q = q.Where(p => p.IBAN == null);
+
+            return await MapListAsync(q.OrderBy(p => p.FullName), ct);
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────

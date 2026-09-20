@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Reports.PersonReports;
 using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -56,6 +57,15 @@ namespace Marilog.Client.Services.SystemServices
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/expiring-passports?withinDays={withinDays}", ct);
             return response?.Data ?? [];
+        }
+
+        //---Report-----------------------------------------------------------------
+        public async Task<IReadOnlyList<PersonResponse>> GetFilteredPersonsAsync(PersonFilterOptions filter, CancellationToken ct = default)
+        {
+            var response = await _http.PostAsJsonAsync($"{Base}/filter", filter, ct);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<List<PersonResponse>>(ct) ?? [];
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+using Marilog.Contracts.DTOs.Reports.PersonReports;
 using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -14,6 +15,9 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<PersonResponse>> GetActiveAsync(CancellationToken ct = default);
         Task<IReadOnlyList<PersonResponse>> SearchAsync(string term, CancellationToken ct = default);
         Task<IReadOnlyList<PersonResponse>> GetWithExpiringPassportsAsync(int withinDays, CancellationToken ct = default);
+
+        //----Report-------------------------------------------------------------------
+        Task<IReadOnlyList<PersonResponse>> GetFilteredPersonsAsync(PersonFilterOptions filter, CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<PersonResponse> CreateAsync(string? bankName, string? iBAN, bool isPassportExpired, string? bankSwiftCode, string fullName, int? nationality = null,

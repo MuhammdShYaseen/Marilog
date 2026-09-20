@@ -1,4 +1,6 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
+using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Reports.PersonReports;
 using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -57,6 +59,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpGet("expiring-passports")]
         public async Task<ActionResult<IReadOnlyList<PersonResponse>>> GetWithExpiringPassports([FromQuery] int withinDays, CancellationToken ct)
             => Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(await _service.GetWithExpiringPassportsAsync(withinDays, ct)));
+
+        [HttpPost("filter")]
+        public async Task<IActionResult> GetFiltered([FromBody] PersonFilterOptions filter, CancellationToken ct)
+            => Ok(await _service.GetFilteredPersonsAsync(filter, ct));
 
         [HttpPost]
         public async Task<ActionResult<PersonResponse>> Create([FromBody] CreatePersonRequest request, CancellationToken ct)
