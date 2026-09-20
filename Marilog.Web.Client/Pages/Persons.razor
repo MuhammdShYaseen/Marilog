@@ -1,11 +1,12 @@
 ﻿@page "/persons"
+@using Marilog.Contracts.DTOs.Reports.PersonReports
 @using Marilog.Contracts.DTOs.Requests.Common
 @using Marilog.Contracts.DTOs.Requests.PersonDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Components.SharedDialogs
 @using Marilog.Shared.UI.Pages.Persons
 @using Marilog.Web.Client.Services.Interfaces
-@using Marilog.Shared.UI.Components.SharedDialogs
 @inject ICountryService CountryService
 @inject IPersonService PersonService
 @inject NavigationManager Nav
@@ -13,39 +14,56 @@
 @inject ISnackbar Snackbar
 @inject IRankService RankService
 @inject IManageStoredFiles StoredFiles
-@if (_loading == true)
+
+@if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-<SharedPersonPage @ref="_sharedPage"
-                   Persons="_persons"
-                   OnActivateClicked="Activate"
-                   OnDeactivateClicked="Deactivate"
-                   OnDeleteClicked="ConfirmDelete"
-                   OnEditClicked="OpenEditDialog"
-                   OnAddClicked="OpenAddDialog"
-                   OnEditBankClicked="OpenEditBankDialog"
-                   OnAddCertificateClicked="OpenAddCertificateDialog"
-                   OnEditCertificateClicked="OpenEditCertificateDialog"
-                   OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
-                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
-                   OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
-                   OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync"
-                   OnRemoveCertificateClicked ="ConfirmRemoveCertificate"
-                   OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"/>
-@code {
 
+<SharedPersonPage Persons="_persons"
+                  Ranks="_ranks"
+                  FilteredPersons="_filteredPersons"
+                  IsFiltering="_isFiltering"
+                  OnFilterSearch="HandleFilterSearch"
+                  OnActivateClicked="Activate"
+                  OnDeactivateClicked="Deactivate"
+                  OnDeleteClicked="ConfirmDelete"
+                  OnEditClicked="OpenEditDialog"
+                  OnAddClicked="OpenAddDialog"
+                  OnEditBankClicked="OpenEditBankDialog"
+                  OnAddCertificateClicked="OpenAddCertificateDialog"
+                  OnEditCertificateClicked="OpenEditCertificateDialog"
+                  OnRemoveCertificateClicked="ConfirmRemoveCertificate"
+                  OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
+                  OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
+                  OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
+                  OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
+                  OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" />
+
+@code {
+    // ── State ─────────────────────────────────────────────────────────────────────
     private IReadOnlyList<PersonResponse> _persons = [];
-    private IReadOnlyList<CountryResponse> _countries = [];
+    private IReadOnlyList<RankResponse> _ranks = [];
     private bool _loading = true;
+
+    // ── Filter State ──────────────────────────────────────────────────────────────
+    private IReadOnlyList<PersonResponse> _filteredPersons = [];
+    private PersonFilterOptions? _lastFilter;
+    private bool _isFiltering;
+
+    // ── Init & Load ───────────────────────────────────────────────────────────────
+
     protected override async Task OnInitializedAsync()
     {
+        _ranks = await RanksList();
         await LoadAsync();
     }
+
     private async Task LoadAsync()
     {
         _loading = true;
         _persons = await PersonService.GetAllAsync();
+        await RefreshFilteredAsync();
         _loading = false;
     }
 
@@ -59,9 +77,7 @@
             Id = s.Id,
             Name = s.Name
         }).ToList().AsReadOnly();
-
     }
-
 
     private async Task<IReadOnlyList<RankResponse>> RanksList()
     {
@@ -70,19 +86,42 @@
         {
             Code = s.Code,
             IsActive = s.IsActive,
-            Department =s.Department,
+            Department = s.Department,
             Id = s.Id,
             Name = s.Name
         }).ToList().AsReadOnly();
-
     }
+
+    // ── Filter ────────────────────────────────────────────────────────────────────
+
+    private async Task HandleFilterSearch(PersonFilterOptions filter)
+    {
+        _lastFilter = filter;
+        _isFiltering = true;
+        try
+        {
+            _filteredPersons = await PersonService.GetFilteredPersonsAsync(filter);
+        }
+        finally
+        {
+            _isFiltering = false;
+        }
+    }
+
+    private async Task RefreshFilteredAsync()
+    {
+        if (_lastFilter is not null)
+            await HandleFilterSearch(_lastFilter);
+    }
+
+    // ── Person ────────────────────────────────────────────────────────────────────
 
     private async Task OpenAddDialog()
     {
         var dialog = await DialogService.ShowAsync<PersonDialog>("New Person",
             new DialogParameters { ["Countries"] = await CountriesList() });
         var result = await dialog.Result;
-        if (result is null || result.Canceled) return;  // ← check null first
+        if (result is null || result.Canceled) return;
 
         var request = (CreatePersonRequest)result.Data!;
         await PersonService.CreateAsync(
@@ -108,11 +147,11 @@
         var parameters = new DialogParameters
         {
             ["Person"] = person,
-            ["Countries"] = await CountriesList()  // ← pass countries here too
+            ["Countries"] = await CountriesList()
         };
         var dialog = await DialogService.ShowAsync<PersonDialog>("Edit Person", parameters);
         var result = await dialog.Result;
-        if (result is null || result.Canceled) return;  // ← check null first
+        if (result is null || result.Canceled) return;
 
         var request = (UpdatePersonRequest)result.Data!;
         await PersonService.UpdateAsync(
@@ -124,10 +163,9 @@
             request.SeamanBookNo,
             request.DateOfBirth,
             request.Phone,
-            request.Email
-            );
+            request.Email);
 
-        Snackbar.Add("person updated.", Severity.Success);
+        Snackbar.Add("Person updated.", Severity.Success);
         await LoadAsync();
     }
 
@@ -142,7 +180,7 @@
         if (confirmed == true)
         {
             await PersonService.DeleteAsync(person.Id);
-            Snackbar.Add("Company deleted.", Severity.Success);
+            Snackbar.Add("Person deleted.", Severity.Success);
             await LoadAsync();
         }
     }
@@ -154,22 +192,14 @@
         await LoadAsync();
     }
 
-
-
-    private SharedPersonPage _sharedPage = default!;
-
-    private async Task RefreshSelected(int personId)
-    {
-        var updated = await PersonService.GetByIdAsync(personId) ?? new();
-        _sharedPage?.UpdateSelected(updated);
-    }
-
     private async Task Deactivate(PersonResponse person)
     {
         await PersonService.DeactivateAsync(person.Id);
         Snackbar.Add($"{person.FullName} deactivated.", Severity.Warning);
         await LoadAsync();
     }
+
+    // ── Bank Account ──────────────────────────────────────────────────────────────
 
     private async Task OpenEditBankDialog(PersonResponse person)
     {
@@ -193,9 +223,7 @@
         }
 
         await LoadAsync();
-        await RefreshSelected(person.Id);
     }
-
 
     // ── Certificates ──────────────────────────────────────────────────────────────
 
@@ -209,7 +237,6 @@
         await PersonService.AddCertificateAsync(person.Id, request);
         Snackbar.Add("Certificate added.", Severity.Success);
         await LoadAsync();
-        await RefreshSelected(person.Id);
     }
 
     private async Task OpenEditCertificateDialog((PersonResponse person, CertificateResponse cert) args)
@@ -223,7 +250,6 @@
         await PersonService.UpdateCertificateAsync(args.person.Id, args.cert.Index, request);
         Snackbar.Add("Certificate updated.", Severity.Success);
         await LoadAsync();
-        await RefreshSelected(args.person.Id);
     }
 
     private async Task ConfirmRemoveCertificate((PersonResponse person, CertificateResponse cert) args)
@@ -231,71 +257,60 @@
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Remove Certificate",
             $"Remove '{args.cert.CertificateName}'?",
-            yesText: "Remove", cancelText: "Cancel");
+            yesText: "Remove",
+            cancelText: "Cancel");
 
         if (confirmed == true)
         {
             await PersonService.RemoveCertificateAsync(args.person.Id, args.cert.Index);
             Snackbar.Add("Certificate removed.", Severity.Success);
             await LoadAsync();
-            await RefreshSelected(args.person.Id);
         }
     }
 
-    // ── Sea Service ──────────────────────────────────────────────────────────────
+    private async Task OpenExpiringCertificatesDialog(List<PersonResponse> items)
+    {
+        var parameters = new DialogParameters { ["Items"] = items };
+
+        await DialogService.ShowAsync<ExpiringCertificatesDialog>(
+            "Expiring Certificates",
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+    }
+
+    // ── Sea Services ──────────────────────────────────────────────────────────────
 
     private async Task OpenAddSeaServiceDialog(PersonResponse person)
     {
-        var ranks = await RanksList();
-        var parameters = new DialogParameters
-        {
-            ["Ranks"] = ranks,
-        };
+        var parameters = new DialogParameters { ["Ranks"] = await RanksList() };
         var dialog = await DialogService.ShowAsync<SeaServiceDialog>("New Sea Service", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
         var request = (UpsertSeaServiceRequest)result.Data!;
-
         await PersonService.AddSeaServiceAsync(person.Id, request);
-
         Snackbar.Add("Sea service added.", Severity.Success);
-
         await LoadAsync();
-        await RefreshSelected(person.Id);
     }
 
     private async Task OpenEditSeaServiceDialog((PersonResponse person, PersonSeaServiceResponse seaService) args)
     {
-        var ranks = await RanksList();
         var parameters = new DialogParameters
         {
-            ["Ranks"] = ranks,
+            ["Ranks"] = await RanksList(),
             ["SeaService"] = args.seaService
         };
-
-        var dialog = await DialogService.ShowAsync<SeaServiceDialog>(
-            "Edit Sea Service",
-            parameters);
-
+        var dialog = await DialogService.ShowAsync<SeaServiceDialog>("Edit Sea Service", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
         var request = (UpsertSeaServiceRequest)result.Data!;
-
-        await PersonService.UpdateSeaServiceAsync(
-            args.person.Id,
-            args.seaService.Index,
-            request);
-
+        await PersonService.UpdateSeaServiceAsync(args.person.Id, args.seaService.Index, request);
         Snackbar.Add("Sea service updated.", Severity.Success);
-
         await LoadAsync();
-        await RefreshSelected(args.person.Id);
     }
 
-    private async Task ConfirmRemoveSeaService(
-        (PersonResponse person, PersonSeaServiceResponse seaService) args)
+    private async Task ConfirmRemoveSeaService((PersonResponse person, PersonSeaServiceResponse seaService) args)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Remove Sea Service",
@@ -305,28 +320,9 @@
 
         if (confirmed == true)
         {
-            await PersonService.RemoveSeaServiceAsync(
-                args.person.Id,
-                args.seaService.Index);
-
+            await PersonService.RemoveSeaServiceAsync(args.person.Id, args.seaService.Index);
             Snackbar.Add("Sea service removed.", Severity.Success);
-
             await LoadAsync();
-            await RefreshSelected(args.person.Id);
         }
     }
-
-    private async Task OpenExpiringCertificatesDialog(List<PersonResponse> items)
-    {
-        var parameters = new DialogParameters
-        {
-            ["Items"] = items
-        };
-
-        await DialogService.ShowAsync<ExpiringCertificatesDialog>(
-            "Expiring Certificates",
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
-    }
-
 }

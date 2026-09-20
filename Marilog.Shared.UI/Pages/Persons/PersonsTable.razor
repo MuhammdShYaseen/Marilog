@@ -1,0 +1,128 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<MudDataGrid T="PersonResponse"
+             Items="Items"
+             Dense="true"
+             Hover="true"
+             Elevation="0"
+             Outlined="true"
+             Square="true"
+             Breakpoint="Breakpoint.Sm">
+
+    <Columns>
+
+        <HierarchyColumn T="PersonResponse" />
+
+        <PropertyColumn Property="x => x.FullName" Title="Full name" />
+        <PropertyColumn Property="x => x.PassportNo" Title="Passport" />
+        <PropertyColumn Property="x => x.SeamanBookNo" Title="Seaman book" />
+
+        <TemplateColumn Title="Status" SortBy="x => x.IsActive">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                             Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                             Style="font-size:10px" />
+                    @(context.Item.IsActive ? "Active" : "Inactive")
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Passport expiry" SortBy="x => x.PassportExpiry ?? DateOnly.MaxValue">
+            <CellTemplate>
+                @if (context.Item.PassportExpiry is { } expiry)
+                {
+                    var daysLeft = expiry.DayNumber - Today.DayNumber;
+
+                    <span class="az-status">
+                        <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                 Color="@PassportColor(daysLeft)"
+                                 Style="font-size:10px" />
+                        @expiry.ToString("yyyy-MM-dd")
+                        <span class="az-muted az-small">(@daysLeft days)</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="az-muted">—</span>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="" Sortable="false" CellClass="az-actions">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Size="Size.Small"
+                               title="Edit"
+                               OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                               Size="Size.Small"
+                               title="Files"
+                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Person))" />
+
+                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                               Size="Size.Small"
+                               Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
+                               title="@(context.Item.IsActive ? "Deactivate" : "Activate")"
+                               OnClick="() => ToggleActive(context.Item)" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               title="Delete"
+                               OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+            </CellTemplate>
+        </TemplateColumn>
+
+    </Columns>
+
+    <ChildRowContent>
+        <PersonDetails Person="@context.Item"
+                       OnEditBankClicked="OnEditBankClicked"
+                       OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                       OnAddCertificateClicked="OnAddCertificateClicked"
+                       OnEditCertificateClicked="OnEditCertificateClicked"
+                       OnRemoveCertificateClicked="OnRemoveCertificateClicked"
+                       OnAddSeaServiceClicked="OnAddSeaServiceClicked"
+                       OnEditSeaServiceClicked="OnEditSeaServiceClicked"
+                       OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
+    </ChildRowContent>
+
+    <NoRecordsContent>
+        <div class="az-muted pa-4">No persons found.</div>
+    </NoRecordsContent>
+
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<PersonResponse> Items { get; set; } = [];
+
+    [Parameter] public EventCallback<PersonResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+
+    private static Color PassportColor(int daysLeft) =>
+        daysLeft < 30 ? Color.Error :
+        daysLeft < 90 ? Color.Warning :
+        Color.Success;
+
+    private Task ToggleActive(PersonResponse person) =>
+        person.IsActive
+            ? OnDeactivateClicked.InvokeAsync(person)
+            : OnActivateClicked.InvokeAsync(person);
+}

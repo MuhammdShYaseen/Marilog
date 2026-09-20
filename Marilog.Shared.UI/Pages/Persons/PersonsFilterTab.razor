@@ -1,0 +1,225 @@
+@using Marilog.Contracts.DTOs.Reports.PersonReports
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<MudPaper Elevation="0" Outlined="true" Square="true" Class="pa-3 mb-3">
+    <MudGrid Spacing="2">
+
+        @* ── General ── *@
+        <MudItem xs="12"><div class="az-section-label">General</div></MudItem>
+
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_filter.SearchTerm"
+                          Label="Name, passport or seaman book"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="bool?" @bind-Value="_filter.IsActive" Label="Status"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                <MudSelectItem T="bool?" Value="true">Active</MudSelectItem>
+                <MudSelectItem T="bool?" Value="false">Inactive</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int?" @bind-Value="_filter.MinAge" Label="Min age" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int?" @bind-Value="_filter.MaxAge" Label="Max age" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudSelect T="bool?" @bind-Value="_filter.HasBankAccount" Label="Bank account"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                <MudSelectItem T="bool?" Value="true">Has bank account</MudSelectItem>
+                <MudSelectItem T="bool?" Value="false">No bank account</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        @* ── Passport ── *@
+        <MudItem xs="12"><div class="az-section-label">Passport</div></MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="bool?" @bind-Value="_filter.HasValidPassport" Label="Passport validity"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                <MudSelectItem T="bool?" Value="true">Valid</MudSelectItem>
+                <MudSelectItem T="bool?" Value="false">Expired or missing</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudNumericField T="int?" @bind-Value="_filter.PassportExpiringWithinDays"
+                             Label="Expiring within (days)" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+
+        @* ── Certificates ── *@
+        <MudItem xs="12"><div class="az-section-label">Certificates</div></MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" Label="Certificate names" MultiSelection="true"
+                       @bind-SelectedValues="_certNames"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var name in CertificateNames)
+                {
+                    <MudSelectItem T="string" Value="@name">@name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="PersonCertificateType" Label="Certificate types" MultiSelection="true"
+                       @bind-SelectedValues="_certTypes"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var type in Enum.GetValues<PersonCertificateType>())
+                {
+                    <MudSelectItem T="PersonCertificateType" Value="@type">@type</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudStack Spacing="0">
+                <MudSwitch T="bool" @bind-Value="_filter.RequireAllCertificates"
+                           Label="Must hold all selected" Color="Color.Primary" />
+                <MudSwitch T="bool" @bind-Value="_filter.OnlyValidCertificates"
+                           Label="Ignore expired certificates" Color="Color.Primary" />
+            </MudStack>
+        </MudItem>
+
+        @* ── Sea Services ── *@
+        <MudItem xs="12"><div class="az-section-label">Sea services</div></MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudSelect T="int" Label="Ranks" MultiSelection="true"
+                       @bind-SelectedValues="_rankIds"
+                       ToStringFunc="@(id => Ranks.FirstOrDefault(r => r.Id == id)?.Name ?? id.ToString())"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var rank in Ranks)
+                {
+                    <MudSelectItem T="int" Value="@rank.Id">@rank.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int?" @bind-Value="_filter.MinExperienceInRankMonths"
+                             Label="Min months in rank" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="decimal?" @bind-Value="_filter.MinVesselSizeInMT"
+                             Label="Min vessel size (MT)" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudNumericField T="int?" @bind-Value="_filter.MinTotalExperienceMonths"
+                             Label="Min total experience (months)" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int?" @bind-Value="_filter.MinSeaServicesCount"
+                             Label="Min sea services" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudNumericField T="int?" @bind-Value="_filter.MaxSeaServicesCount"
+                             Label="Max sea services" Min="0"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="2" Class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.FilterAlt"
+                   Disabled="IsLoading"
+                   OnClick="ApplyAsync">
+            Apply filters
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   Disabled="IsLoading"
+                   OnClick="Reset">
+            Reset
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+@if (_hasSearched)
+{
+    <div class="az-muted az-small mb-2">@Results.Count person(s) found</div>
+
+    <PersonsTable Items="Results"
+                  OnEditClicked="OnEditClicked"
+                  OnDeleteClicked="OnDeleteClicked"
+                  OnActivateClicked="OnActivateClicked"
+                  OnDeactivateClicked="OnDeactivateClicked"
+                  OnEditBankClicked="OnEditBankClicked"
+                  OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                  OnAddCertificateClicked="OnAddCertificateClicked"
+                  OnEditCertificateClicked="OnEditCertificateClicked"
+                  OnRemoveCertificateClicked="OnRemoveCertificateClicked"
+                  OnAddSeaServiceClicked="OnAddSeaServiceClicked"
+                  OnEditSeaServiceClicked="OnEditSeaServiceClicked"
+                  OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
+}
+else
+{
+    <div class="az-muted">Set your criteria and click <b>Apply filters</b>.</div>
+}
+
+@code {
+    // ── Data ──
+    [Parameter] public IReadOnlyList<RankResponse> Ranks { get; set; } = [];
+    [Parameter] public IReadOnlyList<string> CertificateNames { get; set; } = [];
+    [Parameter] public IReadOnlyList<PersonResponse> Results { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback<PersonFilterOptions> OnSearch { get; set; }
+
+    // ── Pass-through to PersonsTable ──
+    [Parameter] public EventCallback<PersonResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
+
+    // ── State ──
+    private PersonFilterOptions _filter = new();
+    private IReadOnlyCollection<string>? _certNames = [];
+    private IReadOnlyCollection<PersonCertificateType>? _certTypes = [];
+    private IReadOnlyCollection<int>? _rankIds = [];
+    private bool _hasSearched;
+
+    private async Task ApplyAsync()
+    {
+        _filter.CertificateNames = _certNames?
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!)
+            .ToList();
+        _filter.CertificateTypes = _certTypes?.ToList();
+        _filter.RankIds = _rankIds?.ToList();
+
+        _hasSearched = true;
+        await OnSearch.InvokeAsync(_filter);
+    }
+
+    private void Reset()
+    {
+        _filter = new();
+        _certNames = null;
+        _certTypes = null;
+        _rankIds = null;
+        _hasSearched = false;
+    }
+}

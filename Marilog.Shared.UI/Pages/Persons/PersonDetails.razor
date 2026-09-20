@@ -1,0 +1,242 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<div class="az-detail">
+    <MudTabs Elevation="0" Rounded="false" PanelClass="pt-3">
+
+        @* ── Essentials ── *@
+        <MudTabPanel Text="Essentials">
+            <div class="az-essentials">
+                @foreach (var (label, value) in Essentials)
+                {
+                    <div>
+                        <div class="az-label">@label</div>
+                        <div class="az-value">@Dash(value)</div>
+                    </div>
+                }
+                <div>
+                    <div class="az-label">Status</div>
+                    <div class="az-value">
+                        <span class="az-status">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                     Color="@(Person.IsActive ? Color.Success : Color.Default)"
+                                     Style="font-size:10px" />
+                            @(Person.IsActive ? "Active" : "Inactive")
+                        </span>
+                        @if (Person.IsPassportExpired)
+                        {
+                            <span class="az-status ml-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Style="font-size:14px" />
+                                Passport expired
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </MudTabPanel>
+
+        @* ── Certificates ── *@
+        <MudTabPanel Text="@($"Certificates ({Person.Certificates.Count})")">
+            <div class="az-commandbar">
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="() => OnAddCertificateClicked.InvokeAsync(Person)">
+                    Add certificate
+                </MudButton>
+            </div>
+
+            @if (Person.Certificates.Count == 0)
+            {
+                <div class="az-muted">No certificates added.</div>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Number</th>
+                            <th>Issuing authority</th>
+                            <th>Issue date</th>
+                            <th>Expiry date</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cert in Person.Certificates)
+                        {
+                            var status = CertStatus(cert.ExpiryDate);
+                            <tr>
+                                <td>
+                                    <div>@cert.CertificateName</div>
+                                    @if (!string.IsNullOrWhiteSpace(cert.Description))
+                                    {
+                                        <div class="az-muted az-small">@cert.Description</div>
+                                    }
+                                </td>
+                                <td>@Dash(cert.CertificateNumber)</td>
+                                <td>@Dash(cert.IssuingAuthority)</td>
+                                <td>@(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                <td>@(cert.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                <td>
+                                    <span class="az-status">
+                                        <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@status.Color" Style="font-size:10px" />
+                                        @status.Text
+                                    </span>
+                                </td>
+                                <td class="az-actions">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   title="Edit"
+                                                   OnClick="() => OnEditCertificateClicked.InvokeAsync((Person, cert))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                                   Size="Size.Small"
+                                                   title="Files"
+                                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((cert.Index, EntityType.PersonCertificate))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   title="Delete"
+                                                   OnClick="() => OnRemoveCertificateClicked.InvokeAsync((Person, cert))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudTabPanel>
+
+        @* ── Sea Services ── *@
+        <MudTabPanel Text="@($"Sea services ({Person.SeaServices.Count})")">
+            <div class="az-commandbar">
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="() => OnAddSeaServiceClicked.InvokeAsync(Person)">
+                    Add sea service
+                </MudButton>
+            </div>
+
+            @if (Person.SeaServices.Count == 0)
+            {
+                <div class="az-muted">No sea services added.</div>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Experience</th>
+                            <th>Vessel size</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var service in Person.SeaServices)
+                        {
+                            <tr>
+                                <td>@(service.RankName ?? "Unknown rank")</td>
+                                <td>@service.ExperienceInMonths month@(service.ExperienceInMonths == 1 ? "" : "s")</td>
+                                <td>@(service.VesselSizeInMT.HasValue ? $"{service.VesselSizeInMT.Value:N0} MT" : "—")</td>
+                                <td class="az-actions">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   title="Edit"
+                                                   OnClick="() => OnEditSeaServiceClicked.InvokeAsync((Person, service))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   title="Delete"
+                                                   OnClick="() => OnRemoveSeaServiceClicked.InvokeAsync((Person, service))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudTabPanel>
+
+        @* ── Bank ── *@
+        <MudTabPanel Text="Bank">
+            <div class="az-commandbar">
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="() => OnEditBankClicked.InvokeAsync(Person)">
+                    Edit bank details
+                </MudButton>
+            </div>
+
+            @if (string.IsNullOrWhiteSpace(Person.BankName) && string.IsNullOrWhiteSpace(Person.IBAN))
+            {
+                <div class="az-muted">No bank details added.</div>
+            }
+            else
+            {
+                <div class="az-essentials">
+                    @foreach (var (label, value) in BankFields)
+                    {
+                        <div>
+                            <div class="az-label">@label</div>
+                            <div class="az-value">@Dash(value)</div>
+                        </div>
+                    }
+                </div>
+            }
+        </MudTabPanel>
+
+    </MudTabs>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PersonResponse Person { get; set; } = default!;
+
+    [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
+
+    private (string Label, string? Value)[] Essentials =>
+    [
+        ("Nationality", Person.NationalityCountryName),
+        ("Date of birth", Person.DateOfBirth?.ToString("yyyy-MM-dd")),
+        ("Passport", Person.PassportNo),
+        ("Passport expiry", Person.PassportExpiry?.ToString("yyyy-MM-dd")),
+        ("Seaman book", Person.SeamanBookNo),
+        ("Phone", Person.Phone),
+        ("Email", Person.Email)
+    ];
+
+    private (string Label, string? Value)[] BankFields =>
+    [
+        ("Bank name", Person.BankName),
+        ("IBAN", Person.IBAN),
+        ("Swift code", Person.BankSwiftCode)
+    ];
+
+    private static string Dash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    private static (Color Color, string Text) CertStatus(DateOnly? expiry)
+    {
+        if (!expiry.HasValue) return (Color.Default, "No expiry");
+
+        var days = expiry.Value.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
+
+        if (days < 0) return (Color.Error, "Expired");
+        if (days <= 90) return (Color.Warning, $"Expires in {days}d");
+        return (Color.Success, "Valid");
+    }
+}
