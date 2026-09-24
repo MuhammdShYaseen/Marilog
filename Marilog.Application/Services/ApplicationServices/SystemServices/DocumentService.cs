@@ -7,6 +7,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -56,7 +57,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return docs;
 
             await ApplyBaseRateToTreeAsync(docs, ct);
-            return BuildTree(docs);
+            return BuildTree(await IncludeDescendantsAsync(docs, ct)); ;
         }
 
         public async Task<DocumentResponse?> GetByIdAsync(
@@ -150,11 +151,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
-        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(
-            int buyerId, bool treeView = false, CancellationToken ct = default)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false, CancellationToken ct = default)
         {
             var result = await _repo.Query()
                 .AsNoTracking()
@@ -169,7 +169,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(
@@ -188,7 +188,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(
@@ -207,7 +207,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(
@@ -225,7 +225,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(
@@ -244,7 +244,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
@@ -265,7 +265,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 return result;
 
             await ApplyBaseRateToTreeAsync(result, ct);
-            return BuildTree(result);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(
@@ -286,34 +286,34 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
         {
             // ── Query واحدة تجلب كل المستندات ────────────────────────────────────
-            var allDocs = await _repo.Query()
+            var result = await _repo.Query()
                 .AsNoTracking()
                 .OrderBy(x => x.DocDate)
                 .Select(ToResponseFully())
                 .ToListAsync(ct);
 
-            await ApplyBaseRateToTreeAsync(allDocs, ct);
-            return BuildTree(allDocs);
+            await ApplyBaseRateToTreeAsync(result, ct);
+            return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
 
         public async Task<DocumentResponse?> GetTreeByDocumentIdAsync(
             int documentId, CancellationToken ct = default)
         {
             // ── نجلب كل المستندات مرة واحدة ──────────────────────────────────────
-            var allDocs = await _repo.Query()
+            var result = await _repo.Query()
                 .AsNoTracking()
                 .OrderBy(x => x.DocDate)
                 .Select(ToResponseFully())
                 .ToListAsync(ct);
 
-            await ApplyBaseRateToTreeAsync(allDocs, ct);
+            await ApplyBaseRateToTreeAsync(result, ct);
 
             // ── نبحث عن الجذر الذي ينتمي إليه هذا الـ document ───────────────────
-            var rootId = FindRootId(allDocs, documentId);
+            var rootId = FindRootId(result, documentId);
             if (rootId is null) return null;
 
             // ── نبني الشجرة كاملة ابتداءً من الجذر ───────────────────────────────
-            var roots = BuildTree(allDocs);
+            var roots =  BuildTree(await IncludeDescendantsAsync(result, ct));
             return roots.FirstOrDefault(r => r.Id == rootId);
         }
 
@@ -1520,11 +1520,46 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         /// يبني الشجرة هرمياً بشكل recursive.
         /// يأخذ كل المستندات flat ويرتبها كـ parent → children.
         /// </summary>
-        private static IReadOnlyList<DocumentResponse> BuildTree(
-            IReadOnlyList<DocumentResponse> allDocs)
+        private static List<DocumentResponse> BuildTree(IReadOnlyList<DocumentResponse> allDocs)
         {
-            var lookup = allDocs.ToLookup(x => x.ParentDocumentId);
+            var ids = allDocs.Select(d => d.Id).ToHashSet();
+
+            var lookup = allDocs.ToLookup(x =>
+                x.ParentDocumentId.HasValue && ids.Contains(x.ParentDocumentId.Value)
+                    ? x.ParentDocumentId
+                    : null);
+
             return BuildTreeInternal(lookup, parentId: null, depth: 0);
+        }
+
+
+        private async Task<List<DocumentResponse>> IncludeDescendantsAsync(IReadOnlyList<DocumentResponse> docs, CancellationToken ct)
+        {
+            var all = docs.ToList();
+            var knownIds = all.Select(d => d.Id).ToHashSet();
+            var frontier = knownIds.ToList();
+
+            while (frontier.Count > 0)
+            {
+                var children = await _repo.Query()
+                    .AsNoTracking()
+                    .Where(x => x.IsActive
+                                && x.ParentDocumentId != null
+                                && frontier.Contains(x.ParentDocumentId.Value))
+                    .Select(ToResponse())
+                    .ToListAsync(ct);
+
+                children = children.Where(c => !knownIds.Contains(c.Id)).ToList();
+                if (children.Count == 0) break;
+
+                await ApplyBaseRateAsync(children, ct);
+
+                all.AddRange(children);
+                frontier = children.Select(c => c.Id).ToList();
+                foreach (var id in frontier) knownIds.Add(id);
+            }
+
+            return all;
         }
 
         private static List<DocumentResponse> BuildTreeInternal(
