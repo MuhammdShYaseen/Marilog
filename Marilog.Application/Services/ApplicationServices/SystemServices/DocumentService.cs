@@ -52,7 +52,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Take(80)
                 .Select(ToResponse())
                 .ToListAsync(ct);
-
+            await ApplyBaseRateAsync(docs, ct);
             if (treeView == false)
                 return docs;
 
