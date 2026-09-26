@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -20,6 +21,12 @@ namespace Marilog.Domain.Entities.SystemEntities
             public string? PaymentReference { get; private set; }
             public string? RawMessage { get; private set; }
 
+
+        //====Status=================================================================
+            public SwiftTransferStatus Status { get; private set; } = SwiftTransferStatus.Pending;
+            public DateOnly? ReceivedDate { get; private set; }
+            public string? CancellationReason { get; private set; }
+        //===========================================================================
             private readonly List<Payment> _payments = new();
             public IReadOnlyCollection<Payment> Payments => _payments.AsReadOnly();
 
@@ -68,6 +75,35 @@ namespace Marilog.Domain.Entities.SystemEntities
                 throw new ArgumentNullException("RawMessage is empty");
 
             RawMessage = swiftRowMessge;
+        }
+
+
+        public void MarkReceived(DateOnly receivedDate)
+        {
+            if (Status == SwiftTransferStatus.Cancelled)
+                throw new InvalidOperationException("Cannot confirm a cancelled SWIFT transfer.");
+
+            if (receivedDate < TransactionDate)
+                throw new ArgumentException("Received date cannot be before the transaction date.");
+
+            Status = SwiftTransferStatus.Received;
+            ReceivedDate = receivedDate;
+            Touch();
+        }
+
+        public void Cancel(string reason)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+            if (Status == SwiftTransferStatus.Cancelled)
+                throw new InvalidOperationException("SWIFT transfer is already cancelled.");
+
+            if (_payments.Count > 0)
+                throw new InvalidOperationException("Remove the allocated payments before cancelling this SWIFT transfer.");
+
+            Status = SwiftTransferStatus.Cancelled;
+            CancellationReason = reason.Trim();
+            Touch();
         }
 
         // ── Computed ────────────────────────────────────────────────────────────

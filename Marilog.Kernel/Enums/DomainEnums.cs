@@ -291,6 +291,14 @@
         Expense = 2  //مصروفات
     }
 
+    //=====Swift-=====
+    public enum SwiftTransferStatus
+    {
+        Pending = 1,
+        Received = 2,
+        Cancelled = 3
+    }
+
     public class DomainEnums
     {
     }

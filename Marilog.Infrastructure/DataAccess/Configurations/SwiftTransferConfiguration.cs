@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -22,6 +23,13 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.RawMessage).HasColumnType("nvarchar(max)");
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            //===statuse-=======================================
+            builder.Property(x => x.Status).IsRequired();
+            builder.Property(x => x.ReceivedDate).HasColumnType("date");
+            builder.Property(x => x.CancellationReason).HasMaxLength(500);
+            //====================================================
+
 
             builder.HasOne(x => x.Currency)
                    .WithMany()
@@ -58,6 +66,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasIndex(x => x.ReceiverCompanyId);
             builder.HasIndex(x => x.TransactionDate);
             builder.HasIndex(x => x.CurrencyId);
+            builder.HasIndex(x => x.Status);
         }
     }
 }
