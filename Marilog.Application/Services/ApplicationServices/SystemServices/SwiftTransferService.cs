@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -62,7 +63,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Include(p => p.Payments)
-                .Where(x => x.SenderCompanyId == senderId && x.IsActive && x.ReceiverCompanyId == receverId && x.Amount > x.Payments.Sum(p => p.PaidAmount))
+                .Where(x => x.SenderCompanyId == senderId && x.IsActive && x.ReceiverCompanyId == receverId && x.Amount > x.Payments.Sum(p => p.PaidAmount) && x.Status == SwiftTransferStatus.Received)
                 .OrderByDescending(x => x.TransactionDate)
                 .Select(ToResponse)
                 .ToListAsync(ct);
@@ -137,6 +138,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.OnlyUnallocated)
                 query = query.Where(x => x.IsActive && x.UnallocatedAmount > 0); // ✅ استخدام الحقل المحسوب مباشرة
 
+            query = options.Status.HasValue
+                ? query.Where(x => x.Status == options.Status.Value)
+                : query.Where(x => x.Status != SwiftTransferStatus.Cancelled);
+
             // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderByDescending(x => x.TransactionDate);
 
@@ -164,6 +169,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 RawMessage = x.RawMessage,
                 ReceiverBankName = x.ReceiverBank!.Name,
                 SenderBankName = x.SenderBank!.Name,
+                Status = x.Status,
+                ReceivedDate = x.ReceivedDate,
+                CancellationReason = x.CancellationReason,
                 ReceiverBankNav = new BankResponse
                 {
                     BankId = x.ReceiverBankId,
@@ -395,7 +403,26 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _repo.HardDelete(transfer);
             await _repo.SaveChangesAsync(ct);
         }
+        //=======status=====================================
+        public async Task MarkReceivedAsync(int id, DateOnly receivedDate, CancellationToken ct = default)
+        {
+            var transfer = await GetOrThrowAsync(id, ct);
+            transfer.MarkReceived(receivedDate);
+            _repo.Update(transfer);
+            await _repo.SaveChangesAsync(ct);
+        }
 
+        public async Task CancelAsync(int id, string reason, CancellationToken ct = default)
+        {
+            var transfer = await _repo.Query()
+                .Include(x => x.Payments)
+                .FirstOrDefaultAsync(x => x.Id == id, ct)
+                ?? throw new KeyNotFoundException($"SwiftTransfer {id} not found.");
+
+            transfer.Cancel(reason);
+            _repo.Update(transfer);
+            await _repo.SaveChangesAsync(ct);
+        }
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<SwiftTransfer> GetOrThrowAsync(int id, CancellationToken ct)
@@ -429,6 +456,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             AllocatedAmount = x.Payments.Sum(p => p.PaidAmount),
             UnallocatedAmount = x.Amount - x.Payments.Sum(p => p.PaidAmount),
             IsFullyAllocated = x.Amount == x.Payments.Sum(p => p.PaidAmount),
+
+            Status = x.Status,
+            ReceivedDate = x.ReceivedDate,
+            CancellationReason = x.CancellationReason,
 
             SenderCompanyId = x.SenderCompanyId,
             SenderCompanyName = x.SenderCompany != null

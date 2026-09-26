@@ -1,4 +1,6 @@
-﻿namespace Marilog.Contracts.DTOs.Reports.SwiftTransferReports
+﻿using Marilog.Kernel.Enums;
+
+namespace Marilog.Contracts.DTOs.Reports.SwiftTransferReports
 {
     public class SwiftTransferFilterOptions
     {
@@ -10,5 +12,6 @@
         public DateOnly? ToDate { get; set; }
         public bool OnlyUnallocated { get; set; } = false;
         public bool IncludePayments { get; set; } = false;
+        public SwiftTransferStatus? Status { get; set; }
     }
 }

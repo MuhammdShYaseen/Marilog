@@ -1,4 +1,6 @@
-﻿namespace Marilog.Contracts.DTOs.Responses
+﻿using Marilog.Kernel.Enums;
+
+namespace Marilog.Contracts.DTOs.Responses
 {
     public class SwiftTransferResponse
     {
@@ -30,5 +32,11 @@
         public string? SenderBankName { get; set; }
         public string? ReceiverBankName { get; set; }
         public string? RawMessage { get; set; }
+
+
+        //=====status=================================
+        public SwiftTransferStatus Status { get; set; }
+        public DateOnly? ReceivedDate { get; set; }
+        public string? CancellationReason { get; set; }
     }
 }

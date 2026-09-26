@@ -36,5 +36,9 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task                ActivateAsync(int id, CancellationToken ct = default);
         Task                DeactivateAsync(int id, CancellationToken ct = default);
         Task                DeleteAsync(int id, CancellationToken ct = default);
+
+        //=====Status==============================================================
+        Task MarkReceivedAsync(int id, DateOnly receivedDate, CancellationToken ct = default);
+        Task CancelAsync(int id, string reason, CancellationToken ct = default);
     }
 }
