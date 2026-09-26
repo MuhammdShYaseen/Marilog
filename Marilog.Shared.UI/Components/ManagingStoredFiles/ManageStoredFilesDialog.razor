@@ -756,12 +756,25 @@
         max-height: 100vh !important;
         margin: 0 !important;
         border-radius: 0 !important;
+        box-shadow: none !important;
+        background-color: color-mix(in srgb, var(--mud-palette-surface) 30%, transparent) !important;
+        backdrop-filter: blur(2px);
     }
 
     .wa-viewer .mud-dialog-title,
-    .wa-viewer .mud-dialog-content {
+    .wa-viewer .mud-dialog-content,
+    .wa-viewer .mud-dialog-actions {
         background: transparent;
-        color: CanvasText;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .wa-viewer .mud-dialog-title {
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    /* Remove the dark scrim behind this dialog only */
+    .mud-dialog-container:has(.wa-viewer) .mud-overlay-scrim {
+        background-color: transparent !important;
     }
 
 </style>
