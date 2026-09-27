@@ -26,6 +26,8 @@
                               OnRowSelected="@HandleRowSelectedAsync"
                               OnEditClicked="@OnEditClicked"
                               OnDeleteClicked="@OnDeleteClicked"
+                              OnMarkReceivedClicked="@OnMarkReceivedClicked"
+                              OnCancelClicked="@OnCancelClicked"
                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
 
     <MudDrawer @bind-Open="_isDetailDrawerOpen"
@@ -55,6 +57,11 @@
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+
+    [Parameter] public EventCallback<SwiftTransferResponse> OnMarkReceivedClicked { get; set; }
+    [Parameter] public EventCallback<SwiftTransferResponse> OnCancelClicked { get; set; }
+
 
     SwiftTransferResponse? _selectedSummary;
     SwiftTransferResponse? _selectedDetail;

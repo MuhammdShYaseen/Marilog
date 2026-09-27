@@ -150,5 +150,20 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.DeleteAsync(id, ct);
             return NoContent();
         }
+
+        //=========status=============================================
+        [HttpPost("{id:int}/mark-received")]
+        public async Task<IActionResult> MarkReceived(int id, [FromBody] MarkSwiftReceivedRequest request, CancellationToken ct)
+        {
+            await _service.MarkReceivedAsync(id, request.ReceivedDate, ct);
+            return NoContent();
+        }
+
+        [HttpPost("{id:int}/cancel")]
+        public async Task<IActionResult> Cancel(int id, [FromBody] CancelSwiftTransferRequest request, CancellationToken ct)
+        {
+            await _service.CancelAsync(id, request.Reason, ct);
+            return NoContent();
+        }
     }
 }

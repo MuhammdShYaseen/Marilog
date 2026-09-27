@@ -138,5 +138,19 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
             http.EnsureSuccessStatusCode();
         }
+
+        public async Task MarkReceivedAsync(int id, DateOnly receivedDate, CancellationToken ct = default)
+        {
+            var response = await _http.PostAsJsonAsync($"{Base}/{id}/mark-received", new MarkSwiftReceivedRequest { ReceivedDate = receivedDate }, ct);
+
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task CancelAsync(int id, string reason, CancellationToken ct = default)
+        {
+            var response = await _http.PostAsJsonAsync($"{Base}/{id}/cancel",new CancelSwiftTransferRequest{Reason = reason}, ct);
+
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

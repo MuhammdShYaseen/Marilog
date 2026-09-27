@@ -1,0 +1,63 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsCancelMode ? "Cancel SWIFT Transfer" : "Confirm Bank Receipt") — @Transfer.SwiftReference
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (IsCancelMode)
+        {
+            <MudTextField T="string" Label="Reason" @bind-Value="_reason"
+                          Lines="2" Immediate="true" AutoFocus="true" />
+        }
+        else
+        {
+            <MudDatePicker Label="Received date" @bind-Date="_receivedDate"
+                           MinDate="@_minDate" MaxDate="@DateTime.Today" />
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Back">Back</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="@(IsCancelMode ? Color.Error : Color.Primary)"
+                   Disabled="@(!CanSubmit)"
+                   OnClick="Submit">
+            @(IsCancelMode ? "Cancel Transfer" : "Confirm")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public SwiftTransferResponse Transfer { get; set; } = null!;
+    [Parameter] public bool IsCancelMode { get; set; }
+
+    DateTime? _receivedDate = DateTime.Today;
+    DateTime? _minDate;
+    string _reason = string.Empty;
+
+    bool CanSubmit => IsCancelMode
+        ? !string.IsNullOrWhiteSpace(_reason)
+        : _receivedDate is not null;
+
+    protected override void OnInitialized() =>
+        _minDate = Transfer.TransactionDate.ToDateTime(TimeOnly.MinValue);
+
+    void Submit()
+    {
+        object result = IsCancelMode
+            ? _reason.Trim()
+            : DateOnly.FromDateTime(_receivedDate!.Value);
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    void Back() => MudDialog.Cancel();
+}

@@ -31,8 +31,13 @@
                 </MudText>
             </MudStack>
         </MudStack>
-
-        @if (Transfer.IsFullyAllocated)
+        @if (Transfer.Status == SwiftTransferStatus.Cancelled)
+        {
+            <MudChip T="string" Color="Color.Error" Icon="@Icons.Material.Filled.Block" Variant="Variant.Filled">
+                Cancelled
+            </MudChip>
+        }
+        else if (Transfer.IsFullyAllocated)
         {
             <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle" Variant="Variant.Filled">
                 Fully Allocated
@@ -47,6 +52,26 @@
     </MudStack>
 
     @* ── Allocation progress ───────────────────────────────── *@
+    @switch (Transfer.Status)
+    {
+        case SwiftTransferStatus.Pending:
+            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="my-2">
+                Awaiting bank confirmation · @_daysPending day(s) since transaction date
+            </MudAlert>
+            break;
+
+        case SwiftTransferStatus.Cancelled:
+            <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined" Class="my-2">
+                Cancelled — @Transfer.CancellationReason
+            </MudAlert>
+            break;
+
+        case SwiftTransferStatus.Received when Transfer.ReceivedDate is not null:
+            <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Outlined" Class="my-2">
+                Bank receipt confirmed on @Transfer.ReceivedDate.Value.ToString("dd MMM yyyy")
+            </MudAlert>
+            break;
+    }
     <MudProgressLinear Value="@_allocationPercent"
                        Color="@(Transfer.IsFullyAllocated ? Color.Success : Color.Warning)"
                        Class="my-3"
@@ -71,7 +96,7 @@
             <MudText Typo="Typo.body1"
                      Color="@(Transfer.UnallocatedAmount > 0 ? Color.Warning : Color.Success)"
                      Style="font-weight:600">
-                @Transfer.UnallocatedAmount.ToString("N2") @Transfer.CurrencyCode
+                @(Transfer.Status == SwiftTransferStatus.Cancelled ? "—" : $"{Transfer.UnallocatedAmount:N2} {Transfer.CurrencyCode}")
             </MudText>
         </MudItem>
         <MudItem xs="6" sm="3">
@@ -170,7 +195,7 @@
 
     List<PaymentResponse> _orderedPayments = new();
     double _allocationPercent;
-
+    int _daysPending;
     protected override void OnParametersSet()
     {
         _orderedPayments = (Transfer.Payments ?? new())
@@ -180,5 +205,6 @@
         _allocationPercent = Transfer.Amount > 0
             ? (double)(Transfer.AllocatedAmount / Transfer.Amount) * 100
             : 0;
+        _daysPending = DateOnly.FromDateTime(DateTime.Today).DayNumber - Transfer.TransactionDate.DayNumber;
     }
 }
