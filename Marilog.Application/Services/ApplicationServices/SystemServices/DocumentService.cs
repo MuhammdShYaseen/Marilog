@@ -1,3 +1,4 @@
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
@@ -267,7 +268,78 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await ApplyBaseRateToTreeAsync(result, ct);
             return BuildTree(await IncludeDescendantsAsync(result, ct));
         }
+        public async Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default)
+        {
+            var unpaid = _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive &&
+                            x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                            > x.Payments.Sum(p => p.PaidAmount));
 
+            var companyCounts = await unpaid
+                .GroupBy(x => x.SupplierId)
+                .Select(g => new { CompanyId = g.Key, Count = g.Count() })
+                .OrderBy(g => g.CompanyId)
+                .ToListAsync(ct);
+
+            var pages = new List<List<int>>();
+            var current = new List<int>();
+            var currentCount = 0;
+
+            foreach (var c in companyCounts)
+            {
+                current.Add(c.CompanyId ?? 0);
+                currentCount += c.Count;
+
+                if (currentCount >= request.PageSize)
+                {
+                    pages.Add(current);
+                    current = [];
+                    currentCount = 0;
+                }
+            }
+
+            if (current.Count > 0)
+                pages.Add(current);
+
+            var totalCount = companyCounts.Sum(c => c.Count);
+
+            if (request.Page > pages.Count)
+                return new PagedResponse<DocumentResponse>
+                {
+                    Items = [],
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    PageSize = request.PageSize,
+                    TotalPages = pages.Count
+                };
+
+            var pageCompanyIds = pages[request.Page - 1];
+
+            var result = await unpaid
+                .Where(x => pageCompanyIds.Contains(x.SupplierId ?? 0))
+                .OrderBy(x => x.SupplierId)
+                .ThenBy(x => x.DocDate)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateAsync(result, ct);
+
+            if (treeView)
+            {
+                await ApplyBaseRateToTreeAsync(result, ct);
+                result = BuildTree(await IncludeDescendantsAsync(result, ct)).ToList();
+            }
+
+            return new PagedResponse<DocumentResponse>
+            {
+                Items = result,
+                TotalCount = totalCount,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalPages = pages.Count
+            };
+        }
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(
             int parentDocumentId, CancellationToken ct = default)
         {

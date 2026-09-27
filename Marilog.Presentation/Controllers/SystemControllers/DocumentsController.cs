@@ -117,6 +117,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return docs is null ? NotFound() : Ok(ApiResponse<IReadOnlyList<DocumentResponse>>.Ok(docs));
         }
 
+        [HttpGet("unpaid/paged")]
+        public async Task<ActionResult<PagedResponse<DocumentResponse>>> GetUnpaidPaged([FromQuery] PagedRequest request, [FromQuery] bool treeView = false, CancellationToken ct = default)
+        { 
+            return Ok(await _service.GetUnpaidPagedAsync(request, treeView, ct)); 
+        }
+
         [HttpGet("{id:int}/children")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetChildren(int id, CancellationToken ct)
         {

@@ -1,3 +1,4 @@
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
@@ -23,6 +24,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(int voyageId, bool treeView = false, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false, CancellationToken ct = default);
+        Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default);
         Task<DocumentResponse?> GetTreeByDocumentIdAsync(int documentId, CancellationToken ct = default);

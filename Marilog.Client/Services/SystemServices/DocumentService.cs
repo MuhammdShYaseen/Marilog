@@ -96,6 +96,21 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
+        public async Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default)
+        {
+            var url = $"{Base}/unpaid/paged?page={request.Page}&pageSize={request.PageSize}&treeView={treeView}";
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                url += $"&searchTerm={Uri.EscapeDataString(request.SearchTerm)}";
+
+            return await _http.GetFromJsonAsync<PagedResponse<DocumentResponse>>(url, ct) ?? new PagedResponse<DocumentResponse>
+            {
+                 Page = request.Page,
+                 PageSize = request.PageSize,
+                 TotalPages = 0
+            };
+        }
+
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default)
         {
             var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/{parentDocumentId}/children", ct);
