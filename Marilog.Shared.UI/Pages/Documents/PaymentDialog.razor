@@ -4,8 +4,16 @@
 @namespace Marilog.Shared.UI.Pages.Documents
 
 <MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@(ExistingPayment is null ? "Record Payment" : "Edit Payment")</MudText>
+        </MudStack>
+    </TitleContent>
+
     <DialogContent>
-        <MudGrid>
+        <MudGrid Spacing="2">
+
             <MudItem xs="12">
                 <MudSelect T="PaymentMethod"
                            @bind-Value="_method"
@@ -23,32 +31,65 @@
             @if (_method == PaymentMethod.Swift)
             {
                 <MudItem xs="12">
-                    <MudSelect T="int?"
-                               @bind-Value="_swiftTransferId"
-                               Label="SWIFT Transfer"
-                               Required="true"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense">
-                        @if (SwiftTransfers is not null)
-                        {
+                    @if (SwiftTransfers is null || SwiftTransfers.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                            No bank-confirmed SWIFT transfers with an available balance.
+                            Confirm the transfer on the SWIFT Transfers page first.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudSelect T="int?"
+                                   @bind-Value="_swiftTransferId"
+                                   Label="SWIFT Transfer"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   ToStringFunc="@SwiftLabel"
+                                   HelperText="Only bank-confirmed transfers are listed">
                             @foreach (var swift in SwiftTransfers)
                             {
                                 <MudSelectItem Value="@((int?)swift.Id)">
-                                    @($"{swift.SwiftReference} | {swift.Amount:N2} | {swift.TransactionDate:dd/MM/yyyy}")
+                                    <div class="d-flex justify-space-between align-center" style="width:100%; gap:24px;">
+                                        <div>
+                                            <MudText Typo="Typo.body2">@swift.SwiftReference</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @swift.TransactionDate.ToString("dd MMM yyyy")
+                                            </MudText>
+                                        </div>
+                                        <div style="text-align:right;">
+                                            <MudText Typo="Typo.body2">
+                                                @swift.CurrencyCode @swift.UnallocatedAmount.ToString("N2")
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                available of @swift.Amount.ToString("N2")
+                                            </MudText>
+                                        </div>
+                                    </div>
                                 </MudSelectItem>
                             }
-                        }
-                    </MudSelect>
+                        </MudSelect>
+                    }
                 </MudItem>
             }
 
             <MudItem xs="6">
-                <MudNumericField @bind-Value="_amount"
+                <MudNumericField T="decimal"
+                                 @bind-Value="_amount"
                                  Label="Amount"
                                  Required="true"
                                  Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                                 Margin="Margin.Dense"
+                                 Format="N2"
+                                 HideSpinButtons="true"
+                                 Adornment="@(SelectedSwift is null ? Adornment.None : Adornment.Start)"
+                                 AdornmentText="@SelectedSwift?.CurrencyCode"
+                                 HelperText="@AmountHelperText"
+                                 Error="@ExceedsAvailable"
+                                 ErrorText="Exceeds the available SWIFT balance" />
             </MudItem>
+
             <MudItem xs="6">
                 <MudDatePicker @bind-Date="_paymentDate"
                                Label="Payment Date"
@@ -57,24 +98,25 @@
                                Margin="Margin.Dense" />
             </MudItem>
 
-            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_discreption"
+                              Label="Description"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2" />
+            </MudItem>
+
         </MudGrid>
-        <MudItem xs="12">
-            <MudTextField @bind-Value="_discreption"
-                          Label="Description"
-                          Required="false"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          FullWidth="true" />
-        </MudItem>
     </DialogContent>
+
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Check"
                    OnClick="Submit"
                    Disabled="@(!IsValid())">
-            Record
+            @(ExistingPayment is null ? "Record" : "Save Changes")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -89,6 +131,31 @@
     private DateTime? _paymentDate = DateTime.Today;
     private PaymentMethod _method;
     private string? _discreption;
+
+    private SwiftTransferResponse? SelectedSwift =>
+        _method == PaymentMethod.Swift
+            ? SwiftTransfers?.FirstOrDefault(s => s.Id == _swiftTransferId)
+            : null;
+
+    // Mirrors the server rule: when editing a payment on the same SWIFT,
+    // its current amount is added back before comparing.
+    private decimal? AvailableOnSelectedSwift =>
+        SelectedSwift is null
+            ? null
+            : SelectedSwift.UnallocatedAmount
+              + (ExistingPayment?.SwiftTransferId == SelectedSwift.Id ? ExistingPayment.PaidAmount : 0m);
+
+    private bool ExceedsAvailable =>
+        AvailableOnSelectedSwift is { } available && _amount > available;
+
+    private string? AmountHelperText =>
+        AvailableOnSelectedSwift is { } available ? $"Available: {available:N2}" : null;
+
+    private string SwiftLabel(int? id) =>
+        SwiftTransfers?.FirstOrDefault(s => s.Id == id) is { } s
+            ? $"{s.SwiftReference} · {s.CurrencyCode} {s.UnallocatedAmount:N2} available"
+            : string.Empty;
+
     protected override void OnInitialized()
     {
         if (ExistingPayment is not null)
@@ -105,6 +172,7 @@
     {
         if (_amount <= 0 || _paymentDate is null) return false;
         if (_method == PaymentMethod.Swift && (_swiftTransferId is null || _swiftTransferId <= 0)) return false;
+        if (ExceedsAvailable) return false;
         return true;
     }
 

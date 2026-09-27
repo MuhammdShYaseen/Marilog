@@ -711,12 +711,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         x.IsActive &&
                         (x.SenderCompanyId == document.BuyerId ||
                          x.ReceiverCompanyId == document.SupplierId))
-                    .Select(x => new { x.CurrencyId, x.UnallocatedAmount })
+                    .Select(x => new { x.CurrencyId, x.UnallocatedAmount, x.Status })
                     .FirstOrDefaultAsync(ct);
 
                 if (swift is null)
                     throw new KeyNotFoundException(
                         "SwiftTransfer not found or not allowed for this document.");
+
+                if (swift.Status != SwiftTransferStatus.Received)
+                    throw new InvalidOperationException(
+                        "Cannot allocate a payment to a cancelled or unreceived SwiftTransfer.");
 
                 if (swift.CurrencyId != document.CurrencyId)
                     throw new InvalidOperationException(
@@ -767,12 +771,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 var swift = await _swiftRepo.Query()
                     .Include(p => p.Payments)
                     .Where(x => x.Id == update.SwiftTransferId && x.IsActive)
-                    .Select(x => new { x.CurrencyId, x.UnallocatedAmount })
+                    .Select(x => new { x.CurrencyId, x.UnallocatedAmount, x.Status })
                     .FirstOrDefaultAsync(ct);
 
                 if (swift is null)
                     throw new KeyNotFoundException(
                         $"SwiftTransfer {update.SwiftTransferId} not found or inactive.");
+
+                if (swift.Status != SwiftTransferStatus.Received)
+                    throw new InvalidOperationException(
+                        "Cannot allocate a payment to a cancelled or unreceived SwiftTransfer.");
 
                 if (swift.CurrencyId != document.CurrencyId)
                     throw new InvalidOperationException(
