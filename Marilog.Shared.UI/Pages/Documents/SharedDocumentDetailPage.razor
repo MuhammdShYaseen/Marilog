@@ -21,11 +21,18 @@ else
                 </MudText>
             </MudStack>
 
-            <MudChip T="string"
-                     Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
-                     Size="Size.Small">
-                @(Document.IsFullyPaid ? "Fully Paid" : "Unpaid")
-            </MudChip>
+            @if (IsNonFinancial)
+            {
+                <MudChip T="string" Color="Color.Default" Size="Size.Small">None</MudChip>
+            }
+            else
+            {
+                <MudChip T="string"
+                         Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
+                         Size="Size.Small">
+                    @(Document.IsFullyPaid ? "Fully Paid" : "Unpaid")
+                </MudChip>
+            }
 
             @if (HasAdjustments)
             {
@@ -45,14 +52,16 @@ else
             <MudSpacer />
 
             <MudStack Row="true" Spacing="1">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Size="Size.Small"
-                           StartIcon="@Icons.Material.Filled.Payment"
-                           OnClick="() => OnAddPaymentClicked.InvokeAsync(Document)"
-                           Disabled="Document.IsFullyPaid">
-                    Add Payment
-                </MudButton>
+                <MudTooltip Text="@(IsNonFinancial ? "No financial side — payments not applicable" : string.Empty)">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Payment"
+                               OnClick="() => OnAddPaymentClicked.InvokeAsync(Document)"
+                               Disabled="@(Document.IsFullyPaid || IsNonFinancial)">
+                        Add Payment
+                    </MudButton>
+                </MudTooltip>
                 <MudTooltip Text="Edit">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                    Color="Color.Primary"
@@ -464,7 +473,7 @@ else
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                    Size="Size.Small"
                                                    Color="Color.Error"
-                                                   OnClick="() => OnRemoveAdjustmentClicked.InvokeAsync((Document.Id, context.Id))" />
+                                                   OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
                                 </MudTooltip>
                             </MudStack>
                         </MudTd>
@@ -510,7 +519,7 @@ else
     [Parameter] public EventCallback<(int DocumentId, int PaymentId)> OnRemovePaymentClicked { get; set; }
 
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    private bool IsNonFinancial => Document?.Side == FinancialSide.None;
     private IReadOnlyList<AdjustmentResponse> Adjustments
         => Document?.Adjustments ?? [];
 
