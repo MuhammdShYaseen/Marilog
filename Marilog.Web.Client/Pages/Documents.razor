@@ -1,14 +1,15 @@
 ﻿@page "/documents"
 @using Kernel.Enums
+@using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Reports.PaymentReports
+@using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Documents
 @using Marilog.Web.Client.Services.Interfaces
-@using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
 @using MudBlazor
 @inject HttpClient Http
 @inject IDocumentService DocumentService
@@ -77,6 +78,9 @@
                          OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
                          OnSearch="HandelSearchAsync"
                          OnLoadLastAdded="HandelGetLastAddAsync"
+                         UnpaidPage="_unpaidPage"
+                         UnpaidTotalPages="_unpaidTotalPages"
+                         OnUnpaidPageChanged="LoadUnpaidPageAsync"
                          @ref="_documentsPage" />
 
 @code {
@@ -98,6 +102,9 @@
     private int? _selectedSupplierId;
     private int? _selectedTypeId;
     private bool _isDetailDrawerOpen;
+    private const int UnpaidPageSize = 40;
+    private int _unpaidPage = 1;
+    private int _unpaidTotalPages;
     protected override async Task OnInitializedAsync() => await LoadAsync();
     protected override void OnParametersSet()
     {
@@ -109,7 +116,7 @@
         _loading = true;
         try
         {
-            var t1 = DocumentService.GetUnpaidAsync(true);
+            var t1 = DocumentService.GetUnpaidPagedAsync(new PagedRequest { Page = _unpaidPage, PageSize = UnpaidPageSize }, true);
             var t2 = VesselService.GetAllAsLookUpAsync();
             var t3 = CompanyService.GetActiveAsync();
             var t4 = DocTypeService.GetActiveAsync();
@@ -118,7 +125,10 @@
 
             await Task.WhenAll(t1, t2, t3, t4, t5, t6);
 
-            _unpaid = t1.Result;
+            _unpaid = t1.Result.Items;
+            _unpaidTotalPages = t1.Result.TotalPages;
+            if (_unpaid.Count == 0 && _unpaidPage > 1 && _unpaidTotalPages > 0)
+                await LoadUnpaidPageAsync(_unpaidTotalPages);
             _vessels = t2.Result;
             _companies = t3.Result;
             _docTypes = t4.Result;
@@ -504,6 +514,29 @@
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+
+    private async Task LoadUnpaidPageAsync(int page)
+    {
+        _unpaidPage = page;
+        _loading = true;
+        try
+        {
+            var response = await DocumentService.GetUnpaidPagedAsync(
+                new PagedRequest { Page = _unpaidPage, PageSize = UnpaidPageSize }, true);
+
+            _unpaid = response.Items;
+            _unpaidTotalPages = response.TotalPages;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
         }
     }
     

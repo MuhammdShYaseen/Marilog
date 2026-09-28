@@ -263,7 +263,16 @@
     </MudDataGrid>
 
 </div>
-
+@if (OnPageChanged.HasDelegate && TotalPages > 1)
+{
+    <div class="d-flex justify-center mt-3">
+        <MudPagination Count="TotalPages"
+                       Selected="CurrentPage"
+                       SelectedChanged="OnPageChanged"
+                       Size="Size.Small"
+                       Color="Color.Primary" />
+    </div>
+}
 @code {
     [Parameter] public IEnumerable<DocumentResponse> Items { get; set; } = [];
     [Parameter] public EventCallback<DocumentResponse> OnRowClick { get; set; }
@@ -279,6 +288,10 @@
     [Parameter] public string GridStorageKey { get; set; } = "wa-doc-grid-widths";
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalPages { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
 
     // Must match the number of <th> in <Columns> above, in the same order.
     // These are ALSO the fallback widths used before JS attaches.

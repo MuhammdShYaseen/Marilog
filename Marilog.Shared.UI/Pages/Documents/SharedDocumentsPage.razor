@@ -26,6 +26,9 @@
                            OnRowClick="OnDocumentClick"
                            OnEditClicked="OnEditClicked"
                            OnDeleteClicked="OnDeleteClicked"
+                           CurrentPage="UnpaidPage"
+                           TotalPages="UnpaidTotalPages"
+                           OnPageChanged="OnUnpaidPageChanged"
                            OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
         </MudTabPanel>
 
@@ -1099,6 +1102,9 @@
     [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnDownloadPaymentPdf { get; set; }
     [Parameter] public Func<string, bool, Task<IReadOnlyList<DocumentResponse>>>? OnSearch { get; set; }
     [Parameter] public Func<int, bool, Task<IReadOnlyList<DocumentResponse>>>? OnLoadLastAdded { get; set; }
+    [Parameter] public int UnpaidPage { get; set; } = 1;
+    [Parameter] public int UnpaidTotalPages { get; set; }
+    [Parameter] public EventCallback<int> OnUnpaidPageChanged { get; set; }
 
     private int? _selectedVesselId;
     private int? _selectedSupplierId;
