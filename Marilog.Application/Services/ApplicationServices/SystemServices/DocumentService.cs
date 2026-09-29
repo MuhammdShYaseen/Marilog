@@ -10,6 +10,7 @@ using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
@@ -409,7 +410,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 vesselId: createDto.VesselId,
                 portId: createDto.PortId,
                 parentDocumentId: createDto.ParentDocumentId,
-                reference: createDto.Reference);
+                reference: createDto.Reference,
+                docDue: createDto.DocDue);
 
             await _repo.AddAsync(document, ct);
             await _repo.SaveChangesAsync(ct);
@@ -430,6 +432,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Reference = document.Reference,
                 Side = document.Side,
                 VoyageId = document.VoyageId,
+                DocDue = document.DocDue,
             };
         }
 
@@ -455,7 +458,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     vesselId: c.VesselId,
                     portId: c.PortId,
                     parentDocumentId: c.ParentDocumentId,
-                    reference: c.Reference));
+                    reference: c.Reference,
+                    docDue: c.DocDue));
             }
 
             await _repo.AddRangeAsync(documents, ct);
@@ -505,7 +509,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 buyerId: updateDto.BuyerId,
                 vesselId: updateDto.VesselId,
                 portId: updateDto.PortId,
-                reference: updateDto.Reference);
+                reference: updateDto.Reference,
+                docDue: updateDto.DocDue);
 
             _repo.Update(document);
             await BuildSearchVectorAsync(document, ct);
@@ -1002,6 +1007,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     DocumentId = x.Document.Id,
                     DocNumber = x.Document.DocNumber,
                     DocDate = x.Document.DocDate,
+                    DocDue = x.Document.DocDue,
                     DocTypeId = x.Document.DocTypeId,
                     DocTypeName = x.Document.DocType != null ? x.Document.DocType.Name : null,
                     Side = x.Document.Side,
@@ -1030,6 +1036,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     DocumentId = r.DocumentId,
                     DocNumber = r.DocNumber,
                     DocDate = r.DocDate,
+                    DocDue = r.DocDue,
                     DocTypeId = r.DocTypeId,
                     DocTypeName = r.DocTypeName,
                     Side = r.Side,
@@ -1225,6 +1232,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VesselId = x.VesselId,
                     DocTypeId = x.DocTypeId,
                     DocDate = x.DocDate,
+                    DocDue = x.DocDue,
                     TotalAmount = x.TotalAmount,
                     Adjustments = x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m,
                     CurrencyId = x.CurrencyId,
@@ -1277,6 +1285,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VesselId = x.VesselId,
                     DocTypeId = x.DocTypeId,
                     DocDate = x.DocDate,
+                    DocDue = x.DocDue,
                     TotalAmount = x.TotalAmount,
                     AdjustmentsTotal = x.Adjustments,
                     NetAmount = x.TotalAmount + x.Adjustments,
@@ -1493,6 +1502,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Port = x.Port != null ? x.Port.PortName : null,
                     Reference = x.Reference,
                     Side = x.Side.ToString(),
+                    docDue = x.DocDue.ToString()
                 })
                 .FirstOrDefaultAsync(ct);
 
@@ -1507,7 +1517,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 port: data.Port,
                 reference: data.Reference,
                 docType: data.DocTypeName,
-                side: data.Side);
+                side: data.Side,
+                dueDate : data.docDue);
         }
 
         // ══ Private — base currency ═══════════════════════════════════════════════
@@ -1700,6 +1711,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocTypeName = x.DocType.Name,
                 DocDate = x.DocDate,
+                DocDue = x.DocDue,
                 Side = x.Side,
 
                 SupplierId = x.SupplierId,
@@ -1749,6 +1761,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocTypeName = x.DocType.Name,
                 DocDate = x.DocDate,
+                DocDue = x.DocDue,
                 Side = x.Side,
 
                 SupplierId = x.SupplierId,
@@ -1812,6 +1825,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocTypeName = x.DocType.Name,
                 DocDate = x.DocDate,
+                DocDue = x.DocDue,
                 Side = x.Side,
 
                 SupplierId = x.SupplierId,
@@ -1901,6 +1915,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 DocTypeId = x.DocTypeId,
                 DocTypeName = x.DocType.Name,
                 DocDate = x.DocDate,
+                DocDue = x.DocDue,
                 Side = x.Side,
 
                 SupplierId = x.SupplierId,

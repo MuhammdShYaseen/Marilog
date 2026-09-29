@@ -15,6 +15,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.DocNumber).IsRequired().HasMaxLength(50);
             builder.Property(x => x.DocTypeId).IsRequired();
             builder.Property(x => x.DocDate).IsRequired().HasColumnType("date");
+            builder.Property(x => x.DocDue).HasColumnType("date");
             builder.Property(x => x.CurrencyId).IsRequired();
             builder.Property(x => x.TotalAmount).IsRequired().HasColumnType("decimal(18,4)");
             builder.Property(x => x.Reference).HasMaxLength(200);

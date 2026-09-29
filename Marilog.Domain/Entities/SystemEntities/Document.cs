@@ -11,7 +11,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public DocumentType DocType { get; private set; } = null!;
         public FinancialSide Side { get; private set; } = 0;
         public DateOnly DocDate { get; private set; }
-
+        public DateOnly? DocDue {  get; private set; }
         public int? SupplierId { get; private set; }
         public Company? Supplier { get; private set; }
         public int? BuyerId { get; private set; }
@@ -57,7 +57,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             int? vesselId = null,
             int? portId = null,
             int? parentDocumentId = null,
-            string? reference = null
+            string? reference = null,
+            DateOnly? docDue = null
             )
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(docNumber);
@@ -80,6 +81,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ParentDocumentId = parentDocumentId,
                 Reference = reference,
                 Side = side,
+                DocDue = docDue,
             };
             
 
@@ -100,7 +102,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             int? buyerId = null,
             int? vesselId = null,
             int? portId = null,
-            string? reference = null)
+            string? reference = null,
+            DateOnly? docDue = null)
         {
             if (docTypeId <= 0) throw new ArgumentException("Invalid DocTypeId.");
             if (currencyId <= 0) throw new ArgumentException("Invalid CurrencyId.");
@@ -123,6 +126,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             DocNumber = docNumber;
             Side = side;
             VoyageId = voyageId;
+            DocDue = docDue;
             Touch();
            
         }
@@ -130,7 +134,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public void RebuildSearchVector(string? supplierName, string? buyerName,
                                         string? vesselName, string? currencyCode,
                                         string? totalAmount, string? port,
-                                        string? reference, string? docType, string? side)
+                                        string? reference, string? docType, string? side, string? dueDate)
         {
             var parts = new[]
             {
@@ -145,7 +149,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 port,
                 reference,
                 docType,
-                side
+                side,
+                dueDate
              };
 
             SearchVector = string.Join(" | ", parts

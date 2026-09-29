@@ -17,5 +17,6 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentDTOs
         public string? Reference { get; set; }
         public FinancialSide Side { get; set; }
         public int? VoyageId { get; set; }
+        public DateOnly? DocDue { get; set; }
     }
 }

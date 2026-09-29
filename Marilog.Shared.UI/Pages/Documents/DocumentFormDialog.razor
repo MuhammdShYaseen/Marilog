@@ -36,6 +36,16 @@
             </MudItem>
 
             <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_docDueDateTime"
+                               Label="Due Date"
+                               Editable="true"
+                               Clearable="true"
+                               MinDate="_docDateTime"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
                 <MudNumericField T="decimal"
                 @bind-Value="_TotalAmount"
                 Label="Total Amount"
@@ -319,6 +329,15 @@
             ? DateOnly.FromDateTime(value.Value)
             : null;
     }
+    private DateOnly? _docDue;
+
+    private DateTime? _docDueDateTime
+    {
+        get => _docDue?.ToDateTime(TimeOnly.MinValue);
+        set => _docDue = value.HasValue
+            ? DateOnly.FromDateTime(value.Value)
+            : null;
+    }
     private int _DocTypeId;
     private int _CurrencyId;
 
@@ -353,6 +372,7 @@
         _PortId = Document.PortId;
         _ParentDocumentId = Document.ParentDocumentId;
         _docDate = Document.DocDate;
+        _docDue = Document.DocDue;
         _Side = Document.Side;
         _VoyageId = Document.VoyageId;
 
@@ -382,6 +402,7 @@
             MudDialog.Close(DialogResult.Ok(new CreateDocumentRequest
             {
                  DocDate = _docDate!.Value,
+                 DocDue = _docDue,
                  SupplierId = _SupplierId,
                  VesselId = _VesselId,
                  CurrencyId = _CurrencyId,
@@ -401,6 +422,7 @@
             MudDialog.Close(DialogResult.Ok(new UpdateDocumentRequest
             {
                 DocDate = _docDate!.Value,
+                DocDue = _docDue,
                 SupplierId = _SupplierId,
                 VesselId = _VesselId,
                 CurrencyId = _CurrencyId,

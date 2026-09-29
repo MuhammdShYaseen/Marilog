@@ -27,5 +27,6 @@ namespace Marilog.Contracts.DTOs.Reports.PaymentReports
         public string? VesselName { get; set; }
         public int? VoyageId { get; set; }
         public string? VoyageNumber { get; set; }
+        public DateOnly? DocDue { get; set; }
     }
 }

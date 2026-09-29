@@ -65,5 +65,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public int? VoyageId { get; set; }
         public string? VoyageNumber { get; set; }
         public string? VoyageSummary { get; set; }
+        public DateOnly? DocDue { get; set; }
     }
 }
