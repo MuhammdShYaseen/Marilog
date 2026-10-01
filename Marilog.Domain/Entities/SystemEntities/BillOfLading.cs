@@ -117,6 +117,17 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (issuanceType == BlIssuanceType.House && masterBlId == null)
                 throw new InvalidOperationException("House BL must reference a Master BL.");
 
+            if (portOfLoadingId <= 0) throw new ArgumentException("Invalid PortOfLoadingID.");
+            if (portOfDischargeId <= 0) throw new ArgumentException("Invalid PortOfDischargeID.");
+            if (originalCopiesCount < 1) throw new ArgumentException("OriginalCopiesCount must be at least 1.");
+
+            if (blType == BlType.BearerBl &&
+                (consigneeCompanyId != null || !string.IsNullOrWhiteSpace(consigneeToOrder)))
+                throw new InvalidOperationException("Bearer BL cannot have a Consignee or a 'To Order' instruction.");
+
+            if (blType == BlType.Straight && !string.IsNullOrWhiteSpace(consigneeToOrder))
+                throw new InvalidOperationException("Straight BL cannot have a 'To Order' instruction.");
+
             return new BillOfLading
             {
                 VoyageID = voyageId,
@@ -189,6 +200,18 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             if (blType == BlType.OrderBl && consigneeCompanyId == null && string.IsNullOrWhiteSpace(consigneeToOrder))
                 throw new InvalidOperationException("Order BL requires either a Consignee or a 'To Order' instruction.");
+
+
+            if (portOfLoadingId <= 0) throw new ArgumentException("Invalid PortOfLoadingID.");
+            if (portOfDischargeId <= 0) throw new ArgumentException("Invalid PortOfDischargeID.");
+            if (originalCopiesCount < 1) throw new ArgumentException("OriginalCopiesCount must be at least 1.");
+
+            if (blType == BlType.BearerBl &&
+                (consigneeCompanyId != null || !string.IsNullOrWhiteSpace(consigneeToOrder)))
+                throw new InvalidOperationException("Bearer BL cannot have a Consignee or a 'To Order' instruction.");
+
+            if (blType == BlType.Straight && !string.IsNullOrWhiteSpace(consigneeToOrder))
+                throw new InvalidOperationException("Straight BL cannot have a 'To Order' instruction.");
 
             BlType = blType;
             ShipperCompanyID = shipperCompanyId;

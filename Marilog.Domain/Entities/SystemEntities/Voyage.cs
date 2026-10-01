@@ -74,6 +74,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             DateTime? departureDate, DateTime? arrivalDate,
             string? cargoType, decimal? cargoQuantityMt, string? notes)
         {
+            EnsureNotCancelled();
             if (departureDate.HasValue && arrivalDate.HasValue && arrivalDate < departureDate)
                 throw new InvalidOperationException("ArrivalDate cannot be before DepartureDate.");
 
@@ -87,9 +88,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
-        public void UpdateFinancials(decimal cashOnBoard, decimal cigarettesOnBoard,
-            decimal previousMasterBalance)
+        public void UpdateFinancials(decimal cashOnBoard, decimal cigarettesOnBoard, decimal previousMasterBalance)
         {
+            EnsureNotCancelled();
             CashOnBoard = cashOnBoard;
             CigarettesOnBoard = cigarettesOnBoard;
             PreviousMasterBalance = previousMasterBalance;
@@ -158,6 +159,11 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ?? throw new InvalidOperationException($"Stop {stopOrder} not found.");
             _stops.Remove(stop);
             Touch();
+        }
+        private void EnsureNotCancelled()
+        {
+            if (Status == VoyageStatus.CANCELLED)
+                throw new InvalidOperationException("Cancelled voyages cannot be modified.");
         }
     }
 }

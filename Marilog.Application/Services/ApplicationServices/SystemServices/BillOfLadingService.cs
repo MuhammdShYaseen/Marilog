@@ -16,10 +16,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class BillOfLadingService : IBillOfLadingService
     {
         private readonly IRepository<BillOfLading> _repo;
+        private readonly IRepository<Voyage> _voyageRepo;
 
-        public BillOfLadingService(IRepository<BillOfLading> repo)
+        public BillOfLadingService(IRepository<BillOfLading> repo, IRepository<Voyage> voyageRepo)
         {
             _repo = repo;
+            _voyageRepo = voyageRepo;
         }
 
         // ── Mapping ──────────────────────────────────────────────────────────────
@@ -30,7 +32,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 VoyageId = b.VoyageID,
                 VoyageNumber = b.Voyage.VoyageNumber,
                 BlNumber = b.BlNumber,
-                BlType = b.BlType.ToString(),
+                BlType = b.BlType,
                 IssuanceType = b.IssuanceType,
                 ShipperCompany = new CompanyResponse
                 {
@@ -85,7 +87,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 PackageCount =b.PackageCount,
                 PackageType = b.PackageType,
                 MarksAndNumbers = b.MarksAndNumbers,
-                FreightTerms = b.FreightTerms.ToString(),
+                FreightTerms = b.FreightTerms,
                 FreightAmount = b.FreightAmount,
                 Incoterms = b.Incoterms,
                 IssueDate = b.IssueDate,
@@ -107,7 +109,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(b => b.Id == id)
                 .Select(ToResponse)
                 .FirstOrDefaultAsync(ct)
-                ?? throw new NullReferenceException(nameof(BillOfLading) + id.ToString());
+                ?? throw new KeyNotFoundException($"Bill of lading {id} not found.");
         }
 
         public async Task<IReadOnlyList<BillOfLadingResponse>> GetByVoyageAsync(int voyageId, CancellationToken ct = default)
@@ -115,6 +117,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(b => b.VoyageID == voyageId)
+                .OrderBy(b => b.BlNumber)
                 .Select(ToResponse)
                 .ToListAsync(ct);
         }
@@ -122,6 +125,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // ── Commands ─────────────────────────────────────────────────────────────
         public async Task<BillOfLadingResponse> CreateAsync(CreateBillOfLadingRequest r, CancellationToken ct = default)
         {
+
+            await EnsureVoyageWritableAsync(r.VoyageId, ct);
+            await EnsureUniqueBlNumberAsync(r.BlNumber, excludeId: null, ct);
+            if (r.IssuanceType == BlIssuanceType.House && r.MasterBlId.HasValue)
+                await EnsureValidMasterBlAsync(r.MasterBlId.Value, r.VoyageId, selfId: null, ct);
             var bl = BillOfLading.Create(
                 r.VoyageId, r.BlNumber, r.BlType, r.IssuanceType,
                 r.ShipperCompanyId, r.CarrierCompanyId,
@@ -141,8 +149,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<BillOfLadingResponse> UpdateAsync(int id, UpdateBillOfLadingRequest r, CancellationToken ct = default)
         {
-            var bl = await _repo.GetByIdAsync(id, ct)
-                ?? throw new NullReferenceException(nameof(BillOfLading) + id.ToString());
+            var bl = await GetOrThrowAsync(id, ct);
+            await EnsureVoyageWritableAsync(bl.VoyageID, ct);
 
             bl.Update(
                 r.BlType, r.ShipperCompanyId, r.CarrierCompanyId,
@@ -160,8 +168,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
-            var bl = await _repo.GetByIdAsync(id, ct)
-                ?? throw new NullReferenceException(nameof(BillOfLading) + id.ToString());
+            var bl = await GetOrThrowAsync(id, ct);
+            if (bl.IssuanceType == BlIssuanceType.Master)
+                await EnsureNoLinkedHouseBlsAsync(id, ct);
 
             _repo.HardDelete(bl);
             await _repo.SaveChangesAsync(ct);
@@ -199,6 +208,61 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
 
             return await GetByIdAsync(id, ct);
+        }
+
+
+
+        // ── Private ──────────────────────────────────────────────────────────────
+        private async Task<BillOfLading> GetOrThrowAsync(int id, CancellationToken ct)
+            => await _repo.GetByIdAsync(id, ct)
+               ?? throw new KeyNotFoundException($"Bill of lading {id} not found.");
+
+        private async Task EnsureVoyageWritableAsync(int voyageId, CancellationToken ct)
+        {
+            var status = await _voyageRepo.Query()
+                .Where(v => v.Id == voyageId)
+                .Select(v => (VoyageStatus?)v.Status)
+                .FirstOrDefaultAsync(ct)
+                ?? throw new KeyNotFoundException($"Voyage {voyageId} not found.");
+
+            if (status == VoyageStatus.CANCELLED)
+                throw new InvalidOperationException(
+                    "Bills of lading on a cancelled voyage cannot be added or modified.");
+        }
+
+        // Matches the current global unique index on BlNumber.
+        private async Task EnsureUniqueBlNumberAsync(string blNumber, int? excludeId, CancellationToken ct)
+        {
+            var exists = await _repo.Query()
+                .AnyAsync(b => b.BlNumber == blNumber && (excludeId == null || b.Id != excludeId), ct);
+            if (exists)
+                throw new InvalidOperationException($"Bill of lading number '{blNumber}' already exists.");
+        }
+
+        private async Task EnsureValidMasterBlAsync(int masterBlId, int voyageId, int? selfId, CancellationToken ct)
+        {
+            if (selfId == masterBlId)
+                throw new InvalidOperationException("A bill of lading cannot reference itself as Master BL.");
+
+            var master = await _repo.Query()
+                .AsNoTracking()
+                .Where(b => b.Id == masterBlId)
+                .Select(b => new { b.VoyageID, b.IssuanceType })
+                .FirstOrDefaultAsync(ct)
+                ?? throw new KeyNotFoundException($"Master BL {masterBlId} not found.");
+
+            if (master.IssuanceType != BlIssuanceType.Master)
+                throw new InvalidOperationException("The referenced bill of lading is not a Master BL.");
+            if (master.VoyageID != voyageId)
+                throw new InvalidOperationException("Master BL must belong to the same voyage.");
+        }
+
+        private async Task EnsureNoLinkedHouseBlsAsync(int masterBlId, CancellationToken ct)
+        {
+            var count = await _repo.Query().CountAsync(b => b.MasterBlID == masterBlId, ct);
+            if (count > 0)
+                throw new InvalidOperationException(
+                    $"This Master BL is referenced by {count} House BL(s). Unlink or delete them first.");
         }
     }
 }

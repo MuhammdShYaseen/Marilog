@@ -11,7 +11,8 @@ namespace Marilog.Contracts.DTOs.Responses
         public int VoyageId { get; init; }
         public string? VoyageNumber { get; init; }
         public string? BlNumber { get; init; }
-        public string? BlType { get; init; }
+        public BlType BlType { get; init; }
+        public FreightTerms FreightTerms { get; init; }
         public BlIssuanceType IssuanceType { get; init; }
         public CompanyResponse? ShipperCompany { get; init; }
         public CompanyResponse? ConsigneeCompany { get; init; }
@@ -29,7 +30,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public int? PackageCount { get; init; }
         public string? PackageType { get; init; }
         public string? MarksAndNumbers { get; init; }
-        public string? FreightTerms { get; init; }
         public string? FreightAmount { get; init; }
         public string? Incoterms { get; init; }
         public DateOnly? IssueDate { get; init; }

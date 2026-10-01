@@ -338,7 +338,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(voyage => new VoyageResponse
                 {
                     VoyageId = voyage.Id,
-                    VesselId = voyage.Id,
+                    VesselId = voyage.VesselID,
                     VoyageNumber = voyage.VoyageNumber,
                     VoyageMonth = voyage.VoyageMonth,
                     MasterContractId = voyage.MasterContractID,
@@ -412,9 +412,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var voyage = await GetOrThrowAsync(id, ct);
-            if (voyage.Status == VoyageStatus.UNDERWAY)
+            if (voyage.Status is VoyageStatus.UNDERWAY or VoyageStatus.COMPLETED)
                 throw new InvalidOperationException(
-                    "Cannot delete a voyage that is currently underway.");
+                     "Underway or completed voyages cannot be deleted.");
             _repo.HardDelete(voyage);
             await _repo.SaveChangesAsync(ct);
         }
@@ -422,25 +422,43 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // ── Stops ─────────────────────────────────────────────────────────────────
 
         public async Task<VoyageStopResponse> AddStopAsync(int voyageId, int portId, int stopOrder,
-            DateTime? arrivalDate = null, DateTime? departureDate = null,
-            string? purposeOfCall = null, string? notes = null,
-            CancellationToken ct = default)
+    DateTime? arrivalDate = null, DateTime? departureDate = null,
+    string? purposeOfCall = null, string? notes = null,
+    CancellationToken ct = default)
         {
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
-            var stop = voyage.AddStop(portId, stopOrder, arrivalDate, departureDate,
-                                        purposeOfCall, notes);
+
+            // A stop whose port was soft-deleted is hidden by the query filter
+            // but still occupies its StopOrder in the unique index.
+            var orderTaken = await _repo.Query()
+                .IgnoreQueryFilters()
+                .Where(v => v.Id == voyageId)
+                .SelectMany(v => v.Stops)
+                .AnyAsync(s => s.StopOrder == stopOrder, ct);
+            if (orderTaken)
+                throw new InvalidOperationException(
+                    $"StopOrder {stopOrder} is already used on this voyage.");
+
+            voyage.AddStop(portId, stopOrder, arrivalDate, departureDate, purposeOfCall, notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
 
-            return new VoyageStopResponse
-            {
-                ArrivalDate = stop.ArrivalDate,
-                StopOrder = stop.StopOrder,
-                DepartureDate = stop.DepartureDate,
-                Notes = stop.Notes,
-                PortId = stop.PortID,
-                PurposeOfCall = stop.PurposeOfCall
-            };
+            return await _repo.Query()
+                .AsNoTracking()
+                .Where(v => v.Id == voyageId)
+                .SelectMany(v => v.Stops)
+                .Where(s => s.StopOrder == stopOrder)
+                .Select(s => new VoyageStopResponse
+                {
+                    StopOrder = s.StopOrder,
+                    PortId = s.PortID,
+                    PortName = s.Port.PortName,
+                    ArrivalDate = s.ArrivalDate,
+                    DepartureDate = s.DepartureDate,
+                    PurposeOfCall = s.PurposeOfCall,
+                    Notes = s.Notes
+                })
+                .FirstAsync(ct);
         }
 
         public async Task UpdateStopAsync(int voyageId, int stopOrder,
@@ -608,10 +626,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private static readonly Expression<Func<Voyage, VoyageLookupResponse>> ToLookupResponse = x => new VoyageLookupResponse
         {
             Id = x.Id,
-            DisplayText = x.VoyageNumber
-                    + " - " + x.VoyageMonth.Year
-                    + " (" + (x.DeparturePort != null ? x.DeparturePort.PortName : "?")
-                    + " → " + (x.ArrivalPort != null ? x.ArrivalPort.PortName : "?") + ")"
+            DisplayText = x.Vessel.VesselName + " | " + x.VoyageNumber
+            + " - " + x.VoyageMonth.Year
+            + " (" + (x.DeparturePort != null ? x.DeparturePort.PortName : "?")
+            + " → " + (x.ArrivalPort != null ? x.ArrivalPort.PortName : "?") + ")"
         };
     }
 }

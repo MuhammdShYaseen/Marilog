@@ -21,6 +21,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             DateTime? arrivalDate = null, DateTime? departureDate = null,
             string? purposeOfCall = null, string? notes = null)
         {
+            if (arrivalDate.HasValue && departureDate.HasValue && departureDate < arrivalDate)
+                throw new InvalidOperationException("Stop DepartureDate cannot be before ArrivalDate.");
             if (portId <= 0) throw new ArgumentException("Invalid PortID.");
             if (stopOrder <= 0) throw new ArgumentException("StopOrder must be positive.");
 
