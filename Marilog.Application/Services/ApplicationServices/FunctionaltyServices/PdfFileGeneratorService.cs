@@ -753,7 +753,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
 
                         col.Item().Row(row =>
                         {
-                            row.RelativeItem().Component(new FieldBlock("Freight Terms", bl.FreightTerms));
+                            row.RelativeItem().Component(new FieldBlock("Freight Terms", bl.FreightTerms.ToString()));
                             row.RelativeItem().Component(new FieldBlock("Freight Amount", bl.FreightAmount ?? "—"));
                             row.RelativeItem().Component(new FieldBlock("Incoterms", bl.Incoterms ?? "—"));
                         });

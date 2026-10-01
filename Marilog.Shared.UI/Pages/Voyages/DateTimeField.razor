@@ -1,0 +1,46 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<div class="d-flex gap-2">
+    <MudDatePicker Date="Value?.Date"
+                   DateChanged="OnDateChanged"
+                   Label="@Label"
+                   Required="Required"
+                   Clearable="true"
+                   DateFormat="dd MMM yyyy"
+                   Error="Error"
+                   ErrorText="@ErrorText"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Style="flex:2" />
+    <MudTimePicker Time="Value?.TimeOfDay"
+                   TimeChanged="OnTimeChanged"
+                   Label="Time"
+                   AmPm="false"
+                   Disabled="@(Value is null)"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Style="flex:1" />
+</div>
+
+@code {
+    [Parameter] public DateTime? Value { get; set; }
+    [Parameter] public EventCallback<DateTime?> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public bool Error { get; set; }
+    [Parameter] public string? ErrorText { get; set; }
+
+    private Task OnDateChanged(DateTime? date)
+    {
+        if (date is null) return ValueChanged.InvokeAsync(null);
+        var time = Value?.TimeOfDay ?? TimeSpan.Zero;
+        return ValueChanged.InvokeAsync(date.Value.Date + time);
+    }
+
+    private Task OnTimeChanged(TimeSpan? time)
+    {
+        if (Value is null) return Task.CompletedTask;
+        return ValueChanged.InvokeAsync(Value.Value.Date + (time ?? TimeSpan.Zero));
+    }
+}

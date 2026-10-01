@@ -1,0 +1,480 @@
+﻿@page "/voyages/{VoyageId:int}"
+@page "/voyages/{VoyageId:int}/{Section}"
+@using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
+@using Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.BillOfLading
+@using Marilog.Shared.UI.Pages.Voyages
+@using Marilog.Shared.UI.Pages.Voyages.Marilog.Shared.UI.Pages.Voyages
+@* VoyageDetailsPageHost.razor *@
+@inject IVoyageService VoyageService
+@inject IBillOfLadingService BillOfLadingService
+@inject IDocumentService DocumentService
+@inject IPortService PortService
+@inject ICompanyService CompanyService
+@inject IPdfFileGeneratorService PdfService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject ICrewContractService CrewContractService
+@inject IJSRuntime JS
+
+<VoyageDetailsPage Voyage="_voyage"
+                   BillsOfLading="_bills"
+                   Documents="_docs"
+                   IsLoading="_loading"
+                   IsBusy="_busy"
+                   Section="CurrentSection"
+                   OnAddStopClicked="OpenAddStopDialog"
+                   OnEditStopClicked="OpenEditStopDialog"
+                   OnRemoveStopClicked="ConfirmRemoveStop"
+                   OnSectionChanged="ChangeSection"
+                   OnBackClicked="BackToList"
+                   OnRefreshClicked="LoadAsync"
+                   OnEditClicked="OpenEditDialog"
+                   OnStartClicked="StartAsync"
+                   OnCompleteClicked="CompleteAsync"
+                   OnCancelClicked="CancelVoyageAsync"
+                   OnDeleteClicked="DeleteAsync"
+                   OnChangeBlNumberClicked="OpenChangeBlNumberDialog"
+                   OnChangeIssuanceTypeClicked="OpenChangeIssuanceTypeDialog"
+                   OnLinkToMasterBlClicked="OpenLinkToMasterBlDialog"
+                   OnAssignMasterClicked="OpenAssignMasterDialog"
+                   OnEditFinancialsClicked="OpenFinancialsDialog"
+                   OnAddBillClicked="OpenAddBillDialog"
+                   OnViewBillClicked="OpenViewBillDialog"
+                   OnEditBillClicked="OpenEditBillDialog"
+                   OnDeleteBillClicked="ConfirmDeleteBill" />
+
+@code {
+    [Parameter] public int VoyageId { get; set; }
+    [Parameter] public string? Section { get; set; }
+
+    private static readonly DialogOptions SmallDialog = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = false
+    };
+
+    private static readonly DialogOptions MediumDialog = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = false
+    };
+
+    private VoyageResponse? _voyage;
+    private IReadOnlyList<BillOfLadingResponse> _bills = [];
+    private IReadOnlyList<DocumentResponse> _docs = [];
+    private IReadOnlyList<PortResponse>? _ports;
+    private IReadOnlyList<CompanyResponse>? _companies;
+    private bool _loading;
+    private bool _busy;
+    private int _loadedVoyageId;
+
+    private VoyageSection CurrentSection => VoyageSections.FromSlug(Section);
+
+    // ── Load ──────────────────────────────────────────────────────────────────
+    protected override async Task OnParametersSetAsync()
+    {
+        // Section changes re-render with the same VoyageId — reload only when the voyage changes.
+        if (VoyageId == _loadedVoyageId) return;
+        _loadedVoyageId = VoyageId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        await TryAsync(async () =>
+        {
+            var voyageTask = VoyageService.GetWithStopsAsync(VoyageId);
+            var billsTask = BillOfLadingService.GetByVoyageAsync(VoyageId);
+            var docsTask = DocumentService.GetByVoyageAsync(VoyageId, true);
+            await Task.WhenAll(voyageTask, billsTask, docsTask);
+            _voyage = await voyageTask;
+            _bills = await billsTask;
+            _docs = await docsTask;
+        });
+        _loading = false;
+    }
+
+    private async Task ReloadVoyageAsync()
+        => await TryAsync(async () => _voyage = await VoyageService.GetWithStopsAsync(VoyageId));
+
+    private async Task ReloadBillsAsync()
+        => await TryAsync(async () => _bills = await BillOfLadingService.GetByVoyageAsync(VoyageId));
+
+    private async Task<bool> EnsurePortsAsync()
+        => _ports is not null || await TryAsync(async () => _ports = await PortService.GetActiveAsync());
+
+    private async Task<bool> EnsureCompaniesAsync()
+        => _companies is not null || await TryAsync(async () => _companies = await CompanyService.GetActiveAsync());
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    private void ChangeSection(VoyageSection section)
+        => Nav.NavigateTo(VoyageSections.Url(VoyageId, section), replace: true);
+
+    private void BackToList() => Nav.NavigateTo("/voyages");
+
+    // ── Edit ──────────────────────────────────────────────────────────────────
+    private async Task OpenEditDialog()
+    {
+        if (_voyage is null || !await EnsurePortsAsync()) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageDialog.Voyage)] = _voyage,
+            [nameof(VoyageDialog.Ports)] = _ports,
+            [nameof(VoyageDialog.OnUpdate)] = new Func<UpdateVoyageRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.UpdateAsync(
+                    VoyageId,
+                    r.DeparturePortId, r.ArrivalPortId,
+                    r.DepartureDate, r.ArrivalDate,
+                    r.CargoType, r.CargoQuantityMt,
+                    r.Notes),
+                "Voyage updated"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit voyage", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    // ── Status commands ───────────────────────────────────────────────────────
+    private async Task StartAsync()
+    {
+        if (_voyage is null) return;
+        var warning = _voyage.DepartureDate is null ? " No departure date is recorded yet." : string.Empty;
+
+        if (!await ConfirmAsync("Start voyage",
+                $"Mark voyage {_voyage.VoyageNumber} as underway?{warning}", "Start"))
+            return;
+
+        await RunCommandAsync(() => VoyageService.StartAsync(VoyageId), "Voyage started");
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (_voyage is null) return;
+        var warning = _voyage.ArrivalDate is null ? " No arrival date is recorded yet." : string.Empty;
+
+        if (!await ConfirmAsync("Complete voyage",
+                $"Mark voyage {_voyage.VoyageNumber} as completed?{warning}", "Complete"))
+            return;
+
+        await RunCommandAsync(() => VoyageService.CompleteAsync(VoyageId), "Voyage completed");
+    }
+
+    private async Task CancelVoyageAsync()
+    {
+        if (_voyage is null) return;
+
+        if (!await ConfirmAsync("Cancel voyage",
+                $"Cancel voyage {_voyage.VoyageNumber}? A cancelled voyage becomes read-only and cannot be reopened.",
+                "Cancel voyage", cancelText: "Keep voyage"))
+            return;
+
+        await RunCommandAsync(() => VoyageService.CancelAsync(VoyageId), "Voyage cancelled");
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_voyage is null) return;
+
+        if (!await ConfirmAsync("Delete voyage",
+                $"Voyage {_voyage.VoyageNumber} ({_voyage.VesselName}) will be permanently deleted, " +
+                "together with its port stops and bills of lading. This cannot be undone.",
+                "Delete"))
+            return;
+
+        _busy = true;
+        var ok = await TryAsync(() => VoyageService.DeleteAsync(VoyageId), "Voyage deleted");
+        _busy = false;
+        if (ok) BackToList();
+    }
+
+    private async Task RunCommandAsync(Func<Task> command, string successMessage)
+    {
+        _busy = true;
+        if (await TryAsync(command, successMessage))
+            await ReloadVoyageAsync();
+        _busy = false;
+    }
+
+    // ── Bills of lading ───────────────────────────────────────────────────────
+    private IReadOnlyList<BillOfLadingResponse> MasterBls(int? excludeId = null)
+        => _bills.Where(b => b.IssuanceType == BlIssuanceType.Master && b.Id != excludeId)
+                 .OrderBy(b => b.BlNumber)
+                 .ToList();
+
+    private int LinkedHouseCount(int masterId) => _bills.Count(b => b.MasterBlId == masterId);
+
+    private async Task ShowBillDialogAsync<TDialog>(string title, DialogParameters parameters, DialogOptions options)
+        where TDialog : IComponent
+    {
+        var dialog = await DialogService.ShowAsync<TDialog>(title, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadBillsAsync();
+    }
+
+    private async Task OpenAddBillDialog()
+    {
+        if (_voyage is null || !await EnsureCompaniesAsync() || !await EnsurePortsAsync()) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(BillOfLadingDialog.VoyageId)] = VoyageId,
+            [nameof(BillOfLadingDialog.Companies)] = _companies,
+            [nameof(BillOfLadingDialog.Ports)] = _ports,
+            [nameof(BillOfLadingDialog.AvailableMasterBls)] = MasterBls(),
+            [nameof(BillOfLadingDialog.DefaultPortOfLoadingId)] = _voyage.DeparturePortId,
+            [nameof(BillOfLadingDialog.DefaultPortOfDischargeId)] = _voyage.ArrivalPortId,
+            [nameof(BillOfLadingDialog.OnCreate)] = new Func<CreateBillOfLadingRequest, Task<bool>>(r =>
+                TryAsync(() => BillOfLadingService.CreateAsync(r), "Bill of lading created"))
+        };
+
+        await ShowBillDialogAsync<BillOfLadingDialog>("New bill of lading", parameters, MediumDialog);
+    }
+
+    private async Task OpenEditBillDialog(BillOfLadingResponse bl)
+    {
+        if (!await EnsureCompaniesAsync() || !await EnsurePortsAsync()) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(BillOfLadingDialog.ExistingBl)] = bl,
+            [nameof(BillOfLadingDialog.VoyageId)] = VoyageId,
+            [nameof(BillOfLadingDialog.Companies)] = _companies,
+            [nameof(BillOfLadingDialog.Ports)] = _ports,
+            [nameof(BillOfLadingDialog.OnUpdate)] = new Func<UpdateBillOfLadingRequest, Task<bool>>(r =>
+                TryAsync(() => BillOfLadingService.UpdateAsync(bl.Id, r), "Bill of lading updated"))
+        };
+
+        await ShowBillDialogAsync<BillOfLadingDialog>("Edit bill of lading", parameters, MediumDialog);
+    }
+
+    private async Task OpenChangeBlNumberDialog(BillOfLadingResponse bl)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ChangeBlNumberDialog.Bl)] = bl,
+            [nameof(ChangeBlNumberDialog.TakenNumbers)] = _bills.Where(b => b.Id != bl.Id && b.BlNumber is not null)
+                                                                .Select(b => b.BlNumber!)
+                                                                .ToList(),
+            [nameof(ChangeBlNumberDialog.OnSave)] = new Func<ChangeBlNumberRequest, Task<bool>>(r =>
+                TryAsync(() => BillOfLadingService.ChangeBlNumberAsync(bl.Id, r), "B/L number changed"))
+        };
+
+        await ShowBillDialogAsync<ChangeBlNumberDialog>("Change B/L number", parameters, SmallDialog);
+    }
+
+    private async Task OpenChangeIssuanceTypeDialog(BillOfLadingResponse bl)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ChangeIssuanceTypeDialog.Bl)] = bl,
+            [nameof(ChangeIssuanceTypeDialog.AvailableMasterBls)] = MasterBls(excludeId: bl.Id),
+            [nameof(ChangeIssuanceTypeDialog.LinkedHouseCount)] = LinkedHouseCount(bl.Id),
+            [nameof(ChangeIssuanceTypeDialog.OnSave)] = new Func<ChangeIssuanceTypeRequest, Task<bool>>(r =>
+                TryAsync(() => BillOfLadingService.ChangeIssuanceTypeAsync(bl.Id, r), "Issuance type changed"))
+        };
+
+        await ShowBillDialogAsync<ChangeIssuanceTypeDialog>("Change issuance type", parameters, SmallDialog);
+    }
+
+    private async Task OpenLinkToMasterBlDialog(BillOfLadingResponse bl)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(LinkToMasterBlDialog.Bl)] = bl,
+            [nameof(LinkToMasterBlDialog.AvailableMasterBls)] = MasterBls(excludeId: bl.Id),
+            [nameof(LinkToMasterBlDialog.OnSave)] = new Func<LinkToMasterBlRequest, Task<bool>>(r =>
+                TryAsync(() => BillOfLadingService.LinkToMasterBlAsync(bl.Id, r), "Master B/L linked"))
+        };
+
+        await ShowBillDialogAsync<LinkToMasterBlDialog>("Link to master B/L", parameters, SmallDialog);
+    }
+
+    private async Task OpenViewBillDialog(BillOfLadingResponse bl)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(BillOfLadingViewDialog.Bl)] = bl,
+            [nameof(BillOfLadingViewDialog.ExportPdfAsync)] = EventCallback.Factory.Create(this, () => ExportPdfAsync(bl.Id, bl.BlNumber ?? "BL")),
+            [nameof(BillOfLadingViewDialog.Print)] = EventCallback.Factory.Create(this, PrintAsync)
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<BillOfLadingViewDialog>("Bill of lading", parameters, options);
+    }
+
+    private async Task ConfirmDeleteBill(BillOfLadingResponse bl)
+    {
+        if (!await ConfirmAsync("Delete bill of lading",
+                $"Bill of lading {bl.BlNumber} will be permanently deleted. This cannot be undone.",
+                "Delete"))
+            return;
+
+        if (await TryAsync(() => BillOfLadingService.DeleteAsync(bl.Id), "Bill of lading deleted"))
+            await ReloadBillsAsync();
+    }
+
+    private async Task PrintAsync()
+        => await JS.InvokeVoidAsync("blPrint", "bl-print-area");
+
+    private async Task ExportPdfAsync(int blId, string blNumber)
+    {
+        await TryAsync(async () =>
+        {
+            var bytes = await PdfService.GenerateBillOfLadingFile(blId);
+            if (bytes is not { Length: > 0 })
+                throw new InvalidOperationException("Failed to generate PDF.");
+            await JS.InvokeVoidAsync("blDownloadFile", $"BL_{blNumber}.pdf", "application/pdf", bytes);
+        });
+    }
+
+    // ── Stops ─────────────────────────────────────────────────────────────────
+    private async Task OpenAddStopDialog()
+    {
+        if (_voyage is null || !await EnsurePortsAsync()) return;
+
+        var taken = _voyage.Stops.Select(s => s.StopOrder).ToList();
+
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageStopDialog.Ports)] = _ports,
+            [nameof(VoyageStopDialog.TakenOrders)] = taken,
+            [nameof(VoyageStopDialog.NextStopOrder)] = taken.Count == 0 ? 1 : taken.Max() + 1,
+            [nameof(VoyageStopDialog.OnAdd)] = new Func<AddVoyageStopRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.AddStopAsync(
+                    VoyageId, r.PortId, r.StopOrder,
+                    r.ArrivalDate, r.DepartureDate,
+                    r.PurposeOfCall, r.Notes),
+                "Stop added"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageStopDialog>("Add port stop", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    private async Task OpenEditStopDialog(VoyageStopResponse stop)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageStopDialog.Stop)] = stop,
+            [nameof(VoyageStopDialog.OnUpdate)] = new Func<UpdateVoyageStopRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.UpdateStopAsync(
+                    VoyageId, stop.StopOrder,
+                    r.ArrivalDate, r.DepartureDate,
+                    r.PurposeOfCall, r.Notes),
+                "Stop updated"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageStopDialog>("Edit port stop", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    private async Task ConfirmRemoveStop(VoyageStopResponse stop)
+    {
+        if (!await ConfirmAsync("Remove port stop",
+                $"Remove stop {stop.StopOrder} ({stop.PortName}) from this voyage?",
+                "Remove"))
+            return;
+
+        await RunCommandAsync(() => VoyageService.RemoveStopAsync(VoyageId, stop.StopOrder), "Stop removed");
+    }
+
+
+    // ── Master & financials ───────────────────────────────────────────────────
+    private async Task OpenAssignMasterDialog()
+    {
+        if (_voyage is null) return;
+
+        IReadOnlyList<CrewContractResponse> crew = [];
+        if (!await TryAsync(async () => crew = await CrewContractService.GetActiveByVesselAsync(_voyage.VesselId)))
+            return;
+
+        // Optional: only used to highlight and preselect the vessel's current master.
+        // A failure here must not block the assignment.
+        CrewContractResponse? vesselMaster = null;
+        try { vesselMaster = await CrewContractService.GetActiveMasterAsync(_voyage.VesselId); }
+        catch { vesselMaster = null; }
+
+        var options = crew
+            .Select(c => ToMasterOption(c, vesselMaster))
+            .OrderByDescending(o => o.IsCurrentVesselMaster)
+            .ThenBy(o => o.Name)
+            .ToList();
+
+        var parameters = new DialogParameters
+        {
+            [nameof(AssignMasterDialog.Options)] = options,
+            [nameof(AssignMasterDialog.VesselName)] = _voyage.VesselName,
+            [nameof(AssignMasterDialog.CurrentContractId)] = _voyage.MasterContractId,
+            [nameof(AssignMasterDialog.CurrentMasterName)] = _voyage.MasterFullName,
+            [nameof(AssignMasterDialog.OnAssign)] = new Func<AssignVoyageMasterRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.AssignMasterAsync(VoyageId, r.ContractId), "Master assigned"))
+        };
+
+        var dialog = await DialogService.ShowAsync<AssignMasterDialog>("Assign master", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    // ⚠ The only place that depends on CrewContractResponse's shape.
+    //   Adjust the property names here if they differ.
+    private static MasterOption ToMasterOption(CrewContractResponse c, CrewContractResponse? vesselMaster)
+        => new(
+            ContractId: c.ContractId,
+            Name: c.PersonFullName,
+            Rank: c.RankName,
+            IsCurrentVesselMaster: vesselMaster is not null && vesselMaster.PersonId == c.PersonId);
+
+    private async Task OpenFinancialsDialog()
+    {
+        if (_voyage is null) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageFinancialsDialog.Voyage)] = _voyage,
+            [nameof(VoyageFinancialsDialog.OnSave)] = new Func<UpdateVoyageFinancialsRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.UpdateFinancialsAsync(
+                    VoyageId, r.CashOnBoard, r.CigarettesOnBoard, r.PreviousMasterBalance),
+                "Master account updated"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageFinancialsDialog>("Master account", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private async Task<bool> ConfirmAsync(string title, string message, string yesText, string cancelText = "Cancel")
+        => await DialogService.ShowMessageBoxAsync(title, message, yesText: yesText, cancelText: cancelText) is true;
+
+    private async Task<bool> TryAsync(Func<Task> action, string? successMessage = null)
+    {
+        try
+        {
+            await action();
+            if (successMessage is not null) Snackbar.Add(successMessage, Severity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+    }
+}

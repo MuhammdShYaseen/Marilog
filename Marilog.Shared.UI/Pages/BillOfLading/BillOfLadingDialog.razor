@@ -5,382 +5,314 @@
 @namespace Marilog.Shared.UI.Pages.BillOfLading
 
 <MudDialog>
-
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(ExistingBl is null
-                                                     ? Icons.Material.Filled.Add
-                                                     : Icons.Material.Filled.Edit)"
-                     Class="mr-2" />
-            @(ExistingBl is null ? "New Bill of Lading" : "Edit Bill of Lading")
-        </MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@(IsEdit ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)"
+                     Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">@(IsEdit ? $"Edit B/L {ExistingBl!.BlNumber}" : "New bill of lading")</MudText>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudGrid>
+        <MudGrid Spacing="2">
 
-            @* BL Number — locked after creation, must go through ChangeBlNumberAsync *@
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_blNumber"
-                              Label="B/L Number"
-                              Required="true"
-                              Disabled="@(ExistingBl is not null)"
-                              HelperText="@(ExistingBl is not null ? "Use 'Change BL Number' action to modify" : null)"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
+            @* ── Identity ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Identity</MudText></MudItem>
 
-            @* BL Type *@
-            <MudItem xs="12" sm="6">
+            @if (IsEdit)
+            {
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Value="@ExistingBl!.BlNumber" Label="B/L number"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Value="@IssuanceText" Label="Issuance"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_blNumber"
+                                  Label="B/L number"
+                                  Required="true"
+                                  MaxLength="50"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="BlIssuanceType"
+                               Value="_issuanceType"
+                               ValueChanged="OnIssuanceTypeChanged"
+                               Label="Issuance"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+                        @foreach (var t in Enum.GetValues<BlIssuanceType>())
+                        {
+                            <MudSelectItem T="BlIssuanceType" Value="t">@BlDisplay.Issuance(t)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="4">
                 <MudSelect T="BlType"
                            @bind-Value="_blType"
-                           Label="B/L Type"
+                           Label="B/L type"
                            Required="true"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
-                    @foreach (BlType t in Enum.GetValues<BlType>())
+                    @foreach (var t in Enum.GetValues<BlType>())
                     {
-                        <MudSelectItem T="BlType" Value="t">@t.ToString()</MudSelectItem>
+                        <MudSelectItem T="BlType" Value="t">@BlDisplay.Type(t)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
-            @* Issuance Type — create only, changed later via ChangeIssuanceTypeAsync *@
-            @if (ExistingBl is null)
+            @if (!IsEdit && _issuanceType == BlIssuanceType.House)
+            {
+                <MudItem xs="12">
+                    @if (AvailableMasterBls.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                            There is no master B/L on this voyage yet. Create the master B/L first.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudSelect T="int?"
+                                   @bind-Value="_masterBlId"
+                                   Label="Master B/L"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense">
+                            @foreach (var mbl in AvailableMasterBls)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)mbl.Id)">@mbl.BlNumber</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                </MudItem>
+            }
+
+            @if (IsEdit)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        B/L number and issuance type change the legal identity of the document — use the B/L actions menu for those.
+                    </MudText>
+                </MudItem>
+            }
+
+            @* ── Parties ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Parties</MudText></MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" @bind-Value="_shipperCompanyId" Label="Shipper" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in Companies)
+                    {
+                        <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" @bind-Value="_carrierCompanyId" Label="Carrier" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in Companies)
+                    {
+                        <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @if (_blType == BlType.BearerBl)
             {
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="BlIssuanceType"
-                               Value="_issuanceType"
-                               ValueChanged="OnIssuanceTypeChanged"
-                               Label="Issuance Type"
-                               Required="true"
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pt-2">
+                        Bearer B/L — no named consignee.
+                    </MudText>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?"
+                               Value="_consigneeCompanyId"
+                               ValueChanged="OnConsigneeCompanyChanged"
+                               Label="Consignee"
+                               Required="@(_blType == BlType.Straight)"
+                               Clearable="true"
+                               HelperText="@ConsigneeHelper"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense">
-                        @foreach (BlIssuanceType t in Enum.GetValues<BlIssuanceType>())
+                        @foreach (var c in Companies)
                         {
-                            <MudSelectItem T="BlIssuanceType" Value="t">@t.ToString()</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
 
-                @* Master BL — required only when Issuance Type is House *@
-                @if (_issuanceType == BlIssuanceType.House)
+                @if (_blType == BlType.OrderBl && _consigneeCompanyId is null)
                 {
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int?"
-                                   @bind-Value="_masterBlId"
-                                   Label="Master Bill of Lading"
-                                   Required="true"
-                                   RequiredError="House BL must reference a Master BL"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   HelperText="@(AvailableMasterBls.Count == 0 ? "No Master BLs available for this voyage" : null)">
-                            @foreach (var mbl in AvailableMasterBls)
-                            {
-                                <MudSelectItem T="int?" Value="(int?)mbl.Id">@mbl.BlNumber</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudTextField @bind-Value="_consigneeToOrder"
+                                      Label="To order of"
+                                      MaxLength="200"
+                                      HelperText="E.g. the shipper or the issuing bank."
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
                     </MudItem>
                 }
             }
 
-            @* Shipper *@
             <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_shipperCompanyId"
-                           Label="Shipper"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                <MudSelect T="int?" @bind-Value="_notifyPartyCompanyId" Label="Notify party" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var c in Companies)
                     {
-                        <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
-            @* Carrier *@
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_carrierCompanyId"
-                           Label="Carrier"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (var c in Companies)
-                    {
-                        <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+            @* ── Routing ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Routing</MudText></MudItem>
 
-            @* Consignee *@
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           Value="_consigneeCompanyId"
-                           ValueChanged="OnConsigneeCompanyChanged"
-                           Label="Consignee Company"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           HelperText="@(_blType == BlType.Straight ? "Required for Straight B/L" : null)">
-                    <MudSelectItem T="int?" Value="null">— To Order —</MudSelectItem>
-                    @foreach (var c in Companies)
-                    {
-                        <MudSelectItem T="int?" Value="(int?)c.Id">@c.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-
-            @* Consignee To Order *@
-            @if (_consigneeCompanyId is null)
-            {
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_consigneeToOrder"
-                                  Label="Consignee To Order"
-                                  HelperText="@(_blType == BlType.OrderBl ? "Required if no Consignee Company selected" : null)"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" />
-                </MudItem>
-            }
-
-            @* Notify Party *@
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_notifyPartyCompanyId"
-                           Label="Notify Party"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
-                    @foreach (var c in Companies)
-                    {
-                        <MudSelectItem T="int?" Value="(int?)c.Id">@c.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-
-            @* Port of Loading *@
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_portOfLoadingId"
-                           Label="Port of Loading"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                <MudSelect T="int" @bind-Value="_portOfLoadingId" Label="Port of loading" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var p in Ports)
                     {
                         <MudSelectItem T="int" Value="p.Id">@p.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-
-            @* Port of Discharge *@
             <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_portOfDischargeId"
-                           Label="Port of Discharge"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                <MudSelect T="int" @bind-Value="_portOfDischargeId" Label="Port of discharge" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var p in Ports)
                     {
                         <MudSelectItem T="int" Value="p.Id">@p.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-
-            @* Place of Receipt *@
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_placeOfReceiptPortId"
-                           Label="Place of Receipt"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                <MudSelect T="int?" @bind-Value="_placeOfReceiptPortId" Label="Place of receipt" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var p in Ports)
                     {
-                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-
-            @* Place of Delivery *@
             <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_placeOfDeliveryPortId"
-                           Label="Place of Delivery"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                <MudSelect T="int?" @bind-Value="_placeOfDeliveryPortId" Label="Place of delivery" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var p in Ports)
                     {
-                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
-            @* Cargo Description *@
+            @* ── Cargo ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Cargo</MudText></MudItem>
+
             <MudItem xs="12">
-                <MudTextField @bind-Value="_cargoDescription"
-                              Label="Cargo Description"
-                              Required="true"
-                              Lines="2"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_cargoDescription" Label="Description of goods" Required="true"
+                              Lines="3" MaxLength="1000" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-
-            @* HS Code *@
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_hsCode"
-                              Label="HS Code"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
-
-            @* Gross Weight *@
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="decimal"
-                                 @bind-Value="_grossWeightMt"
-                                 Label="Gross Weight (MT)"
-                                 Required="true"
-                                 Min="0"
-                                 Format="N3"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
-
-            @* Volume *@
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="decimal?"
-                                 @bind-Value="_volumeM3"
-                                 Label="Volume (M³)"
-                                 Min="0"
-                                 Format="N3"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
-
-            @* Package Count *@
             <MudItem xs="12" sm="3">
-                <MudNumericField T="int?"
-                                 @bind-Value="_packageCount"
-                                 Label="Package Count"
-                                 Min="0"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_hsCode" Label="HS code" MaxLength="20"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-
-            @* Package Type *@
             <MudItem xs="12" sm="3">
-                <MudTextField @bind-Value="_packageType"
-                              Label="Package Type"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                <MudNumericField T="decimal" @bind-Value="_grossWeightMt" Label="Gross weight" Required="true"
+                                 Min="0" Format="N3" HideSpinButtons="true"
+                                 Adornment="Adornment.End" AdornmentText="MT"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudNumericField T="decimal?" @bind-Value="_volumeM3" Label="Volume"
+                                 Min="0" Format="N3" HideSpinButtons="true"
+                                 Adornment="Adornment.End" AdornmentText="M³"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudNumericField T="int?" @bind-Value="_packageCount" Label="Packages"
+                                 Min="0" HideSpinButtons="true"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_packageType" Label="Package type" MaxLength="50"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_marksAndNumbers" Label="Marks & numbers" MaxLength="500"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
 
-            @* Marks & Numbers *@
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_marksAndNumbers"
-                              Label="Marks & Numbers"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
+            @* ── Freight ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Freight</MudText></MudItem>
 
-            @* Freight Terms *@
-            <MudItem xs="12" sm="6">
-                <MudSelect T="FreightTerms"
-                           @bind-Value="_freightTerms"
-                           Label="Freight Terms"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (FreightTerms t in Enum.GetValues<FreightTerms>())
+            <MudItem xs="12" sm="4">
+                <MudSelect T="FreightTerms" @bind-Value="_freightTerms" Label="Freight terms" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var t in Enum.GetValues<FreightTerms>())
                     {
-                        <MudSelectItem T="FreightTerms" Value="t">@t.ToString()</MudSelectItem>
+                        <MudSelectItem T="FreightTerms" Value="t">@BlDisplay.Freight(t)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-
-            @* Freight Amount *@
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_freightAmount"
-                              Label="Freight Amount"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_freightAmount" Label="Freight amount" MaxLength="100"
+                              HelperText="Free text, e.g. AS ARRANGED."
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_incoterms" Label="Incoterms" MaxLength="10"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
 
-            @* Incoterms *@
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_incoterms"
-                              Label="Incoterms"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+            @* ── Issuance ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Issuance</MudText></MudItem>
+
+            <MudItem xs="12" sm="3">
+                <MudDatePicker @bind-Date="_issueDate" Label="Issue date" Required="true"
+                               DateFormat="dd MMM yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudDatePicker @bind-Date="_onBoardDate" Label="On board date" Clearable="true"
+                               DateFormat="dd MMM yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_placeOfIssue" Label="Place of issue" MaxLength="100"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudNumericField T="int" @bind-Value="_originalCopiesCount" Label="Original copies"
+                                 Min="1" Max="10" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
 
-            @* Issue Date *@
-            <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_issueDate"
-                               Label="Issue Date"
-                               Required="true"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               DateFormat="dd MMM yyyy" />
-            </MudItem>
-
-            @* On Board Date *@
-            <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_onBoardDate"
-                               Label="On Board Date"
-                               Clearable="true"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               DateFormat="dd MMM yyyy" />
-            </MudItem>
-
-            @* Place of Issue *@
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_placeOfIssue"
-                              Label="Place of Issue"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
-
-            @* Original Copies *@
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="int"
-                                 @bind-Value="_originalCopiesCount"
-                                 Label="Original Copies"
-                                 Min="1"
-                                 Max="10"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
-
-            @* Notes *@
             <MudItem xs="12">
-                <MudTextField @bind-Value="_notes"
-                              Label="Notes"
-                              Lines="2"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_notes" Label="Notes" Lines="2" MaxLength="2000"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
 
         </MudGrid>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
-                   Disabled="@(!IsValid)"
-                   OnClick="Submit">
-            Save
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : "Save")
         </MudButton>
     </DialogActions>
-
 </MudDialog>
 
 @code {
@@ -391,10 +323,22 @@
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
     [Parameter] public IReadOnlyList<BillOfLadingResponse> AvailableMasterBls { get; set; } = [];
+    [Parameter] public int? DefaultPortOfLoadingId { get; set; }
+    [Parameter] public int? DefaultPortOfDischargeId { get; set; }
+
+    /// <summary>Host performs the create; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<CreateBillOfLadingRequest, Task<bool>>? OnCreate { get; set; }
+
+    /// <summary>Host performs the update; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<UpdateBillOfLadingRequest, Task<bool>>? OnUpdate { get; set; }
+
+    private const string SectionStyle =
+        "font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary);";
 
     private string _blNumber = string.Empty;
-    private BlType _blType;
-    private BlIssuanceType _issuanceType;
+    private BlType _blType = BlType.Straight;
+    private BlIssuanceType _issuanceType = BlIssuanceType.Master;
     private int? _masterBlId;
     private int _shipperCompanyId;
     private int _carrierCompanyId;
@@ -412,7 +356,7 @@
     private int? _packageCount;
     private string? _packageType;
     private string? _marksAndNumbers;
-    private FreightTerms _freightTerms;
+    private FreightTerms _freightTerms = FreightTerms.Prepaid;
     private string? _freightAmount;
     private string? _incoterms;
     private DateTime? _issueDate;
@@ -420,9 +364,31 @@
     private string? _placeOfIssue;
     private int _originalCopiesCount = 3;
     private string? _notes;
+    private bool _saving;
+
+    private bool IsEdit => ExistingBl is not null;
+
+    private string IssuanceText => ExistingBl!.IssuanceType == BlIssuanceType.House
+        ? $"House of {ExistingBl.MasterBlNumber ?? "—"}"
+        : "Master";
+
+    private string? ConsigneeHelper => _blType switch
+    {
+        BlType.Straight => "Required for a straight B/L.",
+        BlType.OrderBl => "Leave empty to issue to order.",
+        _ => null
+    };
+
+    private bool ConsigneeValid => _blType switch
+    {
+        BlType.Straight => _consigneeCompanyId.HasValue,
+        BlType.OrderBl => _consigneeCompanyId.HasValue || !string.IsNullOrWhiteSpace(_consigneeToOrder),
+        _ => true
+    };
 
     private bool IsValid =>
-        !string.IsNullOrWhiteSpace(_blNumber) &&
+        (IsEdit || (!string.IsNullOrWhiteSpace(_blNumber) &&
+                    (_issuanceType != BlIssuanceType.House || _masterBlId.HasValue))) &&
         _shipperCompanyId > 0 &&
         _carrierCompanyId > 0 &&
         _portOfLoadingId > 0 &&
@@ -430,15 +396,27 @@
         !string.IsNullOrWhiteSpace(_cargoDescription) &&
         _grossWeightMt > 0 &&
         _issueDate is not null &&
-        (_blType != BlType.Straight || _consigneeCompanyId.HasValue) &&
-        (_blType != BlType.OrderBl || _consigneeCompanyId.HasValue || !string.IsNullOrWhiteSpace(_consigneeToOrder)) &&
-        (ExistingBl is not null || _issuanceType != BlIssuanceType.House || _masterBlId.HasValue);
+        _originalCopiesCount >= 1 &&
+        ConsigneeValid;
 
-    protected override void OnParametersSet()
+    // Values actually sent — hidden fields never leak into the request.
+    private int? ConsigneeCompanyOut => _blType == BlType.BearerBl ? null : _consigneeCompanyId;
+
+    private string? ConsigneeToOrderOut =>
+        _blType == BlType.OrderBl && _consigneeCompanyId is null ? NullIfEmpty(_consigneeToOrder) : null;
+
+    protected override void OnInitialized()
     {
-        if (ExistingBl is null) return;
+        if (ExistingBl is null)
+        {
+            _issueDate = DateTime.Today;
+            if (DefaultPortOfLoadingId is int pol && Ports.Any(p => p.Id == pol)) _portOfLoadingId = pol;
+            if (DefaultPortOfDischargeId is int pod && Ports.Any(p => p.Id == pod)) _portOfDischargeId = pod;
+            return;
+        }
 
-        _blNumber = ExistingBl.BlNumber ?? string.Empty;
+        _blType = ExistingBl.BlType;
+        _issuanceType = ExistingBl.IssuanceType;
         _shipperCompanyId = ExistingBl.ShipperCompany?.Id ?? 0;
         _carrierCompanyId = ExistingBl.CarrierCompany?.Id ?? 0;
         _consigneeCompanyId = ExistingBl.ConsigneeCompany?.Id;
@@ -455,6 +433,7 @@
         _packageCount = ExistingBl.PackageCount;
         _packageType = ExistingBl.PackageType;
         _marksAndNumbers = ExistingBl.MarksAndNumbers;
+        _freightTerms = ExistingBl.FreightTerms;
         _freightAmount = ExistingBl.FreightAmount;
         _incoterms = ExistingBl.Incoterms;
         _issueDate = ExistingBl.IssueDate?.ToDateTime(TimeOnly.MinValue);
@@ -462,93 +441,91 @@
         _placeOfIssue = ExistingBl.PlaceOfIssue;
         _originalCopiesCount = ExistingBl.OriginalCopiesCount ?? 3;
         _notes = ExistingBl.Notes;
-        _issuanceType = ExistingBl.IssuanceType;
-
-        if (Enum.TryParse<BlType>(ExistingBl.BlType, out var bt)) _blType = bt;
-        if (Enum.TryParse<FreightTerms>(ExistingBl.FreightTerms, out var ft)) _freightTerms = ft;
     }
 
     private void OnIssuanceTypeChanged(BlIssuanceType value)
     {
         _issuanceType = value;
-        if (value != BlIssuanceType.House)
-            _masterBlId = null;
+        if (value != BlIssuanceType.House) _masterBlId = null;
     }
 
     private void OnConsigneeCompanyChanged(int? value)
     {
         _consigneeCompanyId = value;
-        if (value.HasValue)
-            _consigneeToOrder = null;
+        if (value.HasValue) _consigneeToOrder = null;
     }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit()
+    private async Task SubmitAsync()
     {
-        if (ExistingBl is null)
-        {
-            MudDialog.Close(DialogResult.Ok(new CreateBillOfLadingRequest(
-                VoyageId: VoyageId,
-                BlNumber: _blNumber,
-                BlType: _blType,
-                IssuanceType: _issuanceType,
-                MasterBlId: _issuanceType == BlIssuanceType.House ? _masterBlId : null,
-                ShipperCompanyId: _shipperCompanyId,
-                CarrierCompanyId: _carrierCompanyId,
-                PortOfLoadingId: _portOfLoadingId,
-                PortOfDischargeId: _portOfDischargeId,
-                CargoDescription: _cargoDescription,
-                GrossWeightMT: _grossWeightMt,
-                FreightTerms: _freightTerms,
-                IssueDate: DateOnly.FromDateTime(_issueDate!.Value),
-                ConsigneeCompanyId: _consigneeCompanyId,
-                ConsigneeToOrder: _consigneeToOrder,
-                NotifyPartyCompanyId: _notifyPartyCompanyId,
-                HsCode: _hsCode,
-                VolumeM3: _volumeM3,
-                PackageCount: _packageCount,
-                PackageType: _packageType,
-                MarksAndNumbers: _marksAndNumbers,
-                FreightAmount: _freightAmount,
-                Incoterms: _incoterms,
-                PlaceOfIssue: _placeOfIssue,
-                OnBoardDate: _onBoardDate.HasValue ? DateOnly.FromDateTime(_onBoardDate.Value) : null,
-                OriginalCopiesCount: _originalCopiesCount,
-                PlaceOfReceiptPortId: _placeOfReceiptPortId,
-                PlaceOfDeliveryPortId: _placeOfDeliveryPortId,
-                Notes: _notes
-            )));
-        }
-        else
-        {
-            MudDialog.Close(DialogResult.Ok(new UpdateBillOfLadingRequest(
-                BlType: _blType,
-                ShipperCompanyId: _shipperCompanyId,
-                CarrierCompanyId: _carrierCompanyId,
-                PortOfLoadingId: _portOfLoadingId,
-                PortOfDischargeId: _portOfDischargeId,
-                CargoDescription: _cargoDescription,
-                GrossWeightMT: _grossWeightMt,
-                FreightTerms: _freightTerms,
-                IssueDate: DateOnly.FromDateTime(_issueDate!.Value),
-                ConsigneeCompanyId: _consigneeCompanyId,
-                ConsigneeToOrder: _consigneeToOrder,
-                NotifyPartyCompanyId: _notifyPartyCompanyId,
-                HsCode: _hsCode,
-                VolumeM3: _volumeM3,
-                PackageCount: _packageCount,
-                PackageType: _packageType,
-                MarksAndNumbers: _marksAndNumbers,
-                FreightAmount: _freightAmount,
-                Incoterms: _incoterms,
-                PlaceOfIssue: _placeOfIssue,
-                OnBoardDate: _onBoardDate.HasValue ? DateOnly.FromDateTime(_onBoardDate.Value) : null,
-                OriginalCopiesCount: _originalCopiesCount,
-                PlaceOfReceiptPortId: _placeOfReceiptPortId,
-                PlaceOfDeliveryPortId: _placeOfDeliveryPortId,
-                Notes: _notes
-            )));
-        }
+        if (!IsValid || _saving) return;
+
+        _saving = true;
+        var task = IsEdit ? OnUpdate?.Invoke(BuildUpdate()) : OnCreate?.Invoke(BuildCreate());
+        var ok = task is not null && await task;
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
     }
+
+    private CreateBillOfLadingRequest BuildCreate() => new(
+        VoyageId: VoyageId,
+        BlNumber: _blNumber.Trim(),
+        BlType: _blType,
+        IssuanceType: _issuanceType,
+        ShipperCompanyId: _shipperCompanyId,
+        CarrierCompanyId: _carrierCompanyId,
+        PortOfLoadingId: _portOfLoadingId,
+        PortOfDischargeId: _portOfDischargeId,
+        CargoDescription: _cargoDescription.Trim(),
+        GrossWeightMT: _grossWeightMt,
+        FreightTerms: _freightTerms,
+        IssueDate: DateOnly.FromDateTime(_issueDate!.Value),
+        ConsigneeCompanyId: ConsigneeCompanyOut,
+        ConsigneeToOrder: ConsigneeToOrderOut,
+        NotifyPartyCompanyId: _notifyPartyCompanyId,
+        HsCode: NullIfEmpty(_hsCode),
+        VolumeM3: _volumeM3,
+        PackageCount: _packageCount,
+        PackageType: NullIfEmpty(_packageType),
+        MarksAndNumbers: NullIfEmpty(_marksAndNumbers),
+        FreightAmount: NullIfEmpty(_freightAmount),
+        Incoterms: NullIfEmpty(_incoterms),
+        PlaceOfIssue: NullIfEmpty(_placeOfIssue),
+        OnBoardDate: _onBoardDate.HasValue ? DateOnly.FromDateTime(_onBoardDate.Value) : null,
+        OriginalCopiesCount: _originalCopiesCount,
+        MasterBlId: _issuanceType == BlIssuanceType.House ? _masterBlId : null,
+        PlaceOfReceiptPortId: _placeOfReceiptPortId,
+        PlaceOfDeliveryPortId: _placeOfDeliveryPortId,
+        Notes: NullIfEmpty(_notes));
+
+    private UpdateBillOfLadingRequest BuildUpdate() => new(
+        BlType: _blType,
+        ShipperCompanyId: _shipperCompanyId,
+        CarrierCompanyId: _carrierCompanyId,
+        PortOfLoadingId: _portOfLoadingId,
+        PortOfDischargeId: _portOfDischargeId,
+        CargoDescription: _cargoDescription.Trim(),
+        GrossWeightMT: _grossWeightMt,
+        FreightTerms: _freightTerms,
+        IssueDate: DateOnly.FromDateTime(_issueDate!.Value),
+        ConsigneeCompanyId: ConsigneeCompanyOut,
+        ConsigneeToOrder: ConsigneeToOrderOut,
+        NotifyPartyCompanyId: _notifyPartyCompanyId,
+        HsCode: NullIfEmpty(_hsCode),
+        VolumeM3: _volumeM3,
+        PackageCount: _packageCount,
+        PackageType: NullIfEmpty(_packageType),
+        MarksAndNumbers: NullIfEmpty(_marksAndNumbers),
+        FreightAmount: NullIfEmpty(_freightAmount),
+        Incoterms: NullIfEmpty(_incoterms),
+        PlaceOfIssue: NullIfEmpty(_placeOfIssue),
+        OnBoardDate: _onBoardDate.HasValue ? DateOnly.FromDateTime(_onBoardDate.Value) : null,
+        OriginalCopiesCount: _originalCopiesCount,
+        PlaceOfReceiptPortId: _placeOfReceiptPortId,
+        PlaceOfDeliveryPortId: _placeOfDeliveryPortId,
+        Notes: NullIfEmpty(_notes));
+
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

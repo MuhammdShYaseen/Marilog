@@ -1,0 +1,186 @@
+
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<VoyagePanel Title="Port stops">
+    <Actions>
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.AddLocationAlt"
+                   Disabled="@(IsReadOnly || IsBusy)"
+                   OnClick="OnAddClicked">
+            Add stop
+        </MudButton>
+    </Actions>
+
+    <ChildContent>
+        @if (IsReadOnly)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2" Style="display:block">
+                Cancelled voyages are read-only.
+            </MudText>
+        }
+
+        <div style="overflow-x:auto">
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th style="@ThStyle;width:48px">#</th>
+                        <th style="@ThStyle">Port</th>
+                        <th style="@ThStyle">Arrival</th>
+                        <th style="@ThStyle">Departure</th>
+                        <th style="@ThStyle">Time in port</th>
+                        <th style="@ThStyle">Purpose</th>
+                        <th style="@ThStyle">Notes</th>
+                        <th style="@ThStyle;width:48px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @* ── Origin (from voyage) ── *@
+                    <tr style="@RouteRowStyle">
+                        <td><MudIcon Icon="@Icons.Material.Outlined.TripOrigin" Size="Size.Small" Color="Color.Secondary" /></td>
+                        <td>@(Voyage.DeparturePortName ?? "Not set")</td>
+                        <td>—</td>
+                        <td>@Fmt(Voyage.DepartureDate)</td>
+                        <td>—</td>
+                        <td style="@MutedStyle">Voyage departure</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+
+                    @* ── Intermediate stops ── *@
+                    @if (Voyage.Stops.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" style="@MutedStyle">No intermediate stops.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        VoyageStopResponse? previous = null;
+                        @foreach (var stop in OrderedStops)
+                        {
+                            var current = stop;
+                            var warnings = Warnings(current, previous);
+                            <tr>
+                                <td><span style="@BadgeStyle">@current.StopOrder</span></td>
+                                <td>
+                                    <div class="d-flex align-center gap-1">
+                                        <span>@current.PortName</span>
+                                        @if (warnings.Count > 0)
+                                        {
+                                            <MudTooltip Text="@string.Join(" ", warnings)">
+                                                <MudIcon Icon="@Icons.Material.Outlined.WarningAmber"
+                                                         Color="Color.Warning"
+                                                         Size="Size.Small" />
+                                            </MudTooltip>
+                                        }
+                                    </div>
+                                </td>
+                                <td>@Fmt(current.ArrivalDate)</td>
+                                <td>@Fmt(current.DepartureDate)</td>
+                                <td>@(Duration(current.ArrivalDate, current.DepartureDate) ?? "—")</td>
+                                <td>@(current.PurposeOfCall ?? "—")</td>
+                                <td style="@NotesStyle" title="@current.Notes">@(current.Notes ?? "—")</td>
+                                <td>
+                                    <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+                                             Size="Size.Small"
+                                             Disabled="@(IsReadOnly || IsBusy)"
+                                             AnchorOrigin="Origin.BottomRight"
+                                             TransformOrigin="Origin.TopRight">
+                                        <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
+                                                     OnClick="@(() => OnEditClicked.InvokeAsync(current))">
+                                            Edit
+                                        </MudMenuItem>
+                                        <MudMenuItem Icon="@Icons.Material.Outlined.Delete"
+                                                     OnClick="@(() => OnRemoveClicked.InvokeAsync(current))">
+                                            Remove
+                                        </MudMenuItem>
+                                    </MudMenu>
+                                </td>
+                            </tr>
+                            previous = current;
+                        }
+                    }
+
+                    @* ── Destination (from voyage) ── *@
+                    <tr style="@RouteRowStyle">
+                        <td><MudIcon Icon="@Icons.Material.Outlined.Place" Size="Size.Small" Color="Color.Secondary" /></td>
+                        <td>@(Voyage.ArrivalPortName ?? "Not set")</td>
+                        <td>@Fmt(Voyage.ArrivalDate)</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td style="@MutedStyle">Voyage arrival</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+        </div>
+    </ChildContent>
+</VoyagePanel>
+
+@code {
+    [Parameter, EditorRequired] public VoyageResponse Voyage { get; set; } = default!;
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnRemoveClicked { get; set; }
+
+    private const string ThStyle =
+        "font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary)";
+
+    private const string RouteRowStyle = "background:var(--mud-palette-action-default-hover);";
+
+    private const string MutedStyle = "color:var(--mud-palette-text-secondary);";
+
+    private const string NotesStyle =
+        "max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+
+    private const string BadgeStyle =
+        "display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;" +
+        "border:1px solid var(--mud-palette-primary);border-radius:50%;font-size:12px;" +
+        "color:var(--mud-palette-primary);";
+
+    private bool IsReadOnly => Voyage.Status == VoyageStatus.CANCELLED;
+
+    private IReadOnlyList<VoyageStopResponse> OrderedStops =>
+        Voyage.Stops.OrderBy(s => s.StopOrder).ToList();
+
+    private static string Fmt(DateTime? value) => value?.ToString("dd MMM yyyy HH:mm") ?? "—";
+
+    private static string? Duration(DateTime? from, DateTime? to)
+    {
+        if (from is null || to is null || to < from) return null;
+        var span = to.Value - from.Value;
+        return span.TotalDays >= 1
+            ? $"{(int)span.TotalDays} d {span.Hours} h"
+            : $"{span.Hours} h {span.Minutes} min";
+    }
+
+    private List<string> Warnings(VoyageStopResponse stop, VoyageStopResponse? previous)
+    {
+        var warnings = new List<string>();
+
+        if (stop.ArrivalDate is DateTime arr && stop.DepartureDate is DateTime dep && dep < arr)
+            warnings.Add("Departure is before arrival.");
+
+        if (stop.ArrivalDate is DateTime stopArrival && Voyage.DepartureDate is DateTime voyageDeparture
+            && stopArrival < voyageDeparture)
+            warnings.Add("Arrives before the voyage departure.");
+
+        if (stop.DepartureDate is DateTime stopDeparture && Voyage.ArrivalDate is DateTime voyageArrival
+            && stopDeparture > voyageArrival)
+            warnings.Add("Departs after the voyage arrival.");
+
+        var previousLeft = previous?.DepartureDate ?? previous?.ArrivalDate;
+        if (stop.ArrivalDate is DateTime arrivalHere && previousLeft is DateTime left && arrivalHere < left)
+            warnings.Add($"Arrives before leaving stop {previous!.StopOrder}.");
+
+        return warnings;
+    }
+}

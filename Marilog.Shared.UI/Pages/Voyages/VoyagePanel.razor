@@ -1,0 +1,31 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<div class="@Class" style="@PanelStyle">
+    <div class="d-flex align-center px-3" style="@HeaderStyle">
+        <MudText Typo="Typo.caption" Style="@TitleStyle">@Title</MudText>
+        <MudSpacer />
+        @Actions
+    </div>
+    <div class="pa-3">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private const string PanelStyle =
+        "border:1px solid var(--mud-palette-lines-default);border-radius:2px;" +
+        "background:var(--mud-palette-surface);height:100%;";
+
+    private const string HeaderStyle =
+        "min-height:36px;border-bottom:1px solid var(--mud-palette-lines-default);";
+
+    private const string TitleStyle =
+        "font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary);";
+}

@@ -1,0 +1,234 @@
+
+
+@using Marilog.Shared.UI.Pages.Voyages
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<MudBreadcrumbs Items="Breadcrumbs" Class="px-0 pt-0 pb-1" />
+
+@if (Voyage is null && IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (Voyage is null)
+{
+    <div class="d-flex flex-column align-center gap-2 py-8">
+        <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+        <MudText Typo="Typo.body1">Voyage not found.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">It may have been deleted.</MudText>
+        <MudButton Variant="Variant.Text" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.ArrowBack"
+                   OnClick="OnBackClicked">
+            Back to voyages
+        </MudButton>
+    </div>
+}
+else
+{
+    @* ── Header ── *@
+    <div class="d-flex align-center gap-3 pb-2">
+        <MudIcon Icon="@Icons.Material.Outlined.Sailing" Color="Color.Primary" Size="Size.Large" />
+        <div>
+            <div class="d-flex align-center gap-2">
+                <MudText Typo="Typo.h6">@Voyage.VoyageNumber</MudText>
+                <VoyageStatusChip Status="Voyage.Status" />
+            </div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Voyage · @Voyage.VesselName · @Voyage.VoyageMonth.ToString("MMM yyyy")
+            </MudText>
+        </div>
+    </div>
+
+    @* ── Command bar ── *@
+    <MudToolBar Dense="true" Gutters="false" Style="@BarStyle">
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Edit"
+                   Disabled="@(IsCancelled || IsBusy)"
+                   OnClick="OnEditClicked">
+            Edit
+        </MudButton>
+
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.PlayArrow"
+                   Disabled="@(Voyage.Status != VoyageStatus.PLANNED || IsBusy)"
+                   OnClick="OnStartClicked">
+            Start
+        </MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Flag"
+                   Disabled="@(Voyage.Status != VoyageStatus.UNDERWAY || IsBusy)"
+                   OnClick="OnCompleteClicked">
+            Complete
+        </MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Block"
+                   Disabled="@(Voyage.Status is VoyageStatus.COMPLETED or VoyageStatus.CANCELLED || IsBusy)"
+                   OnClick="OnCancelClicked">
+            Cancel voyage
+        </MudButton>
+
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error"
+                   StartIcon="@Icons.Material.Outlined.Delete"
+                   Disabled="@(!CanDelete || IsBusy)"
+                   OnClick="OnDeleteClicked">
+            Delete
+        </MudButton>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Refresh"
+                   Disabled="@(IsLoading || IsBusy)"
+                   OnClick="OnRefreshClicked">
+            Refresh
+        </MudButton>
+    </MudToolBar>
+
+    @if (IsLoading || IsBusy)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+    }
+
+    <MudGrid Spacing="3" Class="pt-3">
+
+        @* ── Resource menu ── *@
+        <MudItem xs="12" md="2">
+            <div class="d-flex flex-column" style="@NavStyle">
+                @foreach (var item in NavItems)
+                {
+                    var section = item.Section;
+                    <MudButton Variant="Variant.Text"
+                               FullWidth="true"
+                               Size="Size.Small"
+                               StartIcon="@item.Icon"
+                               Class="justify-start"
+                               Style="@NavItemStyle(section == Section)"
+                               OnClick="@(() => OnSectionChanged.InvokeAsync(section))">
+                        @(item.Count is int n ? $"{item.Text} ({n})" : item.Text)
+                    </MudButton>
+                }
+            </div>
+        </MudItem>
+
+        @* ── Section content ── *@
+        <MudItem xs="12" md="10">
+            @switch (Section)
+            {
+                case VoyageSection.Stops:
+                    <VoyageStopsSection Voyage="Voyage"
+                                        IsBusy="IsBusy"
+                                        OnAddClicked="OnAddStopClicked"
+                                        OnEditClicked="OnEditStopClicked"
+                                        OnRemoveClicked="OnRemoveStopClicked" />
+                    break;
+                case VoyageSection.BillsOfLading:
+                    <VoyageBillsSection Voyage="Voyage"
+                                        BillsOfLading="BillsOfLading"
+                                        IsBusy="IsBusy"
+                                        OnAddClicked="OnAddBillClicked"
+                                        OnViewClicked="OnViewBillClicked"
+                                        OnEditClicked="OnEditBillClicked"
+                                        OnDeleteClicked="OnDeleteBillClicked"
+                                        OnChangeNumberClicked="OnChangeBlNumberClicked"
+                                        OnChangeIssuanceClicked="OnChangeIssuanceTypeClicked"
+                                        OnLinkMasterClicked="OnLinkToMasterBlClicked" />
+                    break;
+
+                case VoyageSection.Documents:
+                    <Marilog.Shared.UI.Pages.Documents.DocumentTable Items="Documents" />
+                    break;
+
+                default:
+                    <VoyageOverview Voyage="Voyage"
+                                    BillsOfLading="BillsOfLading"
+                                    IsBusy="IsBusy"
+                                    OnAssignMasterClicked="OnAssignMasterClicked"
+                                    OnEditFinancialsClicked="OnEditFinancialsClicked"
+                                    OnShowStops="@(() => OnSectionChanged.InvokeAsync(VoyageSection.Stops))"
+                                    OnShowBills="@(() => OnSectionChanged.InvokeAsync(VoyageSection.BillsOfLading))" />
+                    break;
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    // ── Data ──────────────────────────────────────────────────────────────────
+    [Parameter] public VoyageResponse? Voyage { get; set; }
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentResponse> Documents { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public VoyageSection Section { get; set; }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    [Parameter] public EventCallback<VoyageSection> OnSectionChanged { get; set; }
+    [Parameter] public EventCallback OnBackClicked { get; set; }
+
+    // ── Voyage commands ───────────────────────────────────────────────────────
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+    [Parameter] public EventCallback OnEditClicked { get; set; }
+    [Parameter] public EventCallback OnStartClicked { get; set; }
+    [Parameter] public EventCallback OnCompleteClicked { get; set; }
+    [Parameter] public EventCallback OnCancelClicked { get; set; }
+    [Parameter] public EventCallback OnDeleteClicked { get; set; }
+
+    // ── B/L callbacks (temporary, until the B/L step) ─────────────────────────
+    [Parameter] public EventCallback OnAddBillClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnViewBillClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnEditBillClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnDeleteBillClicked { get; set; }
+
+    // ── Stop callbacks ────────────────────────────────────────────────────────
+    [Parameter] public EventCallback OnAddStopClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnEditStopClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnRemoveStopClicked { get; set; }
+
+
+    //------Overview--------------------------------------------------------------
+    [Parameter] public EventCallback OnAssignMasterClicked { get; set; }
+    [Parameter] public EventCallback OnEditFinancialsClicked { get; set; }
+
+
+    //---Bill of Lading-----------------------------------------------------------
+    [Parameter] public EventCallback<BillOfLadingResponse> OnChangeBlNumberClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnChangeIssuanceTypeClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnLinkToMasterBlClicked { get; set; }
+
+    private const string BarStyle =
+        "border-top:1px solid var(--mud-palette-lines-default);" +
+        "border-bottom:1px solid var(--mud-palette-lines-default);";
+
+    private const string NavStyle =
+        "border-right:1px solid var(--mud-palette-lines-default);height:100%;";
+
+    private bool IsCancelled => Voyage?.Status == VoyageStatus.CANCELLED;
+
+    private bool CanDelete => Voyage?.Status is VoyageStatus.PLANNED or VoyageStatus.CANCELLED;
+
+    private List<BreadcrumbItem> Breadcrumbs =>
+    [
+        new("Voyages", href: "/voyages", icon: Icons.Material.Outlined.Sailing),
+        new(Voyage?.VoyageNumber ?? "Voyage", href: null, disabled: true)
+    ];
+
+    private sealed record NavItem(VoyageSection Section, string Text, string Icon, int? Count);
+
+    private IEnumerable<NavItem> NavItems =>
+    [
+        new(VoyageSection.Overview,      "Overview",        Icons.Material.Outlined.Info,        null),
+        new(VoyageSection.Stops,         "Port stops",      Icons.Material.Outlined.Place,       Voyage?.Stops.Count),
+        new(VoyageSection.BillsOfLading, "Bills of lading", Icons.Material.Outlined.Description, BillsOfLading.Count),
+        new(VoyageSection.Documents,     "Documents",       Icons.Material.Outlined.Folder,      Documents.Count)
+    ];
+
+    private static string NavItemStyle(bool active) => active
+        ? "border-radius:0;border-left:2px solid var(--mud-palette-primary);background:var(--mud-palette-action-default-hover);"
+        : "border-radius:0;border-left:2px solid transparent;";
+}

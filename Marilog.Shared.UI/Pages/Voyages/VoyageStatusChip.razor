@@ -1,0 +1,44 @@
+
+@using MudBlazor
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<MudChip T="string"
+         Size="Size.Small"
+         Variant="Variant.Outlined"
+         Color="@StatusColor(Status)"
+         Icon="@StatusIcon(Status)"
+         Class="ma-0">
+    @StatusText(Status)
+</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public VoyageStatus Status { get; set; }
+
+    public static Color StatusColor(VoyageStatus status) => status switch
+    {
+        VoyageStatus.PLANNED => Color.Default,
+        VoyageStatus.UNDERWAY => Color.Info,
+        VoyageStatus.COMPLETED => Color.Success,
+        VoyageStatus.CANCELLED => Color.Error,
+        _ => Color.Default
+    };
+
+    public static string StatusText(VoyageStatus status) => status switch
+    {
+        VoyageStatus.PLANNED => "Planned",
+        VoyageStatus.UNDERWAY => "Underway",
+        VoyageStatus.COMPLETED => "Completed",
+        VoyageStatus.CANCELLED => "Cancelled",
+        _ => status.ToString()
+    };
+
+    public static string StatusIcon(VoyageStatus status) => status switch
+    {
+        VoyageStatus.PLANNED => Icons.Material.Outlined.Schedule,
+        VoyageStatus.UNDERWAY => Icons.Material.Outlined.DirectionsBoat,
+        VoyageStatus.COMPLETED => Icons.Material.Outlined.CheckCircle,
+        VoyageStatus.CANCELLED => Icons.Material.Outlined.Cancel,
+        _ => Icons.Material.Outlined.HelpOutline
+    };
+}

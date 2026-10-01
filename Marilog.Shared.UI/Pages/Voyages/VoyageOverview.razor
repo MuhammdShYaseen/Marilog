@@ -1,0 +1,262 @@
+
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+@if (Voyage.Status == VoyageStatus.CANCELLED)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+        This voyage is cancelled. It is kept for reference and can no longer be modified.
+    </MudAlert>
+}
+else
+{
+    @* ── Lifecycle ── *@
+    <div class="d-flex align-center flex-wrap gap-2 mb-3">
+        @for (var i = 0; i < Lifecycle.Length; i++)
+        {
+            var step = Lifecycle[i];
+            var state = StepState(i);
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@StepIcon(step, state)" Color="@StepColor(step, state)" Size="Size.Small" />
+                <MudText Typo="Typo.body2"
+                         Color="@(state == StepKind.Upcoming ? Color.Secondary : Color.Default)"
+                         Style="@(state == StepKind.Current ? "font-weight:600" : null)">
+                    @VoyageStatusChip.StatusText(step)
+                </MudText>
+            </div>
+            @if (i < Lifecycle.Length - 1)
+            {
+                <div style="width:40px;height:1px;background:var(--mud-palette-lines-default);"></div>
+            }
+        }
+    </div>
+}
+
+<MudGrid Spacing="3">
+
+    @* ── Essentials ── *@
+    <MudItem xs="12" lg="6">
+        <VoyagePanel Title="Essentials">
+            <div style="@GridStyle">
+                <EssentialsRow Label="Voyage number" Value="@Voyage.VoyageNumber" />
+                <EssentialsRow Label="Vessel" Value="@Voyage.VesselName" />
+                <EssentialsRow Label="Voyage month" Value="@Voyage.VoyageMonth.ToString("MMMM yyyy")" />
+                <EssentialsRow Label="Status"><VoyageStatusChip Status="Voyage.Status" /></EssentialsRow>
+                <EssentialsRow Label="Master">
+                    <div class="d-flex align-center gap-2">
+                        <span>@(Voyage.MasterFullName ?? "Not assigned")</span>
+                        @if (!IsReadOnly)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                       Class="pa-0" Style="min-width:0"
+                                       Disabled="IsBusy"
+                                       OnClick="OnAssignMasterClicked">
+                                @(Voyage.MasterContractId is null ? "Assign" : "Change")
+                            </MudButton>
+                        }
+                    </div>
+                </EssentialsRow>
+            </div>
+        </VoyagePanel>
+    </MudItem>
+
+    @* ── Route ── *@
+    <MudItem xs="12" lg="6">
+        <VoyagePanel Title="Route">
+            <div style="@GridStyle">
+                <EssentialsRow Label="Departure">
+                    <div>@(Voyage.DeparturePortName ?? "—")</div>
+                    <div style="@SubStyle">@FormatDateTime(Voyage.DepartureDate)</div>
+                </EssentialsRow>
+                <EssentialsRow Label="Arrival">
+                    <div>@(Voyage.ArrivalPortName ?? "—")</div>
+                    <div style="@SubStyle">@FormatDateTime(Voyage.ArrivalDate)</div>
+                </EssentialsRow>
+                <EssentialsRow Label="Intermediate stops">
+                    @if (Voyage.Stops.Count > 0)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   Class="pa-0" Style="min-width:0"
+                                   OnClick="OnShowStops">
+                            @(Voyage.Stops.Count == 1 ? "1 stop" : $"{Voyage.Stops.Count} stops")
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <span>None</span>
+                    }
+                </EssentialsRow>
+                <EssentialsRow Label="@DurationLabel" Value="@DurationText" />
+            </div>
+        </VoyagePanel>
+    </MudItem>
+
+    @* ── Cargo ── *@
+    <MudItem xs="12" lg="6">
+        <VoyagePanel Title="Cargo">
+            <div style="@GridStyle">
+                <EssentialsRow Label="Cargo type" Value="@Voyage.CargoType" />
+                <EssentialsRow Label="Declared quantity"
+                               Value="@(Voyage.CargoQuantityMT.HasValue ? $"{Voyage.CargoQuantityMT:N3} MT" : null)" />
+                <EssentialsRow Label="Bills of lading">
+                    @if (BillsOfLading.Count > 0)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   Class="pa-0" Style="min-width:0"
+                                   OnClick="OnShowBills">
+                            @BillsSummary
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <span>None</span>
+                    }
+                </EssentialsRow>
+                <EssentialsRow Label="Master B/L total"
+                               Value="@(MasterBlCount > 0 ? $"{MasterBlTotalMt:N3} MT" : null)" />
+            </div>
+
+            @if (HasCargoMismatch)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                    Declared quantity differs from the master B/L total by
+                    <strong>@($"{Math.Abs(Voyage.CargoQuantityMT!.Value - MasterBlTotalMt):N3} MT")</strong>.
+                </MudAlert>
+            }
+        </VoyagePanel>
+    </MudItem>
+
+    @* ── Master account ── *@
+    <MudItem xs="12" lg="6">
+        <VoyagePanel Title="Master account">
+            <Actions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.Edit"
+                           Disabled="@(IsReadOnly || IsBusy)"
+                           OnClick="OnEditFinancialsClicked">
+                    Edit
+                </MudButton>
+            </Actions>
+            <ChildContent>
+                <div style="@GridStyle">
+                    <EssentialsRow Label="Previous master balance" Value="@Usd(Voyage.PreviousMasterBalance)" />
+                    <EssentialsRow Label="Cash on board" Value="@Usd(Voyage.CashOnBoard)" />
+                    <EssentialsRow Label="Cigarettes on board" Value="@Usd(Voyage.CigarettesOnBoard)" />
+                </div>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2" Style="display:block">
+                    Amounts in USD.
+                </MudText>
+            </ChildContent>
+        </VoyagePanel>
+    </MudItem>
+
+    @* ── Notes ── *@
+    @if (!string.IsNullOrWhiteSpace(Voyage.Notes))
+    {
+        <MudItem xs="12">
+            <VoyagePanel Title="Notes">
+                <MudText Typo="Typo.body2" Style="white-space:pre-line">@Voyage.Notes</MudText>
+            </VoyagePanel>
+        </MudItem>
+    }
+
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public VoyageResponse Voyage { get; set; } = default!;
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
+    [Parameter] public EventCallback OnShowStops { get; set; }
+    [Parameter] public EventCallback OnShowBills { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public EventCallback OnAssignMasterClicked { get; set; }
+    [Parameter] public EventCallback OnEditFinancialsClicked { get; set; }
+
+    private bool IsReadOnly => Voyage.Status == VoyageStatus.CANCELLED;
+
+    private const string GridStyle =
+        "display:grid;grid-template-columns:minmax(120px,180px) 1fr;gap:8px 16px;align-items:baseline;";
+
+    private const string SubStyle = "color:var(--mud-palette-text-secondary);font-size:12px;";
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    private static readonly VoyageStatus[] Lifecycle =
+        [VoyageStatus.PLANNED, VoyageStatus.UNDERWAY, VoyageStatus.COMPLETED];
+
+    private enum StepKind { Done, Current, Upcoming }
+
+    private StepKind StepState(int index)
+    {
+        var current = Array.IndexOf(Lifecycle, Voyage.Status);
+        return index < current ? StepKind.Done
+             : index == current ? StepKind.Current
+             : StepKind.Upcoming;
+    }
+
+    private static string StepIcon(VoyageStatus step, StepKind state) => state switch
+    {
+        StepKind.Done => Icons.Material.Outlined.CheckCircle,
+        StepKind.Current => VoyageStatusChip.StatusIcon(step),
+        _ => Icons.Material.Outlined.RadioButtonUnchecked
+    };
+
+    private static Color StepColor(VoyageStatus step, StepKind state) => state switch
+    {
+        StepKind.Done => Color.Success,
+        StepKind.Current => step == VoyageStatus.PLANNED ? Color.Primary : VoyageStatusChip.StatusColor(step),
+        _ => Color.Default
+    };
+
+    // ── Route ─────────────────────────────────────────────────────────────────
+    private static string FormatDateTime(DateTime? value)
+        => value?.ToString("dd MMM yyyy HH:mm") ?? "Date not recorded";
+
+    private bool IsUnderwayWithoutArrival =>
+        Voyage.Status == VoyageStatus.UNDERWAY && Voyage.DepartureDate.HasValue && !Voyage.ArrivalDate.HasValue;
+
+    private string DurationLabel => IsUnderwayWithoutArrival ? "Elapsed" : "Duration";
+
+    private string? DurationText
+    {
+        get
+        {
+            var from = Voyage.DepartureDate;
+            var to = IsUnderwayWithoutArrival ? DateTime.Now : Voyage.ArrivalDate;
+            if (from is null || to is null || to < from) return null;
+
+            var span = to.Value - from.Value;
+            return span.TotalDays >= 1
+                ? $"{(int)span.TotalDays} d {span.Hours} h"
+                : $"{span.Hours} h {span.Minutes} min";
+        }
+    }
+
+    // ── Cargo ─────────────────────────────────────────────────────────────────
+    // House B/Ls subdivide a master B/L's cargo, so only master B/Ls are summed.
+    private IEnumerable<BillOfLadingResponse> MasterBls =>
+        BillsOfLading.Where(b => b.IssuanceType == BlIssuanceType.Master);
+
+    private int MasterBlCount => MasterBls.Count();
+
+    private decimal MasterBlTotalMt => MasterBls.Sum(b => b.GrossWeightMT ?? 0m);
+
+    private bool HasCargoMismatch =>
+        Voyage.CargoQuantityMT.HasValue &&
+        MasterBlCount > 0 &&
+        Math.Abs(Voyage.CargoQuantityMT.Value - MasterBlTotalMt) >= 0.001m;
+
+    private string BillsSummary
+    {
+        get
+        {
+            var house = BillsOfLading.Count - MasterBlCount;
+            return house > 0
+                ? $"{BillsOfLading.Count} ({MasterBlCount} master, {house} house)"
+                : $"{BillsOfLading.Count} master";
+        }
+    }
+
+    // ── Money ─────────────────────────────────────────────────────────────────
+    private static string Usd(decimal value) => $"{value:N2} USD";
+}

@@ -1,0 +1,110 @@
+@using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.BillOfLading
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">Change issuance type — @Bl.BlNumber</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            <strong>@BlDisplay.Issuance(Bl.IssuanceType)</strong> → <strong>@BlDisplay.Issuance(Target)</strong>
+        </MudText>
+
+        @if (IsBlocked)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true">
+                This master B/L has @LinkedHouseCount house B/L(s) linked to it.
+                Re-link or delete them before changing its type.
+            </MudAlert>
+        }
+        else if (Target == BlIssuanceType.House)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                A house B/L is issued by a forwarder or NVOCC under a master B/L. Select the master B/L it belongs to.
+            </MudAlert>
+
+            @if (AvailableMasterBls.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    There is no other master B/L on this voyage to link to.
+                </MudAlert>
+            }
+            else
+            {
+                <MudSelect T="int?"
+                           @bind-Value="_masterBlId"
+                           Label="Master B/L"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var mbl in AvailableMasterBls)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)mbl.Id)">@mbl.BlNumber</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                This B/L will become a master B/L and its link to master B/L
+                <strong>@(Bl.MasterBlNumber ?? "—")</strong> will be removed.
+            </MudAlert>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : $"Change to {BlDisplay.Issuance(Target).ToLowerInvariant()}")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public BillOfLadingResponse Bl { get; set; } = default!;
+
+    /// <summary>Master B/Ls on the same voyage, excluding this one.</summary>
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> AvailableMasterBls { get; set; } = [];
+
+    [Parameter] public int LinkedHouseCount { get; set; }
+
+    [Parameter] public Func<ChangeIssuanceTypeRequest, Task<bool>>? OnSave { get; set; }
+
+    private int? _masterBlId;
+    private bool _saving;
+
+    private BlIssuanceType Target =>
+        Bl.IssuanceType == BlIssuanceType.Master ? BlIssuanceType.House : BlIssuanceType.Master;
+
+    private bool IsBlocked => Bl.IssuanceType == BlIssuanceType.Master && LinkedHouseCount > 0;
+
+    private bool IsValid => !IsBlocked && (Target == BlIssuanceType.Master || _masterBlId.HasValue);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (!IsValid || _saving || OnSave is null) return;
+
+        _saving = true;
+        var ok = await OnSave(new ChangeIssuanceTypeRequest(
+            NewIssuanceType: Target,
+            MasterBlId: Target == BlIssuanceType.House ? _masterBlId : null));
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
+    }
+}

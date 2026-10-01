@@ -1,112 +1,135 @@
-@using Marilog.Contracts.DTOs.Requests.VoyageDTOs
-@using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
+@using global::Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using global::Marilog.Contracts.DTOs.Responses
 @namespace Marilog.Shared.UI.Pages.Voyages
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(Voyage is null
-                                ? Icons.Material.Filled.Add
-                                : Icons.Material.Filled.Edit)"
-                     Class="mr-2" />
-            @(Voyage is null ? "New Voyage" : "Edit Voyage")
-        </MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@(IsEdit ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)"
+                     Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">@(IsEdit ? $"Edit voyage {Voyage!.VoyageNumber}" : "New voyage")</MudText>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudGrid>
+        <MudGrid Spacing="2">
 
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_voyageNumber"
-                              Label="Voyage Number"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
+            @* ── Identity ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Identity</MudText></MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int"
-                           @bind-Value="_vesselId"
-                           Label="Vessel"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (var v in Vessels)
-                    {
-                        <MudSelectItem T="int" Value="v.Id">@v.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_voyageMonthDate"
-                               Label="Voyage Month"
-                               OpenTo="OpenTo.Month"
+            @if (IsEdit)
+            {
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Value="@Voyage!.VoyageNumber" Label="Voyage number"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Value="@Voyage!.VesselName" Label="Vessel"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Value="@Voyage!.VoyageMonth.ToString("MMM yyyy")" Label="Month"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Voyage number, vessel and month cannot be changed after creation.
+                    </MudText>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_voyageNumber"
+                                  Label="Voyage number"
+                                  Required="true"
+                                  MaxLength="30"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int"
+                               @bind-Value="_vesselId"
+                               Label="Vessel"
+                               Required="true"
                                Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               DateFormat="MMM yyyy" />
-            </MudItem>
+                               Margin="Margin.Dense">
+                        @foreach (var v in Vessels)
+                        {
+                            <MudSelectItem T="int" Value="v.Id">@v.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_voyageMonth"
+                                   Label="Month"
+                                   Required="true"
+                                   OpenTo="OpenTo.Month"
+                                   FixDay="1"
+                                   DateFormat="MMM yyyy"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            @* ── Route ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Route</MudText></MudItem>
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
                            @bind-Value="_departurePortId"
-                           Label="Departure Port"
+                           Label="Departure port"
                            Clearable="true"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
-                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
                     @foreach (var p in Ports)
                     {
-                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
                     }
                 </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <DateTimeField @bind-Value="_departureDate" Label="Departure" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
                 <MudSelect T="int?"
                            @bind-Value="_arrivalPortId"
-                           Label="Arrival Port"
+                           Label="Arrival port"
                            Clearable="true"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
-                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
                     @foreach (var p in Ports)
                     {
-                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_departureDate"
-                                   Label="Departure Date"
-                                   Editable="true"
-                                   Required="true"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense" />
+                <DateTimeField @bind-Value="_arrivalDate"
+                               Label="Arrival"
+                               Error="ArrivalBeforeDeparture"
+                               ErrorText="Arrival cannot be before departure." />
             </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_arrivalDate"
-                                   Label="Arrival Date"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense" />
-            </MudItem>
+            @* ── Cargo ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Cargo</MudText></MudItem>
 
-            <MudItem xs="12" sm="6">
+            <MudItem xs="12" sm="8">
                 <MudTextField @bind-Value="_cargoType"
-                              Label="Cargo Type"
+                              Label="Cargo type"
+                              MaxLength="150"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
-
-            <MudItem xs="12" sm="6">
+            <MudItem xs="12" sm="4">
                 <MudNumericField T="decimal?"
                                  @bind-Value="_cargoQuantityMt"
-                                 Label="Cargo Quantity (MT)"
+                                 Label="Quantity (MT)"
                                  Min="0"
                                  Format="N3"
+                                 HideSpinButtons="true"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
             </MudItem>
@@ -114,7 +137,8 @@
             <MudItem xs="12">
                 <MudTextField @bind-Value="_notes"
                               Label="Notes"
-                              Lines="2"
+                              Lines="3"
+                              MaxLength="1000"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
@@ -123,27 +147,36 @@
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
-                   Disabled="@(!IsValid)"
-                   OnClick="Submit">
-            Save
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : "Save")
         </MudButton>
     </DialogActions>
-
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter] public VoyageResponse? Voyage { get; set; }
-    [Parameter, EditorRequired] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
     [Parameter, EditorRequired] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+
+    /// <summary>Host performs the create; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<CreateVoyageRequest, Task<bool>>? OnCreate { get; set; }
+
+    /// <summary>Host performs the update; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<UpdateVoyageRequest, Task<bool>>? OnUpdate { get; set; }
+
+    private const string SectionStyle =
+        "font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary);";
 
     private string _voyageNumber = string.Empty;
     private int _vesselId;
-    private DateTime? _voyageMonthDate;
+    private DateTime? _voyageMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private int? _departurePortId;
     private int? _arrivalPortId;
     private DateTime? _departureDate;
@@ -151,62 +184,66 @@
     private string? _cargoType;
     private decimal? _cargoQuantityMt;
     private string? _notes;
+    private bool _saving;
+
+    private bool IsEdit => Voyage is not null;
+
+    private bool ArrivalBeforeDeparture =>
+        _departureDate.HasValue && _arrivalDate.HasValue && _arrivalDate < _departureDate;
 
     private bool IsValid =>
-        !string.IsNullOrWhiteSpace(_voyageNumber) &&
-        _vesselId > 0 &&
-        _voyageMonthDate is not null;
+        !ArrivalBeforeDeparture &&
+        (IsEdit || (!string.IsNullOrWhiteSpace(_voyageNumber) && _vesselId > 0 && _voyageMonth is not null));
 
-    protected override void OnParametersSet()
+    protected override void OnInitialized()
     {
         if (Voyage is null) return;
 
-        _voyageNumber    = Voyage.VoyageNumber ?? string.Empty;
-        _vesselId        = Voyage.VesselId;
-        _voyageMonthDate = Voyage.VoyageMonth != default
-            ? new DateTime(Voyage.VoyageMonth.Year, Voyage.VoyageMonth.Month, 1)
-            : null;
         _departurePortId = Voyage.DeparturePortId;
-        _arrivalPortId   = Voyage.ArrivalPortId;
-        _departureDate   = Voyage.DepartureDate;
-        _arrivalDate     = Voyage.ArrivalDate;
-        _cargoType       = Voyage.CargoType;
+        _arrivalPortId = Voyage.ArrivalPortId;
+        _departureDate = Voyage.DepartureDate;
+        _arrivalDate = Voyage.ArrivalDate;
+        _cargoType = Voyage.CargoType;
         _cargoQuantityMt = Voyage.CargoQuantityMT;
-        _notes           = Voyage.Notes;
+        _notes = Voyage.Notes;
     }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit()
+    private async Task SubmitAsync()
     {
-        var month = _voyageMonthDate.HasValue
-            ? new DateOnly(_voyageMonthDate.Value.Year, _voyageMonthDate.Value.Month, 1)
-            : DateOnly.MinValue;
+        if (!IsValid || _saving) return;
 
-        if (Voyage == null)
-            MudDialog.Close(DialogResult.Ok(new CreateVoyageRequest(
-                VesselId:        _vesselId,
-                VoyageNumber:    _voyageNumber,
-                VoyageMonth:     month,
-                DeparturePortId: _departurePortId,
-                ArrivalPortId:   _arrivalPortId,
-                DepartureDate:   _departureDate,
-                ArrivalDate:     _arrivalDate,
-                CargoType:       _cargoType,
-                CargoQuantityMt: _cargoQuantityMt,
-                Notes:           _notes
-            )));
-        else
-        {
-            MudDialog.Close(DialogResult.Ok(new UpdateVoyageRequest(
-                DeparturePortId: _departurePortId,
-                ArrivalPortId: _arrivalPortId,
-                DepartureDate: _departureDate,
-                ArrivalDate: _arrivalDate,
-                CargoType: _cargoType,
-                CargoQuantityMt: _cargoQuantityMt,
-                Notes: _notes
-            )));
-        }
+        _saving = true;
+        var task = IsEdit
+            ? OnUpdate?.Invoke(BuildUpdate())
+            : OnCreate?.Invoke(BuildCreate());
+        var ok = task is not null && await task;
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
     }
+
+    private CreateVoyageRequest BuildCreate() => new(
+        VesselId: _vesselId,
+        VoyageNumber: _voyageNumber.Trim(),
+        VoyageMonth: new DateOnly(_voyageMonth!.Value.Year, _voyageMonth.Value.Month, 1),
+        DeparturePortId: _departurePortId,
+        ArrivalPortId: _arrivalPortId,
+        DepartureDate: _departureDate,
+        ArrivalDate: _arrivalDate,
+        CargoType: NullIfEmpty(_cargoType),
+        CargoQuantityMt: _cargoQuantityMt,
+        Notes: NullIfEmpty(_notes));
+
+    private UpdateVoyageRequest BuildUpdate() => new(
+        DeparturePortId: _departurePortId,
+        ArrivalPortId: _arrivalPortId,
+        DepartureDate: _departureDate,
+        ArrivalDate: _arrivalDate,
+        CargoType: NullIfEmpty(_cargoType),
+        CargoQuantityMt: _cargoQuantityMt,
+        Notes: NullIfEmpty(_notes));
+
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

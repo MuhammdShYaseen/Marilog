@@ -1,0 +1,72 @@
+
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<VoyagePanel Title="Bills of lading">
+    <Actions>
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Add"
+                   Disabled="@(IsReadOnly || IsBusy)"
+                   OnClick="OnAddClicked">
+            New B/L
+        </MudButton>
+    </Actions>
+
+    <ChildContent>
+        @if (IsReadOnly)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2" Style="display:block">
+                Cancelled voyages are read-only.
+            </MudText>
+        }
+
+        @if (BillsOfLading.Count > 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                @MasterCount master · @HouseCount house · Master total <strong>@($"{MasterTotalMt:N3}") MT</strong>
+                @if (Voyage.CargoQuantityMT.HasValue)
+                {
+                    <span> · Declared on voyage @($"{Voyage.CargoQuantityMT:N3}") MT</span>
+                }
+            </MudText>
+        }
+
+        <Marilog.Shared.UI.Pages.BillOfLading.BillOfLadingTable BillsOfLading="BillsOfLading"
+                           IsReadOnly="IsReadOnly"
+                           IsBusy="IsBusy"
+                           OnViewClicked="OnViewClicked"
+                           OnEditClicked="OnEditClicked"
+                           OnDeleteClicked="OnDeleteClicked"
+                           OnChangeNumberClicked="OnChangeNumberClicked"
+                           OnChangeIssuanceClicked="OnChangeIssuanceClicked"
+                           OnLinkMasterClicked="OnLinkMasterClicked" />
+    </ChildContent>
+</VoyagePanel>
+
+@code {
+    [Parameter, EditorRequired] public VoyageResponse Voyage { get; set; } = default!;
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
+    [Parameter] public bool IsBusy { get; set; }
+
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnViewClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnChangeNumberClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnChangeIssuanceClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnLinkMasterClicked { get; set; }
+
+    private bool IsReadOnly => Voyage.Status == VoyageStatus.CANCELLED;
+
+    private int MasterCount => BillsOfLading.Count(b => b.IssuanceType == BlIssuanceType.Master);
+    private int HouseCount => BillsOfLading.Count - MasterCount;
+
+    // House B/Ls subdivide a master's cargo, so only masters are summed.
+    private decimal MasterTotalMt => BillsOfLading
+        .Where(b => b.IssuanceType == BlIssuanceType.Master)
+        .Sum(b => b.GrossWeightMT ?? 0m);
+}

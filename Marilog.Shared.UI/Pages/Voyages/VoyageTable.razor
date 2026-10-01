@@ -1,74 +1,116 @@
-@using Marilog.Contracts.DTOs.Responses
+
 @using MudBlazor
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
 @namespace Marilog.Shared.UI.Pages.Voyages
+
 <MudTable T="VoyageResponse"
           Items="Voyages"
-          Hover="true"
-          Striped="true"
+          Loading="IsLoading"
+          LoadingProgressColor="Color.Primary"
           Dense="true"
-          OnRowClick="OnRowClick"
-          Loading="IsLoading">
-    <ToolBarContent>
-        <MudText Typo="Typo.h6">Voyages</MudText>
-        <MudSpacer />
-        <MudButton StartIcon="@Icons.Material.Filled.Add"
-                   Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="OnAddClicked">
-            New Voyage
-        </MudButton>
-    </ToolBarContent>
+          Hover="true"
+          Elevation="0"
+          Outlined="true"
+          RowsPerPage="50"
+          RowStyle="cursor:pointer;"
+          OnRowClick="RowClicked">
+
     <HeaderContent>
-        <MudTh>Voyage #</MudTh>
-        <MudTh>Vessel</MudTh>
-        <MudTh>Month</MudTh>
-        <MudTh>Departure</MudTh>
-        <MudTh>Arrival</MudTh>
-        <MudTh>Status</MudTh>
-        <MudTh>Actions</MudTh>
+        <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByNumber">Voyage</MudTableSortLabel></MudTh>
+        <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByVessel">Vessel</MudTableSortLabel></MudTh>
+        <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByMonth">Month</MudTableSortLabel></MudTh>
+        <MudTh Style="@ThStyle">Route</MudTh>
+        <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByDeparture">Departure</MudTableSortLabel></MudTh>
+        <MudTh Style="@ThStyle">Arrival</MudTh>
+        <MudTh Style="@ThStyle">Master</MudTh>
+        <MudTh Style="@($"{ThStyle}text-align:right;")">Cargo (MT)</MudTh>
+        <MudTh Style="@ThStyle">Status</MudTh>
+        <MudTh Style="@ThStyle"></MudTh>
     </HeaderContent>
+
     <RowTemplate>
-        <MudTd>@context.VoyageNumber</MudTd>
-        <MudTd>@context.VesselName</MudTd>
-        <MudTd>@context.VoyageMonth.ToString("MMM yyyy")</MudTd>
-        <MudTd>@(context.DepartureDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
-        <MudTd>@(context.ArrivalDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
-        <MudTd>
-            <MudChip T="string" Color="@GetStatusColor(context.Status.ToString())" Size="Size.Small">
-                @context.Status
-            </MudChip>
+        <MudTd DataLabel="Voyage">
+            <MudText Typo="Typo.body2" Color="Color.Primary">@context.VoyageNumber</MudText>
         </MudTd>
-        <MudTd>
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
-                           Size="Size.Small"
-                           OnClick="@(() => OnViewClicked.InvokeAsync(context))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                           Size="Size.Small"
-                           OnClick="@((e) => OnEditClicked.InvokeAsync(context))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                           Color="Color.Error"
-                           Size="Size.Small"
-                           OnClick="@((e) => OnDeleteClicked.InvokeAsync(context))" />
+        <MudTd DataLabel="Vessel">@context.VesselName</MudTd>
+        <MudTd DataLabel="Month">@context.VoyageMonth.ToString("MMM yyyy")</MudTd>
+        <MudTd DataLabel="Route">
+            <span>@(context.DeparturePortName ?? "—") → @(context.ArrivalPortName ?? "—")</span>
+            @if (context.Stops.Count > 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block">
+                    @StopsLabel(context.Stops.Count)
+                </MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Departure">@(context.DepartureDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd DataLabel="Arrival">@(context.ArrivalDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd DataLabel="Master">@(context.MasterFullName ?? "—")</MudTd>
+        <MudTd DataLabel="Cargo (MT)" Style="text-align:right">@(context.CargoQuantityMT?.ToString("N3") ?? "—")</MudTd>
+        <MudTd DataLabel="Status"><VoyageStatusChip Status="context.Status" /></MudTd>
+        <MudTd Style="width:48px">
+            <div @onclick:stopPropagation="true">
+                <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+                         Size="Size.Small"
+                         AnchorOrigin="Origin.BottomRight"
+                         TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Outlined.OpenInNew"
+                                 OnClick="@(() => OnOpenClicked.InvokeAsync(context))">
+                        Open
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
+                                 Disabled="@(context.Status == VoyageStatus.CANCELLED)"
+                                 OnClick="@(() => OnEditClicked.InvokeAsync(context))">
+                        Edit
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Delete"
+                                 Disabled="@(!CanDelete(context))"
+                                 OnClick="@(() => OnDeleteClicked.InvokeAsync(context))">
+                        Delete
+                    </MudMenuItem>
+                </MudMenu>
+            </div>
         </MudTd>
     </RowTemplate>
-</MudTable>
-@code{
 
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="py-4">
+            No voyages match the current filters.
+        </MudText>
+    </NoRecordsContent>
+
+    <LoadingContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="py-4">Loading voyages…</MudText>
+    </LoadingContent>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="@(new[] { 25, 50, 100 })" />
+    </PagerContent>
+</MudTable>
+
+@code {
     [Parameter, EditorRequired] public IReadOnlyList<VoyageResponse> Voyages { get; set; } = [];
     [Parameter] public bool IsLoading { get; set; }
-    [Parameter] public EventCallback<VoyageResponse> OnViewClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnOpenClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
-    [Parameter] public EventCallback OnAddClicked { get; set; }
 
-    private void OnRowClick(TableRowClickEventArgs<VoyageResponse> args)
-        => OnViewClicked.InvokeAsync(args.Item);
+    private const string ThStyle =
+        "font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary);";
 
-    private static Color GetStatusColor(string? status) => status switch
-    {
-        "Active" => Color.Success,
-        "Completed" => Color.Info,
-        "Cancelled" => Color.Error,
-        _ => Color.Default
-    };
+    private static readonly Func<VoyageResponse, object> SortByNumber = v => v.VoyageNumber;
+    private static readonly Func<VoyageResponse, object> SortByVessel = v => v.VesselName;
+    private static readonly Func<VoyageResponse, object> SortByMonth = v => v.VoyageMonth;
+    private static readonly Func<VoyageResponse, object> SortByDeparture = v => v.DepartureDate ?? DateTime.MaxValue;
+
+    private static bool CanDelete(VoyageResponse v)
+        => v.Status is VoyageStatus.PLANNED or VoyageStatus.CANCELLED;
+
+    private static string StopsLabel(int count)
+        => count == 1 ? "+1 stop" : $"+{count} stops";
+
+    private Task RowClicked(TableRowClickEventArgs<VoyageResponse> args)
+        => args.Item is null ? Task.CompletedTask : OnOpenClicked.InvokeAsync(args.Item);
 }

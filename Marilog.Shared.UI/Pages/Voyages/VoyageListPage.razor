@@ -1,0 +1,155 @@
+
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+@* ── Header ─────────────────────────────────────────────────────────────── *@
+<div class="d-flex align-center gap-2 pb-2">
+    <MudIcon Icon="@Icons.Material.Outlined.Sailing" Color="Color.Primary" />
+    <MudText Typo="Typo.h6">Voyages</MudText>
+</div>
+
+@* ── Command bar ────────────────────────────────────────────────────────── *@
+<MudToolBar Dense="true" Gutters="false" Style="@BarStyle">
+    <MudButton Variant="Variant.Text"
+               Color="Color.Primary"
+               Size="Size.Small"
+               StartIcon="@Icons.Material.Outlined.Add"
+               OnClick="OnAddClicked">
+        New voyage
+    </MudButton>
+    <MudButton Variant="Variant.Text"
+               Size="Size.Small"
+               StartIcon="@Icons.Material.Outlined.Refresh"
+               Disabled="IsLoading"
+               OnClick="OnRefreshClicked">
+        Refresh
+    </MudButton>
+    <MudSpacer />
+    @if (HasActiveFilter)
+    {
+        <MudButton Variant="Variant.Text"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.FilterAltOff"
+                   OnClick="ClearFilters">
+            Clear filters
+        </MudButton>
+    }
+</MudToolBar>
+
+@* ── Filters ────────────────────────────────────────────────────────────── *@
+<div class="d-flex flex-wrap align-center gap-2 py-2">
+    <MudTextField T="string"
+                  Value="Filter.Search"
+                  ValueChanged="SetSearch"
+                  DebounceInterval="300"
+                  Placeholder="Search voyage, vessel, port, master, cargo"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                  Clearable="true"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Style="width:320px" />
+
+    <MudSelect T="int?"
+               Value="Filter.VesselId"
+               ValueChanged="SetVessel"
+               Label="Vessel"
+               Clearable="true"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Style="width:220px">
+        <MudSelectItem T="int?" Value="null">All vessels</MudSelectItem>
+        @foreach (var vessel in Vessels)
+        {
+            <MudSelectItem T="int?" Value="@((int?)vessel.Id)">@vessel.Name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudDatePicker Date="MonthAsDate"
+                   DateChanged="SetMonth"
+                   Label="Month"
+                   OpenTo="OpenTo.Month"
+                   FixDay="1"
+                   DateFormat="MMM yyyy"
+                   Clearable="true"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Style="width:180px" />
+</div>
+
+@* ── Status filter ──────────────────────────────────────────────────────── *@
+<div class="d-flex flex-wrap align-center gap-1 pb-2">
+    <MudButton Variant="@(Filter.Status is null ? Variant.Outlined : Variant.Text)"
+               Size="Size.Small"
+               OnClick="@(() => SetStatus(null))">
+        All (@ScopeCount)
+    </MudButton>
+    @foreach (var status in Enum.GetValues<VoyageStatus>())
+    {
+        var s = status;
+        <MudButton Variant="@(Filter.Status == s ? Variant.Outlined : Variant.Text)"
+                   Color="@VoyageStatusChip.StatusColor(s)"
+                   Size="Size.Small"
+                   StartIcon="@VoyageStatusChip.StatusIcon(s)"
+                   OnClick="@(() => SetStatus(s))">
+            @VoyageStatusChip.StatusText(s) (@Count(s))
+        </MudButton>
+    }
+</div>
+
+@* ── Table ──────────────────────────────────────────────────────────────── *@
+<VoyageTable Voyages="Voyages"
+             IsLoading="IsLoading"
+             OnOpenClicked="OnOpenClicked"
+             OnEditClicked="OnEditClicked"
+             OnDeleteClicked="OnDeleteClicked" />
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<VoyageResponse> Voyages { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyDictionary<VoyageStatus, int> StatusCounts { get; set; } = new Dictionary<VoyageStatus, int>();
+    [Parameter] public int ScopeCount { get; set; }
+    [Parameter] public VoyageListFilter Filter { get; set; } = new();
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback<VoyageListFilter> OnFilterChanged { get; set; }
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnOpenClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
+
+    private const string BarStyle =
+        "border-top:1px solid var(--mud-palette-lines-default);" +
+        "border-bottom:1px solid var(--mud-palette-lines-default);";
+
+    private bool HasActiveFilter => Filter != new VoyageListFilter();
+
+    private DateTime? MonthAsDate => Filter.Month?.ToDateTime(TimeOnly.MinValue);
+
+    private int Count(VoyageStatus status)
+        => StatusCounts.TryGetValue(status, out var c) ? c : 0;
+
+    private Task SetSearch(string? value)
+        => OnFilterChanged.InvokeAsync(Filter with
+        {
+            Search = string.IsNullOrWhiteSpace(value) ? null : value
+        });
+
+    private Task SetVessel(int? vesselId)
+        => OnFilterChanged.InvokeAsync(Filter with { VesselId = vesselId });
+
+    private Task SetStatus(VoyageStatus? status)
+        => OnFilterChanged.InvokeAsync(Filter with { Status = status });
+
+    private Task SetMonth(DateTime? date)
+        => OnFilterChanged.InvokeAsync(Filter with
+        {
+            Month = date is null ? null : (DateOnly?)new DateOnly(date.Value.Year, date.Value.Month, 1)
+        });
+
+    private Task ClearFilters()
+        => OnFilterChanged.InvokeAsync(new VoyageListFilter());
+}

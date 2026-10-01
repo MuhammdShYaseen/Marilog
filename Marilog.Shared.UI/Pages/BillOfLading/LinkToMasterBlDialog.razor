@@ -1,0 +1,78 @@
+@using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.BillOfLading
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Link" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">Link to master B/L — @Bl.BlNumber</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Currently linked to: <strong>@(Bl.MasterBlNumber ?? "—")</strong>
+        </MudText>
+
+        @if (AvailableMasterBls.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                There is no master B/L on this voyage.
+            </MudAlert>
+        }
+        else
+        {
+            <MudSelect T="int?"
+                       @bind-Value="_masterBlId"
+                       Label="Master B/L"
+                       Required="true"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense">
+                @foreach (var mbl in AvailableMasterBls)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)mbl.Id)">@mbl.BlNumber</MudSelectItem>
+                }
+            </MudSelect>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : "Link")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public BillOfLadingResponse Bl { get; set; } = default!;
+    [Parameter] public IReadOnlyList<BillOfLadingResponse> AvailableMasterBls { get; set; } = [];
+    [Parameter] public Func<LinkToMasterBlRequest, Task<bool>>? OnSave { get; set; }
+
+    private int? _masterBlId;
+    private bool _saving;
+
+    private bool IsValid => _masterBlId is int id && id != Bl.MasterBlId;
+
+    protected override void OnInitialized() => _masterBlId = Bl.MasterBlId;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (!IsValid || _saving || OnSave is null) return;
+
+        _saving = true;
+        var ok = await OnSave(new LinkToMasterBlRequest(MasterBlId: _masterBlId!.Value));
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
+    }
+}

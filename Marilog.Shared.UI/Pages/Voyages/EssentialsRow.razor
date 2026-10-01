@@ -1,0 +1,19 @@
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<div style="color:var(--mud-palette-text-secondary);font-size:13px;">@Label</div>
+<div style="font-size:13px;min-width:0;overflow-wrap:anywhere;">
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        @(string.IsNullOrWhiteSpace(Value) ? "—" : Value)
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

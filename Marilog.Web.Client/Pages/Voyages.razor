@@ -2,290 +2,202 @@
 @using Marilog.Contracts.DTOs.Requests.VoyageDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
-@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.Voyages
-@using Marilog.Shared.UI.Pages.BillOfLading
-@using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
 @* VoyagePageHost.razor *@
 @inject IVoyageService VoyageService
 @inject IVesselService VesselService
-@inject IBillOfLadingService BillOfLadingService
-@inject IDialogService DialogService
 @inject IPortService PortService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject IDocumentService DocumentService
-@inject ICompanyService CompanyService
-@inject IJSRuntime JS
-@inject IPdfFileGeneratorService PdfService
-<VoyagePage Voyages="_voyages"
-            IsLoading="_loading"
-            SelectedVoyage="_selectedVoyage"
-            BillsOfLading="_bills"
-            IsBillsLoading="_billsLoading"
-            OnAddClicked="OpenAddDialog"
-            OnViewClicked="SelectVoyage"
-            OnEditClicked="OpenEditDialog"
-            OnDeleteClicked="ConfirmDelete"
-            OnAddStopClicked="OpenAddStopDialog"
-            OnAddBillClicked="OpenAddBillDialog"
-            OnViewBillClicked="OpenViewBillDialog"
-            OnEditBillClicked="OpenEditBillDialog"
-            OnDeleteBillClicked="ConfirmDeleteBill"
-            OnBackClicked="HandleBack"
-            OnVesselSelected="LoadByVessel"
-            Vessels="_vessels"
-            Docs="_docs"
-            ByVessel="_byVessel" />  @* <- تأكد من تمرير هذه الخاصية *@
+@inject NavigationManager Nav
+
+<VoyageListPage Voyages="_filtered"
+                Vessels="_vessels"
+                StatusCounts="_statusCounts"
+                ScopeCount="_scopeCount"
+                Filter="_filter"
+                IsLoading="_loading"
+                OnFilterChanged="OnFilterChanged"
+                OnAddClicked="OpenCreateDialog"
+                OnRefreshClicked="ReloadAsync"
+                OnOpenClicked="OpenVoyage"
+                OnEditClicked="OpenEditDialog"
+                OnDeleteClicked="ConfirmDelete" />
+
 @code {
+    private static readonly DialogOptions FormDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = false
+    };
 
-
-    private IReadOnlyList<VoyageResponse> _voyages = [];
-    private IReadOnlyList<BillOfLadingResponse> _bills = [];
-    private IReadOnlyList<VoyageResponse> _byVessel = [];
+    private IReadOnlyList<VoyageResponse> _all = [];
+    private IReadOnlyList<VoyageResponse> _filtered = [];
     private IReadOnlyList<VesselResponse> _vessels = [];
-    private IReadOnlyList<DocumentResponse> _docs = [];
-    private VoyageResponse? _selectedVoyage;
+    private IReadOnlyDictionary<VoyageStatus, int> _statusCounts = new Dictionary<VoyageStatus, int>();
+    private int _scopeCount;
+    private VoyageListFilter _filter = new();
     private bool _loading;
-    private bool _billsLoading;
-    private int? _selectedVesselId;
 
-    // lookup data
-    private async Task<IReadOnlyList<VesselResponse>> Vessels()
-    {
-        return await VesselService.GetActiveAsync();
-    }
-    private async Task<IReadOnlyList<PortResponse>> Ports()
-    {
-        return await PortService.GetActiveAsync();
-    }
-
-    private async Task<IReadOnlyList<CompanyResponse>> Companies()
-    {
-        return await CompanyService.GetActiveAsync();
-    }
-
+    // ── Load ──────────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-        _voyages = await VoyageService.GetActiveVoyagesAsync();
-        _vessels = await VesselService.GetActiveAsync();
+        await TryAsync(async () =>
+        {
+            var voyagesTask = VoyageService.GetActiveVoyagesAsync();
+            var vesselsTask = VesselService.GetActiveAsync();
+            await Task.WhenAll(voyagesTask, vesselsTask);
+            _all = await voyagesTask;
+            _vessels = await vesselsTask;
+        });
+        ApplyFilter();
         _loading = false;
     }
 
-    // ── Select / navigate ─────────────────────────────────────────────────────
-    private async Task SelectVoyage(VoyageResponse voyage)
+    private async Task ReloadAsync()
     {
-
-        _selectedVoyage = voyage;
-        _billsLoading = true;
-        _docs = await DocumentService.GetByVoyageAsync(voyage.VoyageId, true);
-        _bills = await BillOfLadingService.GetByVoyageAsync(voyage.VoyageId);
-        _billsLoading = false;
+        _loading = true;
+        await TryAsync(async () => _all = await VoyageService.GetActiveVoyagesAsync());
+        ApplyFilter();
+        _loading = false;
     }
 
-    // ── Voyage CRUD ───────────────────────────────────────────────────────────
-    private async Task OpenAddDialog()
+    // ── Filtering ─────────────────────────────────────────────────────────────
+    private void OnFilterChanged(VoyageListFilter filter)
     {
+        _filter = filter;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        IEnumerable<VoyageResponse> scope = _all;
+
+        if (_filter.VesselId is int vesselId)
+            scope = scope.Where(v => v.VesselId == vesselId);
+
+        if (_filter.Month is DateOnly month)
+            scope = scope.Where(v => v.VoyageMonth.Year == month.Year && v.VoyageMonth.Month == month.Month);
+
+        if (!string.IsNullOrWhiteSpace(_filter.Search))
+        {
+            var term = _filter.Search.Trim();
+            scope = scope.Where(v => Matches(v, term));
+        }
+
+        // Status counts are computed before the status filter so every pill shows its real count.
+        var scoped = scope.ToList();
+        _scopeCount = scoped.Count;
+        _statusCounts = scoped.GroupBy(v => v.Status).ToDictionary(g => g.Key, g => g.Count());
+
+        _filtered = (_filter.Status is VoyageStatus status ? scoped.Where(v => v.Status == status) : scoped)
+            .OrderByDescending(v => v.VoyageMonth)
+            .ThenBy(v => v.VoyageNumber)
+            .ToList();
+    }
+
+    private static bool Matches(VoyageResponse v, string term) =>
+        Contains(v.VoyageNumber, term) ||
+        Contains(v.VesselName, term) ||
+        Contains(v.DeparturePortName, term) ||
+        Contains(v.ArrivalPortName, term) ||
+        Contains(v.MasterFullName, term) ||
+        Contains(v.CargoType, term);
+
+    private static bool Contains(string? source, string term)
+        => source?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    private void OpenVoyage(VoyageResponse voyage)
+        => Nav.NavigateTo($"/voyages/{voyage.VoyageId}");
+
+    // ── Create / Edit ─────────────────────────────────────────────────────────
+    private async Task OpenCreateDialog()
+    {
+        IReadOnlyList<PortResponse> ports = [];
+        if (!await TryAsync(async () => ports = await PortService.GetActiveAsync())) return;
+
         var parameters = new DialogParameters
         {
-            [nameof(VoyageDialog.Voyage)] = null,
-            [nameof(VoyageDialog.Vessels)] = await Vessels(),
-            [nameof(VoyageDialog.Ports)] = await Ports()
+            [nameof(VoyageDialog.Vessels)] = _vessels,
+            [nameof(VoyageDialog.Ports)] = ports,
+            [nameof(VoyageDialog.OnCreate)] = new Func<CreateVoyageRequest, Task<bool>>(CreateVoyageAsync)
         };
 
-        var dialog = await DialogService.ShowAsync<VoyageDialog>("New Voyage", parameters);
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("New voyage", parameters, FormDialogOptions);
         var result = await dialog.Result;
-        if (result is { Canceled: false, Data: CreateVoyageRequest r })
-        {
-            await VoyageService.CreateAsync(
-                r.VesselId, r.VoyageNumber, r.VoyageMonth,
-                departurePortId: r.DeparturePortId,
-                arrivalPortId: r.ArrivalPortId,
-                departureDate: r.DepartureDate,
-                arrivalDate: r.ArrivalDate,
-                cargoType: r.CargoType,
-                cargoQuantityMt: r.CargoQuantityMt,
-                notes: r.Notes);
-
-            _voyages = await VoyageService.GetActiveVoyagesAsync();
-            Snackbar.Add("Voyage created", Severity.Success);
-        }
+        if (result is { Canceled: false }) await ReloadAsync();
     }
+
+    private Task<bool> CreateVoyageAsync(CreateVoyageRequest r) =>
+        TryAsync(() => VoyageService.CreateAsync(
+            r.VesselId, r.VoyageNumber, r.VoyageMonth,
+            masterContractId: r.MasterContractId,
+            departurePortId: r.DeparturePortId,
+            arrivalPortId: r.ArrivalPortId,
+            departureDate: r.DepartureDate,
+            arrivalDate: r.ArrivalDate,
+            cargoType: r.CargoType,
+            cargoQuantityMt: r.CargoQuantityMt,
+            notes: r.Notes),
+        "Voyage created");
 
     private async Task OpenEditDialog(VoyageResponse voyage)
     {
+        IReadOnlyList<PortResponse> ports = [];
+        if (!await TryAsync(async () => ports = await PortService.GetActiveAsync())) return;
+
         var parameters = new DialogParameters
         {
             [nameof(VoyageDialog.Voyage)] = voyage,
-            [nameof(VoyageDialog.Vessels)] = await Vessels(),
-            [nameof(VoyageDialog.Ports)] = await Ports()
+            [nameof(VoyageDialog.Ports)] = ports,
+            [nameof(VoyageDialog.OnUpdate)] = new Func<UpdateVoyageRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.UpdateAsync(
+                    voyage.VoyageId,
+                    r.DeparturePortId, r.ArrivalPortId,
+                    r.DepartureDate, r.ArrivalDate,
+                    r.CargoType, r.CargoQuantityMt,
+                    r.Notes),
+                "Voyage updated"))
         };
 
-        var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit Voyage", parameters);
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit voyage", parameters, FormDialogOptions);
         var result = await dialog.Result;
-        if (result is { Canceled: false, Data: UpdateVoyageRequest r })
-        {
-            await VoyageService.UpdateAsync(
-                voyage.VoyageId,
-                r.DeparturePortId, r.ArrivalPortId,
-                r.DepartureDate, r.ArrivalDate,
-                r.CargoType, r.CargoQuantityMt,
-                r.Notes);
-
-            _voyages = await VoyageService.GetActiveVoyagesAsync();
-            if (_selectedVoyage?.VoyageId == voyage.VoyageId)
-                _selectedVoyage = await VoyageService.GetWithStopsAsync(voyage.VoyageId);
-
-            Snackbar.Add("Voyage updated", Severity.Success);
-        }
+        if (result is { Canceled: false }) await ReloadAsync();
     }
 
+    // ── Delete ────────────────────────────────────────────────────────────────
     private async Task ConfirmDelete(VoyageResponse voyage)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Delete Voyage",
-            $"Delete voyage {voyage.VoyageNumber}?",
+            "Delete voyage",
+            $"Voyage {voyage.VoyageNumber} ({voyage.VesselName}) will be permanently deleted, " +
+            "together with its port stops and bills of lading. This cannot be undone.",
             yesText: "Delete", cancelText: "Cancel");
 
-        if (confirmed is true)
-        {
-            await VoyageService.DeleteAsync(voyage.VoyageId);
-            if (_selectedVoyage?.VoyageId == voyage.VoyageId) _selectedVoyage = null;
-            _voyages = await VoyageService.GetActiveVoyagesAsync();
-            Snackbar.Add("Voyage deleted", Severity.Success);
-        }
+        if (confirmed is not true) return;
+
+        if (await TryAsync(() => VoyageService.DeleteAsync(voyage.VoyageId), "Voyage deleted"))
+            await ReloadAsync();
     }
 
-    private async Task LoadByVessel(int? vesselId)
-    {
-        _selectedVesselId = vesselId;
-
-
-        if (vesselId == 0 || vesselId == null)
-        {
-            _byVessel = _voyages;
-        }
-        else
-        {
-            var result = await VoyageService.GetByVesselAsync(vesselId.Value);
-            _byVessel = result.ToList(); // new reference, forces Blazor diff to detect change    
-        }
-        StateHasChanged();
-    }
-
-    // ── Stop ──────────────────────────────────────────────────────────────────
-    private async Task OpenAddStopDialog()
-    {
-        // نفس pattern الـ dialog — تبنيه لاحقاً لما تحتاجه
-    }
-
-    // ── BL CRUD ───────────────────────────────────────────────────────────────
-    private async Task OpenAddBillDialog()
-    {
-        var parameters = new DialogParameters
-        {
-            [nameof(BillOfLadingDialog.Companies)] = await Companies(),
-
-            [nameof(BillOfLadingDialog.Ports)] = await Ports(),
-
-            [nameof(BillOfLadingDialog.VoyageId)] = _selectedVoyage?.VoyageId,
-            [nameof(BillOfLadingDialog.AvailableMasterBls)] = _bills.Where(m => m.IssuanceType == Kernel.Enums.BlIssuanceType.Master).ToList(),
-        };
-
-        var dialog = await DialogService.ShowAsync<BillOfLadingDialog>("New Bill of Lading", parameters);
-        var result = await dialog.Result;
-        if (result is {Canceled : false, Data : CreateBillOfLadingRequest bill})
-        {
-            var create = await BillOfLadingService.CreateAsync(bill);
-            _bills = await BillOfLadingService.GetByVoyageAsync(bill.VoyageId);
-            Snackbar.Add("Bill Off Lading created", Severity.Success);
-        }
-    }
-
-    private async Task OpenEditBillDialog(BillOfLadingResponse bl)
-    {
-        var parameters = new DialogParameters
-        {
-            [nameof(BillOfLadingDialog.ExistingBl)] = bl,
-            [nameof(BillOfLadingDialog.Companies)] = await Companies(),
-            [nameof(BillOfLadingDialog.Ports)] = await Ports(),
-
-            [nameof(BillOfLadingDialog.VoyageId)] = _selectedVoyage?.VoyageId
-        };
-
-        var dialog = await DialogService.ShowAsync<BillOfLadingDialog>("New Bill of Lading", parameters);
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: UpdateBillOfLadingRequest bill })
-        {
-            await BillOfLadingService.UpdateAsync(bl.Id, bill);
-            _bills = await BillOfLadingService.GetByVoyageAsync(bl.VoyageId);
-            Snackbar.Add("Bill Off Lading updated", Severity.Success);
-        }
-    }
-
-    private async Task OpenViewBillDialog(BillOfLadingResponse bl)
-    {
-        var parameters = new DialogParameters
-        {
-            [nameof(BillOfLadingViewDialog.Bl)] = bl,
-            [nameof(BillOfLadingViewDialog.ExportPdfAsync)] = EventCallback.Factory.Create(this, () => ExportPdfAsync(bl.Id, bl.BlNumber ?? "None")),
-            [nameof(BillOfLadingViewDialog.Print)] = EventCallback.Factory.Create(this, ()=> Print())
-        };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-
-        await DialogService.ShowAsync<BillOfLadingViewDialog>("Bill of Lading", parameters, options);
-    }
-
-    private async Task ConfirmDeleteBill(BillOfLadingResponse bl)
-    {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Delete B/L",
-            $"Delete BL {bl.BlNumber}?",
-            yesText: "Delete", cancelText: "Cancel");
-
-        if (confirmed is true)
-        {
-            await BillOfLadingService.DeleteAsync(bl.Id);
-            _bills = await BillOfLadingService.GetByVoyageAsync(_selectedVoyage!.VoyageId);
-            Snackbar.Add("Bill of Lading deleted", Severity.Success);
-        }
-    }
-
-
-    private void HandleBack()
-    {
-        _selectedVoyage = null;
-        _bills = [];
-    }
-
-
-
-
-    private async Task Print()
-    {
-        await JS.InvokeVoidAsync("blPrint", "bl-print-area");
-    }
-
-
-    
-    private async Task ExportPdfAsync(int bl, string blNumber)
+    // ── Error handling ────────────────────────────────────────────────────────
+    private async Task<bool> TryAsync(Func<Task> action, string? successMessage = null)
     {
         try
         {
-            var bytes = await PdfService.GenerateBillOfLadingFile(bl);
-            if (bytes is { Length: > 0 })
-            {
-                var fileName = $"BL_{blNumber}.pdf";
-                await JS.InvokeVoidAsync("blDownloadFile", fileName, "application/pdf", bytes);
-            }
-            else
-            {
-                Snackbar.Add("Failed to generate PDF", Severity.Error);
-            }
+            await action();
+            if (successMessage is not null) Snackbar.Add(successMessage, Severity.Success);
+            return true;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Export failed: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
         }
     }
 }

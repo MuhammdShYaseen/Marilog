@@ -1,69 +1,173 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.BillOfLading
+
 <MudTable T="BillOfLadingResponse"
-          Items="BillsOfLading"
+          Items="_rows"
+          Dense="true"
           Hover="true"
-          Striped="true"
-          Dense="true">
-    <ToolBarContent>
-        <MudText Typo="Typo.h6">Bills of Lading</MudText>
-        <MudSpacer />
-        <MudButton StartIcon="@Icons.Material.Filled.Add"
-                   Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="@(() => OnAddClicked.InvokeAsync())">
-            New B/L
-        </MudButton>
-    </ToolBarContent>
+          Elevation="0"
+          Outlined="true"
+          RowStyle="cursor:pointer;"
+          OnRowClick="RowClicked">
+
     <HeaderContent>
-        <MudTh>B/L Number</MudTh>
-        <MudTh>Type</MudTh>
-        <MudTh>Issuance</MudTh>
-        <MudTh>Shipper</MudTh>
-        <MudTh>Port of Loading</MudTh>
-        <MudTh>Port of Discharge</MudTh>
-        <MudTh>Cargo</MudTh>
-        <MudTh>Freight</MudTh>
-        <MudTh>Issue Date</MudTh>
-        <MudTh>Actions</MudTh>
+        <MudTh Style="@ThStyle">B/L number</MudTh>
+        <MudTh Style="@ThStyle">Issuance</MudTh>
+        <MudTh Style="@ThStyle">Type</MudTh>
+        <MudTh Style="@ThStyle">Shipper</MudTh>
+        <MudTh Style="@ThStyle">Consignee</MudTh>
+        <MudTh Style="@ThStyle">Route</MudTh>
+        <MudTh Style="@($"{ThStyle}text-align:right;")">Gross (MT)</MudTh>
+        <MudTh Style="@ThStyle">Freight</MudTh>
+        <MudTh Style="@ThStyle">Issued</MudTh>
+        <MudTh Style="@ThStyle"></MudTh>
     </HeaderContent>
+
     <RowTemplate>
-        <MudTd>@context.BlNumber</MudTd>
-        <MudTd>@context.BlType</MudTd>
-        <MudTd>
-            <MudChip T="string" Size="Size.Small" Color="Color.Info">
-                @context.IssuanceType
+        <MudTd DataLabel="B/L number">
+            @if (IsHouse(context))
+            {
+                <div class="d-flex align-center gap-1" style="padding-left:16px">
+                    <MudIcon Icon="@Icons.Material.Outlined.SubdirectoryArrowRight" Size="Size.Small" Color="Color.Secondary" />
+                    <span>@context.BlNumber</span>
+                    @if (IsOrphan(context))
+                    {
+                        <MudTooltip Text="Its master B/L is not on this voyage.">
+                            <MudIcon Icon="@Icons.Material.Outlined.WarningAmber" Size="Size.Small" Color="Color.Warning" />
+                        </MudTooltip>
+                    }
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Primary">@context.BlNumber</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Issuance">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="ma-0"
+                     Color="@(IsHouse(context) ? Color.Warning : Color.Info)">
+                @BlDisplay.Issuance(context.IssuanceType)
             </MudChip>
         </MudTd>
-        <MudTd>@context.ShipperCompany?.Name</MudTd>
-        <MudTd>@context.PortOfLoading?.Name</MudTd>
-        <MudTd>@context.PortOfDischarge?.Name</MudTd>
-        <MudTd>@context.CargoDescription</MudTd>
-        <MudTd>@context.FreightTerms</MudTd>
-        <MudTd>@context.IssueDate?.ToString("dd MMM yyyy")</MudTd>
-        <MudTd>
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
-                           Size="Size.Small"
-                           OnClick="@(() => OnViewClicked.InvokeAsync(context))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                           Size="Size.Small"
-                           OnClick="@(() => OnEditClicked.InvokeAsync(context))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                           Color="Color.Error"
-                           Size="Size.Small"
-                           OnClick="@(() => OnDeleteClicked.InvokeAsync(context))" />
+        <MudTd DataLabel="Type">@BlDisplay.Type(context.BlType)</MudTd>
+        <MudTd DataLabel="Shipper">@(context.ShipperCompany?.Name ?? "—")</MudTd>
+        <MudTd DataLabel="Consignee">@BlDisplay.Consignee(context)</MudTd>
+        <MudTd DataLabel="Route">@(context.PortOfLoading?.Name ?? "—") → @(context.PortOfDischarge?.Name ?? "—")</MudTd>
+        <MudTd DataLabel="Gross (MT)" Style="text-align:right">@(context.GrossWeightMT?.ToString("N3") ?? "—")</MudTd>
+        <MudTd DataLabel="Freight">@BlDisplay.Freight(context.FreightTerms)</MudTd>
+        <MudTd DataLabel="Issued">@(context.IssueDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd Style="width:48px">
+            <div @onclick:stopPropagation="true">
+                <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+                         Size="Size.Small"
+                         AnchorOrigin="Origin.BottomRight"
+                         TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Visibility"
+                                 OnClick="@(() => OnViewClicked.InvokeAsync(context))">
+                        View
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
+                                 Disabled="@Locked"
+                                 OnClick="@(() => OnEditClicked.InvokeAsync(context))">
+                        Edit
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Tag"
+                                 Disabled="@Locked"
+                                 OnClick="@(() => OnChangeNumberClicked.InvokeAsync(context))">
+                        Change B/L number
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz"
+                                 Disabled="@(Locked || HasLinkedHouses(context))"
+                                 OnClick="@(() => OnChangeIssuanceClicked.InvokeAsync(context))">
+                        Change issuance type
+                    </MudMenuItem>
+                    @if (IsHouse(context))
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Outlined.Link"
+                                     Disabled="@Locked"
+                                     OnClick="@(() => OnLinkMasterClicked.InvokeAsync(context))">
+                            Link to master B/L
+                        </MudMenuItem>
+                    }
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Delete"
+                                 Disabled="@(Locked || HasLinkedHouses(context))"
+                                 OnClick="@(() => OnDeleteClicked.InvokeAsync(context))">
+                        Delete
+                    </MudMenuItem>
+                </MudMenu>
+            </div>
         </MudTd>
     </RowTemplate>
+
     <NoRecordsContent>
-        <MudText Color="Color.Secondary">No Bills of Lading for this voyage.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="py-4">
+            No bills of lading on this voyage.
+        </MudText>
     </NoRecordsContent>
 </MudTable>
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<BillOfLadingResponse> BillsOfLading { get; set; } = [];
-    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public bool IsReadOnly { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+
     [Parameter] public EventCallback<BillOfLadingResponse> OnViewClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnChangeNumberClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnChangeIssuanceClicked { get; set; }
+    [Parameter] public EventCallback<BillOfLadingResponse> OnLinkMasterClicked { get; set; }
+
+    private const string ThStyle =
+        "font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary);";
+
+    private List<BillOfLadingResponse> _rows = [];
+    private HashSet<int> _masterIds = [];
+    private Dictionary<int, int> _houseCounts = [];
+
+    private bool Locked => IsReadOnly || IsBusy;
+
+    protected override void OnParametersSet()
+    {
+        var masters = BillsOfLading
+            .Where(b => b.IssuanceType == BlIssuanceType.Master)
+            .OrderBy(b => b.BlNumber)
+            .ToList();
+
+        var houses = BillsOfLading
+            .Where(b => b.IssuanceType == BlIssuanceType.House)
+            .ToList();
+
+        _masterIds = masters.Select(m => m.Id).ToHashSet();
+
+        _houseCounts = houses
+            .Where(h => h.MasterBlId.HasValue)
+            .GroupBy(h => h.MasterBlId!.Value)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Each master followed by its houses; houses whose master is not on this voyage go last.
+        _rows = new List<BillOfLadingResponse>(BillsOfLading.Count);
+        foreach (var master in masters)
+        {
+            _rows.Add(master);
+            _rows.AddRange(houses.Where(h => h.MasterBlId == master.Id).OrderBy(h => h.BlNumber));
+        }
+        _rows.AddRange(houses.Where(IsOrphan).OrderBy(h => h.BlNumber));
+    }
+
+    private static bool IsHouse(BillOfLadingResponse bl) => bl.IssuanceType == BlIssuanceType.House;
+
+    private bool IsOrphan(BillOfLadingResponse bl)
+        => IsHouse(bl) && (bl.MasterBlId is null || !_masterIds.Contains(bl.MasterBlId.Value));
+
+    private bool HasLinkedHouses(BillOfLadingResponse bl)
+        => !IsHouse(bl) && _houseCounts.ContainsKey(bl.Id);
+
+    private Task RowClicked(TableRowClickEventArgs<BillOfLadingResponse> args)
+        => args.Item is null ? Task.CompletedTask : OnViewClicked.InvokeAsync(args.Item);
 }

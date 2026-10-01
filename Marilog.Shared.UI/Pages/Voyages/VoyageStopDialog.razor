@@ -1,0 +1,193 @@
+
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using global::Marilog.Contracts.DTOs.Responses
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@(IsEdit ? Icons.Material.Outlined.EditLocationAlt : Icons.Material.Outlined.AddLocationAlt)"
+                     Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">@(IsEdit ? $"Edit stop {Stop!.StopOrder}" : "Add port stop")</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+
+            @if (IsEdit)
+            {
+                <MudItem xs="12" sm="8">
+                    <MudTextField T="string" Value="@Stop!.PortName" Label="Port"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Value="@Stop!.StopOrder.ToString()" Label="Stop #"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        The port and stop number cannot be changed. To change the port, remove this stop and add a new one.
+                    </MudText>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="8">
+                    <MudSelect T="int"
+                               @bind-Value="_portId"
+                               Label="Port"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+                        @foreach (var p in Ports)
+                        {
+                            <MudSelectItem T="int" Value="p.Id">@p.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int"
+                                     @bind-Value="_stopOrder"
+                                     Label="Stop #"
+                                     Min="1"
+                                     Error="OrderTaken"
+                                     ErrorText="This stop number is already used."
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="6">
+                <DateTimeField @bind-Value="_arrival" Label="Arrival" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <DateTimeField @bind-Value="_departure"
+                               Label="Departure"
+                               Error="DepartureBeforeArrival"
+                               ErrorText="Departure cannot be before arrival." />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_purpose"
+                              Label="Purpose of call"
+                              MaxLength="200"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    @foreach (var suggestion in PurposeSuggestions)
+                    {
+                        var value = suggestion;
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Variant="Variant.Outlined"
+                                 Color="@(_purpose == value ? Color.Primary : Color.Default)"
+                                 OnClick="@(() => _purpose = value)">
+                            @value
+                        </MudChip>
+                    }
+                </div>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes"
+                              Label="Notes"
+                              Lines="2"
+                              MaxLength="500"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public VoyageStopResponse? Stop { get; set; }
+    [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+    [Parameter] public IReadOnlyCollection<int> TakenOrders { get; set; } = [];
+    [Parameter] public int NextStopOrder { get; set; } = 1;
+
+    /// <summary>Host performs the add; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<AddVoyageStopRequest, Task<bool>>? OnAdd { get; set; }
+
+    /// <summary>Host performs the update; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<UpdateVoyageStopRequest, Task<bool>>? OnUpdate { get; set; }
+
+    private static readonly string[] PurposeSuggestions =
+        ["Loading", "Discharging", "Bunkering", "Crew change", "Provisions", "Repairs", "Anchorage", "Transit"];
+
+    private int _portId;
+    private int _stopOrder;
+    private DateTime? _arrival;
+    private DateTime? _departure;
+    private string? _purpose;
+    private string? _notes;
+    private bool _saving;
+
+    private bool IsEdit => Stop is not null;
+
+    private bool OrderTaken => !IsEdit && TakenOrders.Contains(_stopOrder);
+
+    private bool DepartureBeforeArrival =>
+        _arrival.HasValue && _departure.HasValue && _departure < _arrival;
+
+    private bool IsValid =>
+        !DepartureBeforeArrival &&
+        (IsEdit || (_portId > 0 && _stopOrder > 0 && !OrderTaken));
+
+    protected override void OnInitialized()
+    {
+        if (Stop is null)
+        {
+            _stopOrder = NextStopOrder;
+            return;
+        }
+
+        _arrival = Stop.ArrivalDate;
+        _departure = Stop.DepartureDate;
+        _purpose = Stop.PurposeOfCall;
+        _notes = Stop.Notes;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (!IsValid || _saving) return;
+
+        _saving = true;
+        var task = IsEdit
+            ? OnUpdate?.Invoke(new UpdateVoyageStopRequest(
+                ArrivalDate: _arrival,
+                DepartureDate: _departure,
+                PurposeOfCall: NullIfEmpty(_purpose),
+                Notes: NullIfEmpty(_notes)))
+            : OnAdd?.Invoke(new AddVoyageStopRequest(
+                PortId: _portId,
+                StopOrder: _stopOrder,
+                ArrivalDate: _arrival,
+                DepartureDate: _departure,
+                PurposeOfCall: NullIfEmpty(_purpose),
+                Notes: NullIfEmpty(_notes)));
+        var ok = task is not null && await task;
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}

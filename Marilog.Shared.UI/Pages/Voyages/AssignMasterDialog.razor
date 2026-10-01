@@ -1,0 +1,96 @@
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using global::Marilog.Shared.UI.Pages.Voyages.Marilog.Shared.UI.Pages.Voyages
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.PersonPin" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">@(CurrentContractId is null ? "Assign master" : "Change master")</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        @if (!string.IsNullOrWhiteSpace(CurrentMasterName))
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Currently assigned: <strong>@CurrentMasterName</strong>
+            </MudText>
+        }
+
+        @if (Options.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                There are no active crew contracts on @VesselName. Sign on a master to this vessel first.
+            </MudAlert>
+        }
+        else
+        {
+            <MudSelect T="int?"
+                       @bind-Value="_contractId"
+                       Label="Master"
+                       HelperText="@($"Active crew contracts on {VesselName}")"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense">
+                @foreach (var option in Options)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)option.ContractId)">@OptionText(option)</MudSelectItem>
+                }
+            </MudSelect>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : "Assign")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public IReadOnlyList<MasterOption> Options { get; set; } = [];
+    [Parameter] public string VesselName { get; set; } = string.Empty;
+    [Parameter] public int? CurrentContractId { get; set; }
+    [Parameter] public string? CurrentMasterName { get; set; }
+
+    /// <summary>Host performs the assignment; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<AssignVoyageMasterRequest, Task<bool>>? OnAssign { get; set; }
+
+    private int? _contractId;
+    private bool _saving;
+
+    private bool IsValid => _contractId is int id && id != CurrentContractId;
+
+    protected override void OnInitialized()
+    {
+        _contractId = Options.Any(o => o.ContractId == CurrentContractId)
+            ? CurrentContractId
+            : Options.FirstOrDefault(o => o.IsCurrentVesselMaster)?.ContractId;
+    }
+
+    private static string OptionText(MasterOption option)
+    {
+        var text = string.IsNullOrWhiteSpace(option.Rank) ? option.Name : $"{option.Name} — {option.Rank}";
+        return option.IsCurrentVesselMaster ? $"{text} · current vessel master" : text;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (!IsValid || _saving || OnAssign is null) return;
+
+        _saving = true;
+        var ok = await OnAssign(new AssignVoyageMasterRequest(_contractId!.Value));
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
+    }
+}
