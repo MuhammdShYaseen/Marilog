@@ -1,4 +1,6 @@
 @page "/swift-transfers"
+@using Marilog.Client.Interfaces
+@using Marilog.Contracts.DTOs.Reports.SwiftTransferReports
 @using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
@@ -6,6 +8,7 @@
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 @inject ISwiftTransferService SwiftTransferService
+@inject IReportsService ReportsService
 @inject ICompanyService CompanyService
 @inject IBankService BankService
 @inject ICurrencyService CurrencyService
@@ -34,6 +37,10 @@
                          OnMarkReceivedClicked="@HandleMarkReceivedClickedAsync"
                          OnCancelClicked="@HandleCancelClickedAsync"
                          OnDeleteClicked="@HandleDeleteClickedAsync"
+                         OnRefreshClicked="@LoadTransfersAsync"
+                         FilterOptions="@_filter"
+                         Companies="@_companies"
+                         OnFilterChanged="@HandleFilterChangedAsync"
                          OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
 
 @code {
@@ -43,6 +50,9 @@
     List<CompanyResponse> _companies = new();
     List<BankResponse> _banks = new();
     List<CurrencyResponse> _currencies = new();
+
+    SwiftTransferFilterOptions _filter = new();
+    CancellationTokenSource? _loadCts;
     bool _isLoading;
 
     static readonly DialogOptions StatusDialogOptions = new()
@@ -52,6 +62,13 @@
         CloseButton = true,
         Position = DialogPosition.Center
     };
+
+
+    async Task HandleFilterChangedAsync(SwiftTransferFilterOptions filter)
+    {
+        _filter = filter;
+        await LoadTransfersAsync();
+    }
 
     async Task HandleMarkReceivedClickedAsync(SwiftTransferResponse transfer)
     {
@@ -129,14 +146,20 @@
 
     async Task LoadTransfersAsync()
     {
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var ct = _loadCts.Token;
+
         _isLoading = true;
         StateHasChanged();
         try
         {
-            var from = DateOnly.FromDateTime(DateTime.Today.AddYears(-5));
-            var to = DateOnly.FromDateTime(DateTime.Today);
-            var result = await SwiftTransferService.GetByDateRangeAsync(from, to);
-            _transfers = result.ToList();
+            var report = await ReportsService.GetSwiftTransfersReportAsync(_filter, ct);
+            _transfers = report.Transfers.ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            // superseded by a newer filter change
         }
         catch (Exception ex)
         {
@@ -144,7 +167,8 @@
         }
         finally
         {
-            _isLoading = false;
+            if (!ct.IsCancellationRequested)
+                _isLoading = false;
         }
     }
 

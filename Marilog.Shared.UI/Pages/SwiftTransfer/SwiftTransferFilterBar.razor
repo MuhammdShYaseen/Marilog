@@ -1,0 +1,150 @@
+@using Marilog.Contracts.DTOs.Reports.SwiftTransferReports
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+@* ────────────────────────────────────────────────────────────────────────────
+   SwiftTransferFilterBar
+   Logic-free filter row. Holds only the editing state of the controls and
+   emits a fresh SwiftTransferFilterOptions on every change. The host decides
+   what to do with it (reload via the report endpoint).
+   ──────────────────────────────────────────────────────────────────────── *@
+<div class="d-flex flex-wrap align-center gap-2 mb-3">
+    <MudTextField T="string" Value="@_reference" ValueChanged="@OnReferenceChanged"
+                  DebounceInterval="400" Clearable="true"
+                  Placeholder="Search SWIFT or payment reference"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Style="min-width:280px; max-width:320px;" />
+
+    <MudSelect T="StatusFilter" Value="@_status" ValueChanged="@OnStatusChanged"
+               Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+               Style="width:200px;">
+        <MudSelectItem T="StatusFilter" Value="StatusFilter.AllExceptCancelled">All except cancelled</MudSelectItem>
+        <MudSelectItem T="StatusFilter" Value="StatusFilter.Pending">Pending confirmation</MudSelectItem>
+        <MudSelectItem T="StatusFilter" Value="StatusFilter.Received">Received</MudSelectItem>
+        <MudSelectItem T="StatusFilter" Value="StatusFilter.Cancelled">Cancelled</MudSelectItem>
+    </MudSelect>
+
+    <MudSelect T="int?" Value="@_senderCompanyId" ValueChanged="@OnSenderChanged"
+               Label="Sender" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+               Style="width:220px;">
+        @foreach (var company in Companies)
+        {
+            <MudSelectItem T="int?" Value="@((int?)company.Id)">@company.Name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudSelect T="int?" Value="@_receiverCompanyId" ValueChanged="@OnReceiverChanged"
+               Label="Receiver" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+               Style="width:220px;">
+        @foreach (var company in Companies)
+        {
+            <MudSelectItem T="int?" Value="@((int?)company.Id)">@company.Name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudDateRangePicker DateRange="@_dateRange" DateRangeChanged="@OnDateRangeChanged"
+                        Label="Transaction date" Clearable="true"
+                        Variant="Variant.Outlined" Margin="Margin.Dense"
+                        Style="width:240px;" />
+
+    <MudSwitch T="bool" Value="@_onlyUnallocated" ValueChanged="@OnOnlyUnallocatedChanged"
+               Disabled="@(_status == StatusFilter.Cancelled)"
+               Color="Color.Primary" Label="Unallocated only" />
+
+    @if (HasActiveFilters)
+    {
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.FilterAltOff"
+                   OnClick="@ResetAsync">
+            Reset filters
+        </MudButton>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SwiftTransferFilterOptions Options { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<CompanyResponse> Companies { get; set; } = null!;
+    [Parameter, EditorRequired] public EventCallback<SwiftTransferFilterOptions> OnFilterChanged { get; set; }
+
+    enum StatusFilter { AllExceptCancelled, Pending, Received, Cancelled }
+
+    string? _reference;
+    StatusFilter _status;
+    int? _senderCompanyId;
+    int? _receiverCompanyId;
+    DateRange? _dateRange;
+    bool _onlyUnallocated;
+
+    bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(_reference) ||
+        _status != StatusFilter.AllExceptCancelled ||
+        _senderCompanyId is not null ||
+        _receiverCompanyId is not null ||
+        _dateRange?.Start is not null || _dateRange?.End is not null ||
+        _onlyUnallocated;
+
+    // OnInitialized (not OnParametersSet) so a host re-render never
+    // overwrites what the user is typing.
+    protected override void OnInitialized()
+    {
+        _reference = Options.Reference;
+        _status = Options.Status switch
+        {
+            SwiftTransferStatus.Pending => StatusFilter.Pending,
+            SwiftTransferStatus.Received => StatusFilter.Received,
+            SwiftTransferStatus.Cancelled => StatusFilter.Cancelled,
+            _ => StatusFilter.AllExceptCancelled
+        };
+        _senderCompanyId = Options.SenderCompanyId;
+        _receiverCompanyId = Options.ReceiverCompanyId;
+        _onlyUnallocated = Options.OnlyUnallocated;
+
+        if (Options.FromDate is not null || Options.ToDate is not null)
+            _dateRange = new DateRange(
+                Options.FromDate?.ToDateTime(TimeOnly.MinValue),
+                Options.ToDate?.ToDateTime(TimeOnly.MinValue));
+    }
+
+    Task OnReferenceChanged(string? value) { _reference = value; return EmitAsync(); }
+    Task OnStatusChanged(StatusFilter value)
+    {
+        _status = value;
+        if (value == StatusFilter.Cancelled) _onlyUnallocated = false;
+        return EmitAsync();
+    }
+    Task OnSenderChanged(int? value) { _senderCompanyId = value; return EmitAsync(); }
+    Task OnReceiverChanged(int? value) { _receiverCompanyId = value; return EmitAsync(); }
+    Task OnDateRangeChanged(DateRange? value) { _dateRange = value; return EmitAsync(); }
+    Task OnOnlyUnallocatedChanged(bool value) { _onlyUnallocated = value; return EmitAsync(); }
+
+    Task ResetAsync()
+    {
+        _reference = null;
+        _status = StatusFilter.AllExceptCancelled;
+        _senderCompanyId = null;
+        _receiverCompanyId = null;
+        _dateRange = null;
+        _onlyUnallocated = false;
+        return EmitAsync();
+    }
+
+    Task EmitAsync() => OnFilterChanged.InvokeAsync(new SwiftTransferFilterOptions
+    {
+        Reference = string.IsNullOrWhiteSpace(_reference) ? null : _reference.Trim(),
+        Status = _status switch
+        {
+            StatusFilter.Pending => SwiftTransferStatus.Pending,
+            StatusFilter.Received => SwiftTransferStatus.Received,
+            StatusFilter.Cancelled => SwiftTransferStatus.Cancelled,
+            _ => null
+        },
+        SenderCompanyId = _senderCompanyId,
+        ReceiverCompanyId = _receiverCompanyId,
+        FromDate = _dateRange?.Start is DateTime from ? DateOnly.FromDateTime(from) : null,
+        ToDate = _dateRange?.End is DateTime to ? DateOnly.FromDateTime(to) : null,
+        OnlyUnallocated = _onlyUnallocated,
+        IncludePayments = false
+    });
+}

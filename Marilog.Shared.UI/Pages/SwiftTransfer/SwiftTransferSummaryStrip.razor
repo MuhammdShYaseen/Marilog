@@ -1,0 +1,66 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+@* ────────────────────────────────────────────────────────────────────────────
+   SwiftTransferSummaryStrip
+   Per-currency totals of the currently listed transfers. Cancelled transfers
+   are excluded. "Unallocated" counts only bank-confirmed (Received) transfers,
+   since Pending ones cannot be allocated yet; those show as
+   "Awaiting confirmation" instead.
+   ──────────────────────────────────────────────────────────────────────── *@
+@if (_rows.Count > 0)
+{
+    <div class="mb-3" style="border:1px solid var(--mud-palette-lines-default);">
+        @for (var i = 0; i < _rows.Count; i++)
+        {
+            var row = _rows[i];
+            var isLast = i == _rows.Count - 1;
+
+            <div class="d-flex flex-wrap align-center gap-8 px-3 py-2"
+                 style="@(isLast ? null : "border-bottom:1px solid var(--mud-palette-lines-default);")">
+                <MudText Typo="Typo.subtitle2" Style="min-width:48px;">@row.Currency</MudText>
+                @Metric("Transfers", row.Count.ToString(), Color.Default)
+                @Metric("Total", row.Total.ToString("N2"), Color.Default)
+                @Metric("Allocated", row.Allocated.ToString("N2"), Color.Success)
+                @Metric("Unallocated", row.Unallocated.ToString("N2"),
+                        row.Unallocated > 0 ? Color.Warning : Color.Default)
+                @if (row.PendingCount > 0)
+                {
+                    @Metric($"Awaiting confirmation ({row.PendingCount})", row.Pending.ToString("N2"), Color.Info)
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<SwiftTransferResponse> Items { get; set; } = null!;
+
+    sealed record CurrencyTotals(string Currency, int Count, decimal Total, decimal Allocated,
+                                 decimal Unallocated, decimal Pending, int PendingCount);
+
+    List<CurrencyTotals> _rows = new();
+
+    protected override void OnParametersSet()
+    {
+        _rows = Items
+            .Where(t => t.Status != SwiftTransferStatus.Cancelled)
+            .GroupBy(t => t.CurrencyCode)
+            .Select(g => new CurrencyTotals(
+                g.Key,
+                g.Count(),
+                g.Sum(t => t.Amount),
+                g.Sum(t => t.AllocatedAmount),
+                g.Where(t => t.Status == SwiftTransferStatus.Received).Sum(t => t.UnallocatedAmount),
+                g.Where(t => t.Status == SwiftTransferStatus.Pending).Sum(t => t.Amount),
+                g.Count(t => t.Status == SwiftTransferStatus.Pending)))
+            .OrderBy(r => r.Currency)
+            .ToList();
+    }
+
+    static RenderFragment Metric(string label, string value, Color color) => @<div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
+        <MudText Typo="Typo.body2" Color="@color" Style="font-weight:600;">@value</MudText>
+    </div>;
+}

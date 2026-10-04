@@ -1,3 +1,4 @@
+@using Marilog.Contracts.DTOs.Reports.SwiftTransferReports
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using MudBlazor
@@ -11,15 +12,27 @@
    owns a service ref.
    ──────────────────────────────────────────────────────────────────────── *@
 <MudPaper Class="pa-4" Elevation="0">
-    <div class="d-flex justify-space-between align-center mb-4">
-        <MudText Typo="Typo.h5">SWIFT Transfers</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+    <MudText Typo="Typo.h5" Class="mb-2">SWIFT Transfers</MudText>
+
+    <div class="d-flex align-center gap-1 mb-3 pb-1"
+         style="border-bottom:1px solid var(--mud-palette-lines-default);">
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                    StartIcon="@Icons.Material.Filled.Add"
                    OnClick="@(() => OnAddClicked.InvokeAsync())">
-            New Transfer
+            New transfer
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsLoading"
+                   OnClick="@(() => OnRefreshClicked.InvokeAsync())">
+            Refresh
         </MudButton>
     </div>
+    <SwiftTransferFilterBar Options="@FilterOptions"
+                            Companies="@Companies"
+                            OnFilterChanged="@OnFilterChanged" />
 
+    <SwiftTransferSummaryStrip Items="@Items" />
     <SharedSwiftTransferTable Items="@Items"
                               IsLoading="@IsLoading"
                               SelectedItem="@_selectedSummary"
@@ -30,16 +43,22 @@
                               OnCancelClicked="@OnCancelClicked"
                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
 
-    <MudDrawer @bind-Open="_isDetailDrawerOpen"
+    <MudDrawer Open="@_isDetailDrawerOpen" OpenChanged="@OnDrawerOpenChanged"
                Anchor="Anchor.Right"
                Variant="DrawerVariant.Temporary"
-               Elevation="8"
-               Width="560px">
+               Elevation="0"
+               Width="560px"
+               Style="border-left:1px solid var(--mud-palette-lines-default);">
 
         @if (_selectedDetail is not null)
         {
             <SharedSwiftTransferDetailPanel Transfer="@_selectedDetail"
-                                            IsLoadingPayments="@_isLoadingDetail" />
+                                            IsLoadingPayments="@_isLoadingDetail"
+                                            OnMarkReceivedClicked="@OnMarkReceivedClicked"
+                                            OnEditClicked="@OnEditClicked"
+                                            OnCancelClicked="@OnCancelClicked"
+                                            OnManageAttachedFilesClicked="@OnManageAttachedFilesClicked"
+                                            OnClose="@CloseDetail" />
         }
 
     </MudDrawer>
@@ -63,6 +82,12 @@
     [Parameter] public EventCallback<SwiftTransferResponse> OnCancelClicked { get; set; }
 
 
+    [Parameter, EditorRequired] public SwiftTransferFilterOptions FilterOptions { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<CompanyResponse> Companies { get; set; } = null!;
+    [Parameter, EditorRequired] public EventCallback<SwiftTransferFilterOptions> OnFilterChanged { get; set; }
+
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+
     SwiftTransferResponse? _selectedSummary;
     SwiftTransferResponse? _selectedDetail;
     bool _isLoadingDetail;
@@ -76,13 +101,12 @@
         // Toggle off if clicking the already-selected row.
         if (_selectedSummary?.Id == item.Id)
         {
-            _selectedSummary = null;
-            _selectedDetail = null;
-            _isDetailDrawerOpen = false;
+            CloseDetail();
             return;
         }
 
         _selectedSummary = item;
+        _selectedDetail = item;          // show list data immediately while full detail loads
         _isLoadingDetail = true;
         _isDetailDrawerOpen = true;
         StateHasChanged();
@@ -101,5 +125,18 @@
             _selectedDetail = await LoadDetailFunc(id, CancellationToken.None);
             _isLoadingDetail = false;
         }
+    }
+
+    void OnDrawerOpenChanged(bool open)
+    {
+        if (!open)
+            CloseDetail();
+    }
+
+    void CloseDetail()
+    {
+        _selectedSummary = null;
+        _isDetailDrawerOpen = false;
+        // _selectedDetail is kept so the content doesn't vanish mid-animation.
     }
 }

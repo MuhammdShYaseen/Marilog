@@ -4,97 +4,109 @@
 @namespace Marilog.Shared.UI.Pages.SwiftTransfer
 @* ────────────────────────────────────────────────────────────────────────────
    SharedSwiftTransferTable
-   Stateless list rendering (List view only — no Grid toggle for this entity).
-   Data in via Items, every row action out via EventCallback. No service refs.
+   Stateless list rendering. Data in via Items, every row action out via
+   EventCallback. No service refs. Actions that the backend would reject are
+   disabled up front with the reason shown.
    ──────────────────────────────────────────────────────────────────────── *@
-<MudTable Items="@Items" Hover="true" Dense="true" Loading="@IsLoading" RowStyleFunc="@RowStyleFunc"
-          RowClassFunc="@RowClassFunc" OnRowClick="@(e => OnRowSelected.InvokeAsync(e.Item))"
-          T="SwiftTransferResponse">
+<MudTable Items="@Items" T="SwiftTransferResponse"
+          Hover="true" Dense="true" Elevation="0" Outlined="true"
+          Loading="@IsLoading" RowsPerPage="50"
+          RowStyleFunc="@RowStyleFunc" RowClassFunc="@RowClassFunc"
+          OnRowClick="@(e => OnRowSelected.InvokeAsync(e.Item))">
     <HeaderContent>
         <MudTh>Reference</MudTh>
-        <MudTh>Date</MudTh>
+        <MudTh>
+            <MudTableSortLabel T="SwiftTransferResponse" SortBy="@(x => x.TransactionDate)"
+                               InitialDirection="SortDirection.Descending">Date</MudTableSortLabel>
+        </MudTh>
         <MudTh>Currency</MudTh>
-        <MudTh Style="text-align:right">Amount</MudTh>
-        <MudTh Style="text-align:right">Unallocated</MudTh>
+        <MudTh Style="text-align:right">
+            <MudTableSortLabel T="SwiftTransferResponse" SortBy="@(x => x.Amount)">Amount</MudTableSortLabel>
+        </MudTh>
+        <MudTh Style="text-align:right">
+            <MudTableSortLabel T="SwiftTransferResponse" SortBy="@(x => x.UnallocatedAmount)">Unallocated</MudTableSortLabel>
+        </MudTh>
         <MudTh>Sender</MudTh>
         <MudTh>Receiver</MudTh>
         <MudTh>Status</MudTh>
-        <MudTh Style="text-align:right">Actions</MudTh>
+        <MudTh></MudTh>
     </HeaderContent>
+
     <RowTemplate>
+        @{
+            var status = SwiftTransferStatusDisplay.For(context);
+            var isCancelled = context.Status == SwiftTransferStatus.Cancelled;
+            var hasPayments = context.AllocatedAmount > 0;
+            var showUnallocated = context.Status == SwiftTransferStatus.Received;
+        }
         <MudTd DataLabel="Reference">@context.SwiftReference</MudTd>
         <MudTd DataLabel="Date">@context.TransactionDate.ToString("yyyy-MM-dd")</MudTd>
         <MudTd DataLabel="Currency">@context.CurrencyCode</MudTd>
         <MudTd DataLabel="Amount" Style="text-align:right">@context.Amount.ToString("N2")</MudTd>
         <MudTd DataLabel="Unallocated" Style="text-align:right">
-            @(context.Status == SwiftTransferStatus.Cancelled ? "—" : context.UnallocatedAmount.ToString("N2"))
+            @(showUnallocated ? context.UnallocatedAmount.ToString("N2") : "—")
         </MudTd>
         <MudTd DataLabel="Sender">@(context.SenderCompanyName ?? "—")</MudTd>
         <MudTd DataLabel="Receiver">@(context.ReceiverCompanyName ?? "—")</MudTd>
         <MudTd DataLabel="Status">
-            @if (context.Status == SwiftTransferStatus.Cancelled)
-            {
-                <MudTooltip Text="@context.CancellationReason">
-                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Cancelled</MudChip>
-                </MudTooltip>
-            }
-            else
-            {
-                if (context.Status == SwiftTransferStatus.Pending)
+            <MudTooltip Text="@status.Tooltip">
+                <div class="d-flex align-center gap-1">
+                    <MudIcon Icon="@status.Icon" Color="@status.Color" Size="Size.Small" />
+                    <MudText Typo="Typo.body2">@status.Text</MudText>
+                </div>
+            </MudTooltip>
+        </MudTd>
+        <MudTd Style="text-align:right; white-space:nowrap;">
+            @* stopPropagation: row actions must not also open the detail drawer *@
+            <div class="d-inline-flex align-center" @onclick:stopPropagation="true">
+                @if (context.Status == SwiftTransferStatus.Pending)
                 {
-                    <MudTooltip Text="Awaiting bank confirmation">
-                        <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
-                            Pending · @DaysPending(context)d
-                        </MudChip>
+                    <MudTooltip Text="Confirm bank receipt">
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
+                                       OnClick="@(() => OnMarkReceivedClicked.InvokeAsync(context))" />
                     </MudTooltip>
                 }
 
-                if (context.IsFullyAllocated)
-                {
-                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Allocated</MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Partial</MudChip>
-                }
-            }
-            @if (!context.IsActive)
-            {
-                <MudChip T="string" Color="Color.Default" Size="Size.Small">Inactive</MudChip>
-            }
-        </MudTd>
-        <MudTd Style="text-align:right">
-            @if (context.Status == SwiftTransferStatus.Pending)
-            {
-                <MudTooltip Text="Confirm bank receipt">
-                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
-                                   onclick="@(EventCallback.Factory.Create(this, () => OnMarkReceivedClicked.InvokeAsync(context)))" />
-                </MudTooltip>
-            }
-            @if (context.Status != SwiftTransferStatus.Cancelled)
-            {
-                <MudTooltip Text="@(context.AllocatedAmount > 0 ? "Remove allocated payments first" : "Cancel transfer")">
-                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Warning"
-                                   Disabled="@(context.AllocatedAmount > 0)"
-                                   onclick="@(EventCallback.Factory.Create(this, () => OnCancelClicked.InvokeAsync(context)))" />
-                </MudTooltip>
-            }
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                            onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" Disabled="@isCancelled"
+                                 OnClick="@(() => OnEditClicked.InvokeAsync(context))">
+                        @(isCancelled ? "Edit (cancelled)" : "Edit")
+                    </MudMenuItem>
 
-            <MudIconButton Icon="@Icons.Material.Filled.Receipt" Size="Size.Small"
-                           onclick="@(EventCallback.Factory.Create(this, () => OnManageAttachedFilesClicked.InvokeAsync((context.Id, EntityType.SwiftTransfer))))" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Receipt"
+                                 OnClick="@(() => OnManageAttachedFilesClicked.InvokeAsync((context.Id, EntityType.SwiftTransfer)))">
+                        Attached files
+                    </MudMenuItem>
 
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                            onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context)))" />
+                    <MudDivider />
+
+                    @if (!isCancelled)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Block" Disabled="@hasPayments"
+                                     OnClick="@(() => OnCancelClicked.InvokeAsync(context))">
+                            @(hasPayments ? "Cancel transfer (remove payments first)" : "Cancel transfer")
+                        </MudMenuItem>
+                    }
+
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" Disabled="@hasPayments"
+                                 OnClick="@(() => OnDeleteClicked.InvokeAsync(context))">
+                        @(hasPayments ? "Delete (remove payments first)" : "Delete")
+                    </MudMenuItem>
+                </MudMenu>
+            </div>
         </MudTd>
     </RowTemplate>
+
     <NoRecordsContent>
-        <MudText>No SWIFT transfers found.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">No SWIFT transfers match these filters.</MudText>
     </NoRecordsContent>
     <LoadingContent>
-        <MudText>Loading SWIFT transfers...</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Loading SWIFT transfers...</MudText>
     </LoadingContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="@(new[] { 25, 50, 100 })" />
+    </PagerContent>
 </MudTable>
 
 @code {
@@ -107,13 +119,11 @@
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnMarkReceivedClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnCancelClicked { get; set; }
-
-    private static int DaysPending(SwiftTransferResponse item) =>
-        DateOnly.FromDateTime(DateTime.Today).DayNumber - item.TransactionDate.DayNumber;
-
-    private static string RowStyleFunc(SwiftTransferResponse item, int index) =>
-        item.Status == SwiftTransferStatus.Cancelled ? "opacity: 0.55;" : string.Empty;
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    static string RowStyleFunc(SwiftTransferResponse item, int index) =>
+        item.Status == SwiftTransferStatus.Cancelled ? "opacity: 0.55;" : string.Empty;
+
     string RowClassFunc(SwiftTransferResponse item, int index) =>
         SelectedItem is not null && item.Id == SelectedItem.Id ? "mud-theme-primary-hover selected-row" : string.Empty;
 }

@@ -136,7 +136,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 query = query.Where(x => x.TransactionDate <= options.ToDate.Value);
 
             if (options.OnlyUnallocated)
-                query = query.Where(x => x.IsActive && x.UnallocatedAmount > 0); // ✅ استخدام الحقل المحسوب مباشرة
+                query = query.Where(x => x.IsActive && x.Amount > x.Payments.Sum(p => p.PaidAmount));
 
             query = options.Status.HasValue
                 ? query.Where(x => x.Status == options.Status.Value)
@@ -145,14 +145,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             // ─── ترتيب ───────────────────────────────────────────────────────────
             query = query.OrderByDescending(x => x.TransactionDate);
 
-            // ─── الإحصاءات العامة من DB مباشرة (قبل جلب التفاصيل) ───────────────
-            // ✅ تجنّب تحميل كل البيانات في الذاكرة لمجرد حساب المجاميع
-            var summary = await query.GroupBy(_ => 1).Select(g => new
-            {
-                TotalAmount = g.Sum(x => x.Amount),
-                TotalAllocated = g.Sum(x => x.AllocatedAmount),
-                TotalUnallocated = g.Sum(x => x.UnallocatedAmount),
-            }).FirstOrDefaultAsync(ct);
+            
 
             // ─── جلب قائمة التحويلات ─────────────────────────────────────────────
             var transfers = await query.Select(x => new SwiftTransferResponse
@@ -164,8 +157,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 TransactionDate = x.TransactionDate,
                 Amount = x.Amount,
                 IsActive = x.IsActive,
-                AllocatedAmount = x.AllocatedAmount,
-                UnallocatedAmount = x.UnallocatedAmount,
+                AllocatedAmount = x.Payments.Sum(p => p.PaidAmount),
+                UnallocatedAmount = x.Amount - x.Payments.Sum(p => p.PaidAmount),
                 RawMessage = x.RawMessage,
                 ReceiverBankName = x.ReceiverBank!.Name,
                 SenderBankName = x.SenderBank!.Name,
@@ -186,8 +179,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     CountryName = x.SenderBank.Country.CountryName,
                     City = x.SenderBank.City
                 },
-                IsFullyAllocated = x.IsFullyAllocated,
-                SenderBankId = x.ReceiverBankId,
+                IsFullyAllocated = x.Amount <= x.Payments.Sum(p => p.PaidAmount),
+                SenderBankId = x.SenderBankId,
                 ReceiverBankId = x.ReceiverBankId,
                 PaymentReference = x.PaymentReference,
                 CurrencyCode = x.Currency.CurrencyCode,
@@ -259,9 +252,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return new SwiftTransferReport
             {
                 Transfers = transfers,
-                TotalAmount = summary?.TotalAmount ?? 0m,
-                TotalPaid = summary?.TotalAllocated ?? 0m,
-                TotalUnallocated = summary?.TotalUnallocated ?? 0m,
+                TotalAmount = transfers.Sum(t => t.Amount),
+                TotalPaid = transfers.Sum(t => t.AllocatedAmount),
+                TotalUnallocated = transfers.Sum(t => t.UnallocatedAmount),
                 MonthlySummary = monthlySummary,
                 SenderSummary = senderSummary,
                 ReceiverSummary = receiverSummary,
