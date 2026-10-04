@@ -284,18 +284,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                                 paymentReference, rawMessage);
             await _repo.AddAsync(transfer, ct);
             await _repo.SaveChangesAsync(ct);
-            return new SwiftTransferResponse
-            {
-                SwiftReference = transfer.SwiftReference,
-                SenderBankId = transfer.SenderBankId,
-                TransactionDate = transfer.TransactionDate,
-                SenderCompanyId = transfer.SenderCompanyId,
-                Amount = transfer.Amount,
-                ReceiverCompanyId = transfer.ReceiverCompanyId,
-                ReceiverBankId = transfer.ReceiverBankId,
-                PaymentReference = transfer.PaymentReference,
-                RawMessage = transfer.RawMessage,
-            };
+            return (await GetByIdAsync(transfer.Id, ct))!;
         }
 
         public async Task<IReadOnlyList<SwiftTransferResponse>> CreateRangeAsync(
