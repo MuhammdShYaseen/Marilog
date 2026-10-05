@@ -195,6 +195,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         PaidAmount = p.PaidAmount,
                         SwiftTransferId = p.SwiftTransferId,
                         DocumentId = p.DocumentId,
+                        DocNumber = p.Document.DocNumber,
+                        DocReference = p.Document.Reference,
+                        DocSupplierName = p.Document.Supplier != null ? p.Document.Supplier.CompanyName : null,
                         PaymentDate = p.PaymentDate,
                     }).ToList()
                     : null   // ✅ null أوضح من قائمة فارغة لتمييز "لم يُطلب" عن "لا يوجد"
@@ -511,6 +514,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 PaidAmount = p.PaidAmount,
                 DocumentId = p.DocumentId,
+                DocNumber = p.Document.DocNumber,
+                DocReference = p.Document.Reference,
+                DocSupplierName = p.Document.Supplier != null ? p.Document.Supplier.CompanyName : null,
                 IsActive = p.IsActive,
                 PaymentDate = p.PaymentDate,
                 PaymentMethod = p.PaymentMethod,

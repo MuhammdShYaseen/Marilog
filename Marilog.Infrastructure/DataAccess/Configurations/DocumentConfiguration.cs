@@ -74,7 +74,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(x => x.Payments)
-                   .WithOne()
+                   .WithOne(p => p.Document)
                    .HasForeignKey(x => x.DocumentId)
                    .OnDelete(DeleteBehavior.Cascade);
 

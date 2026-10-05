@@ -7,6 +7,7 @@ namespace Marilog.Domain.Entities.SystemEntities
     {
         //public int Id { get; private set; }
         public int DocumentId { get; private set; }
+        public Document Document { get; private set; } = null!;
         public int? SwiftTransferId { get; private set; }
         public SwiftTransfer SwiftTransfer { get; private set; } = null!;
 

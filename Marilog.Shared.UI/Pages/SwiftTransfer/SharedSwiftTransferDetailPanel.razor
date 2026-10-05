@@ -160,7 +160,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Document</th>
-                        <th>Method</th>
+                        <th>Supplier</th>
                         <th style="text-align:right">Amount</th>
                     </tr>
                 </thead>
@@ -168,16 +168,25 @@
                     @foreach (var payment in _orderedPayments)
                     {
                         <tr style="@(payment.IsActive ? null : "opacity:0.55;")">
-                            <td>@payment.PaymentDate.ToString("dd MMM yyyy")</td>
+                            <td style="white-space:nowrap;">
+                                <MudText Typo="Typo.body2">@payment.PaymentDate.ToString("dd MMM yyyy")</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@payment.PaymentMethod</MudText>
+                            </td>
                             <td>
-                                Doc #@payment.DocumentId
-                                @if (!payment.IsActive)
+                                <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                    @(payment.DocNumber ?? $"Doc #{payment.DocumentId}")
+                                    @if (!payment.IsActive)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Error" Inline="true"> (inactive)</MudText>
+                                    }
+                                </MudText>
+                                @if (!string.IsNullOrWhiteSpace(payment.DocReference))
                                 {
-                                    <MudText Typo="Typo.caption" Color="Color.Error" Inline="true"> (inactive)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Ref: @payment.DocReference</MudText>
                                 }
                             </td>
-                            <td>@payment.PaymentMethod</td>
-                            <td style="text-align:right">@payment.PaidAmount.ToString("N2")</td>
+                            <td>@(payment.DocSupplierName ?? "—")</td>
+                            <td style="text-align:right; white-space:nowrap;">@payment.PaidAmount.ToString("N2")</td>
                         </tr>
                     }
                     <tr>

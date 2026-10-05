@@ -6,6 +6,9 @@ namespace Marilog.Contracts.DTOs.Responses
     {
         public int Id { get;  set; }
         public int DocumentId { get;  set; }
+        public string? DocNumber { get; set; }
+        public string? DocReference { get; set; }
+        public string? DocSupplierName { get; set; }
         public int? SwiftTransferId { get;  set; }
         public SwiftTransferResponse? SwiftTransfer { get;  set; } = new();
         public decimal PaidAmount { get;  set; }
