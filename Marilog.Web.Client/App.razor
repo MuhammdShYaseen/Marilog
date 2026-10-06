@@ -1,8 +1,9 @@
-﻿
+﻿@inject NavigationManager Nav
 
 <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
 
     <Found Context="routeData">
+        <PageTitle>@BuildTitle()</PageTitle>
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
@@ -15,3 +16,19 @@
         </MainLayout>
     </Navigating>*@
 </Router>
+@code{
+    private string BuildTitle()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var segment = path.Split('/', '?', '#')[0];
+
+        if (string.IsNullOrWhiteSpace(segment))
+            return "Marilog";
+
+        var words = segment
+            .Split('-', StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => char.ToUpperInvariant(w[0]) + w[1..]);
+
+        return string.Join(' ', words);
+    }
+}
