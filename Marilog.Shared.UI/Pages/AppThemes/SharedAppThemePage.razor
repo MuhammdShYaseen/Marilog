@@ -1,0 +1,48 @@
+@using Marilog.Contracts.DTOs.Frontend.AppTheme
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.AppThemes
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedAppThemePage
+   Page shell: header + command bar + table. Logic-free: every action
+   bubbles up unchanged to the Platform host, which is the only place that
+   owns a service ref.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudPaper Class="pa-4" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-2">App Themes</MudText>
+
+    <div class="d-flex align-center gap-1 mb-3 pb-1"
+         style="border-bottom:1px solid var(--mud-palette-lines-default);">
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => OnAddClicked.InvokeAsync())">
+            New theme
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@IsLoading"
+                   OnClick="@(() => OnRefreshClicked.InvokeAsync())">
+            Refresh
+        </MudButton>
+    </div>
+
+    <SharedAppThemeTable Items="@Items"
+                         IsLoading="@IsLoading"
+                         OnEditClicked="@OnEditClicked"
+                         OnSetDefaultClicked="@OnSetDefaultClicked"
+                         OnActivateClicked="@OnActivateClicked"
+                         OnDeactivateClicked="@OnDeactivateClicked"
+                         OnDeleteClicked="@OnDeleteClicked" />
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AppThemeResponse> Items { get; set; } = null!;
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnSetDefaultClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnActivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnDeactivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnDeleteClicked { get; set; }
+}

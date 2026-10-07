@@ -1,0 +1,314 @@
+@using System.Text.RegularExpressions
+@using Marilog.Contracts.DTOs.Frontend.AppTheme
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.AppThemes
+@* ────────────────────────────────────────────────────────────────────────────
+   AppThemeEditDialog
+   Create / Edit in one dialog. Saving goes through the delegates the host
+   passes in — the dialog never touches a service. One form model
+   (CreateAppThemeRequest) for both modes, mapped to UpdateAppThemeRequest
+   on edit with IsDefault = null: the default is only changed from the list.
+   Preview uses plain divs styled with the edited colors, because Mud
+   components would render with the app's current theme, not this one.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined" Class="mb-3">@_error</MudAlert>
+        }
+
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Theme name" Value="@_model.ThemeName" ValueChanged="@OnNameChanged"
+                                  Immediate="true" Required="true" MaxLength="100"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Theme key" Value="@_model.ThemeKey" ValueChanged="@OnKeyChanged"
+                                  Disabled="@IsEdit" Required="@(!IsEdit)" MaxLength="20"
+                                  HelperText="@(IsEdit ? "Cannot be changed after creation" : "Unique, max 20 characters")"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="_model.IsDarkMode" Label="Dark mode" Color="Color.Primary" />
+                </MudItem>
+                @if (!IsEdit)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudCheckBox T="bool" @bind-Value="_model.IsDefault" Label="Set as default theme" Color="Color.Primary" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Colors</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">@(ColorField("Primary", _model.PrimaryColor, v => _model.PrimaryColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("Secondary", _model.SecondaryColor, v => _model.SecondaryColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("App bar", _model.AppBarColor, v => _model.AppBarColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("Background", _model.BackgroundColor, v => _model.BackgroundColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("Surface", _model.SurfaceColor, v => _model.SurfaceColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("Success", _model.SuccessColor, v => _model.SuccessColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("Warning", _model.WarningColor, v => _model.WarningColor = v))</MudItem>
+                <MudItem xs="12" sm="6">@(ColorField("Error", _model.ErrorColor, v => _model.ErrorColor = v))</MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Typography</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="8">
+                    <MudTextField T="string" Label="Font family" @bind-Value="_model.FontFamily"
+                                  Required="true" MaxLength="100" HelperText="e.g. Segoe UI"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string" Label="Base font size" @bind-Value="_model.BaseFontSize"
+                                  Validation="@(new Func<string, string?>(ValidateFontSize))"
+                                  HelperText="14px, 0.875rem or 1em"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+
+        @* ── Preview ────────────────────────────────────────────── *@
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Preview</MudText>
+        <div style="@PreviewFrameStyle">
+            <div style="@AppBarStyle">@(string.IsNullOrWhiteSpace(_model.ThemeName) ? "Marilog" : _model.ThemeName)</div>
+            <div style="@BackgroundStyle">
+                <div style="@SurfaceStyle">
+                    <div style="font-weight:600; margin-bottom:8px;">Sample card</div>
+                    <div style="margin-bottom:10px;">Body text in the base font size.</div>
+                    <span style="@BlockStyle(_model.PrimaryColor)">Primary</span>
+                    <span style="@BlockStyle(_model.SecondaryColor)">Secondary</span>
+                    <div style="margin-top:10px;">
+                        <span style="@BlockStyle(_model.SuccessColor)">Success</span>
+                        <span style="@BlockStyle(_model.WarningColor)">Warning</span>
+                        <span style="@BlockStyle(_model.ErrorColor)">Error</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="@_isSaving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false"
+                   Disabled="@_isSaving" OnClick="SaveAsync">
+            @(_isSaving ? "Saving..." : IsEdit ? "Save changes" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public AppThemeResponse? Existing { get; set; }
+
+    /// <summary>Host wires this to IAppThemeService.CreateAsync.</summary>
+    [Parameter, EditorRequired]
+    public Func<CreateAppThemeRequest, CancellationToken, Task<AppThemeResponse>> OnCreateAsync { get; set; } = null!;
+
+    /// <summary>Host wires this to IAppThemeService.UpdateAsync.</summary>
+    [Parameter, EditorRequired]
+    public Func<int, UpdateAppThemeRequest, CancellationToken, Task<bool>> OnUpdateAsync { get; set; } = null!;
+
+    static readonly Regex HexRegex =
+        new("^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", RegexOptions.Compiled);
+
+    static readonly Regex FontSizeRegex =
+        new(@"^\d+(\.\d+)?(px|rem|em)$", RegexOptions.Compiled);
+
+    bool IsEdit => Existing is not null;
+
+    MudForm _form = null!;
+    CreateAppThemeRequest _model = new();
+    bool _keyEditedManually;
+    bool _isSaving;
+    string? _error;
+
+    protected override void OnInitialized()
+    {
+        _model = Existing is null ? NewDefaults() : FromExisting(Existing);
+    }
+
+    // ── Form events ───────────────────────────────────────────────────────
+
+    void OnNameChanged(string value)
+    {
+        _model.ThemeName = value;
+
+        if (!IsEdit && !_keyEditedManually)
+            _model.ThemeKey = ToKey(value);
+    }
+
+    void OnKeyChanged(string value)
+    {
+        _model.ThemeKey = value;
+        _keyEditedManually = true;
+    }
+
+    async Task SaveAsync()
+    {
+        _error = null;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _isSaving = true;
+        try
+        {
+            if (IsEdit)
+            {
+                await OnUpdateAsync(Existing!.Id, ToUpdateRequest(), CancellationToken.None);
+            }
+            else
+            {
+                _model.ThemeName = _model.ThemeName.Trim();
+                _model.ThemeKey = _model.ThemeKey.Trim();
+                _model.FontFamily = _model.FontFamily.Trim();
+                _model.BaseFontSize = _model.BaseFontSize.Trim();
+                await OnCreateAsync(_model, CancellationToken.None);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    // ── Mapping ───────────────────────────────────────────────────────────
+
+    static CreateAppThemeRequest NewDefaults() => new()
+    {
+        ThemeName = string.Empty,
+        ThemeKey = string.Empty,
+        IsDefault = false,
+        PrimaryColor = "#0078D4",
+        SecondaryColor = "#605E5C",
+        AppBarColor = "#0078D4",
+        BackgroundColor = "#FAF9F8",
+        SurfaceColor = "#FFFFFF",
+        ErrorColor = "#D13438",
+        SuccessColor = "#107C10",
+        WarningColor = "#FFB900",
+        FontFamily = "Segoe UI",
+        BaseFontSize = "14px",
+        IsDarkMode = false
+    };
+
+    static CreateAppThemeRequest FromExisting(AppThemeResponse t) => new()
+    {
+        ThemeName = t.ThemeName,
+        ThemeKey = t.ThemeKey,
+        IsDefault = t.IsDefault,
+        PrimaryColor = t.PrimaryColor,
+        SecondaryColor = t.SecondaryColor,
+        AppBarColor = t.AppBarColor,
+        BackgroundColor = t.BackgroundColor,
+        SurfaceColor = t.SurfaceColor,
+        ErrorColor = t.ErrorColor,
+        SuccessColor = t.SuccessColor,
+        WarningColor = t.WarningColor,
+        FontFamily = t.FontFamily,
+        BaseFontSize = t.BaseFontSize,
+        IsDarkMode = t.IsDarkMode
+    };
+
+    UpdateAppThemeRequest ToUpdateRequest() => new()
+    {
+        ThemeName = _model.ThemeName.Trim(),
+        PrimaryColor = _model.PrimaryColor,
+        SecondaryColor = _model.SecondaryColor,
+        AppBarColor = _model.AppBarColor,
+        BackgroundColor = _model.BackgroundColor,
+        SurfaceColor = _model.SurfaceColor,
+        ErrorColor = _model.ErrorColor,
+        SuccessColor = _model.SuccessColor,
+        WarningColor = _model.WarningColor,
+        FontFamily = _model.FontFamily.Trim(),
+        BaseFontSize = _model.BaseFontSize.Trim(),
+        IsDarkMode = _model.IsDarkMode,
+        IsDefault = null // default is changed only from the list (set-default)
+    };
+
+    static string ToKey(string name)
+    {
+        var key = Regex.Replace(name.Trim().ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+        return key.Length > 20 ? key[..20].TrimEnd('-') : key;
+    }
+
+    // ── Validation ────────────────────────────────────────────────────────
+
+    static string? ValidateHex(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && HexRegex.IsMatch(value) ? null : "Use #RRGGBB";
+
+    static string? ValidateFontSize(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && FontSizeRegex.IsMatch(value.Trim()) ? null : "Use 14px, 0.875rem or 1em";
+
+    // ── Color field: native picker + hex text, bound to the same value ────
+
+    RenderFragment ColorField(string label, string value, Action<string> setter) => @<div class="d-flex align-center gap-2">
+        <input type="color" value="@ToPickerValue(value)"
+               @oninput="@(e => setter(e.Value?.ToString() ?? value))"
+               style="width:36px; height:32px; padding:0; cursor:pointer; background:none; border:1px solid var(--mud-palette-lines-default); border-radius:2px;" />
+        <MudTextField T="string" Label="@label" Value="@value"
+                      ValueChanged="@((string v) => setter(v))"
+                      Validation="@(new Func<string, string?>(ValidateHex))"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-1" />
+    </div>;
+
+    // ── Preview styles (built from the edited theme's own colors) ─────────
+
+    string PreviewFrameStyle =>
+        $"border:1px solid var(--mud-palette-lines-default); border-radius:2px; overflow:hidden; " +
+        $"font-family:{_model.FontFamily}, 'Segoe UI', Arial, sans-serif; font-size:{_model.BaseFontSize};";
+
+    string AppBarStyle =>
+        $"background:{_model.AppBarColor}; color:{ContrastText(_model.AppBarColor)}; padding:6px 12px; font-weight:600;";
+
+    string BackgroundStyle =>
+        $"background:{_model.BackgroundColor}; padding:12px;";
+
+    string SurfaceStyle =>
+        $"background:{_model.SurfaceColor}; color:{ContrastText(_model.SurfaceColor)}; " +
+        "border:1px solid var(--mud-palette-lines-default); border-radius:2px; padding:12px;";
+
+    static string BlockStyle(string hex) =>
+        $"display:inline-block; background:{hex}; color:{ContrastText(hex)}; padding:3px 10px; border-radius:2px; margin-right:6px;";
+
+    static string? ExpandHex(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex) || !HexRegex.IsMatch(hex))
+            return null;
+
+        return hex.Length == 4
+            ? $"#{hex[1]}{hex[1]}{hex[2]}{hex[2]}{hex[3]}{hex[3]}"
+            : hex;
+    }
+
+    static string ToPickerValue(string? hex) => ExpandHex(hex) ?? "#000000";
+
+    static string ContrastText(string? hex)
+    {
+        var h = ExpandHex(hex);
+        if (h is null)
+            return "inherit";
+
+        var r = Convert.ToInt32(h.Substring(1, 2), 16);
+        var g = Convert.ToInt32(h.Substring(3, 2), 16);
+        var b = Convert.ToInt32(h.Substring(5, 2), 16);
+        var luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+        return luminance > 0.6 ? "#000000" : "#FFFFFF";
+    }
+}

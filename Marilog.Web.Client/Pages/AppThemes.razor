@@ -1,0 +1,180 @@
+﻿@page "/settings/themes"
+@using Marilog.Contracts.DTOs.Frontend.AppTheme
+@using Marilog.Contracts.Interfaces.FrontendServices
+@using Marilog.Shared.UI.Pages.AppThemes
+@using Marilog.Shared.UI.Services
+@using MudBlazor
+@inject IAppThemeService ThemeService
+@inject AppStateService AppState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host. Only file with @page and the only file that references
+   IAppThemeService. Loads all themes (active + inactive), wires every
+   EventCallback/delegate, and renders exactly one component.
+   After every change it pushes the active themes into AppStateService so the
+   AppBar menu and the applied theme update live, without a refresh.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedAppThemePage Items="@_themes"
+                    IsLoading="@_isLoading"
+                    OnAddClicked="@HandleAddClickedAsync"
+                    OnRefreshClicked="@LoadThemesAsync"
+                    OnEditClicked="@HandleEditClickedAsync"
+                    OnSetDefaultClicked="@HandleSetDefaultClickedAsync"
+                    OnActivateClicked="@HandleActivateClickedAsync"
+                    OnDeactivateClicked="@HandleDeactivateClickedAsync"
+                    OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    List<AppThemeResponse> _themes = new();
+    bool _isLoading;
+
+    static readonly DialogOptions EditDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseButton = true,
+        Position = DialogPosition.Center
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadThemesAsync();
+    }
+
+    async Task LoadThemesAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var themes = await ThemeService.GetAllAsync();
+
+            _themes = themes
+                .OrderByDescending(t => t.IsDefault)
+                .ThenBy(t => t.ThemeName)
+                .ToList();
+
+            AppState.ReloadThemes(_themes.Where(t => t.IsActive).ToList());
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load themes: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    async Task HandleAddClickedAsync()
+    {
+        var parameters = new DialogParameters<AppThemeEditDialog>
+        {
+            { x => x.Existing, null },
+            { x => x.OnCreateAsync, CreateAsync },
+            { x => x.OnUpdateAsync, UpdateAsync }
+        };
+
+        var dialog = await DialogService.ShowAsync<AppThemeEditDialog>("New Theme", parameters, EditDialogOptions);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadThemesAsync();
+    }
+
+    async Task HandleEditClickedAsync(AppThemeResponse theme)
+    {
+        var parameters = new DialogParameters<AppThemeEditDialog>
+        {
+            { x => x.Existing, theme },
+            { x => x.OnCreateAsync, CreateAsync },
+            { x => x.OnUpdateAsync, UpdateAsync }
+        };
+
+        var dialog = await DialogService.ShowAsync<AppThemeEditDialog>("Edit Theme", parameters, EditDialogOptions);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadThemesAsync();
+    }
+
+    async Task HandleSetDefaultClickedAsync(AppThemeResponse theme)
+    {
+        try
+        {
+            await ThemeService.SetAsDefaultAsync(theme.Id);
+            Snackbar.Add($"'{theme.ThemeName}' is now the default theme.", Severity.Success);
+            await LoadThemesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to set default theme: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleActivateClickedAsync(AppThemeResponse theme)
+    {
+        try
+        {
+            await ThemeService.ActivateAsync(theme.Id);
+            Snackbar.Add("Theme activated.", Severity.Success);
+            await LoadThemesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to activate theme: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeactivateClickedAsync(AppThemeResponse theme)
+    {
+        try
+        {
+            await ThemeService.DeactivateAsync(theme.Id);
+            Snackbar.Add("Theme deactivated.", Severity.Success);
+            await LoadThemesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to deactivate theme: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(AppThemeResponse theme)
+    {
+        if (theme.Id is 0)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Theme",
+            $"Delete theme '{theme.ThemeName}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await ThemeService.DeleteAsync(theme.Id);
+            Snackbar.Add("Theme deleted.", Severity.Success);
+            await LoadThemesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete theme: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // ── Delegates wired into the dialog (only this host touches the service) ──
+
+    Task<AppThemeResponse> CreateAsync(CreateAppThemeRequest request, CancellationToken ct) =>
+        ThemeService.CreateAsync(request, ct);
+
+    async Task<bool> UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct)
+    {
+        await ThemeService.UpdateAsync(id, request, ct);
+        return true;
+    }
+}

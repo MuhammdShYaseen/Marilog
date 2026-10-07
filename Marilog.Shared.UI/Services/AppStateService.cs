@@ -54,5 +54,14 @@ namespace Marilog.Shared.UI.Services
             _theme = theme;
             OnChange?.Invoke();
         }
+
+        /// <summary>Called by the theme admin page after any change so edits apply live.</summary>
+        public void ReloadThemes(IReadOnlyList<AppThemeResponse> activeThemes)
+        {
+            _themes = activeThemes;
+            _theme = _themes.FirstOrDefault(t => t.Id == _theme?.Id)
+                  ?? _themes.FirstOrDefault(t => t.IsDefault);
+            OnChange?.Invoke();
+        }
     }
 }

@@ -1,0 +1,144 @@
+@using Marilog.Contracts.DTOs.Frontend.AppTheme
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.AppThemes
+@* ────────────────────────────────────────────────────────────────────────────
+   SharedAppThemeTable
+   Stateless list rendering. Data in via Items, every row action out via
+   EventCallback. No service refs. Actions that the backend would reject
+   (deactivate/delete the default, set an inactive theme as default) are
+   disabled up front with the reason shown.
+   Swatches render each theme's own stored colors — that is data, not
+   app styling.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudTable Items="@Items" T="AppThemeResponse"
+          Hover="true" Dense="true" Elevation="0" Outlined="true"
+          Loading="@IsLoading" RowsPerPage="25"
+          RowStyleFunc="@RowStyleFunc">
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel T="AppThemeResponse" SortBy="@(x => x.ThemeName)">Name</MudTableSortLabel>
+        </MudTh>
+        <MudTh>Mode</MudTh>
+        <MudTh>Colors</MudTh>
+        <MudTh>Font</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        @{
+            var status = StatusFor(context);
+        }
+        <MudTd DataLabel="Name">
+            <MudText Typo="Typo.body2" Style="font-weight:600;">@context.ThemeName</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ThemeKey</MudText>
+        </MudTd>
+        <MudTd DataLabel="Mode">
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@(context.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)"
+                         Size="Size.Small" />
+                <MudText Typo="Typo.body2">@(context.IsDarkMode ? "Dark" : "Light")</MudText>
+            </div>
+        </MudTd>
+        <MudTd DataLabel="Colors">
+            <div class="d-flex align-center gap-1">
+                @foreach (var (label, hex) in Swatches(context))
+                {
+                    <MudTooltip Text="@($"{label}: {hex}")">
+                        <div style="@SwatchStyle(hex)"></div>
+                    </MudTooltip>
+                }
+            </div>
+        </MudTd>
+        <MudTd DataLabel="Font">@context.FontFamily · @context.BaseFontSize</MudTd>
+        <MudTd DataLabel="Status">
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@status.Icon" Color="@status.Color" Size="Size.Small" />
+                <MudText Typo="Typo.body2">@status.Text</MudText>
+            </div>
+        </MudTd>
+        <MudTd Style="text-align:right; white-space:nowrap;">
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                     AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                             OnClick="@(() => OnEditClicked.InvokeAsync(context))">
+                    Edit
+                </MudMenuItem>
+
+                <MudMenuItem Icon="@Icons.Material.Filled.Star"
+                             Disabled="@(context.IsDefault || !context.IsActive)"
+                             OnClick="@(() => OnSetDefaultClicked.InvokeAsync(context))">
+                    @(context.IsDefault ? "Set as default (already default)"
+                        : !context.IsActive ? "Set as default (activate first)"
+                        : "Set as default")
+                </MudMenuItem>
+
+                @if (context.IsActive)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.Block" Disabled="@context.IsDefault"
+                                 OnClick="@(() => OnDeactivateClicked.InvokeAsync(context))">
+                        @(context.IsDefault ? "Deactivate (set another default first)" : "Deactivate")
+                    </MudMenuItem>
+                }
+                else
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.CheckCircle"
+                                 OnClick="@(() => OnActivateClicked.InvokeAsync(context))">
+                        Activate
+                    </MudMenuItem>
+                }
+
+                <MudDivider />
+
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" Disabled="@context.IsDefault"
+                             OnClick="@(() => OnDeleteClicked.InvokeAsync(context))">
+                    @(context.IsDefault ? "Delete (set another default first)" : "Delete")
+                </MudMenuItem>
+            </MudMenu>
+        </MudTd>
+    </RowTemplate>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">No themes yet.</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Loading themes...</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="@(new[] { 25, 50 })" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AppThemeResponse> Items { get; set; } = null!;
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnSetDefaultClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnActivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnDeactivateClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<AppThemeResponse> OnDeleteClicked { get; set; }
+
+    static string RowStyleFunc(AppThemeResponse item, int index) =>
+        item.IsActive ? string.Empty : "opacity: 0.55;";
+
+    static (string Icon, Color Color, string Text) StatusFor(AppThemeResponse t) =>
+        t.IsDefault ? (Icons.Material.Filled.Star, Color.Primary, "Default")
+        : t.IsActive ? (Icons.Material.Filled.CheckCircle, Color.Success, "Active")
+        : (Icons.Material.Filled.Block, Color.Default, "Inactive");
+
+    static (string Label, string Hex)[] Swatches(AppThemeResponse t) =>
+    [
+        ("Primary", t.PrimaryColor),
+        ("Secondary", t.SecondaryColor),
+        ("App bar", t.AppBarColor),
+        ("Background", t.BackgroundColor),
+        ("Surface", t.SurfaceColor),
+        ("Success", t.SuccessColor),
+        ("Warning", t.WarningColor),
+        ("Error", t.ErrorColor)
+    ];
+
+    static string SwatchStyle(string hex) =>
+        $"width:14px; height:14px; border-radius:2px; background:{hex}; border:1px solid var(--mud-palette-lines-default);";
+}
