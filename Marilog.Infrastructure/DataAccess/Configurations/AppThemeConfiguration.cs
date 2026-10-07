@@ -74,6 +74,10 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(t => t.BaseFontSize)
                 .IsRequired()
                 .HasMaxLength(10);
+
+            builder.HasIndex(t => t.IsDefault)
+                   .IsUnique()
+                   .HasFilter("[IsDefault] = 1");
         }
     }
 }

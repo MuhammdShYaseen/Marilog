@@ -1,13 +1,7 @@
-﻿using Marilog.Client.ErrorUniform;
-using Marilog.Client.Extensions;
-using Marilog.Contracts.Common;
+﻿using Marilog.Client.Extensions;
 using Marilog.Contracts.DTOs.Frontend.AppTheme;
 using Marilog.Contracts.Interfaces.FrontendServices;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http.Json;
-using System.Text;
+
 
 namespace Marilog.Client.Services.UiServices
 {
@@ -39,13 +33,8 @@ namespace Marilog.Client.Services.UiServices
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<AppThemeResponse> CreateAsync(CreateAppThemeRequest request, CancellationToken ct = default)
-        {
-            var response = await _http.PostApiAsync<AppThemeResponse>(Base, request, ct);
-            if (response != null) 
-                return response;
-
-            return new AppThemeResponse();
-        } 
+            => await _http.PostApiAsync<AppThemeResponse>(Base, request, ct)
+              ?? throw new InvalidOperationException("Failed to create theme");
 
         public Task UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct = default)
             => _http.PutApiAsync($"{Base}/{id}", request, ct);

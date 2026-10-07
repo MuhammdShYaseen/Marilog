@@ -117,13 +117,25 @@ namespace Marilog.Domain.Entities.Frontend
         public void SetAsDefault() => IsDefault = true;
         public void UnsetDefault() => IsDefault = false;
 
+        private static readonly Regex HexColorRegex =
+    new("^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", RegexOptions.Compiled);
+
+        private static readonly Regex FontSizeRegex =
+            new(@"^\d+(\.\d+)?(px|rem|em)$", RegexOptions.Compiled);
+
         private void Validate()
         {
             if (string.IsNullOrWhiteSpace(ThemeName))
-                throw new AggregateException("Theme name is required");
+                throw new ArgumentException("Theme name is required");
+
+            if (ThemeName.Length > 100)
+                throw new ArgumentException("Theme name must not exceed 100 characters");
 
             if (string.IsNullOrWhiteSpace(ThemeKey))
-                throw new AggregateException("Theme key is required");
+                throw new ArgumentException("Theme key is required");
+
+            if (ThemeKey.Length > 20)
+                throw new ArgumentException("Theme key must not exceed 20 characters");
 
             ValidateColor(PrimaryColor, nameof(PrimaryColor));
             ValidateColor(SecondaryColor, nameof(SecondaryColor));
@@ -133,15 +145,23 @@ namespace Marilog.Domain.Entities.Frontend
             ValidateColor(ErrorColor, nameof(ErrorColor));
             ValidateColor(SuccessColor, nameof(SuccessColor));
             ValidateColor(WarningColor, nameof(WarningColor));
+
+            if (string.IsNullOrWhiteSpace(FontFamily))
+                throw new ArgumentException("Font family is required");
+
+            if (FontFamily.Length > 100)
+                throw new ArgumentException("Font family must not exceed 100 characters");
+
+            if (string.IsNullOrWhiteSpace(BaseFontSize) || !FontSizeRegex.IsMatch(BaseFontSize))
+                throw new ArgumentException("Base font size must be like 14px, 0.875rem or 1em");
         }
 
         private static void ValidateColor(string color, string fieldName)
         {
             if (string.IsNullOrWhiteSpace(color) || !IsValidHexColor(color))
-                throw new AggregateException($"{fieldName} must be a valid hex color (e.g. #RRGGBB)");
+                throw new ArgumentException($"{fieldName} must be a valid hex color (e.g. #RRGGBB)");
         }
 
-        private static bool IsValidHexColor(string color) =>
-            Regex.IsMatch(color, "^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$");
+        private static bool IsValidHexColor(string color) => HexColorRegex.IsMatch(color);
     }
 }

@@ -22,7 +22,7 @@ namespace Marilog.Application.Services.FrontendServices
         {
             return await _repo.Query()
                 .Where(t => t.Id == id)
-                .Select(ToResponse())
+                .Select(ToResponse)
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -30,14 +30,14 @@ namespace Marilog.Application.Services.FrontendServices
         {
             return await _repo.Query()
                 .Where(t => t.IsDefault)
-                .Select(ToResponse())
+                .Select(ToResponse)
                 .FirstOrDefaultAsync(ct);
         }
 
         public async Task<IReadOnlyList<AppThemeResponse>> GetAllAsync(CancellationToken ct = default)
         {
             return await _repo.Query()
-                .Select(ToResponse())
+                .Select(ToResponse)
                 .ToListAsync(ct);
         }
 
@@ -45,7 +45,7 @@ namespace Marilog.Application.Services.FrontendServices
         {
             return await _repo.Query()
                 .Where(t => t.IsActive)
-                .Select(ToResponse())
+                .Select(ToResponse)
                 .ToListAsync(ct);
         }
 
@@ -53,8 +53,8 @@ namespace Marilog.Application.Services.FrontendServices
 
         public async Task<AppThemeResponse> CreateAsync(CreateAppThemeRequest request, CancellationToken ct = default)
         {
-            if (request.IsDefault)
-                await UnsetAllDefaultsAsync(ct);
+            if (await _repo.Query().AnyAsync(t => t.ThemeKey == request.ThemeKey, ct))
+                throw new InvalidOperationException($"Theme key '{request.ThemeKey}' already exists");
 
             var theme = AppTheme.Create(
                 request.ThemeName,
@@ -83,8 +83,11 @@ namespace Marilog.Application.Services.FrontendServices
             var theme = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException("Theme not found");
 
-            if (request.IsDefault == true)
-                await UnsetAllDefaultsAsync(ct);
+            if (request.IsDefault == true && !theme.IsActive)
+                throw new InvalidOperationException("Cannot set an inactive theme as default");
+
+            if (request.IsDefault == false && theme.IsDefault)
+                throw new InvalidOperationException("Cannot unset the default theme directly. Set another theme as default instead.");
 
             theme.Update(
                 request.ThemeName,
@@ -109,6 +112,9 @@ namespace Marilog.Application.Services.FrontendServices
             var theme = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException("Theme not found");
 
+            if (!theme.IsActive)
+                throw new InvalidOperationException("Cannot set an inactive theme as default");
+
             await UnsetAllDefaultsAsync(ct);
 
             theme.SetAsDefault();
@@ -129,6 +135,9 @@ namespace Marilog.Application.Services.FrontendServices
             var theme = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException("Theme not found");
 
+            if (theme.IsDefault)
+                throw new InvalidOperationException("Cannot deactivate the default theme. Set another theme as default first.");
+
             theme.Deactivate();
             await _repo.SaveChangesAsync(ct);
         }
@@ -137,6 +146,9 @@ namespace Marilog.Application.Services.FrontendServices
         {
             var theme = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException("Theme not found");
+
+            if (theme.IsDefault)
+                throw new InvalidOperationException("Cannot delete the default theme. Set another theme as default first.");
 
             _repo.HardDelete(theme);
             await _repo.SaveChangesAsync(ct);
@@ -154,12 +166,13 @@ namespace Marilog.Application.Services.FrontendServices
                 t.UnsetDefault();
         }
 
-        private static Expression<Func<AppTheme, AppThemeResponse>> ToResponse() => t => new AppThemeResponse
+        private static readonly Expression<Func<AppTheme, AppThemeResponse>> ToResponse = t => new AppThemeResponse
         {
             Id = t.Id,
             ThemeName = t.ThemeName,
             ThemeKey = t.ThemeKey,
             IsDefault = t.IsDefault,
+            IsActive = t.IsActive,
             PrimaryColor = t.PrimaryColor,
             SecondaryColor = t.SecondaryColor,
             AppBarColor = t.AppBarColor,
@@ -173,23 +186,6 @@ namespace Marilog.Application.Services.FrontendServices
             IsDarkMode = t.IsDarkMode
         };
 
-        private static AppThemeResponse MapToResponse(AppTheme t) => new()
-        {
-            Id = t.Id,
-            ThemeName = t.ThemeName,
-            ThemeKey = t.ThemeKey,
-            IsDefault = t.IsDefault,
-            PrimaryColor = t.PrimaryColor,
-            SecondaryColor = t.SecondaryColor,
-            AppBarColor = t.AppBarColor,
-            BackgroundColor = t.BackgroundColor,
-            SurfaceColor = t.SurfaceColor,
-            ErrorColor = t.ErrorColor,
-            SuccessColor = t.SuccessColor,
-            WarningColor = t.WarningColor,
-            FontFamily = t.FontFamily,
-            BaseFontSize = t.BaseFontSize,
-            IsDarkMode = t.IsDarkMode
-        };
+        private static readonly Func<AppTheme, AppThemeResponse> MapToResponse = ToResponse.Compile();
     }
 }

@@ -19,5 +19,6 @@ namespace Marilog.Contracts.DTOs.Frontend.AppTheme
         public string FontFamily { get; set; } = default!;
         public string BaseFontSize { get; set; } = default!;
         public bool IsDarkMode { get; set; }
+        public bool IsActive { get; set; }
     }
 }
