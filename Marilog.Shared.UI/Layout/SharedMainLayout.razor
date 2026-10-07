@@ -12,7 +12,7 @@
 
 <MudLayout>
 
-    <MudAppBar Elevation="1" Color="Color.Primary">
+    <MudAppBar Elevation="0">
 
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
@@ -24,11 +24,22 @@
         </MudText>
 
         <MudSpacer />
-        <MudIconButton Icon="@(_isDark
-                                   ? Icons.Material.Filled.LightMode
-                               : Icons.Material.Filled.DarkMode)"
-                       Color="Color.Inherit"
-                       OnClick="ToggleTheme" />
+        @if (Themes.Count > 1)
+        {
+            <MudMenu Icon="@Icons.Material.Filled.Palette"
+                     Color="Color.Inherit"
+                     Dense="true"
+                     AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight">
+                @foreach (var t in Themes)
+                {
+                    <MudMenuItem OnClick="@(() => OnThemeSelected.InvokeAsync(t.Id))"
+                                 Icon="@(t.Id == Theme?.Id ? Icons.Material.Filled.Check : string.Empty)">
+                        @t.ThemeName
+                    </MudMenuItem>
+                }
+            </MudMenu>
+        }
         <MudText Typo="Typo.body2" Class="mr-3">
             @AppSubtitle
         </MudText>
@@ -90,19 +101,39 @@
     [Parameter]
     public AppThemeResponse? Theme { get; set; }
 
+    [Parameter]
+    public IReadOnlyList<AppThemeResponse> Themes { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<int> OnThemeSelected { get; set; }
 
     private MudTheme _mudTheme = new();
     private bool _isDark;
     private bool drawerOpen = true;
+    private AppThemeResponse? _appliedTheme;
+
     protected override void OnParametersSet()
     {
-        if (Theme is null) return;
+        if (Theme is null || ReferenceEquals(Theme, _appliedTheme)) return;
+        _appliedTheme = Theme;
 
         _isDark = Theme.IsDarkMode;
 
         _mudTheme = new MudTheme
         {
-            PaletteLight = new PaletteLight
+            Typography = new Typography
+            {
+                Default = new DefaultTypography
+                {
+                    FontFamily = [Theme.FontFamily, "Segoe UI", "Arial", "sans-serif"],
+                    FontSize = Theme.BaseFontSize
+                }
+            }
+        };
+
+        if (Theme.IsDarkMode)
+        {
+            _mudTheme.PaletteDark = new PaletteDark
             {
                 Primary = Theme.PrimaryColor,
                 Secondary = Theme.SecondaryColor,
@@ -112,25 +143,22 @@
                 Error = Theme.ErrorColor,
                 Success = Theme.SuccessColor,
                 Warning = Theme.WarningColor
-            },
-            PaletteDark = new PaletteDark
+            };
+        }
+        else
+        {
+            _mudTheme.PaletteLight = new PaletteLight
             {
                 Primary = Theme.PrimaryColor,
                 Secondary = Theme.SecondaryColor,
                 AppbarBackground = Theme.AppBarColor,
+                Background = Theme.BackgroundColor,
+                Surface = Theme.SurfaceColor,
                 Error = Theme.ErrorColor,
                 Success = Theme.SuccessColor,
                 Warning = Theme.WarningColor
-            },
-            Typography = new Typography
-            {
-                Default = new DefaultTypography
-                {
-                    FontFamily = [Theme.FontFamily],
-                    FontSize = Theme.BaseFontSize
-                }
-            }
-        };
+            };
+        }
     }
     private void ToggleDrawer()
         => drawerOpen = !drawerOpen;

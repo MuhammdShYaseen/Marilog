@@ -1,47 +1,70 @@
-﻿@using Marilog.Contracts.DTOs.Responses
+﻿
 @using Marilog.Contracts.Interfaces.FrontendServices
 @using Marilog.Shared.UI.Layout
 @using Marilog.Shared.UI.Services
-
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 @inject INavigationService NavService
 @inject IAppThemeService ThemeService
 @inject AppStateService AppState
-
+@implements IDisposable
 @inherits LayoutComponentBase
 
 
-    <SharedMainLayout 
-        Items="AppState.NavItems"
-        Theme="AppState.Theme"
-        AppTitle="Marilog"
-        AppSubtitle="WKA Ocean Shipping">
+<SharedMainLayout Items="AppState.NavItems"
+                  Theme="AppState.Theme"
+                  Themes="AppState.Themes"
+                  OnThemeSelected="OnThemeSelectedAsync"
+                  AppTitle="Marilog"
+                  AppSubtitle="WKA Ocean Shipping">
 
-        @Body
+    @Body
 
-    </SharedMainLayout>
+</SharedMainLayout>
 @code {
+    private const string ThemeStorageKey = "marilog.themeId";
 
-    private static List<NavItemResponse>? _items;  // Static cache here
-    private static bool _isLoaded = false;
     protected override async Task OnInitializedAsync()
     {
-        if (!_isLoaded)
+        AppState.OnChange += HandleStateChanged;
+
+        var savedThemeId = await GetSavedThemeIdAsync();
+
+        await AppState.InitializeAsync(
+            loadNav: () => NavService.GetAsync(),
+            loadThemes: () => ThemeService.GetActiveAsync(),
+            savedThemeId: savedThemeId);
+    }
+
+    private async Task OnThemeSelectedAsync(int themeId)
+    {
+        AppState.SetTheme(themeId);
+
+        try
         {
-            try
-            {
-                await AppState.InitializeAsync(
-                    loadNav: () => NavService.GetAsync(),
-                    loadTheme: () => ThemeService.GetDefaultThemeAsync());
-                _items = AppState.NavItems;
-                _isLoaded = true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                _items = new();
-            }
+            await JS.InvokeVoidAsync("localStorage.setItem", ThemeStorageKey, themeId.ToString());
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Saving theme failed: {ex.Message}");
         }
     }
 
-    
+    private async Task<int?> GetSavedThemeIdAsync()
+    {
+        try
+        {
+            var value = await JS.InvokeAsync<string?>("localStorage.getItem", ThemeStorageKey);
+            return int.TryParse(value, out var id) ? id : null;
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Reading saved theme failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => AppState.OnChange -= HandleStateChanged;
 }
