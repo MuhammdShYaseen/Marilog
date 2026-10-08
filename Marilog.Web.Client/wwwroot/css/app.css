@@ -1,0 +1,15 @@
+﻿.mud-main-content {
+    isolation: isolate;
+}
+
+    .mud-main-content::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        pointer-events: none;
+        background-color: var(--mud-palette-text-primary);
+        -webkit-mask: url("../images/marilog-logo.svg") center / min(45vw, 640px) auto no-repeat;
+        mask: url("../images/marilog-logo.svg") center / min(45vw, 640px) auto no-repeat;
+        opacity: 0.04;
+    }

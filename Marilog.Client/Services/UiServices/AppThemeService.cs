@@ -36,6 +36,11 @@ namespace Marilog.Client.Services.UiServices
             => await _http.PostApiAsync<AppThemeResponse>(Base, request, ct)
               ?? throw new InvalidOperationException("Failed to create theme");
 
+        public async Task<IReadOnlyList<AppThemeResponse>> CreateRangeAsync(
+            IReadOnlyList<CreateAppThemeRequest> requests, CancellationToken ct = default)
+            => await _http.PostApiAsync<List<AppThemeResponse>>($"{Base}/batch", requests, ct)
+               ?? throw new InvalidOperationException("Failed to create themes");
+
         public Task UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct = default)
             => _http.PutApiAsync($"{Base}/{id}", request, ct);
 

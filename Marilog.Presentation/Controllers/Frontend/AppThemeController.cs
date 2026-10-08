@@ -55,6 +55,12 @@ namespace Marilog.Presentation.Controllers.Frontend
             var result = await _service.CreateAsync(request, ct);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<AppThemeResponse>.Ok(result));
         }
+        [HttpPost("batch")]
+        public async Task<IActionResult> CreateRange([FromBody] List<CreateAppThemeRequest> requests, CancellationToken ct)
+        {
+            var result = await _service.CreateRangeAsync(requests, ct);
+            return Ok(result);
+        }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateAppThemeRequest request, CancellationToken ct)

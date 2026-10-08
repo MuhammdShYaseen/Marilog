@@ -78,6 +78,56 @@ namespace Marilog.Application.Services.FrontendServices
             return MapToResponse(theme);
         }
 
+        public async Task<IReadOnlyList<AppThemeResponse>> CreateRangeAsync(IReadOnlyList<CreateAppThemeRequest> requests, CancellationToken ct = default)
+        {
+            if (requests is null || requests.Count == 0)
+                throw new InvalidOperationException("No themes provided");
+
+            var duplicateInRequest = requests
+                .GroupBy(r => r.ThemeKey)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateInRequest.Count > 0)
+                throw new InvalidOperationException(
+                    $"Duplicate theme keys in request: {string.Join(", ", duplicateInRequest)}");
+
+            var keys = requests.Select(r => r.ThemeKey).ToList();
+
+            var existingKeys = await _repo.Query()
+                .Where(t => keys.Contains(t.ThemeKey))
+                .Select(t => t.ThemeKey)
+                .ToListAsync(ct);
+
+            if (existingKeys.Count > 0)
+                throw new InvalidOperationException(
+                    $"Theme keys already exist: {string.Join(", ", existingKeys)}");
+
+            var themes = requests.Select(request => AppTheme.Create(
+                request.ThemeName,
+                request.ThemeKey,
+                request.IsDefault,
+                request.PrimaryColor,
+                request.SecondaryColor,
+                request.AppBarColor,
+                request.BackgroundColor,
+                request.SurfaceColor,
+                request.ErrorColor,
+                request.SuccessColor,
+                request.WarningColor,
+                request.FontFamily,
+                request.BaseFontSize,
+                request.IsDarkMode)).ToList();
+
+            foreach (var theme in themes)
+                await _repo.AddAsync(theme, ct);
+
+            await _repo.SaveChangesAsync(ct);
+
+            return themes.Select(MapToResponse).ToList();
+        }
+
         public async Task UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct = default)
         {
             var theme = await _repo.GetByIdAsync(id, ct)
@@ -115,7 +165,11 @@ namespace Marilog.Application.Services.FrontendServices
             if (!theme.IsActive)
                 throw new InvalidOperationException("Cannot set an inactive theme as default");
 
+            if (theme.IsDefault)
+                return;
+
             await UnsetAllDefaultsAsync(ct);
+            await _repo.SaveChangesAsync(ct);
 
             theme.SetAsDefault();
             await _repo.SaveChangesAsync(ct);

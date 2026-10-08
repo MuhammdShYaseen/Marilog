@@ -1,7 +1,4 @@
 ﻿using Marilog.Contracts.DTOs.Frontend.AppTheme;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Contracts.Interfaces.FrontendServices
 {
@@ -15,6 +12,7 @@ namespace Marilog.Contracts.Interfaces.FrontendServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<AppThemeResponse> CreateAsync(CreateAppThemeRequest request, CancellationToken ct = default);
+        Task<IReadOnlyList<AppThemeResponse>> CreateRangeAsync(IReadOnlyList<CreateAppThemeRequest> requests, CancellationToken ct = default);
         Task UpdateAsync(int id, UpdateAppThemeRequest request, CancellationToken ct = default);
         Task SetAsDefaultAsync(int id, CancellationToken ct = default);
         Task ActivateAsync(int id, CancellationToken ct = default);
