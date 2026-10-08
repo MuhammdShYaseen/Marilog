@@ -13,3 +13,35 @@
         mask: url("../images/marilog-logo.svg") center / min(45vw, 640px) auto no-repeat;
         opacity: 0.04;
     }
+
+
+
+.app-loading {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+}
+
+    .app-loading img {
+        width: min(60vw, 360px);
+        height: auto;
+    }
+
+.app-loading-bar {
+    width: min(60vw, 360px);
+    height: 3px;
+    background: #E3E9EF;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+    .app-loading-bar span {
+        display: block;
+        height: 100%;
+        width: var(--blazor-load-percentage, 0%);
+        background: #0E9999;
+        transition: width .2s ease;
+    }
