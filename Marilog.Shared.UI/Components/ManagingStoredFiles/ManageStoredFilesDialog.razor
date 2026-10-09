@@ -207,12 +207,12 @@
                        Elevation="4"
                        Variant="DrawerVariant.Temporary"
                        Fixed="false"
-                       Width="480px"
+                       Width="40vw"
                        Class="wa-detail-drawer">
 
                 @if (_selectedFile is not null)
                 {
-                    <div class="pa-4">
+                    <div class="pa-4 wa-drawer-body">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
 
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -233,7 +233,8 @@
 
                         </MudStack>
 
-                        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-3">
+                        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-3 wa-tab-panels"
+                                 @bind-ActivePanelIndex="_activeTabIndex">
 
                             <MudTabPanel Text="Text" Icon="@Icons.Material.Filled.Description">
 
@@ -245,13 +246,14 @@
                                 }
                                 else
                                 {
-                                    <MudStack Spacing="2">
+                                    <MudStack Spacing="2" Class="wa-tab-fill">
 
                                         <MudTextField T="string"
                                                       @bind-Value="_editableContent"
                                                       Lines="14"
                                                       Variant="Variant.Outlined"
-                                                      FullWidth="true" />
+                                                      FullWidth="true"
+                                                      Class="wa-fill-editor" />
 
                                         <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
                                             <MudButton Variant="Variant.Text"
@@ -274,25 +276,52 @@
 
                             </MudTabPanel>
 
-                            <MudTabPanel Text="PDF" Icon="@Icons.Material.Filled.PictureAsPdf">
+                            <MudTabPanel Text="Preview" Icon="@Icons.Material.Filled.Visibility">
 
-                                @if (IsPdf(_selectedFile))
-                                {
-                                    @* MudBlazor has no iframe-equivalent component; this raw tag is a required exception. *@
-                                    <iframe src="@($"{BuildDownloadUrl(_selectedFile)}?inline=true")" class="pdf-preview-frame"></iframe>
+                                @{
+                                    var previewUrl = $"{BuildDownloadUrl(_selectedFile)}?inline=true";
+                                    var kind = GetPreviewKind(_selectedFile);
                                 }
-                                else
-                                {
-                                    <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-8">
-                                        <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Large" Color="Color.Secondary" />
-                                        <MudText Color="Color.Secondary">Preview is only available for PDF files.</MudText>
-                                        <MudButton Variant="Variant.Outlined"
-                                                   StartIcon="@Icons.Material.Filled.Download"
-                                                   OnClick="@(() => DownloadAsync(_selectedFile))">
-                                            Download instead
-                                        </MudButton>
-                                    </MudStack>
-                                }
+
+                                <div class="wa-tab-fill">
+                                    @switch (kind)
+                                    {
+                                        case PreviewKind.Frame:
+                                            @* MudBlazor has no iframe-equivalent component; this raw tag is a required exception. *@
+                                            <iframe src="@previewUrl" class="wa-preview-frame"></iframe>
+                                            break;
+
+                                        case PreviewKind.Image:
+                                            <div class="wa-preview-media">
+                                                <img src="@previewUrl" alt="@_selectedFile.OriginalFileName" />
+                                            </div>
+                                            break;
+
+                                        case PreviewKind.Video:
+                                            <div class="wa-preview-media">
+                                                <video src="@previewUrl" controls></video>
+                                            </div>
+                                            break;
+
+                                        case PreviewKind.Audio:
+                                            <div class="wa-preview-media">
+                                                <audio src="@previewUrl" controls></audio>
+                                            </div>
+                                            break;
+
+                                        default:
+                                            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-8">
+                                                <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Large" Color="Color.Secondary" />
+                                                <MudText Color="Color.Secondary">The browser can't preview this file type.</MudText>
+                                                <MudButton Variant="Variant.Outlined"
+                                                           StartIcon="@Icons.Material.Filled.Download"
+                                                           OnClick="@(() => DownloadAsync(_selectedFile))">
+                                                    Download instead
+                                                </MudButton>
+                                            </MudStack>
+                                            break;
+                                    }
+                                </div>
 
                             </MudTabPanel>
 
@@ -405,8 +434,11 @@
     private string _editableContent = string.Empty;
     private bool _isSavingContent;
 
+    private const int PreviewTabIndex = 1;
+    private int _activeTabIndex = PreviewTabIndex;
+
     private bool _isContentDirty =>
-        _selectedFile is not null && _editableContent != (_selectedFile.Content ?? string.Empty);
+    _selectedFile is not null && _editableContent != (_selectedFile.Content ?? string.Empty);
 
     private string _newTagName = string.Empty;
     private string _newTagColor = nameof(Color.Primary);
@@ -422,6 +454,29 @@
         (nameof(Color.Info), Color.Info),
         (nameof(Color.Dark), Color.Dark),
     };
+
+    private enum PreviewKind { Frame, Image, Video, Audio, None }
+
+    private static PreviewKind GetPreviewKind(StoredFileResponse file)
+    {
+        var type = file.ContentType?.ToLowerInvariant() ?? string.Empty;
+        var ext = System.IO.Path.GetExtension(file.OriginalFileName).ToLowerInvariant();
+
+        if (type.StartsWith("image/") || ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp" or ".svg")
+            return PreviewKind.Image;
+
+        if (type.StartsWith("video/") || ext is ".mp4" or ".webm" or ".ogv" or ".mov")
+            return PreviewKind.Video;
+
+        if (type.StartsWith("audio/") || ext is ".mp3" or ".wav" or ".m4a" or ".ogg")
+            return PreviewKind.Audio;
+
+        if (type is "application/pdf" or "text/plain" or "application/json" or "application/xml" or "text/xml"
+            || ext is ".pdf" or ".txt" or ".log" or ".json" or ".xml")
+            return PreviewKind.Frame;
+
+        return PreviewKind.None;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -443,6 +498,7 @@
     {
         _selectedFile = file;
         _editableContent = file.Content ?? string.Empty;
+        _activeTabIndex = PreviewTabIndex;
         _isDrawerOpen = true;
     }
 
@@ -509,7 +565,11 @@
 
             var refreshed = _files.FirstOrDefault(f => f.Id == _selectedFile.Id);
             if (refreshed is not null)
+            {
+                var currentTab = _activeTabIndex;
                 SelectFile(refreshed);
+                _activeTabIndex = currentTab;
+            }
         }
         else
         {
@@ -616,11 +676,6 @@
         return Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed)
             ? parsed
             : Color.Default;
-    }
-
-    private static bool IsPdf(StoredFileResponse file)
-    {
-        return string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetFileIcon(StoredFileResponse file)
@@ -741,12 +796,64 @@
         cursor: pointer;
     }
 
-    .pdf-preview-frame {
+    .wa-detail-drawer {
+        min-width: 360px;
+        max-width: 100%;
+    }
+
+    .wa-drawer-body,
+    .wa-drawer-body .mud-tabs,
+    .wa-tab-panels,
+    .wa-tab-fill {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wa-fill-editor {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+        .wa-fill-editor .mud-input-control-input-container,
+        .wa-fill-editor .mud-input {
+            height: 100%;
+        }
+
+        .wa-fill-editor textarea {
+            height: 100% !important;
+            resize: none;
+        }
+
+    .wa-preview-frame {
         width: 100%;
-        height: calc(100vh - 420px);
-        min-height: 320px;
+        height: calc(100vh - 250px);
         border: none;
         border-radius: 4px;
+    }
+
+    .wa-preview-media {
+        height: calc(100vh - 250px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .wa-preview-media img,
+        .wa-preview-media video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .wa-preview-media audio {
+            width: 100%;
+        }
+
+    .wa-fill-editor textarea {
+        height: calc(100vh - 310px) !important;
+        resize: none;
     }
 
     .wa-viewer.mud-dialog {
