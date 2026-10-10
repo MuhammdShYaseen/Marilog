@@ -21,6 +21,15 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.EntityId)
                 .IsRequired(false);
 
+            // ── Folder (virtual, DB only) ───────────────────────
+            builder.Property(x => x.FolderId)
+                .IsRequired(false);
+
+            builder.HasOne<StoredFolder>()
+                .WithMany()
+                .HasForeignKey(x => x.FolderId)
+                .OnDelete(DeleteBehavior.Restrict); // ما بينحذف مجلد فيه ملفات
+
             // Composite index for fast lookup
             builder.HasIndex(x => new { x.EntityType, x.EntityId });
 
