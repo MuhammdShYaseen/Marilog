@@ -3,7 +3,8 @@
 @using Microsoft.JSInterop
 @using MudBlazor
 @namespace Marilog.Shared.UI.Components.ManagingStoredFiles
-
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 <MudDialog Class="wa-viewer">
 
     <TitleContent>
@@ -676,6 +677,33 @@
         return Enum.TryParse<Color>(colorName, ignoreCase: true, out var parsed)
             ? parsed
             : Color.Default;
+    }
+
+    // drop _ past _ copy past
+    private IJSObjectReference? _dropPasteModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _dropPasteModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Marilog.Shared.UI/js/fileDropPaste.js");
+
+        await _dropPasteModule.InvokeVoidAsync("attach");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dropPasteModule is null)
+            return;
+
+        try
+        {
+            await _dropPasteModule.InvokeVoidAsync("detach");
+            await _dropPasteModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
     }
 
     private static string GetFileIcon(StoredFileResponse file)
