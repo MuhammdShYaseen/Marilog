@@ -2,8 +2,8 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.JSInterop
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
 @namespace Marilog.Shared.UI.Components.ManagingStoredFiles
-@inject IJSRuntime JS
 @implements IAsyncDisposable
 <MudDialog Class="wa-viewer">
 
@@ -19,6 +19,22 @@
             </MudStack>
 
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                @if (HasCut)
+                {
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.ContentPaste"
+                               OnClick="PasteAsync">
+                        Paste here
+                    </MudButton>
+                }
+
+                <MudButton Size="Size.Small"
+                           Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.CreateNewFolder"
+                           OnClick="CreateFolderAsync">
+                    New folder
+                </MudButton>
 
                 <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
                     <MudIconButton Icon="@Icons.Material.Filled.ViewList"
@@ -51,23 +67,54 @@
         {
             <div class="wa-files-column">
 
-                @if (_files.Count == 0 && _viewMode == ViewMode.Grid)
-                {
-                    <div class="file-grid">
-                        <div class="wa-dropzone-tile">
-                            @* Same MudFileUpload usage as FileUploadDialog — untouched. *@
-                            <MudFileUpload T="IReadOnlyList<IBrowserFile>"
-                                           Files="_pendingFiles"
-                                           FilesChanged="OnFilesChanged"
-                                           DragAndDrop="true"
-                                           AppendMultipleFiles="true"
-                                           MaximumFileCount="20">
+                @* ── Breadcrumb — every crumb is also a drop target (handled in JS) ── *@
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="wa-breadcrumb mb-3">
+                    <div class="wa-crumb" data-wa-drop="root" @onclick="() => OpenFolder(null)">
+                        <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">Root</MudText>
+                    </div>
 
-                            </MudFileUpload>
+                    @foreach (var crumb in BreadcrumbPath)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" Color="Color.Secondary" />
+                        <div class="wa-crumb" data-wa-drop="@crumb.Id" @onclick="() => OpenFolder(crumb.Id)">
+                            <MudText Typo="Typo.body2">@crumb.Name</MudText>
                         </div>
+                    }
+                </MudStack>
+
+                @* ── Folders of the current level ── *@
+                @if (VisibleFolders.Any())
+                {
+                    <div class="wa-folder-strip mb-3">
+                        @foreach (var folder in VisibleFolders)
+                        {
+                            <div class="@FolderItemClass(folder)"
+                                 draggable="true"
+                                 data-wa-drag-folder="@folder.Id"
+                                 data-wa-drop="@folder.Id"
+                                 @onclick="e => OnFolderClick(folder, e)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Folder" Color="Color.Warning" />
+                                <MudText Typo="Typo.body2" Class="wa-folder-name">@folder.Name</MudText>
+
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                                    <MudMenuItem Icon="@Icons.Material.Filled.FolderOpen"
+                                                 OnClick="() => OpenFolder(folder.Id)">Open</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.DriveFileRenameOutline"
+                                                 OnClick="() => RenameFolderAsync(folder)">Rename</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.ContentCut"
+                                                 OnClick="() => CutFolder(folder)">Cut</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                                                 OnClick="() => DeleteFolderAsync(folder)">Delete</MudMenuItem>
+                                </MudMenu>
+
+                            </div>
+                        }
                     </div>
                 }
-                else if (_viewMode == ViewMode.List)
+
+                @if (_viewMode == ViewMode.List)
                 {
                     <div class="wa-dropzone-bar mb-3">
                         @* Same MudFileUpload usage as FileUploadDialog — untouched. *@
@@ -77,12 +124,11 @@
                                        DragAndDrop="true"
                                        AppendMultipleFiles="true"
                                        MaximumFileCount="20">
-
                         </MudFileUpload>
                     </div>
 
                     <MudTable T="StoredFileResponse"
-                              Items="_files"
+                              Items="VisibleFiles"
                               Hover="true"
                               Class="manage-files-table"
                               OnRowClick="OnTableRowClick"
@@ -99,10 +145,12 @@
                         <RowTemplate Context="file">
 
                             <MudTd DataLabel="File">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                    <MudIcon Icon="@GetFileIcon(file)" Size="Size.Small" Color="Color.Primary" />
-                                    <MudText>@file.OriginalFileName</MudText>
-                                </MudStack>
+                                <div class="@FileDragClass(file)" draggable="true" data-wa-drag-file="@file.Id">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@GetFileIcon(file)" Size="Size.Small" Color="Color.Primary" />
+                                        <MudText>@file.OriginalFileName</MudText>
+                                    </MudStack>
+                                </div>
                             </MudTd>
 
                             <MudTd DataLabel="Size">
@@ -127,7 +175,6 @@
                                     <MudMenu Icon="@Icons.Material.Filled.Sell" Size="Size.Small" Dense="true">
                                         @TagPickerContent(file)
                                     </MudMenu>
-
                                 </MudStack>
                             </MudTd>
 
@@ -169,21 +216,22 @@
                 {
                     <div class="file-grid">
 
-                        @foreach (var file in _files)
+                        @foreach (var file in VisibleFiles)
                         {
-                            <StoredFileCard File="file"
-                                            IsSelected="@(file.Id == _selectedFile?.Id)"
-                                            DownloadUrl="@BuildDownloadUrl(file)"
-                                            ThumbnailUrl="@BuildThumbnailUrl(file)"
-                                            PresetColors="_presetColors"
-                                            OnSelect="SelectFile"
-                                            OnDownload="DownloadAsync"
-                                            OnDelete="DeleteAsync"
-                                            OnAddTag="HandleCardAddTag"
-                                            OnRemoveTag="HandleCardRemoveTag" />
+                            <div class="@FileDragClass(file)" draggable="true" data-wa-drag-file="@file.Id">
+                                <StoredFileCard File="file"
+                                                IsSelected="@(file.Id == _selectedFile?.Id)"
+                                                DownloadUrl="@BuildDownloadUrl(file)"
+                                                ThumbnailUrl="@BuildThumbnailUrl(file)"
+                                                PresetColors="_presetColors"
+                                                OnSelect="SelectFile"
+                                                OnDownload="DownloadAsync"
+                                                OnDelete="DeleteAsync"
+                                                OnAddTag="HandleCardAddTag"
+                                                OnRemoveTag="HandleCardRemoveTag" />
+                            </div>
                         }
 
-                        @* Square upload tile, same size/shape as a file card, sits right after the last file. *@
                         <div class="wa-dropzone-tile">
                             @* Same MudFileUpload usage as FileUploadDialog — untouched. *@
                             <MudFileUpload T="IReadOnlyList<IBrowserFile>"
@@ -192,7 +240,6 @@
                                            DragAndDrop="true"
                                            AppendMultipleFiles="true"
                                            MaximumFileCount="20">
-
                             </MudFileUpload>
                         </div>
 
@@ -222,6 +269,11 @@
                             </MudStack>
 
                             <MudStack Row="true" Spacing="1">
+                                <MudTooltip Text="Cut (then open a folder and paste)">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCut"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => CutFile(_selectedFile))" />
+                                </MudTooltip>
                                 <MudTooltip Text="Open in new tab">
                                     <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
                                                    Size="Size.Small"
@@ -445,6 +497,40 @@
     private IReadOnlyList<IBrowserFile>? _pendingFiles;
 
     private IReadOnlyList<StoredFileResponse> _files = Array.Empty<StoredFileResponse>();
+
+    private IReadOnlyList<StoredFolderResponse> _folders = Array.Empty<StoredFolderResponse>();
+    private int? _currentFolderId;   // null = root
+    private int? _selectedFolderId;
+
+    private List<int>? _cutFileIds;
+    private int? _cutFolderId;
+
+    private bool HasCut => _cutFileIds is { Count: > 0 } || _cutFolderId is not null;
+
+    private IEnumerable<StoredFolderResponse> VisibleFolders =>
+        _folders.Where(f => f.ParentFolderId == _currentFolderId);
+
+    private IReadOnlyList<StoredFileResponse> VisibleFiles =>
+        _files.Where(f => f.FolderId == _currentFolderId).ToList();
+
+    private List<StoredFolderResponse> BreadcrumbPath
+    {
+        get
+        {
+            var path = new List<StoredFolderResponse>();
+            var byId = _folders.ToDictionary(f => f.Id);
+            var id = _currentFolderId;
+
+            while (id is int c && byId.TryGetValue(c, out var folder))
+            {
+                path.Insert(0, folder);
+                id = folder.ParentFolderId;
+            }
+
+            return path;
+        }
+    }
+
     private bool _isLoading;
     private bool _isUploading;
 
@@ -461,6 +547,9 @@
 
     private string _newTagName = string.Empty;
     private string _newTagColor = nameof(Color.Primary);
+
+    private IJSObjectReference? _dropPasteModule;
+    private DotNetObjectReference<ManageStoredFilesDialog>? _dotNetRef;
 
     private readonly (string Name, Color Value)[] _presetColors =
     {
@@ -508,6 +597,10 @@
         StateHasChanged();
 
         _files = await LoadFilesFunc(CancellationToken.None);
+        _folders = await LoadFoldersFunc(CancellationToken.None);
+
+        if (_currentFolderId is int current && _folders.All(f => f.Id != current))
+            _currentFolderId = null;
 
         _isLoading = false;
         StateHasChanged();
@@ -515,6 +608,7 @@
 
     private void SelectFile(StoredFileResponse file)
     {
+        _selectedFolderId = null;
         _selectedFile = file;
         _editableContent = file.Content ?? string.Empty;
         _activeTabIndex = PreviewTabIndex;
@@ -613,7 +707,7 @@
         _isUploading = true;
         StateHasChanged();
 
-        var success = await UploadFilesFunc(deduped, null, CancellationToken.None);
+        var success = await UploadFilesFunc(deduped, _currentFolderId, CancellationToken.None);
 
         _isUploading = false;
         _pendingFiles = null;
@@ -697,31 +791,258 @@
             : Color.Default;
     }
 
-    // drop _ past _ copy past
-    private IJSObjectReference? _dropPasteModule;
+    // ── JS: drop/paste upload, internal drag-drop, cut/paste shortcuts ──
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
             return;
 
-        _dropPasteModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/Marilog.Shared.UI/js/fileDropPaste.js");
+        _dotNetRef = DotNetObjectReference.Create(this);
 
-        await _dropPasteModule.InvokeVoidAsync("attach");
+        // bump ?v= whenever fileDropPaste.js changes, so the browser doesn't serve a cached copy
+        _dropPasteModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/Marilog.Shared.UI/js/fileDropPaste.js?v=2");
+
+        await _dropPasteModule.InvokeVoidAsync("attach", _dotNetRef);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_dropPasteModule is null)
+        if (_dropPasteModule is not null)
+        {
+            try
+            {
+                await _dropPasteModule.InvokeVoidAsync("detach");
+                await _dropPasteModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+
+        _dotNetRef?.Dispose();
+    }
+
+    // ── Folders: navigation ─────────────────────────────────────────────
+
+    private void OpenFolder(int? folderId)
+    {
+        _currentFolderId = folderId;
+        _selectedFolderId = null;
+        ClearSelection();
+    }
+
+    private void OnFolderClick(StoredFolderResponse folder, MouseEventArgs e)
+    {
+        if (e.Detail >= 2)
+            OpenFolder(folder.Id);          // second click of a double-click
+        else
+            _selectedFolderId = folder.Id;  // single click = select (for Ctrl+X)
+    }
+
+    private string FolderItemClass(StoredFolderResponse folder) =>
+        "wa-folder-item"
+        + (folder.Id == _selectedFolderId ? " wa-folder-selected" : string.Empty)
+        + (folder.Id == _cutFolderId ? " wa-cut" : string.Empty);
+
+    private string FileDragClass(StoredFileResponse file) =>
+        "wa-file-drag" + (_cutFileIds?.Contains(file.Id) == true ? " wa-cut" : string.Empty);
+
+    // ── Folders: CRUD ───────────────────────────────────────────────────
+
+    private async Task CreateFolderAsync()
+    {
+        var name = await PromptFolderNameAsync("New Folder", string.Empty);
+        if (name is null)
             return;
 
-        try
+        if (NameExists(name, _currentFolderId, excludeId: null))
         {
-            await _dropPasteModule.InvokeVoidAsync("detach");
-            await _dropPasteModule.DisposeAsync();
+            Snackbar.Add($"A folder named \"{name}\" already exists here.", Severity.Warning);
+            return;
         }
-        catch (JSDisconnectedException) { }
+
+        await CreateFolderFunc(name, _currentFolderId, CancellationToken.None);
+        await ReloadAsync();
+    }
+
+    private async Task RenameFolderAsync(StoredFolderResponse folder)
+    {
+        var name = await PromptFolderNameAsync("Rename Folder", folder.Name);
+        if (name is null || name == folder.Name)
+            return;
+
+        if (NameExists(name, folder.ParentFolderId, folder.Id))
+        {
+            Snackbar.Add($"A folder named \"{name}\" already exists here.", Severity.Warning);
+            return;
+        }
+
+        await RenameFolderFunc(folder.Id, name, CancellationToken.None);
+        await ReloadAsync();
+    }
+
+    private async Task DeleteFolderAsync(StoredFolderResponse folder)
+    {
+        if (_files.Any(f => f.FolderId == folder.Id) || _folders.Any(f => f.ParentFolderId == folder.Id))
+        {
+            Snackbar.Add("Only empty folders can be deleted.", Severity.Warning);
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete the folder \"{folder.Name}\"?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmed != true)
+            return;
+
+        await DeleteFolderFunc(folder.Id, CancellationToken.None);
+
+        if (_cutFolderId == folder.Id)
+            _cutFolderId = null;
+
+        Snackbar.Add("Folder deleted.", Severity.Success);
+        await ReloadAsync();
+    }
+
+    private async Task<string?> PromptFolderNameAsync(string title, string initialName)
+    {
+        var parameters = new DialogParameters<FolderNameDialog> { { x => x.InitialName, initialName } };
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
+
+        var dialog = await DialogService.ShowAsync<FolderNameDialog>(title, parameters, options);
+        var result = await dialog.Result;
+
+        return result is null || result.Canceled ? null : result.Data as string;
+    }
+
+    private bool NameExists(string name, int? parentFolderId, int? excludeId) =>
+        _folders.Any(f => f.ParentFolderId == parentFolderId
+                       && f.Id != excludeId
+                       && string.Equals(f.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    // ── Moving (shared by drag-drop and cut-paste) ──────────────────────
+
+    private async Task MoveFilesToAsync(IReadOnlyList<int> fileIds, int? targetFolderId)
+    {
+        var ids = fileIds
+            .Where(id => _files.Any(f => f.Id == id && f.FolderId != targetFolderId))
+            .ToList();
+
+        if (ids.Count == 0)
+            return;
+
+        await MoveFilesFunc(ids, targetFolderId, CancellationToken.None);
+
+        Snackbar.Add(ids.Count == 1 ? "File moved." : $"{ids.Count} files moved.", Severity.Success);
+        await ReloadAsync();
+    }
+
+    private async Task MoveFolderToAsync(int folderId, int? targetParentId)
+    {
+        var folder = _folders.FirstOrDefault(f => f.Id == folderId);
+        if (folder is null || folder.ParentFolderId == targetParentId || targetParentId == folderId)
+            return;
+
+        if (IsSelfOrDescendant(targetParentId, folderId))
+        {
+            Snackbar.Add("A folder can't be moved into one of its subfolders.", Severity.Warning);
+            return;
+        }
+
+        if (NameExists(folder.Name, targetParentId, folder.Id))
+        {
+            Snackbar.Add($"A folder named \"{folder.Name}\" already exists there.", Severity.Warning);
+            return;
+        }
+
+        await MoveFolderFunc(folderId, targetParentId, CancellationToken.None);
+
+        Snackbar.Add("Folder moved.", Severity.Success);
+        await ReloadAsync();
+    }
+
+    private bool IsSelfOrDescendant(int? candidateId, int folderId)
+    {
+        var byId = _folders.ToDictionary(f => f.Id);
+        var id = candidateId;
+
+        while (id is int c)
+        {
+            if (c == folderId)
+                return true;
+
+            id = byId.TryGetValue(c, out var f) ? f.ParentFolderId : null;
+        }
+
+        return false;
+    }
+
+    // ── Drag & drop (driven by JS, which calls in here on drop) ─────────
+
+    [JSInvokable]
+    public Task OnInternalDrop(string kind, int id, int? targetFolderId) =>
+        InvokeAsync(async () =>
+        {
+            if (kind == "file")
+                await MoveFilesToAsync([id], targetFolderId);
+            else if (kind == "folder")
+                await MoveFolderToAsync(id, targetFolderId);
+        });
+
+    // ── Cut & paste ─────────────────────────────────────────────────────
+
+    private void CutFolder(StoredFolderResponse folder)
+    {
+        _cutFolderId = folder.Id;
+        _cutFileIds = null;
+    }
+
+    private void CutFile(StoredFileResponse file)
+    {
+        _cutFileIds = [file.Id];
+        _cutFolderId = null;
+        ClearSelection(); // close the drawer so the user can navigate to the target folder
+    }
+
+    [JSInvokable]
+    public async Task OnCutShortcut()
+    {
+        if (_selectedFolderId is int folderId)
+        {
+            _cutFolderId = folderId;
+            _cutFileIds = null;
+        }
+        else if (_selectedFile is not null)
+        {
+            _cutFileIds = [_selectedFile.Id];
+            _cutFolderId = null;
+        }
+        else
+        {
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OnPasteShortcut() => InvokeAsync(PasteAsync);
+
+    private async Task PasteAsync()
+    {
+        var fileIds = _cutFileIds;
+        var folderId = _cutFolderId;
+        _cutFileIds = null;
+        _cutFolderId = null;
+
+        if (fileIds is { Count: > 0 })
+            await MoveFilesToAsync(fileIds, _currentFolderId);
+        else if (folderId is int id)
+            await MoveFolderToAsync(id, _currentFolderId);
     }
 
     private static string GetFileIcon(StoredFileResponse file)
@@ -928,6 +1249,73 @@
     /* Remove the dark scrim behind this dialog only */
     .mud-dialog-container:has(.wa-viewer) .mud-overlay-scrim {
         background-color: transparent !important;
+    }
+
+    .wa-breadcrumb {
+        flex-wrap: wrap;
+    }
+
+    .wa-crumb {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        .wa-crumb:hover {
+            background-color: var(--mud-palette-action-default-hover);
+        }
+
+    .wa-folder-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .wa-folder-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 220px;
+        padding: 4px 4px 4px 12px;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        cursor: pointer;
+        user-select: none;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+        .wa-folder-item:hover {
+            background-color: var(--mud-palette-action-default-hover);
+        }
+
+    .wa-folder-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .wa-folder-selected {
+        border-color: var(--mud-palette-primary);
+        background-color: var(--mud-palette-primary-hover);
+    }
+
+    .wa-drop-target {
+        outline: 2px dashed var(--mud-palette-primary);
+        outline-offset: 2px;
+        background-color: var(--mud-palette-primary-hover) !important;
+    }
+
+    .wa-file-drag {
+        cursor: grab;
+    }
+
+    .wa-cut {
+        opacity: 0.45;
     }
 
 </style>

@@ -1,0 +1,50 @@
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.ManagingStoredFiles
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string"
+                      @bind-Value="_name"
+                      Label="Folder name"
+                      Immediate="true"
+                      AutoFocus="true"
+                      MaxLength="200"
+                      OnKeyDown="OnKeyDown" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@string.IsNullOrWhiteSpace(_name)"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public string InitialName { get; set; } = string.Empty;
+
+    private string _name = string.Empty;
+
+    protected override void OnInitialized() => _name = InitialName;
+
+    private void Submit()
+    {
+        if (!string.IsNullOrWhiteSpace(_name))
+            MudDialog.Close(DialogResult.Ok(_name.Trim()));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Submit();
+    }
+}
