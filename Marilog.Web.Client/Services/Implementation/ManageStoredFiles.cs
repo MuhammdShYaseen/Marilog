@@ -22,6 +22,9 @@ namespace Marilog.Web.Client.Services.Implementation
             _dialogService = dialogService;
             _snackbar = snackbar;
         }
+
+        public Task OpenManageStoredFilesDialogAsync((int entityId, EntityType entityType) arg)
+            => OpenManageStoredFilesDialogAsync(arg, null);
         public async Task OpenManageStoredFilesDialogAsync((int entityId, EntityType entityType) arg, string? contextLabel = null)
         {
             var title = string.IsNullOrWhiteSpace(contextLabel)
