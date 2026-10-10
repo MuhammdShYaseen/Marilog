@@ -8,6 +8,7 @@ namespace Marilog.Domain.Entities.SystemEntities
     {
         public EntityType EntityType { get; private set; } = EntityType.NONE;
         public int? EntityId { get; private set; }
+        public int? FolderId { get; private set; } // null = root
         public string OriginalFileName { get; private set; } = null!;// from user machine
         public string StoredFileName { get; private set; } = null!; //saved as GUID this GUID Come from File its self couse of it has GUID property inheret from Entity;
         public string RelativePath { get; private set; } = null!;
@@ -30,7 +31,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             long size,
             string checksum,
             EntityType entityType,
-            int? entityId)
+            int? entityId,
+            int? folderId = null)
         {
             var storedfile = new StoredFile
             {
@@ -41,7 +43,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Size = size,
                 Checksum = checksum,
                 EntityId = entityId,
-                EntityType = entityType
+                EntityType = entityType,
+                FolderId = folderId
             };
             storedfile.AddDomainEvent(new StoredFileOcrRequestedEvent(storedfile.Guid, storedfile.RelativePath));
             return storedfile;
@@ -56,6 +59,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             // تحديث الربط فقط (تصحيح خطأ المستخدم)
             EntityType = entityType;
             EntityId = entityId;
+            FolderId = null; // المجلد تابع للـ entity القديم
             Touch();
         }
 
@@ -85,6 +89,18 @@ namespace Marilog.Domain.Entities.SystemEntities
         public void SetThumbnail(string? relativePath)
         {
             ThumbnailRelativePath = relativePath;
+        }
+
+
+        //---Folder------------------------------------------------------------------------------
+
+        public void MoveToFolder(int? folderId)
+        {
+            if (FolderId == folderId)
+                return;
+
+            FolderId = folderId;
+            Touch();
         }
 
     }
