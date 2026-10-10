@@ -400,7 +400,25 @@
     public Func<int, int, CancellationToken, Task> RemoveTagFunc { get; set; } = default!;
 
     [Parameter, EditorRequired]
-    public Func<IReadOnlyList<IBrowserFile>, CancellationToken, Task<bool>> UploadFilesFunc { get; set; } = default!;
+    public Func<IReadOnlyList<IBrowserFile>, int?, CancellationToken, Task<bool>> UploadFilesFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<CancellationToken, Task<IReadOnlyList<StoredFolderResponse>>> LoadFoldersFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<string, int?, CancellationToken, Task<StoredFolderResponse>> CreateFolderFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<int, string, CancellationToken, Task> RenameFolderFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<int, int?, CancellationToken, Task> MoveFolderFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<int, CancellationToken, Task> DeleteFolderFunc { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Func<IReadOnlyList<int>, int?, CancellationToken, Task> MoveFilesFunc { get; set; } = default!;
 
     [Parameter, EditorRequired]
     public Func<StoredFileResponse, string> BuildDownloadUrl { get; set; } = default!;
@@ -595,7 +613,7 @@
         _isUploading = true;
         StateHasChanged();
 
-        var success = await UploadFilesFunc(deduped, CancellationToken.None);
+        var success = await UploadFilesFunc(deduped, null, CancellationToken.None);
 
         _isUploading = false;
         _pendingFiles = null;

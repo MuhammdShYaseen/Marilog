@@ -93,6 +93,13 @@ namespace Marilog.Client.Services.SystemServices
                     "EntityId");
             }
 
+            if (first.FolderId is not null)
+            {
+                content.Add(
+                    new StringContent(first.FolderId.Value.ToString()),
+                    "FolderId");
+            }
+
             var httpResponse = await _http.PostAsync(Base, content, ct);
             httpResponse.EnsureSuccessStatusCode();
 
@@ -157,6 +164,57 @@ namespace Marilog.Client.Services.SystemServices
         {
             var response = await _http.PutAsJsonAsync( $"{Base}/{id}/user-content", content, cancellationToken);
             response.EnsureSuccessStatusCode();
+        }
+
+
+
+        // ── Folders ──────────────────────────────────────────────────────────
+
+        public async Task<IReadOnlyList<StoredFolderResponse>> GetFoldersByEntityIdAsync(
+            int entityId,
+            EntityType entityType,
+            CancellationToken ct = default)
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<StoredFolderResponse>>>(
+                $"{Base}/folders/entity/{(int)entityType}/{entityId}", ct);
+            return response?.Data ?? Array.Empty<StoredFolderResponse>();
+        }
+
+        public async Task<StoredFolderResponse> CreateFolderAsync(CreateStoredFolderRequest request, CancellationToken ct = default)
+        {
+            var httpResponse = await _http.PostAsJsonAsync($"{Base}/folders", request, ct);
+            httpResponse.EnsureSuccessStatusCode();
+
+            var response = await httpResponse.Content
+                .ReadFromJsonAsync<ApiResponse<StoredFolderResponse>>(cancellationToken: ct);
+
+            return response?.Data ?? throw new InvalidOperationException("Folder creation failed.");
+        }
+
+        public async Task RenameFolderAsync(int id, string name, CancellationToken ct = default)
+        {
+            var request = new RenameStoredFolderRequest { Name = name };
+            var httpResponse = await _http.PutAsJsonAsync($"{Base}/folders/{id}/name", request, ct);
+            httpResponse.EnsureSuccessStatusCode();
+        }
+
+        public async Task MoveFolderAsync(int id, int? targetParentFolderId, CancellationToken ct = default)
+        {
+            var request = new MoveStoredFolderRequest { TargetParentFolderId = targetParentFolderId };
+            var httpResponse = await _http.PutAsJsonAsync($"{Base}/folders/{id}/parent", request, ct);
+            httpResponse.EnsureSuccessStatusCode();
+        }
+
+        public async Task DeleteFolderAsync(int id, CancellationToken ct = default)
+        {
+            var httpResponse = await _http.DeleteAsync($"{Base}/folders/{id}", ct);
+            httpResponse.EnsureSuccessStatusCode();
+        }
+
+        public async Task MoveFilesAsync(MoveStoredFilesRequest request, CancellationToken ct = default)
+        {
+            var httpResponse = await _http.PostAsJsonAsync($"{Base}/move", request, ct);
+            httpResponse.EnsureSuccessStatusCode();
         }
     }
 }

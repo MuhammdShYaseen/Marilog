@@ -41,13 +41,14 @@ namespace Marilog.Web.Client.Services.Implementation
                 { x => x.BuildDownloadUrl, file => $"{_http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
                 { x => x.BuildThumbnailUrl, file => $"{_http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream" },
                 { x => x.SaveContentFunc,(id, content, ct) => UpdateContentAsync(id, content, ct) },
-                { x => x.UploadFilesFunc, async (files, ct) =>
+                                { x => x.UploadFilesFunc, async (files, folderId, ct) =>
                     {
                         var requests = files.Select(f => new UploadFileRequest
                         {
                             ContentType = f.ContentType,
                             EntityId = arg.entityId,
                             EntityType = arg.entityType,
+                            FolderId = folderId,
                             FileName = f.Name,
                             FileStream = f.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024),
                             Size = f.Size
@@ -56,7 +57,23 @@ namespace Marilog.Web.Client.Services.Implementation
                         var outcome = await _storedFileService.UploadAsync(requests, ct);
                         return outcome.Count > 0;
                     }
-                }
+                },
+                { x => x.LoadFoldersFunc, ct => _storedFileService.GetFoldersByEntityIdAsync(arg.entityId, arg.entityType, ct) },
+                { x => x.CreateFolderFunc, (name, parentFolderId, ct) => _storedFileService.CreateFolderAsync(new CreateStoredFolderRequest
+                    {
+                        Name = name,
+                        ParentFolderId = parentFolderId,
+                        EntityType = arg.entityType,
+                        EntityId = arg.entityId
+                    }, ct) },
+                { x => x.RenameFolderFunc, (id, name, ct) => _storedFileService.RenameFolderAsync(id, name, ct) },
+                { x => x.MoveFolderFunc, (id, targetParentFolderId, ct) => _storedFileService.MoveFolderAsync(id, targetParentFolderId, ct) },
+                { x => x.DeleteFolderFunc, (id, ct) => _storedFileService.DeleteFolderAsync(id, ct) },
+                { x => x.MoveFilesFunc, (fileIds, targetFolderId, ct) => _storedFileService.MoveFilesAsync(new MoveStoredFilesRequest
+                    {
+                        FileIds = fileIds.ToList(),
+                        TargetFolderId = targetFolderId
+                    }, ct) },
             };
 
             await _dialogService.ShowAsync<ManageStoredFilesDialog>("Manage Documents", parameters, options);

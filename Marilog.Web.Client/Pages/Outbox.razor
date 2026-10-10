@@ -142,13 +142,14 @@
             { x => x.RemoveTagFunc, (id, tagId, ct) => StoredFileService.RemoveTagAsync(id, tagId, ct) },
             { x => x.BuildDownloadUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
             { x => x.BuildThumbnailUrl, file => $"{Http.BaseAddress}api/StoredFiles/{file.Id}/thumbnail" },
-            { x => x.UploadFilesFunc, async (files, ct) =>
+            { x => x.UploadFilesFunc, async (files, folderId, ct) =>
                 {
                     var requests = files.Select(f => new Marilog.Contracts.DTOs.Requests.StoregFileDTOs.UploadFileRequest
                     {
                         ContentType = f.ContentType,
                         EntityId = email.Id,
                         EntityType = EntityType.Email,
+                        FolderId= folderId,
                         FileName = f.Name,
                         FileStream = f.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024),
                         Size = f.Size
