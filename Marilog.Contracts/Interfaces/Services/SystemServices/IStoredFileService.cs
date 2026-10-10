@@ -25,5 +25,15 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         // Tags
         Task AddTagAsync(int storedFileId, string name, string color, CancellationToken ct = default);
         Task RemoveTagAsync(int storedFileId, int tagId, CancellationToken ct = default);
+
+
+
+        //Folders
+        Task<IReadOnlyList<StoredFolderResponse>> GetFoldersByEntityIdAsync(int entityId, EntityType entityType, CancellationToken ct = default);
+        Task<StoredFolderResponse> CreateFolderAsync(CreateStoredFolderRequest request, CancellationToken ct = default);
+        Task RenameFolderAsync(int id, string name, CancellationToken ct = default);
+        Task MoveFolderAsync(int id, int? targetParentFolderId, CancellationToken ct = default);
+        Task DeleteFolderAsync(int id, CancellationToken ct = default);
+        Task MoveFilesAsync(MoveStoredFilesRequest request, CancellationToken ct = default);
     }
 }

@@ -17,8 +17,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class StoredFileService : IStoredFileService
     {
         private readonly IRepository<StoredFile> _repoStoredFile;
+        private readonly IRepository<StoredFolder> _repoStoredFolder;
         private readonly IFileStorageProvider _storage;
 
+        public StoredFileService(IRepository<StoredFile> repository, IRepository<StoredFolder> folderRepository, IFileStorageProvider storage)
+        {
+            _repoStoredFile = repository;
+            _repoStoredFolder = folderRepository;
+            _storage = storage;
+        }
         // ── Mapping ─────────────────────────────────────────────────────────
         private static readonly Expression<Func<StoredFile, StoredFileResponse>> ToResponse = f => new StoredFileResponse
         {
@@ -31,6 +38,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             Checksum = f.Checksum,
             EntityType = f.EntityType,
             EntityId = f.EntityId,
+            FolderId = f.FolderId,
             CreatedAt = f.CreatedAt,
             Content = f.Content,
             HasThumbnail = f.ThumbnailRelativePath != null,
@@ -42,11 +50,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             }).ToList()
         };
 
-        public StoredFileService(IRepository<StoredFile> repository, IFileStorageProvider storage)
+        private static readonly Expression<Func<StoredFolder, StoredFolderResponse>> ToFolderResponse = f => new StoredFolderResponse
         {
-            _repoStoredFile = repository;
-            _storage = storage;
-        }
+            Id = f.Id,
+            Name = f.Name,
+            ParentFolderId = f.ParentFolderId
+        };
 
         // ── Queries ──────────────────────────────────────────────────────────
 
@@ -170,8 +179,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
         {
             var files = new List<StoredFile>();
+            var requestList = requests.ToList();
 
-            foreach (var request in requests)
+            // validate target folders before writing anything to disk
+            foreach (var r in requestList.Where(r => r.FolderId.HasValue))
+                EnsureSameEntity(await GetFolderOrThrowAsync(r.FolderId!.Value, ct), r.EntityType, r.EntityId);
+
+            foreach (var request in requestList)
             {
                 if (!CanConvertToPdf(request.FileName))
                     continue;
@@ -193,7 +207,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     size: request.Size,
                     checksum: checksum,
                     entityType: request.EntityType,
-                    entityId: request.EntityId);
+                    entityId: request.EntityId,
+                    folderId: request.FolderId);
 
                 await _repoStoredFile.AddAsync(file, ct);   // يضيف للـ context بس، من غير Save
                 files.Add(file);
@@ -283,6 +298,109 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repoStoredFile.SaveChangesAsync(ct);
         }
 
+
+        // ── Folders ──────────────────────────────────────────────────────────
+
+        public async Task<IReadOnlyList<StoredFolderResponse>> GetFoldersByEntityIdAsync(int entityId, EntityType entityType, CancellationToken ct = default)
+        {
+            return await _repoStoredFolder.Query()
+                .AsNoTracking()
+                .Where(f => f.EntityId == entityId && f.EntityType == entityType)
+                .OrderBy(f => f.Name)
+                .Select(ToFolderResponse)
+                .ToListAsync(ct);
+        }
+
+        public async Task<StoredFolderResponse> CreateFolderAsync(CreateStoredFolderRequest request, CancellationToken ct = default)
+        {
+            if (request.ParentFolderId is int parentId)
+                EnsureSameEntity(await GetFolderOrThrowAsync(parentId, ct), request.EntityType, request.EntityId);
+
+            var folder = StoredFolder.Create(request.Name, request.ParentFolderId, request.EntityType, request.EntityId);
+            await EnsureUniqueNameAsync(folder, folder.ParentFolderId, ct);
+
+            await _repoStoredFolder.AddAsync(folder, ct);
+            await _repoStoredFolder.SaveChangesAsync(ct);
+
+            return new StoredFolderResponse { Id = folder.Id, Name = folder.Name, ParentFolderId = folder.ParentFolderId };
+        }
+
+        public async Task RenameFolderAsync(int id, string name, CancellationToken ct = default)
+        {
+            var folder = await GetFolderOrThrowAsync(id, ct);
+
+            folder.Rename(name);
+            await EnsureUniqueNameAsync(folder, folder.ParentFolderId, ct);
+
+            await _repoStoredFolder.SaveChangesAsync(ct);
+        }
+
+        public async Task MoveFolderAsync(int id, int? targetParentFolderId, CancellationToken ct = default)
+        {
+            var folder = await GetFolderOrThrowAsync(id, ct);
+            if (folder.ParentFolderId == targetParentFolderId)
+                return;
+
+            if (targetParentFolderId is int targetId)
+            {
+                EnsureSameEntity(await GetFolderOrThrowAsync(targetId, ct), folder.EntityType, folder.EntityId);
+
+                // walk up from the target; if we meet the folder itself → cycle
+                var parents = await _repoStoredFolder.Query()
+                    .AsNoTracking()
+                    .Where(f => f.EntityType == folder.EntityType && f.EntityId == folder.EntityId)
+                    .ToDictionaryAsync(f => f.Id, f => f.ParentFolderId, ct);
+
+                for (int? current = targetId; current is int c; current = parents.GetValueOrDefault(c))
+                {
+                    if (c == folder.Id)
+                        throw new InvalidOperationException("A folder can't be moved into itself or one of its subfolders.");
+                }
+            }
+
+            folder.MoveTo(targetParentFolderId);
+            await EnsureUniqueNameAsync(folder, targetParentFolderId, ct);
+
+            await _repoStoredFolder.SaveChangesAsync(ct);
+        }
+
+        public async Task DeleteFolderAsync(int id, CancellationToken ct = default)
+        {
+            var folder = await GetFolderOrThrowAsync(id, ct);
+
+            var hasFiles = await _repoStoredFile.Query().AnyAsync(f => f.FolderId == id, ct);
+            var hasSubfolders = await _repoStoredFolder.Query().AnyAsync(f => f.ParentFolderId == id, ct);
+
+            if (hasFiles || hasSubfolders)
+                throw new InvalidOperationException("Only empty folders can be deleted.");
+
+            _repoStoredFolder.HardDelete(folder);
+            await _repoStoredFolder.SaveChangesAsync(ct);
+        }
+
+        public async Task MoveFilesAsync(MoveStoredFilesRequest request, CancellationToken ct = default)
+        {
+            var files = await _repoStoredFile.Query()
+                .Where(f => request.FileIds.Contains(f.Id))
+                .ToListAsync(ct);
+
+            if (files.Count == 0)
+                return;
+
+            if (request.TargetFolderId is int targetId)
+            {
+                var target = await GetFolderOrThrowAsync(targetId, ct);
+                foreach (var file in files)
+                    EnsureSameEntity(target, file.EntityType, file.EntityId);
+            }
+
+            foreach (var file in files)
+                file.MoveToFolder(request.TargetFolderId);
+
+            await _repoStoredFile.SaveChangesAsync(ct);
+        }
+
+
         // ── Private Helpers ──────────────────────────────────────────────────
 
         private static async Task<string> ComputeChecksumAsync(Stream stream, CancellationToken ct)
@@ -313,6 +431,33 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ".gif" or
                 ".tif" or
                 ".tiff";
+        }
+
+
+        //--Folder Helpper
+        private async Task<StoredFolder> GetFolderOrThrowAsync(int id, CancellationToken ct)
+        {
+            return await _repoStoredFolder.GetByIdAsync(id, ct)
+                ?? throw new KeyNotFoundException($"there is no folder with ID : {id}");
+        }
+
+        private static void EnsureSameEntity(StoredFolder folder, EntityType entityType, int? entityId)
+        {
+            if (folder.EntityType != entityType || folder.EntityId != entityId)
+                throw new InvalidOperationException("The folder belongs to a different record.");
+        }
+
+        private async Task EnsureUniqueNameAsync(StoredFolder folder, int? parentFolderId, CancellationToken ct)
+        {
+            var exists = await _repoStoredFolder.Query()
+                .AnyAsync(f => f.Id != folder.Id
+                            && f.EntityType == folder.EntityType
+                            && f.EntityId == folder.EntityId
+                            && f.ParentFolderId == parentFolderId
+                            && f.Name == folder.Name, ct);
+
+            if (exists)
+                throw new InvalidOperationException($"A folder named \"{folder.Name}\" already exists here.");
         }
     }
 }

@@ -94,8 +94,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             if (uploadDto.Files is null || uploadDto.Files.Count == 0)
                 return BadRequest("At least one file is required.");
 
-            if(uploadDto.Files.Count > 5)
-                return BadRequest("At 5 file is maximum to upload.");
+            if(uploadDto.Files.Count > 20)
+                return BadRequest("At 20 file is maximum to upload.");
 
             var requests = uploadDto.Files.Select(file => new UploadFileRequest
             {
@@ -104,7 +104,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 ContentType = file.ContentType,
                 Size = file.Length,
                 EntityType = uploadDto.EntityType,
-                EntityId = uploadDto.EntityId
+                EntityId = uploadDto.EntityId,
+                FolderId = uploadDto.FolderId
             });
 
             var results = await _service.UploadAsync(requests, ct);
@@ -162,6 +163,50 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<IActionResult> RemoveTag(int storedFileId, int tagId, CancellationToken ct)
         {
             await _service.RemoveTagAsync(storedFileId, tagId, ct);
+            return NoContent();
+        }
+
+        // ── Folders ──────────────────────────────────────────────────────────
+
+        [HttpGet("folders/entity/{entityType:int}/{entityId:int}")]
+        public async Task<IActionResult> GetFoldersByEntity(int entityType, int entityId, CancellationToken ct)
+        {
+            var result = await _service.GetFoldersByEntityIdAsync(entityId, (EntityType)entityType, ct);
+            return Ok(ApiResponse<IReadOnlyList<StoredFolderResponse>>.Ok(result));
+        }
+
+        [HttpPost("folders")]
+        public async Task<IActionResult> CreateFolder([FromBody] CreateStoredFolderRequest request, CancellationToken ct)
+        {
+            var result = await _service.CreateFolderAsync(request, ct);
+            return Ok(ApiResponse<StoredFolderResponse>.Ok(result));
+        }
+
+        [HttpPut("folders/{id:int}/name")]
+        public async Task<IActionResult> RenameFolder(int id, [FromBody] RenameStoredFolderRequest request, CancellationToken ct)
+        {
+            await _service.RenameFolderAsync(id, request.Name, ct);
+            return NoContent();
+        }
+
+        [HttpPut("folders/{id:int}/parent")]
+        public async Task<IActionResult> MoveFolder(int id, [FromBody] MoveStoredFolderRequest request, CancellationToken ct)
+        {
+            await _service.MoveFolderAsync(id, request.TargetParentFolderId, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("folders/{id:int}")]
+        public async Task<IActionResult> DeleteFolder(int id, CancellationToken ct)
+        {
+            await _service.DeleteFolderAsync(id, ct);
+            return NoContent();
+        }
+
+        [HttpPost("move")]
+        public async Task<IActionResult> MoveFiles([FromBody] MoveStoredFilesRequest request, CancellationToken ct)
+        {
+            await _service.MoveFilesAsync(request, ct);
             return NoContent();
         }
     }

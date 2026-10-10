@@ -7,5 +7,7 @@ namespace Marilog.Presentation.PresentationDTOs
         public List<IFormFile> Files { get; set; } = [];
         public EntityType EntityType { get; set; }
         public int? EntityId { get; set; }
+
+        public int? FolderId { get; set; }
     }
 }
