@@ -22,8 +22,12 @@ namespace Marilog.Web.Client.Services.Implementation
             _dialogService = dialogService;
             _snackbar = snackbar;
         }
-        public async Task OpenManageStoredFilesDialogAsync((int entityId, EntityType entityType) arg)
+        public async Task OpenManageStoredFilesDialogAsync((int entityId, EntityType entityType) arg, string? contextLabel = null)
         {
+            var title = string.IsNullOrWhiteSpace(contextLabel)
+                ? $"{arg.entityType} #{arg.entityId}"
+                : contextLabel.Trim();
+
             var options = new DialogOptions
             {
                 MaxWidth = MaxWidth.Medium,
@@ -74,9 +78,10 @@ namespace Marilog.Web.Client.Services.Implementation
                         FileIds = fileIds.ToList(),
                         TargetFolderId = targetFolderId
                     }, ct) },
+                 { x => x.ContextLabel, title },
             };
 
-            await _dialogService.ShowAsync<ManageStoredFilesDialog>("Manage Documents", parameters, options);
+            await _dialogService.ShowAsync<ManageStoredFilesDialog>(title, parameters, options);
         }
 
 
