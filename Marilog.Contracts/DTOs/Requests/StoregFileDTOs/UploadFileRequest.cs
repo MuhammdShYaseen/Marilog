@@ -10,5 +10,7 @@ namespace Marilog.Contracts.DTOs.Requests.StoregFileDTOs
         public long Size { get; init; }
         public EntityType EntityType { get; init; }
         public int? EntityId { get; init; }
+
+        public int? FolderId { get; set; }
     }
 }

@@ -11,6 +11,7 @@ namespace Marilog.Contracts.DTOs.Responses
 
         public int? EntityId { get; set; }
         public EntityType? EntityType { get; set; }
+        public int? FolderId { get; set; }
         public bool HasThumbnail { get; init; }
         public string OriginalFileName { get; set; } = null!;
         public string StoredFileName { get; set; } = null!;
