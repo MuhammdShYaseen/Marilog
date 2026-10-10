@@ -40,12 +40,13 @@ else
                          OnEditBankAccountClicked="OpenEditBankAccountDialog"
                          OnEditEmailClicked="OpenEditEmailDialog"
                          OnEditPhoneClicked="OpenEditPhoneDialog"
-                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
 }
 
 @code {
     private IReadOnlyList<CompanyResponse> _companies = [];
     private bool _loading = true;
+    string? XLabel(int id) => _companies.FirstOrDefault(x => x.Id == id) is { } x ? $"Company : {x.Name}" : null;
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();

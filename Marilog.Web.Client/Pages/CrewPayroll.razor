@@ -13,7 +13,7 @@
 @inject ISwiftTransferService SwiftTransferService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject IManageStoredFiles StoredFiles
+@inject IManageStoredFiles ManageStoredFiles
 
 
 @if (_loading)
@@ -33,7 +33,7 @@ else
                            OnPayClicked="OpenPayDialog"
                            OnMonthSelected="LoadByMonth"
                            OnStatusChanged="LoadByStatus"
-                           OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" />
+                           OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
 }
 
 @code {
@@ -46,6 +46,7 @@ else
     private IReadOnlyList<SwiftTransferResponse> _swifts = [];
     private bool _loading = true;
 
+    string? XLabel(int id) => _contracts.FirstOrDefault(x => x.ContractId == id) is { } x ? $"Crew Member : {x.PersonFullName}" : null;
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()

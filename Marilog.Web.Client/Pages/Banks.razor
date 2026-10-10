@@ -26,13 +26,13 @@
                 OnManageContactsClicked="@HandleManageContactsClickedAsync"
                 OnToggleActiveClicked="@HandleToggleActiveClickedAsync"
                 OnDeleteClicked="@HandleDeleteClickedAsync"
-                OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
 
 @code {
     List<BankResponse> _banks = [];
     List<CountryResponse> _countries = [];
     bool _isLoading;
-
+    string? XLabel(int id) => _banks.FirstOrDefault(x => x.BankId == id) is { } x ? $"Bank · {x.BankName}" : null;
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadCountriesAsync(), LoadBanksAsync());

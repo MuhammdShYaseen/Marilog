@@ -8,20 +8,27 @@
 <MudDialog Class="wa-viewer">
 
     <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-grow-1">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4" Class="wa-title-bar">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="wa-title-main">
                 <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Color="Color.Primary" />
-                <MudStack Spacing="0" Class="wa-title-text">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Attached Files</MudText>
-                    <MudText Typo="Typo.h6" Class="wa-title-label">@ContextLabel</MudText>
+
+                <MudStack Spacing="0" Class="wa-title-text" title="@ContextLabel">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="wa-title-caption">Attached Files</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="wa-title-label">@TitleLine</MudText>
+                    @if (!string.IsNullOrWhiteSpace(SubtitleLine))
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="wa-title-sub">@SubtitleLine</MudText>
+                    }
                 </MudStack>
+
                 @if (_isUploading)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
                 }
             </MudStack>
 
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="wa-title-actions">
                 @if (HasCut)
                 {
                     <MudButton Size="Size.Small"
@@ -53,8 +60,8 @@
                                    Size="Size.Small"
                                    OnClick="OpenInNewTabAsync" />
                 </MudTooltip>
-
             </MudStack>
+
         </MudStack>
     </TitleContent>
 
@@ -632,6 +639,21 @@
             _editableContent = string.Empty;
         }
     }
+
+
+    // ContextLabel convention: first line = title, anything after the first '\n' = details
+    private string TitleLine =>
+        (ContextLabel ?? string.Empty).Split('\n', 2)[0].Trim();
+
+    private string? SubtitleLine
+    {
+        get
+        {
+            var parts = (ContextLabel ?? string.Empty).Split('\n', 2);
+            return parts.Length > 1 ? parts[1].Trim() : null;
+        }
+    }
+
 
     private void ResetContent()
     {
@@ -1237,7 +1259,7 @@
         margin: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
-        background-color: color-mix(in srgb, var(--mud-palette-surface) 30%, transparent) !important;
+        background-color: color-mix(in srgb, var(--mud-palette-surface) 90%, transparent) !important;
         backdrop-filter: blur(2px);
     }
 
@@ -1325,14 +1347,47 @@
     }
 
 
+    .wa-title-bar {
+        width: 100%;
+        min-width: 0;
+        padding-right: 40px; /* keeps the actions clear of the dialog's close (X) button */
+    }
+
+    .wa-title-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     .wa-title-text {
         min-width: 0;
     }
 
+    .wa-title-caption {
+        line-height: 1.2 !important;
+    }
+
     .wa-title-label {
+        font-weight: 600 !important;
+        line-height: 1.3 !important;
+    }
+
+    .wa-title-sub {
+        line-height: 1.3 !important;
+    }
+
+    .wa-title-label,
+    .wa-title-sub {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    .wa-title-actions {
+        flex: 0 0 auto;
+    }
+
+        .wa-title-actions .mud-button-root {
+            white-space: nowrap;
+        }
 
 </style>

@@ -53,7 +53,7 @@
                                       OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
                                       OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
                                       OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
-                                      OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                                      OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))"/>
         }
 
     </MudDrawer>
@@ -67,7 +67,7 @@
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
                          OnDeleteClicked="ConfirmDelete"
-                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
+                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))"
                          OnDocumentSelected="LoadDetail"
                          OnVesselSelected="LoadByVessel"
                          OnSupplierSelected="LoadBySupplier"
@@ -539,6 +539,33 @@
         {
             _loading = false;
         }
+    }
+
+    private string? DocumentLabel(int documentId)
+    {
+        var doc = _detail?.Id == documentId
+            ? _detail
+            : _unpaid.Concat(_byVessel).Concat(_bySupplier).Concat(_byType)
+                     .FirstOrDefault(d => d.Id == documentId);
+
+        return doc is null ? null : BuildDocumentLabel(doc);
+    }
+
+    private static string BuildDocumentLabel(DocumentResponse d)
+    {
+        var title = $"{d.DocTypeName} {d.DocNumber}".Trim();
+
+        var parties = string.Join(" → ",
+            new[] { d.SupplierName, d.BuyerName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        var details = string.Join(" · ", new[]
+        {
+            parties,
+            $"{d.TotalAmount:N2} {d.CurrencyCode}".Trim(),
+            string.IsNullOrWhiteSpace(d.Reference) ? null : $"Ref {d.Reference}"
+        }.Where(p => !string.IsNullOrWhiteSpace(p)));
+
+        return string.IsNullOrWhiteSpace(details) ? title : $"{title}\n{details}";
     }
     
 }

@@ -45,7 +45,7 @@ else
                          OnRemovePartyClicked="OpenRemovePartyDialog"
                          OnRecordAmendmentClicked="OpenRecordAmendmentDialog"
                          OnChangeExpiryClicked="OpenChangeExpiryDialog"
-                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
 }
 
 @code {
@@ -66,7 +66,7 @@ else
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     // ─── Load ──────────────────────────────────────────────────────────────
-
+    string? XLabel(int id) => _paged?.Items.FirstOrDefault(x => x.Id == id) is { } x ? $"Contract Ref : {x.ContractNumber}" : null;
     private async Task LoadAsync()
     {
         _loading = true;

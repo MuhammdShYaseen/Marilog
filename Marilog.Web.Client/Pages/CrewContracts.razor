@@ -22,13 +22,13 @@
 else
 {
     <SharedCrewContractsPage Contracts="@_contracts"
-                      ExpiringContracts="@_expiring"
-                      Vessels="@_vessels"
-                      OnAddClicked="OpenAddDialog"
-                      OnEditClicked="OpenEditDialog"
-                      OnDeleteClicked="ConfirmDelete"
-                      OnSignOffClicked="OpenSignOffDialog"
-                      OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                             ExpiringContracts="@_expiring"
+                             Vessels="@_vessels"
+                             OnAddClicked="OpenAddDialog"
+                             OnEditClicked="OpenEditDialog"
+                             OnDeleteClicked="ConfirmDelete"
+                             OnSignOffClicked="OpenSignOffDialog"
+                             OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
 }
 
 @code {
@@ -43,7 +43,7 @@ else
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     // ─── Load ──────────────────────────────────────────────────────────────
-
+    string? XLabel(int id) => _contracts.FirstOrDefault(x => x.ContractId == id) is { } x ? $"Crew Member : {x.PersonFullName}" : null;
     private async Task LoadAsync()
     {
         _loading = true;
