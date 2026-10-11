@@ -1,5 +1,131 @@
 ﻿@page "/not-found"
 @layout MainLayout
+@using System.Globalization
+@using System.Text
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Page not found · Marilog</PageTitle>
+
+<div class="nf-root">
+    <div class="nf-panel">
+        <div class="nf-header">
+            <span class="nf-logo" style="@LogoMask" role="img" aria-label="Marilog"></span>
+                        <span class="nf-header-status">
+                        <span class="nf-dot"></span>
+                        <span>Error 404 · Page not found</span>
+            
+        </span>
+        </div>
+
+        <div class="nf-body">
+            <div class="nf-code" aria-hidden="true">
+                <span class="nf-digit">4</span>
+                <svg class="nf-compass" viewBox="0 0 120 120" width="124" height="124">
+                    <circle class="ring" cx="60" cy="60" r="56" />
+                    @for (var i = 0; i < 36; i++)
+                    {
+                        var major = i % 9 == 0;
+                        <line class="@(major ? "tick tick-major" : "tick")"
+                              x1="60" y1="7" x2="60" y2="@(major ? 17 : 13)"
+                              stroke-width="@(major ? "2.5" : "1.5")"
+                              transform="rotate(@(i * 10) 60 60)" />
+                    }
+                    <circle class="ring-inner" cx="60" cy="60" r="40" />
+                    <text class="cardinal" x="60" y="29" dominant-baseline="central">N</text>
+                    <text class="cardinal" x="91" y="60" dominant-baseline="central">E</text>
+                    <text class="cardinal" x="60" y="91" dominant-baseline="central">S</text>
+                    <text class="cardinal" x="29" y="60" dominant-baseline="central">W</text>
+                    <g class="needle">
+                        <polygon class="needle-n" points="60,36 65,60 55,60" />
+                        <polygon class="needle-s" points="60,84 65,60 55,60" />
+                    </g>
+                    <circle class="hub" cx="60" cy="60" r="4" />
+                </svg>
+                <span class="nf-digit">4</span>
+            </div>
+
+            <div class="nf-position">LAT --°--′ · LON ---°--′ · OFF CHART</div>
+
+            <MudText Typo="Typo.h5" Class="mt-6">Off course</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                This page isn't on our charts. The link may be outdated, or the page may have been moved or removed.
+            </MudText>
+
+            @if (!string.IsNullOrEmpty(_path))
+            {
+                <div class="nf-path">
+                    <span class="nf-path-label">Requested</span>
+                    <span class="nf-path-value" title="@_path">@_path</span>
+                </div>
+            }
+
+            <div class="nf-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Home" Href="/">
+                    Home
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBackAsync">
+                    Previous page
+                </MudButton>
+            </div>
+        </div>
+
+        <div class="nf-sea" aria-hidden="true">
+            <svg class="nf-waves" viewBox="0 0 1200 90" preserveAspectRatio="none">
+                <path class="nf-wave nf-wave-back" d="@_waveBack" />
+            </svg>
+            <svg class="nf-ship" viewBox="0 0 80 50" width="84" height="52">
+                <rect class="hull" x="60" y="7" width="5" height="9" />
+                <rect class="box" x="17" y="14" width="10" height="8" />
+                <rect class="box" x="12" y="22" width="10" height="8" />
+                <rect class="box" x="23" y="22" width="10" height="8" />
+                <rect class="box" x="34" y="22" width="10" height="8" />
+                <rect class="bridge" x="51" y="16" width="17" height="14" />
+                <rect class="window" x="54" y="19" width="3" height="3" />
+                <rect class="window" x="58.5" y="19" width="3" height="3" />
+                <rect class="window" x="63" y="19" width="3" height="3" />
+                <path class="hull" d="M2 30 H78 L70 44 H12 Z" />
+            </svg>
+            <svg class="nf-waves" viewBox="0 0 1200 90" preserveAspectRatio="none">
+                <path class="nf-wave nf-wave-front" d="@_waveFront" />
+            </svg>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private const string LogoPath = "_content/Marilog.Shared.UI/images/marilog-logo.svg";
+    private const string LogoMask = $"-webkit-mask-image:url('{LogoPath}');mask-image:url('{LogoPath}');";
+
+
+    private string _path = string.Empty;
+    private readonly string _waveBack = BuildWave(baseline: 40, amplitude: 7);
+    private readonly string _waveFront = BuildWave(baseline: 52, amplitude: 6);
+
+    protected override void OnParametersSet()
+    {
+        var relative = Nav.ToBaseRelativePath(Nav.Uri);
+        _path = string.IsNullOrEmpty(relative) || relative.Equals("not-found", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : "/" + relative;
+    }
+
+    private async Task GoBackAsync() => await JS.InvokeVoidAsync("history.back");
+
+    private static string BuildWave(int baseline, int amplitude)
+    {
+        var sb = new StringBuilder();
+        sb.Append(CultureInfo.InvariantCulture, $"M0 {baseline}");
+        for (var x = 0; x < 1400; x += 200)
+        {
+            sb.Append(CultureInfo.InvariantCulture,
+                $" Q{x + 50} {baseline - amplitude} {x + 100} {baseline} Q{x + 150} {baseline + amplitude} {x + 200} {baseline}");
+        }
+        sb.Append(" L1400 90 L0 90 Z");
+        return sb.ToString();
+    }
+}
+

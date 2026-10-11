@@ -35,3 +35,339 @@
         background: #0E9999;
         transition: width .2s ease;
     }
+
+
+
+    /* Not Found Page CSS*/
+
+.nf-root {
+    position: relative;
+    min-height: 75vh;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+}
+
+    .nf-root::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(var(--mud-palette-lines-default) 1px, transparent 1px), linear-gradient(90deg, var(--mud-palette-lines-default) 1px, transparent 1px);
+        background-size: 32px 32px;
+        background-position: center;
+        opacity: .5;
+        -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 72%);
+        mask-image: radial-gradient(ellipse at center, black 25%, transparent 72%);
+        pointer-events: none;
+    }
+
+.nf-panel {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 2px;
+    overflow: hidden;
+    animation: nf-rise .5s ease-out both;
+}
+
+.nf-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary);
+}
+
+.nf-header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nf-logo {
+    display: block;
+    width: 110px;
+    height: 22px;
+    background-color: var(--mud-palette-primary);
+    
+    mask-position: left center;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+}
+
+.nf-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mud-palette-warning);
+    animation: nf-pulse 1.6s ease-in-out infinite;
+}
+
+.nf-body {
+    padding: 32px 32px 0;
+    text-align: center;
+}
+
+.nf-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    line-height: 1;
+}
+
+.nf-digit {
+    font-size: clamp(72px, 16vw, 132px);
+    font-weight: 700;
+    letter-spacing: -.04em;
+    color: var(--mud-palette-primary);
+}
+
+.nf-compass {
+    width: clamp(78px, 15vw, 124px);
+    height: auto;
+    color: var(--mud-palette-primary);
+}
+
+    .nf-compass .ring {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2px;
+    }
+
+    .nf-compass .ring-inner {
+        fill: none;
+        stroke: var(--mud-palette-lines-default);
+        stroke-width: 1px;
+    }
+
+    .nf-compass .tick {
+        stroke: var(--mud-palette-text-disabled);
+    }
+
+    .nf-compass .tick-major {
+        stroke: currentColor;
+    }
+
+    .nf-compass .cardinal {
+        fill: var(--mud-palette-text-secondary);
+        font-size: 10px;
+        font-weight: 700;
+        text-anchor: middle;
+    }
+
+    .nf-compass .needle {
+        transform-box: view-box;
+        transform-origin: 60px 60px;
+        animation: nf-search 5s ease-in-out infinite;
+    }
+
+    .nf-compass .needle-n {
+        fill: var(--mud-palette-error);
+    }
+
+    .nf-compass .needle-s {
+        fill: var(--mud-palette-text-disabled);
+    }
+
+    .nf-compass .hub {
+        fill: var(--mud-palette-surface);
+        stroke: currentColor;
+        stroke-width: 2px;
+    }
+
+.nf-position {
+    margin-top: 14px;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--mud-palette-text-disabled);
+}
+
+.nf-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    margin-top: 18px;
+    padding: 6px 10px;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-background-gray);
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12px;
+}
+
+.nf-path-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary);
+}
+
+.nf-path-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--mud-palette-text-primary);
+}
+
+.nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.nf-sea {
+    position: relative;
+    height: 96px;
+    margin-top: 28px;
+}
+
+.nf-waves {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.nf-wave {
+    fill: var(--mud-palette-primary);
+}
+
+.nf-wave-back {
+    fill-opacity: .10;
+    animation: nf-drift 7s linear infinite;
+}
+
+.nf-wave-front {
+    fill-opacity: .22;
+    animation: nf-drift-rev 5s linear infinite;
+}
+
+.nf-ship {
+    position: absolute;
+    left: 50%;
+    bottom: 40px;
+    width: 84px;
+    height: auto;
+    margin-left: -42px;
+    color: var(--mud-palette-primary);
+    transform-origin: 50% 90%;
+    animation: nf-bob 3.2s ease-in-out infinite;
+}
+
+    .nf-ship .hull {
+        fill: currentColor;
+    }
+
+    .nf-ship .box {
+        fill: var(--mud-palette-secondary);
+    }
+
+    .nf-ship .bridge {
+        fill: currentColor;
+        opacity: .85;
+    }
+
+    .nf-ship .window {
+        fill: var(--mud-palette-surface);
+    }
+
+@keyframes nf-rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes nf-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .3;
+    }
+}
+
+@keyframes nf-search {
+    0% {
+        transform: rotate(-30deg);
+    }
+
+    18% {
+        transform: rotate(35deg);
+    }
+
+    32% {
+        transform: rotate(10deg);
+    }
+
+    50% {
+        transform: rotate(150deg);
+    }
+
+    62% {
+        transform: rotate(120deg);
+    }
+
+    80% {
+        transform: rotate(250deg);
+    }
+
+    100% {
+        transform: rotate(330deg);
+    }
+}
+
+@keyframes nf-drift {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-200px);
+    }
+}
+
+@keyframes nf-drift-rev {
+    from {
+        transform: translateX(-200px);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes nf-bob {
+    0%, 100% {
+        transform: translateY(0) rotate(-2deg);
+    }
+
+    50% {
+        transform: translateY(-5px) rotate(2deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nf-panel, .nf-dot, .nf-compass .needle, .nf-wave, .nf-ship {
+        animation: none;
+    }
+}
