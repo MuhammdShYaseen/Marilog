@@ -9,6 +9,7 @@
 @using Marilog.Shared.UI.Pages.BillOfLading
 @using Marilog.Shared.UI.Pages.Voyages
 @using Marilog.Shared.UI.Pages.Voyages.Marilog.Shared.UI.Pages.Voyages
+@using Marilog.Web.Client.Services.Interfaces
 @* VoyageDetailsPageHost.razor *@
 @inject IVoyageService VoyageService
 @inject IBillOfLadingService BillOfLadingService
@@ -21,7 +22,7 @@
 @inject NavigationManager Nav
 @inject ICrewContractService CrewContractService
 @inject IJSRuntime JS
-
+@inject IManageStoredFiles ManageStoredFiles
 <VoyageDetailsPage Voyage="_voyage"
                    BillsOfLading="_bills"
                    Documents="_docs"
@@ -47,11 +48,20 @@
                    OnAddBillClicked="OpenAddBillDialog"
                    OnViewBillClicked="OpenViewBillDialog"
                    OnEditBillClicked="OpenEditBillDialog"
+                   OnManageFilesClicked="OpenStoredFilesDialog"
                    OnDeleteBillClicked="ConfirmDeleteBill" />
 
 @code {
     [Parameter] public int VoyageId { get; set; }
     [Parameter] public string? Section { get; set; }
+
+    private async Task OpenStoredFilesDialog()
+    {
+        if (_voyage is null) return;
+        await ManageStoredFiles.OpenManageStoredFilesDialogAsync(
+            (VoyageId, EntityType.Voyage),
+            $"Voyage {_voyage.VoyageNumber} — {_voyage.VesselName}");
+    }
 
     private static readonly DialogOptions SmallDialog = new()
     {

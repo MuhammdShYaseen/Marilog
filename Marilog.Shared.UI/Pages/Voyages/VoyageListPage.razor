@@ -104,6 +104,7 @@
              IsLoading="IsLoading"
              OnOpenClicked="OnOpenClicked"
              OnEditClicked="OnEditClicked"
+             OnManageFilesClicked="OnManageFilesClicked"
              OnDeleteClicked="OnDeleteClicked" />
 
 @code {
@@ -120,6 +121,9 @@
     [Parameter] public EventCallback<VoyageResponse> OnOpenClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
+
+
+    [Parameter] public EventCallback<VoyageResponse> OnManageFilesClicked { get; set; }
 
     private const string BarStyle =
         "border-top:1px solid var(--mud-palette-lines-default);" +

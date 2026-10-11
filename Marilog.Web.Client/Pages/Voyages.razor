@@ -4,6 +4,7 @@
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.Voyages
+@using Marilog.Web.Client.Services.Interfaces
 @* VoyagePageHost.razor *@
 @inject IVoyageService VoyageService
 @inject IVesselService VesselService
@@ -11,6 +12,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
+@inject IManageStoredFiles ManageStoredFiles
 
 <VoyageListPage Voyages="_filtered"
                 Vessels="_vessels"
@@ -23,6 +25,7 @@
                 OnRefreshClicked="ReloadAsync"
                 OnOpenClicked="OpenVoyage"
                 OnEditClicked="OpenEditDialog"
+                OnManageFilesClicked="OpenStoredFilesDialog"
                 OnDeleteClicked="ConfirmDelete" />
 
 @code {
@@ -65,6 +68,13 @@
         ApplyFilter();
         _loading = false;
     }
+
+
+    //---Attatching--------------------------------------------------------------
+    private Task OpenStoredFilesDialog(VoyageResponse v)
+    => ManageStoredFiles.OpenManageStoredFilesDialogAsync(
+        (v.VoyageId, EntityType.Voyage),
+        $"Voyage {v.VoyageNumber} — {v.VesselName}");
 
     // ── Filtering ─────────────────────────────────────────────────────────────
     private void OnFilterChanged(VoyageListFilter filter)

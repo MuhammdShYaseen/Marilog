@@ -59,6 +59,11 @@
                                  OnClick="@(() => OnOpenClicked.InvokeAsync(context))">
                         Open
                     </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.AttachFile"
+                                  OnClick="@(() => OnManageFilesClicked.InvokeAsync(context))">
+                       Attachments
+                        
+                    </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
                                  Disabled="@(context.Status == VoyageStatus.CANCELLED)"
                                  OnClick="@(() => OnEditClicked.InvokeAsync(context))">
@@ -95,6 +100,8 @@
     [Parameter] public EventCallback<VoyageResponse> OnOpenClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<VoyageResponse> OnManageFilesClicked { get; set; }
+
 
     private const string ThStyle =
         "font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +

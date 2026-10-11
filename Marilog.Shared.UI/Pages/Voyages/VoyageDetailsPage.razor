@@ -42,6 +42,7 @@ else
     </div>
 
     @* ── Command bar ── *@
+   
     <MudToolBar Dense="true" Gutters="false" Style="@BarStyle">
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.Edit"
@@ -49,9 +50,16 @@ else
                    OnClick="OnEditClicked">
             Edit
         </MudButton>
+        
 
         <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
-
+        <MudTooltip Text="Attachments">
+            <MudIconButton Icon="@Icons.Material.Outlined.Receipt"
+                           Size="Size.Small"
+                           Disabled="@(Voyage is null)"
+                           OnClick="OnManageFilesClicked" />
+        </MudTooltip>
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.PlayArrow"
                    Disabled="@(Voyage.Status != VoyageStatus.PLANNED || IsBusy)"
@@ -88,6 +96,8 @@ else
                    OnClick="OnRefreshClicked">
             Refresh
         </MudButton>
+
+       
     </MudToolBar>
 
     @if (IsLoading || IsBusy)
@@ -200,6 +210,13 @@ else
     [Parameter] public EventCallback<BillOfLadingResponse> OnChangeBlNumberClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnChangeIssuanceTypeClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnLinkToMasterBlClicked { get; set; }
+
+
+    //---Attatched Docs----------------------------------------------------------
+    [Parameter] public EventCallback OnManageFilesClicked { get; set; }
+
+
+
 
     private const string BarStyle =
         "border-top:1px solid var(--mud-palette-lines-default);" +
