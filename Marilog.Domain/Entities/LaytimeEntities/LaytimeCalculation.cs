@@ -25,6 +25,10 @@ namespace Marilog.Domain.Entities.LaytimeEntities
         /// <summary>اللحظة الفعلية لانتهاء احتساب الـ Laytime</summary>
         public DateTime? LaytimeCompletedAt { get; private set; }
 
+        /// <summary>LT-02: CharterTerms.TermsVersion the current result was computed with</summary>
+        public int? ComputedTermsVersion { get; private set; }
+        /// <summary>LT-05: instant at which laytime ran out; null when laytime never expired</summary>
+        public DateTime? LaytimeExpiredAt { get; private set; }
         private readonly List<SofEvent> _sofEvents = [];
         private readonly List<LaytimeSegment> _segments = [];
         private readonly List<LaytimeException> _exceptions = [];
@@ -77,6 +81,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                     $"A SOF event already exists at {sofEvent.EventTime:yyyy-MM-dd HH:mm}.");
 
             _sofEvents.Add(sofEvent);
+            Invalidate();
             return Kernel.Primitives.Result.Ok();
         }
 
@@ -89,6 +94,21 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                 return Kernel.Primitives.Result.Fail("SOF event not found.");
 
             _sofEvents.Remove(ev);
+            Invalidate();
+            return Kernel.Primitives.Result.Ok();
+        }
+
+        // LT-03: SOF impact changes go through the aggregate
+        public Result UpdateSofEventImpact(int sofEventId, LaytimeImpactType impactType, decimal factor)
+        {
+            EnsureNotFinalized();
+
+            var ev = _sofEvents.FirstOrDefault(e => e.Id == sofEventId);
+            if (ev is null)
+                return Kernel.Primitives.Result.Fail("SOF event not found.");
+
+            ev.UpdateImpact(impactType, factor);
+            Invalidate();
             return Kernel.Primitives.Result.Ok();
         }
 
@@ -125,6 +145,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                 return Kernel.Primitives.Result.Fail("An identical exception already exists.");
 
             _exceptions.Add(exception);
+            Invalidate();
             return Kernel.Primitives.Result.Ok();
         }
 
@@ -137,6 +158,28 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                 return Kernel.Primitives.Result.Fail("Exception not found.");
 
             _exceptions.Remove(exception);
+            Invalidate();
+            return Kernel.Primitives.Result.Ok();
+        }
+
+        // LT-03: exception changes go through the aggregate
+        public Result UpdateException(int exceptionId, decimal factor, string? notes)
+        {
+            EnsureNotFinalized();
+
+            var exception = _exceptions.FirstOrDefault(e => e.Id == exceptionId);
+            if (exception is null)
+                return Kernel.Primitives.Result.Fail("Exception not found.");
+
+            var factorChanged = exception.Factor != factor;
+
+            exception.UpdateFactor(factor);
+            exception.UpdateNotes(notes);
+
+            // Notes are cosmetic; only a factor change makes the result stale
+            if (factorChanged)
+                Invalidate();
+
             return Kernel.Primitives.Result.Ok();
         }
 
@@ -163,7 +206,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
         // Result & Status
         // ─────────────────────────────
 
-        public Result SetResult(LaytimeResult result)
+        public Result SetResult(LaytimeResult result, int termsVersion, DateTime? laytimeExpiredAt)
         {
             EnsureNotFinalized();
 
@@ -176,17 +219,24 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                     "Segments must be built before setting result.");
 
             Result = result;
+            ComputedTermsVersion = termsVersion;
+            LaytimeExpiredAt = laytimeExpiredAt;
             Status = LaytimeStatus.Computed;
             return Kernel.Primitives.Result.Ok();
         }
 
-        public Result FinalizeCalculation()
+        public Result FinalizeCalculation(int currentTermsVersion)
         {
             if (Status != LaytimeStatus.Computed)
                 return Kernel.Primitives.Result.Fail("Calculation must be computed before finalizing.");
 
             if (Result is null)
                 return Kernel.Primitives.Result.Fail("Cannot finalize without a computed result.");
+
+            // LT-02: block finalization if charter terms changed after compute
+            if (ComputedTermsVersion != currentTermsVersion)
+                return Kernel.Primitives.Result.Fail(
+                    "Charter terms changed after this calculation was computed. Recompute before finalizing.");
 
             Status = LaytimeStatus.Finalized;
             return Kernel.Primitives.Result.Ok();
@@ -197,12 +247,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             if (Status == LaytimeStatus.Finalized)
                 return Kernel.Primitives.Result.Fail("Cannot recompute a finalized calculation.");
 
-            _segments.Clear();
-            Result = null;
-            Status = LaytimeStatus.Draft;
-            LaytimeCommencedAt = null;
-            LaytimeCompletedAt = null;
-
+            Invalidate();
             return Kernel.Primitives.Result.Ok();
         }
 
@@ -219,12 +264,14 @@ namespace Marilog.Domain.Entities.LaytimeEntities
                     "Cargo quantity must be greater than zero.", nameof(quantity));
 
             CargoQuantityMt = quantity;
+            Invalidate();
         }
 
         public void UpdateOperationType(OperationType operationType)
         {
             EnsureNotFinalized();
             OperationType = operationType;
+            Invalidate();
         }
 
         // ─────────────────────────────
@@ -236,6 +283,18 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             if (Status == LaytimeStatus.Finalized)
                 throw new InvalidOperationException(
                     "Cannot modify a finalized calculation.");
+        }
+
+        // LT-02: any change to inputs makes the previous result stale
+        private void Invalidate()
+        {
+            _segments.Clear();
+            Result = null;
+            Status = LaytimeStatus.Draft;
+            LaytimeCommencedAt = null;
+            LaytimeCompletedAt = null;
+            ComputedTermsVersion = null;
+            LaytimeExpiredAt = null;
         }
     }
 }

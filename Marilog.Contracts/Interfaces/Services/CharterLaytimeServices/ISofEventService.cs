@@ -15,7 +15,7 @@ namespace Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
         Task<IReadOnlyList<SofEventResponse>> AddSofEventsBatchAsync(int calculationId, IEnumerable<AddSofEventRequest> requests, CancellationToken cancellationToken = default);
 
         /// <summary>تعديل تأثير حدث SOF (ImpactType / Factor)</summary>
-        Task UpdateSofEventImpactAsync(int sofEventId, UpdateSofEventImpactRequest request, CancellationToken cancellationToken = default);
+        Task UpdateSofEventImpactAsync(int calculationId, int sofEventId, UpdateSofEventImpactRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>حذف حدث SOF</summary>
         Task RemoveSofEventAsync(int calculationId, int sofEventId, CancellationToken cancellationToken = default);

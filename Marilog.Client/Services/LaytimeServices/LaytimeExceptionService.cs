@@ -26,9 +26,9 @@ namespace Marilog.Client.Services.LaytimeServices
             return result?.Data ?? Array.Empty<LaytimeExceptionResponse>();
         }
 
-        public async Task UpdateExceptionAsync(int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken ct = default)
+        public async Task UpdateExceptionAsync(int calculationId, int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken ct = default)
         {
-            var response = await _http.PutAsJsonAsync($"{Base(exceptionId)}", request, ct);
+            var response = await _http.PutAsJsonAsync($"{Base(calculationId)}/{exceptionId}", request, ct);
             response.EnsureSuccessStatusCode();
         }
 

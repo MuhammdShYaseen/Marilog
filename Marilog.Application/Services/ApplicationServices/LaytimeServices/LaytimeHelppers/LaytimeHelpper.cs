@@ -136,7 +136,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 c.Status,
                 c.LaytimeCommencedAt,
                 c.LaytimeCompletedAt,
-                c.Result is not null ? MapResultResponse(c.Result) : null);
+                c.Result is not null ? MapResultResponse(c.Result) with { LaytimeExpiredAt = c.LaytimeExpiredAt } : null);
 
         public LaytimeCalculationSummaryResponse MapCalculationSummaryResponse(
             LaytimeCalculation c) =>

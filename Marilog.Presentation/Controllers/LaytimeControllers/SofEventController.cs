@@ -61,11 +61,14 @@ namespace Marilog.Presentation.Controllers.LaytimeControllers
             return Ok(
                 ApiResponse<IReadOnlyList<SofEventResponse>>.Ok(result));
         }
-
         [HttpPut("{sofEventId:int}/impact")]
-        public async Task<IActionResult> UpdateImpact(int sofEventId, [FromBody] UpdateSofEventImpactRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateImpact(
+            int calculationId,
+            int sofEventId,
+            [FromBody] UpdateSofEventImpactRequest request,
+            CancellationToken cancellationToken)
         {
-            await _service.UpdateSofEventImpactAsync(sofEventId, request, cancellationToken);
+            await _service.UpdateSofEventImpactAsync(calculationId, sofEventId, request, cancellationToken);
 
             return NoContent();
         }

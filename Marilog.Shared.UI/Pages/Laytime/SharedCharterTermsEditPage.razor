@@ -156,7 +156,7 @@
         OnceOnDemurrage = Terms.Demurrage.OnceOnDemurrageAlwaysOnDemurrage;
 
         DespatchRate = Terms.Despatch?.RateUsdPerDay ?? 0;
-        DespatchBasisValue = Terms.Despatch?.Basis ?? default;
+        DespatchBasisValue = Terms.Despatch?.Basis ?? DespatchBasis.OnWorkingTimeSaved;
 
         RuleOptionsValues = LaytimeRuleOptionsFormValues.FromResponse(Terms.RuleOptions);
     }

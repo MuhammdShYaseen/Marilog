@@ -381,6 +381,9 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<int>("TermsVersion")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -407,6 +410,9 @@ namespace Marilog.Infrastructure.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<int?>("ComputedTermsVersion")
+                        .HasColumnType("int");
+
                     b.Property<int>("ContractId")
                         .HasColumnType("int");
 
@@ -426,6 +432,9 @@ namespace Marilog.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("LaytimeCompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LaytimeExpiredAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("OperationType")

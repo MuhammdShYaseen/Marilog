@@ -1,12 +1,10 @@
-﻿
-using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
+﻿using ClosedXML.Excel;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
 using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.ValueObjects.Laytime;
 using Marilog.Kernel.Enums;
-using System.Drawing;
+
 
 namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers
 {
@@ -134,7 +132,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             var result = calc.Result;
             var operationTerms = GetOperationTerms(charterTerms, calc.OperationType);
             var segments = calc.Segments.OrderBy(s => s.From).ToList();
-
+            
             // ── Column widths ─────────────────────────────────────────────
             ws.Column(1).Width = 18; // DATE
             ws.Column(2).Width = 10; // DAY
@@ -184,6 +182,10 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             if (calc.LaytimeCommencedAt.HasValue)
                 row = WriteInfoRow(ws, row, "TIME TO COUNT",
                     calc.LaytimeCommencedAt.Value.ToString("dd.MM.yyyy HH:mm"));
+
+            if (calc.LaytimeExpiredAt.HasValue)
+                row = WriteInfoRow(ws, row, "LAYTIME EXPIRED",
+                    calc.LaytimeExpiredAt.Value.ToString("dd.MM.yyyy HH:mm"));
             row++;
 
             // ── Laytime Summary Block ─────────────────────────────────────
@@ -194,6 +196,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             }
 
             // ── Table Header ──────────────────────────────────────────────
+            var tableStartRow = row;
             WriteTableHeader(ws, row);
             row++;
 
@@ -211,9 +214,21 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 
             // ── Segments Rows ─────────────────────────────────────────────
             decimal balanceDays = result?.AllowedDays ?? 0;
-
+            bool expiryMarked = false;
             foreach (var seg in segments)
             {
+                // LT-05: visual divider between laytime and demurrage
+                if (!expiryMarked && calc.LaytimeExpiredAt is { } expiredAt && seg.From >= expiredAt)
+                {
+                    ws.Cell(row, 1).Value = $"LAYTIME EXPIRED {expiredAt:dd.MM.yyyy HH:mm} — ON DEMURRAGE";
+                    ws.Range(row, 1, row, 11).Merge().Style
+                      .Font.SetBold(true)
+                      .Font.SetFontColor(XLColor.White)
+                      .Fill.SetBackgroundColor(XLColor.Red)
+                      .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    row++;
+                    expiryMarked = true;
+                }
                 var counted = seg.CountedDuration;
                 var countedDays = (decimal)counted.TotalDays;
                 balanceDays -= countedDays;
@@ -253,6 +268,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 StyleDataRow(ws.Row(row));
                 row++;
             }
+            var tableEndRow = row - 1;
 
             // ── Totals ────────────────────────────────────────────────────
             if (result is not null)
@@ -270,9 +286,9 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             var firstRow = ws.FirstRowUsed();
             if (firstRow != null)
             {
-                ws.Range(firstRow.RowNumber() + 9, 1, row - 3, 11)
-                    .Style.Border.SetOutsideBorder(XLBorderStyleValues.Thin)
-                    .Border.SetInsideBorder(XLBorderStyleValues.Hair);
+                ws.Range(tableStartRow, 1, tableEndRow, 11)
+                        .Style.Border.SetOutsideBorder(XLBorderStyleValues.Thin)
+                        .Border.SetInsideBorder(XLBorderStyleValues.Hair);
             }
         }
 
@@ -300,6 +316,8 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 calc.LaytimeCommencedAt?.ToString("dd MMM yyyy HH:mm") ?? "—");
             WriteKV(ws, ref row, "Laytime Completed",
                 calc.LaytimeCompletedAt?.ToString("dd MMM yyyy HH:mm") ?? "—");
+            WriteKV(ws, ref row, "Laytime Expired",
+                    calc.LaytimeExpiredAt?.ToString("dd MMM yyyy HH:mm") ?? "—");
             row++;
 
             WriteKV(ws, ref row, "Demurrage Rate (USD/Day)",
@@ -864,7 +882,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 
         private static string FormatEnumLabel(string enumValue) =>
             string.Concat(enumValue.Select((c, i) =>
-                i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+                i > 0 && char.IsUpper(c) && char.IsLower(enumValue[i - 1]) ? " " + c : c.ToString()));
 
         private static CargoOperationTerms? GetOperationTerms(
             CharterTerms charterTerms,

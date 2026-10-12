@@ -50,10 +50,11 @@ else
         @if (Result.IsDemurrage)
         {
             <span>Vessel is <b>on Demurrage</b> — @Result.DemurrageAmount.ToString("N2") USD owed by charterer.</span>
-        }
-        else
-        {
-            <span>Vessel finished <b>within allowed laytime</b> — @Result.DespatchAmount.ToString("N2") USD despatch owed to charterer.</span>
+            @if (Result.LaytimeExpiredAt is { } expiredAt)
+            {
+                <br />
+                <span>Laytime expired on <b>@expiredAt.ToString("yyyy-MM-dd HH:mm")</b> — time after this is counted as demurrage.</span>
+            }
         }
     </MudAlert>
 }

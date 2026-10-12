@@ -17,13 +17,13 @@
             <MudDatePicker @bind-Date="_eventDate" Label="Date" />
             <MudTimePicker @bind-Time="_eventTimeOfDay" Label="Time" />
 
-            <MudSelect T="SofEventType" @bind-Value="_eventType" Label="Event Type">
+            <MudSelect T="SofEventType?" @bind-Value="_eventType" Label="Event Type" Required="true">
                 @foreach (var group in LaytimeEnumLabels.SofEventGroups)
                 {
                     <MudListSubheader>@group.GroupLabel</MudListSubheader>
                     @foreach (var value in group.Events)
                     {
-                        <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                        <MudSelectItem T="SofEventType?" Value="@((SofEventType?)value)">@LaytimeEnumLabels.Label(value)</MudSelectItem>
                     }
                 }
             </MudSelect>
@@ -57,12 +57,16 @@
 
     private DateTime? _eventDate = DateTime.Today;
     private TimeSpan? _eventTimeOfDay = DateTime.Now.TimeOfDay;
-    private SofEventType _eventType;
-    private LaytimeImpactType _impactType;
+    private SofEventType? _eventType; // LT-13: no silent default; user must pick
+    private LaytimeImpactType _impactType = LaytimeImpactType.FullCount; // LT-13
     private decimal _factor = 1.0m;
     private string? _description;
 
-    private bool IsValid => _eventDate is not null && _eventTimeOfDay is not null;
+    private bool IsValid =>
+    _eventDate is not null &&
+    _eventTimeOfDay is not null &&
+    _eventType is not null &&
+    Enum.IsDefined(_impactType);
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -70,10 +74,13 @@
     {
         if (!IsValid) return;
 
-        var eventTime = _eventDate!.Value.Date + _eventTimeOfDay!.Value;
+        // SOF times are minute-precision; drop seconds/ms from the default DateTime.Now
+        var t = _eventTimeOfDay!.Value;
+        var eventTime = _eventDate!.Value.Date + new TimeSpan(t.Hours, t.Minutes, 0);
+
         var factor = _impactType == LaytimeImpactType.ProRata ? _factor : 1.0m;
 
-        var request = new AddSofEventRequest(eventTime, _eventType, _impactType, factor, _description);
+        var request = new AddSofEventRequest(eventTime, _eventType!.Value, _impactType, factor, _description);
         MudDialog.Close(DialogResult.Ok(request));
     }
 }

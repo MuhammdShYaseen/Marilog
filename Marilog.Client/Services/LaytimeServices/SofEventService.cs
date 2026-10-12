@@ -34,9 +34,9 @@ namespace Marilog.Client.Services.LaytimeServices
             return result?.Data ?? Array.Empty<SofEventResponse>();
         }
 
-        public async Task UpdateSofEventImpactAsync(int sofEventId, UpdateSofEventImpactRequest request, CancellationToken ct = default)
+        public async Task UpdateSofEventImpactAsync(int calculationId, int sofEventId, UpdateSofEventImpactRequest request, CancellationToken ct = default)
         {
-            var response = await _http.PutAsJsonAsync($"{Base(sofEventId)}/impact", request, ct);
+            var response = await _http.PutAsJsonAsync($"{Base(calculationId)}/{sofEventId}/impact", request, ct);
             response.EnsureSuccessStatusCode();
         }
 

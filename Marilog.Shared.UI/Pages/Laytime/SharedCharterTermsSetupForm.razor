@@ -37,7 +37,7 @@
             <MudItem xs="6">
                 <MudNumericField T="decimal" @bind-Value="_demurrageRate" Label="Rate (USD/day)" Min="0.01m" />
             </MudItem>
-            <MudItem xs="6" Class="d-flex align-center">
+            <MudItem xs="6" Class="d-flex flex-column justify-center">
                 <MudCheckBox T="bool" @bind-Value="_onceOnDemurrage" Label="Once on Demurrage, Always on Demurrage" Color="Color.Primary" />
             </MudItem>
         </MudGrid>
@@ -98,11 +98,11 @@
     private CargoOperationFormValues _discharging = new();
 
     private decimal _demurrageRate = 10000;
-    private bool _onceOnDemurrage;
+    private bool _onceOnDemurrage = true;
 
     private bool _hasDespatch;
     private decimal _despatchRate = 5000;
-    private DespatchBasis _despatchBasis;
+    private DespatchBasis _despatchBasis = DespatchBasis.OnWorkingTimeSaved;
 
     private LaytimeRuleOptionsFormValues _ruleOptions = new();
 

@@ -13,6 +13,9 @@ namespace Marilog.Domain.Entities.LaytimeEntities
 
         public decimal CargoQuantityMt { get; private set; }
 
+        /// <summary>LT-02: incremented on every LaytimeTerms change; calculations record the version they were computed with</summary>
+        public int TermsVersion { get; private set; }
+
         /// <summary>
         /// شروط الـ Laytime الكاملة — مطلوبة دائماً.
         /// تُخزَّن كـ Owned Entity في نفس جدول CharterTerms.
@@ -73,6 +76,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
         {
             ArgumentNullException.ThrowIfNull(laytimeTerms);
             LaytimeTerms = laytimeTerms;
+            TermsVersion++;
             Touch();
         }
 

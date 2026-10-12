@@ -1,5 +1,6 @@
 ﻿using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.ValueObjects.Laytime;
+using Marilog.Kernel.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,21 +9,18 @@ namespace Marilog.Application.Interfaces.Services.Laytime
 {
     public interface ILaytimeEngine
     {
-        /// <summary>
-        /// يبني LaytimeSegments من SOF Events المرتبة زمنياً
-        /// ثم يحسب النتيجة النهائية ويعيدها.
-        /// </summary>
+        LaytimeSegmentBuild BuildSegments(
+    LaytimeCalculation calculation,
+    CargoOperationTerms operationTerms,
+    LaytimeRuleOptions ruleOptions,
+    bool onceOnDemurrage);
+
         LaytimeResult Calculate(
             LaytimeCalculation calculation,
-            IReadOnlyList<LaytimeSegment> segments,
+            LaytimeSegmentBuild build,
             decimal loadingRateMtPerDay,
             decimal demurrageRateUsdPerDay,
-            decimal despatchRateUsdPerDay);
-
-        /// <summary>يبني الـ Segments فقط بدون حساب النتيجة</summary>
-        IReadOnlyList<LaytimeSegment> BuildSegments(
-            LaytimeCalculation calculation,
-            CargoOperationTerms operationTerms,
-            LaytimeRuleOptions ruleOptions);
+            decimal despatchRateUsdPerDay,
+            DespatchBasis despatchBasis);
     }
 }

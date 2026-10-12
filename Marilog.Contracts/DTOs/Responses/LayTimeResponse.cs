@@ -78,7 +78,8 @@ namespace Marilog.Contracts.DTOs.Responses
         decimal BalanceDays,
         decimal DemurrageAmount,
         decimal DespatchAmount,
-        bool IsDemurrage);
+        bool IsDemurrage,
+        DateTime? LaytimeExpiredAt = null);
 
 
     // ═══════════════════════════════════════════════════════════════════════

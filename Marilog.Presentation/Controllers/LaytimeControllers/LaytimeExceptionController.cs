@@ -46,12 +46,10 @@ namespace Marilog.Presentation.Controllers.LaytimeControllers
         }
 
         [HttpPut("{exceptionId:int}")]
-        public async Task<IActionResult> Update(
-            int exceptionId,
-            [FromBody] UpdateLaytimeExceptionRequest request,
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> Update(int calculationId, int exceptionId, [FromBody] UpdateLaytimeExceptionRequest request, CancellationToken cancellationToken)
         {
             await _service.UpdateExceptionAsync(
+                calculationId,
                 exceptionId,
                 request,
                 cancellationToken);

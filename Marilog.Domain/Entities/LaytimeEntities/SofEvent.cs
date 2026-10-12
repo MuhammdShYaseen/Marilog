@@ -41,6 +41,14 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             if (eventTime == default)
                 throw new ArgumentException("Event time is required.", nameof(eventTime));
 
+            if (!Enum.IsDefined(eventType))
+                throw new ArgumentException(
+                    $"Undefined SOF event type: {(int)eventType}.", nameof(eventType));
+
+            if (!Enum.IsDefined(impactType))
+                throw new ArgumentException(
+                    $"Undefined impact type: {(int)impactType}.", nameof(impactType));
+
             if (factor is < 0m or > 1m)
                 throw new ArgumentException(
                     "Factor must be between 0 and 1.", nameof(factor));
@@ -56,8 +64,12 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             };
         }
 
-        public void UpdateImpact(LaytimeImpactType impactType, decimal factor)
+        internal void UpdateImpact(LaytimeImpactType impactType, decimal factor)
         {
+            if (!Enum.IsDefined(impactType))
+                throw new ArgumentException(
+                    $"Undefined impact type: {(int)impactType}.", nameof(impactType));
+
             if (factor is < 0m or > 1m)
                 throw new ArgumentException(
                     "Factor must be between 0 and 1.", nameof(factor));
@@ -66,7 +78,7 @@ namespace Marilog.Domain.Entities.LaytimeEntities
             Factor = factor;
         }
 
-        public void UpdateDescription(string? description)
+        internal void UpdateDescription(string? description)
         {
             Description = description?.Trim() ?? string.Empty;
         }

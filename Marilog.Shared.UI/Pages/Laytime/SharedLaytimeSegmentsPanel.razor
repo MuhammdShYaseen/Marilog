@@ -24,7 +24,7 @@
             <MudTd DataLabel="To">@seg.To.ToString("yyyy-MM-dd HH:mm")</MudTd>
             <MudTd DataLabel="Duration">@seg.DurationDisplay</MudTd>
             <MudTd DataLabel="Counted">
-                <MudText Color="@(seg.CountedDurationDisplay.StartsWith("0h") ? Color.Secondary : Color.Primary)">
+                <MudText Color="@(seg.CountedDurationDisplay == "00h 00m" ? Color.Secondary : Color.Primary)">
                     @seg.CountedDurationDisplay
                 </MudText>
             </MudTd>

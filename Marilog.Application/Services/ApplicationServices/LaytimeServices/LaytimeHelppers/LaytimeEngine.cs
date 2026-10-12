@@ -7,32 +7,33 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 {
     public sealed class LaytimeEngine : ILaytimeEngine
     {
-        public LaytimeResult Calculate(
-            LaytimeCalculation calculation,
-            IReadOnlyList<LaytimeSegment> segments,
-            decimal loadingRateMtPerDay,
-            decimal demurrageRateUsdPerDay,
-            decimal despatchRateUsdPerDay)
+        public LaytimeResult Calculate(LaytimeCalculation calculation, LaytimeSegmentBuild build, decimal loadingRateMtPerDay, decimal demurrageRateUsdPerDay, decimal despatchRateUsdPerDay, DespatchBasis despatchBasis)
         {
-            var usedTicks = segments.Sum(s => s.CountedDuration.Ticks);
+            var usedTicks = build.Segments.Sum(s => s.CountedDuration.Ticks);
 
-            var usedTime = TimeSpan.FromTicks(usedTicks);
-            var usedDays = (decimal)usedTime.TotalDays;
+            // LT-14: decimal math from ticks; no double round-trip
+            var usedDays = (decimal)usedTicks / TimeSpan.TicksPerDay;
             var allowedDays = calculation.CargoQuantityMt / loadingRateMtPerDay;
-            var allowedTime = TimeSpan.FromDays((double)allowedDays);
 
             decimal demurrageAmount = 0;
             decimal despatchAmount = 0;
 
-            if (usedTime > allowedTime)
+            if (usedDays > allowedDays)
             {
-                var excessDays = (decimal)(usedTime - allowedTime).TotalDays;
-                demurrageAmount = Math.Round(excessDays * demurrageRateUsdPerDay, 2);
+                // LT-05: segments after LaytimeExpiredAt already carry demurrage factors,
+                // so used − allowed is exactly the counted time after expiry
+                demurrageAmount = Math.Round(
+                    (usedDays - allowedDays) * demurrageRateUsdPerDay, 2, MidpointRounding.AwayFromZero);
             }
             else
             {
-                var savedDays = (decimal)(allowedTime - usedTime).TotalDays;
-                despatchAmount = Math.Round(savedDays * despatchRateUsdPerDay, 2);
+                // LT-07: all time saved = calendar time from completion to the hypothetical expiry
+                var savedDays = despatchBasis == DespatchBasis.OnAllTimeSaved && build.AllTimeSaved is { } allTime
+                    ? (decimal)allTime.Ticks / TimeSpan.TicksPerDay
+                    : allowedDays - usedDays;
+
+                despatchAmount = Math.Round(
+                    savedDays * despatchRateUsdPerDay, 2, MidpointRounding.AwayFromZero);
             }
 
             return LaytimeResult.Create(
@@ -42,17 +43,15 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 despatchAmount);
         }
 
-        public IReadOnlyList<LaytimeSegment> BuildSegments(
-            LaytimeCalculation calculation,
-            CargoOperationTerms operationTerms,
-            LaytimeRuleOptions ruleOptions)
+        public LaytimeSegmentBuild BuildSegments(LaytimeCalculation calculation, CargoOperationTerms operationTerms, LaytimeRuleOptions ruleOptions, bool onceOnDemurrage)
         {
             var events = calculation.SofEvents
-                .OrderBy(e => e.EventTime)
-                .ToList();
+                        .OrderBy(e => e.EventTime)
+                        .ThenBy(e => e.Id) // LT-01: deterministic order for same-time events
+                        .ToList();
 
             if (events.Count < 2)
-                return [];
+                return new LaytimeSegmentBuild([], null, null);
 
             // ─────────────────────────────
             // 1) بناء Segments خام من الفارق بين كل حدثين متتاليين
@@ -64,6 +63,10 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 var current = events[i];
                 var next = events[i + 1];
 
+                // LT-01: skip zero-length pairs; the last event of a same-time group governs the next period
+                if (next.EventTime == current.EventTime)
+                    continue;
+
                 segments.Add(LaytimeSegment.Create(
                     calculationId: calculation.Id,
                     from: current.EventTime,
@@ -72,7 +75,9 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                     factor: current.Factor,
                     reason: current.EventType.ToString()));
             }
-
+            // All events share the same timestamp — nothing to count
+            if (segments.Count == 0)
+                return new LaytimeSegmentBuild(segments, null, null);
             // ─────────────────────────────
             // 2) فترة الإشعار (Notice Hours) — لا يُحتسب شيء قبل
             //    NorTendered + NoticeHours حتى لو كانت الأحداث تقول غير ذلك
@@ -87,26 +92,52 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             var overallTo = events[^1].EventTime;
 
             var excludedPeriods = GetExcludedPeriods(
-                overallFrom, overallTo, operationTerms.CalendarType, ruleOptions);
+    overallFrom, overallTo, operationTerms.CalendarType, ruleOptions);
 
-            if (excludedPeriods.Count == 0)
-                return segments;
-
-            var finalSegments = new List<LaytimeSegment>(segments.Count);
-            foreach (var segment in segments)
+            if (excludedPeriods.Count > 0)
             {
-                // لا داعي لتقسيم Segment أصلاً NoCount — النتيجة صفر بأي الأحوال
-                if (segment.ImpactType == LaytimeImpactType.NoCount)
+                var excludedSegments = new List<LaytimeSegment>(segments.Count);
+                foreach (var segment in segments)
                 {
-                    finalSegments.Add(segment);
-                    continue;
-                }
+                    // لا داعي لتقسيم Segment أصلاً NoCount — النتيجة صفر بأي الأحوال
+                    if (segment.ImpactType == LaytimeImpactType.NoCount)
+                    {
+                        excludedSegments.Add(segment);
+                        continue;
+                    }
 
-                finalSegments.AddRange(
-                    ApplyExclusions(calculation.Id, segment, excludedPeriods));
+                    excludedSegments.AddRange(
+                        ApplyExclusions(calculation.Id, segment, excludedPeriods));
+                }
+                segments = excludedSegments;
             }
 
-            return finalSegments;
+            // 4) LT-04: LaytimeException records
+            segments = ApplyExceptions(calculation.Id, segments, calculation.Exceptions);
+
+            // 5) LT-05: find the expiry instant; after it, demurrage rules apply
+            var allowedTicks = (long)(calculation.CargoQuantityMt / operationTerms.RateMtPerDay * TimeSpan.TicksPerDay);
+            var completedAt = FindCompletion(events, calculation.OperationType);
+
+            var (finalSegments, expiredAt) = ApplyExpiry(
+                calculation.Id, segments, allowedTicks, completedAt,
+                onceOnDemurrage, events, calculation.Exceptions);
+
+            // 6) LT-07: if laytime never expired, run the clock on past completion
+            //    under calendar rules to find the hypothetical expiry
+            TimeSpan? allTimeSaved = null;
+            if (expiredAt is null)
+            {
+                var remainingTicks = allowedTicks - finalSegments.Sum(s => s.CountedDuration.Ticks);
+                if (remainingTicks > 0)
+                {
+                    var hypotheticalExpiry = FindHypotheticalExpiry(
+                        completedAt, remainingTicks, operationTerms.CalendarType, ruleOptions);
+                    allTimeSaved = hypotheticalExpiry - completedAt;
+                }
+            }
+
+            return new LaytimeSegmentBuild(finalSegments, expiredAt, allTimeSaved);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -285,8 +316,246 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Helper
+        // LT-04: Laytime Exceptions
         // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Splits segments at exception boundaries; each piece takes
+        /// min(segment factor, lowest overlapping exception factor) to avoid double reduction.
+        /// </summary>
+        private static List<LaytimeSegment> ApplyExceptions(
+            int calculationId,
+            List<LaytimeSegment> segments,
+            IReadOnlyCollection<LaytimeException> exceptions)
+        {
+            if (exceptions.Count == 0)
+                return segments;
+
+            var result = new List<LaytimeSegment>(segments.Count);
+
+            foreach (var segment in segments)
+            {
+                var overlapping = exceptions
+                    .Where(e => e.Overlaps(segment.From, segment.To))
+                    .ToList();
+
+                if (overlapping.Count == 0)
+                {
+                    result.Add(segment);
+                    continue;
+                }
+
+                var cuts = overlapping
+                    .SelectMany(e => new[] { e.From, e.To })
+                    .Where(t => t > segment.From && t < segment.To)
+                    .Append(segment.From)
+                    .Append(segment.To)
+                    .Distinct()
+                    .OrderBy(t => t)
+                    .ToList();
+
+                for (int i = 0; i < cuts.Count - 1; i++)
+                {
+                    var from = cuts[i];
+                    var to = cuts[i + 1];
+
+                    var exception = overlapping
+                        .Where(e => e.Overlaps(from, to))
+                        .MinBy(e => e.Factor);
+
+                    var segmentFactor = EffectiveFactor(segment);
+
+                    if (exception is null || exception.Factor >= segmentFactor)
+                    {
+                        result.Add(LaytimeSegment.Create(
+                            calculationId, from, to, segment.ImpactType, segment.Factor, segment.Reason));
+                        continue;
+                    }
+
+                    result.Add(CreatePiece(
+                        calculationId, from, to, exception.Factor, $"Exception - {exception.ExceptionType}"));
+                }
+            }
+
+            return result;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // LT-05: Once on demurrage, always on demurrage
+        // ─────────────────────────────────────────────────────────────────
+
+        // Vessel-side stoppages that still reduce time after laytime expiry.
+        // The proportion is the data-entry factor (e.g. 1 of 4 cranes down → 0.75).
+        private static readonly HashSet<SofEventType> OwnerFaultEvents =
+            [SofEventType.CraneBreakdownStart];
+
+        private static readonly HashSet<LaytimeExceptionType> OwnerFaultExceptions =
+            [LaytimeExceptionType.CraneBreakdown, LaytimeExceptionType.MechanicalFailure];
+
+        /// <summary>
+        /// Walks segments in time order until counted time reaches allowed time,
+        /// splits the segment that crosses that instant, and (when onceOnDemurrage)
+        /// re-rates everything between expiry and completion under demurrage rules.
+        /// When onceOnDemurrage is false the laytime rules keep applying after expiry.
+        /// </summary>
+        private static (List<LaytimeSegment> Segments, DateTime? ExpiredAt) ApplyExpiry(
+            int calculationId,
+            List<LaytimeSegment> segments,
+            long allowedTicks,
+            DateTime completedAt,
+            bool onceOnDemurrage,
+            List<SofEvent> events,
+            IReadOnlyCollection<LaytimeException> exceptions)
+        {
+            var result = new List<LaytimeSegment>(segments.Count + 1);
+            long accumulated = 0;
+            DateTime? expiredAt = null;
+
+            LaytimeSegment AfterExpiry(LaytimeSegment s) =>
+                onceOnDemurrage && s.From < completedAt
+                    ? ToDemurrage(calculationId, s, events, exceptions)
+                    : s;
+
+            foreach (var segment in segments)
+            {
+                if (expiredAt is not null)
+                {
+                    result.Add(AfterExpiry(segment));
+                    continue;
+                }
+
+                var counted = segment.CountedDuration.Ticks;
+                if (counted == 0 || accumulated + counted < allowedTicks)
+                {
+                    accumulated += counted;
+                    result.Add(segment);
+                    continue;
+                }
+
+                // Laytime runs out inside (or at the end of) this segment
+                var remaining = allowedTicks - accumulated;
+                var expiry = segment.From.AddTicks((long)Math.Ceiling(remaining / EffectiveFactor(segment)));
+                if (expiry > segment.To)
+                    expiry = segment.To;
+
+                expiredAt = expiry;
+
+                if (expiry == segment.To)
+                {
+                    result.Add(segment);
+                    continue;
+                }
+
+                result.Add(LaytimeSegment.Create(
+                    calculationId, segment.From, expiry, segment.ImpactType, segment.Factor, segment.Reason));
+
+                result.Add(AfterExpiry(LaytimeSegment.Create(
+                    calculationId, expiry, segment.To, segment.ImpactType, segment.Factor, segment.Reason)));
+            }
+
+            return (result, expiredAt);
+        }
+
+        /// <summary>
+        /// Demurrage rate for a piece after expiry: full time, except vessel-side
+        /// stoppages, which keep their entered factor.
+        /// </summary>
+        private static LaytimeSegment ToDemurrage(
+            int calculationId,
+            LaytimeSegment segment,
+            List<SofEvent> events,
+            IReadOnlyCollection<LaytimeException> exceptions)
+        {
+            var factor = 1m;
+            var reason = "On demurrage";
+
+            // events are ordered by time then Id, so the last one at or before From governs this piece
+            var governing = events.LastOrDefault(e => e.EventTime <= segment.From);
+            if (governing is not null && OwnerFaultEvents.Contains(governing.EventType))
+            {
+                factor = EventFactor(governing);
+                reason = $"On demurrage - {governing.EventType}";
+            }
+
+            var ownerException = exceptions
+                .Where(e => OwnerFaultExceptions.Contains(e.ExceptionType) && e.Overlaps(segment.From, segment.To))
+                .MinBy(e => e.Factor);
+
+            if (ownerException is not null && ownerException.Factor < factor)
+            {
+                factor = ownerException.Factor;
+                reason = $"On demurrage - {ownerException.ExceptionType}";
+            }
+
+            return CreatePiece(calculationId, segment.From, segment.To, factor, reason);
+        }
+
+        /// <summary>LaytimeCompleted if present, else the operation's completion event, else the last event.</summary>
+        private static DateTime FindCompletion(List<SofEvent> events, OperationType operationType)
+        {
+            var operationCompleted = operationType == OperationType.Loading
+                ? SofEventType.LoadingCompleted
+                : SofEventType.DischargingCompleted;
+
+            return events.FirstOrDefault(e => e.EventType == SofEventType.LaytimeCompleted)?.EventTime
+                ?? events.FirstOrDefault(e => e.EventType == operationCompleted)?.EventTime
+                ?? events[^1].EventTime;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // LT-07: Despatch on all time saved
+        // ─────────────────────────────────────────────────────────────────
+
+        private static DateTime FindHypotheticalExpiry(
+            DateTime start,
+            long remainingTicks,
+            LaytimeCalendarType calendarType,
+            LaytimeRuleOptions ruleOptions)
+        {
+            // Exclusions add at most 2 days per week, so this horizon always covers the remaining laytime
+            var horizon = start.AddTicks(remainingTicks * 2).AddDays(14);
+            var excluded = GetExcludedPeriods(start, horizon, calendarType, ruleOptions);
+
+            var cursor = start;
+            foreach (var period in excluded)
+            {
+                var available = (period.From - cursor).Ticks;
+                if (available >= remainingTicks)
+                    break;
+
+                remainingTicks -= available;
+                cursor = period.To;
+            }
+
+            return cursor.AddTicks(remainingTicks);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Factor helpers
+        // ─────────────────────────────────────────────────────────────────
+
+        private static decimal EffectiveFactor(LaytimeSegment s) => s.ImpactType switch
+        {
+            LaytimeImpactType.FullCount => 1m,
+            LaytimeImpactType.NoCount => 0m,
+            _ => s.Factor
+        };
+
+        private static decimal EventFactor(SofEvent e) => e.ImpactType switch
+        {
+            LaytimeImpactType.FullCount => 1m,
+            LaytimeImpactType.NoCount => 0m,
+            _ => e.Factor
+        };
+
+        private static LaytimeSegment CreatePiece(
+            int calculationId, DateTime from, DateTime to, decimal factor, string? reason) => factor switch
+            {
+                >= 1m => LaytimeSegment.Create(calculationId, from, to, LaytimeImpactType.FullCount, 1m, reason),
+                <= 0m => LaytimeSegment.Create(calculationId, from, to, LaytimeImpactType.NoCount, 0m, reason),
+                _ => LaytimeSegment.Create(calculationId, from, to, LaytimeImpactType.ProRata, factor, reason)
+            };
+
 
         public static string FormatDuration(TimeSpan ts)
         {

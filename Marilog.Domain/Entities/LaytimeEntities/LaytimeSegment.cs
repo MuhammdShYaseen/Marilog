@@ -34,9 +34,9 @@ namespace Marilog.Domain.Entities.LaytimeEntities
         {
             LaytimeImpactType.FullCount => Duration,
             LaytimeImpactType.NoCount => TimeSpan.Zero,
-            LaytimeImpactType.ProRata => TimeSpan.FromTicks(
-                                               (long)(Duration.Ticks * (double)Factor)),
-            _ => Duration
+            LaytimeImpactType.ProRata => TimeSpan.FromTicks((long)(Duration.Ticks * Factor)), // LT-14
+            _ => throw new InvalidOperationException(
+                $"Undefined impact type {(int)ImpactType} on segment {Id}.") // LT-13
         };
 
         private LaytimeSegment() { }

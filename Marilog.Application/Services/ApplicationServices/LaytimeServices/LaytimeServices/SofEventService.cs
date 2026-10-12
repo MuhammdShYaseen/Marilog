@@ -25,8 +25,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             AddSofEventRequest request,
             CancellationToken cancellationToken = default)
         {
-            var calculation = await _helpper.GetCalculationOrThrowAsync(
-                calculationId, withIncludes: false, cancellationToken);
+            var calculation = await _helpper.GetCalculationOrThrowAsync(calculationId, withIncludes: true, cancellationToken);
 
             var sofEvent = SofEvent.Create(
                 calculationId,
@@ -78,17 +77,15 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             return responses;
         }
 
-        public async Task UpdateSofEventImpactAsync(
-            int sofEventId,
-            UpdateSofEventImpactRequest request,
-            CancellationToken cancellationToken = default)
+        public async Task UpdateSofEventImpactAsync(int calculationId, int sofEventId, UpdateSofEventImpactRequest request, CancellationToken cancellationToken = default)
         {
-            var sofEvent = await _sofRepo
-                .Query()
-                .FirstOrDefaultAsync(x => x.Id == sofEventId, cancellationToken)
-                ?? throw new KeyNotFoundException($"SOF event {sofEventId} not found.");
+            var calculation = await _helpper.GetCalculationOrThrowAsync(
+                calculationId, withIncludes: true, cancellationToken);
 
-            sofEvent.UpdateImpact(request.ImpactType, request.Factor);
+            var result = calculation.UpdateSofEventImpact(sofEventId, request.ImpactType, request.Factor);
+            if (result.IsFailure)
+                throw new KeyNotFoundException(result.Error);
+
             await _sofRepo.SaveChangesAsync(cancellationToken);
         }
 

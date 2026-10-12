@@ -67,12 +67,12 @@ namespace Marilog.Domain.Entities.LaytimeEntities
         public bool Overlaps(DateTime from, DateTime to) =>
             From < to && from < To;
 
-        public void UpdateNotes(string? notes)
+        internal void UpdateNotes(string? notes)
         {
             Notes = notes?.Trim() ?? string.Empty;
         }
 
-        public void UpdateFactor(decimal factor)
+        internal void UpdateFactor(decimal factor)
         {
             if (factor < 0m || factor > 1m)
                 throw new ArgumentException(

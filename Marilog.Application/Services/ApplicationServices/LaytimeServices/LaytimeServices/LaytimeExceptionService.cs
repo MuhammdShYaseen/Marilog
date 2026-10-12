@@ -44,18 +44,14 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             return _helpper.MapExceptionResponse(exception);
         }
 
-        public async Task UpdateExceptionAsync(
-            int exceptionId,
-            UpdateLaytimeExceptionRequest request,
-            CancellationToken cancellationToken = default)
+        public async Task UpdateExceptionAsync(int calculationId, int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken cancellationToken = default)
         {
-            var exception = await _exceptionRepo
-                .Query()
-                .FirstOrDefaultAsync(x => x.Id == exceptionId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Exception {exceptionId} not found.");
+            var calculation = await _helpper.GetCalculationOrThrowAsync(
+                calculationId, withIncludes: true, cancellationToken);
 
-            exception.UpdateFactor(request.Factor);
-            exception.UpdateNotes(request.Notes);
+            var result = calculation.UpdateException(exceptionId, request.Factor, request.Notes);
+            if (result.IsFailure)
+                throw new KeyNotFoundException(result.Error);
 
             await _exceptionRepo.SaveChangesAsync(cancellationToken);
         }

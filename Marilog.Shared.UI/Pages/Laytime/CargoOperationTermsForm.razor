@@ -17,8 +17,9 @@
             }
         </MudSelect>
     </MudItem>
-    <MudItem xs="6" Class="d-flex align-center">
-        <MudCheckBox T="bool" Value="Values.IsReversible" ValueChanged="@(v => Update(x => x.IsReversible = v))" Label="Reversible Laytime" Color="Color.Primary" />
+    <MudItem xs="6" Class="d-flex flex-column justify-center">
+        <MudCheckBox T="bool" Value="Values.IsReversible" ValueChanged="@(v => Update(x => x.IsReversible = v))" Label="Reversible Laytime" Color="Color.Primary" Disabled="true" />
+        <MudText Typo="Typo.caption" Color="Color.Warning">Not yet applied in calculation</MudText>
     </MudItem>
 </MudGrid>
 

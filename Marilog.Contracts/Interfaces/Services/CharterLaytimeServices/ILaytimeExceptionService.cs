@@ -1,8 +1,6 @@
 ﻿using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using System;
-using System.Collections.Generic;
-using System.Text;
+
 
 namespace Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
 {
@@ -12,7 +10,7 @@ namespace Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
         Task<LaytimeExceptionResponse> AddExceptionAsync(int calculationId, AddLaytimeExceptionRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>تعديل ملاحظات أو Factor لاستثناء موجود</summary>
-        Task UpdateExceptionAsync(int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken cancellationToken = default);
+        Task UpdateExceptionAsync(int calculationId, int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken cancellationToken = default);
 
         /// <summary>حذف استثناء</summary>
         Task RemoveExceptionAsync(int calculationId, int exceptionId, CancellationToken cancellationToken = default);

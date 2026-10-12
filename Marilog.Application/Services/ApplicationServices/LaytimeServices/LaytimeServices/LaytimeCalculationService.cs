@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices
@@ -83,25 +84,30 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 
             // بناء Segments — مع تطبيق CalendarType (SHEX/PWWD) و NoticeHours و RuleOptions
             calculation.ClearSegments();
-            var segments = _engine.BuildSegments(calculation, operationTerms, ruleOptions);
-            foreach (var segment in segments)
+            var build = _engine.BuildSegments(
+                calculation,
+                operationTerms,
+                ruleOptions,
+                charterTerms.LaytimeTerms.Demurrage.OnceOnDemurrageAlwaysOnDemurrage);
+
+            foreach (var segment in build.Segments)
                 calculation.AddSegment(segment);
 
-            // حساب النتيجة من نفس الـ Segments المبنية أعلاه (بدون إعادة بنائها)
             var result = _engine.Calculate(
                 calculation,
-                segments,
+                build,
                 operationTerms.RateMtPerDay,
                 charterTerms.LaytimeTerms.Demurrage.RateUsdPerDay,
-                charterTerms.LaytimeTerms.Despatch?.RateUsdPerDay ?? 0);
+                charterTerms.LaytimeTerms.Despatch?.RateUsdPerDay ?? 0,
+                charterTerms.LaytimeTerms.Despatch?.Basis ?? DespatchBasis.OnWorkingTimeSaved);
 
-            var setResult = calculation.SetResult(result);
+            var setResult = calculation.SetResult(result, charterTerms.TermsVersion, build.LaytimeExpiredAt);
             if (setResult.IsFailure)
                 throw new InvalidOperationException(setResult.Error);
 
             await _calculationRepo.SaveChangesAsync(cancellationToken);
 
-            return _laytimeHelpper.MapResultResponse(result);
+            return _laytimeHelpper.MapResultResponse(result) with { LaytimeExpiredAt = build.LaytimeExpiredAt };
         }
 
         public async Task<LaytimeResultResponse> RecomputeAsync(
@@ -120,14 +126,15 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             return await ComputeAsync(calculationId, cancellationToken);
         }
 
-        public async Task FinalizeAsync(
-            int calculationId,
-            CancellationToken cancellationToken = default)
+        public async Task FinalizeAsync(int calculationId, CancellationToken cancellationToken = default)
         {
             var calculation = await _laytimeHelpper.GetCalculationOrThrowAsync(
                 calculationId, withIncludes: false, cancellationToken);
 
-            var result = calculation.FinalizeCalculation();
+            var charterTerms = await _laytimeHelpper.GetCharterTermsOrThrowAsync(
+                calculation.ContractId, cancellationToken);
+
+            var result = calculation.FinalizeCalculation(charterTerms.TermsVersion);
             if (result.IsFailure)
                 throw new InvalidOperationException(result.Error);
 
