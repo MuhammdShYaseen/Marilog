@@ -144,11 +144,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 segments = windowed;
             }
 
-            // ─────────────────────────────
-            // 2) فترة الإشعار (Notice Hours) — لا يُحتسب شيء قبل
-            //    NorTendered + NoticeHours حتى لو كانت الأحداث تقول غير ذلك
-            // ─────────────────────────────
-            segments = ApplyNoticePeriod(calculation.Id, events, operationTerms, segments);
+           
 
             // ─────────────────────────────
             // 3) استبعاد الأحد/العطل تلقائياً حسب CalendarType (SHEX/PWWD)
