@@ -104,7 +104,9 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 
             foreach (var segment in build.Segments)
                 calculation.AddSegment(segment);
-
+            var counted = build.Segments.Where(s => s.CountedDuration > TimeSpan.Zero).ToList();
+            if (counted.Count > 0)
+                calculation.SetLaytimePeriod(counted[0].From, counted[^1].To);
             var result = _engine.Calculate(
                         calculation,
                         build,

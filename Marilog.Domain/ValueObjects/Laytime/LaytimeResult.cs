@@ -35,7 +35,7 @@
             decimal demurrageAmount,
             decimal despatchAmount)
         {
-            if (allowedDays <= 0)
+            if (allowedDays < 0)
                 throw new ArgumentException(
                     "Allowed days must be greater than zero.", nameof(allowedDays));
 

@@ -92,6 +92,30 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             if (segments.Count == 0)
                 return new LaytimeSegmentBuild(allowedDays, segments, null, null);
 
+            // 1a) LT-12: explicit laytime markers entered by the user bound the counting window
+            var markerWindows = new List<(DateTime From, DateTime To, string Reason)>();
+
+            var commencedMarker = events.FirstOrDefault(e => e.EventType == SofEventType.LaytimeCommenced);
+            if (commencedMarker is not null && commencedMarker.EventTime > events[0].EventTime)
+                markerWindows.Add((events[0].EventTime, commencedMarker.EventTime, "Before Laytime Commenced"));
+
+            var completedMarker = events.FirstOrDefault(e => e.EventType == SofEventType.LaytimeCompleted);
+            if (completedMarker is not null && completedMarker.EventTime < events[^1].EventTime)
+                markerWindows.Add((completedMarker.EventTime, events[^1].EventTime, "After Laytime Completed"));
+
+            if (markerWindows.Count > 0)
+            {
+                var bounded = new List<LaytimeSegment>(segments.Count);
+                foreach (var segment in segments)
+                {
+                    if (segment.ImpactType == LaytimeImpactType.NoCount)
+                        bounded.Add(segment);
+                    else
+                        bounded.AddRange(ApplyExclusions(calculation.Id, segment, markerWindows));
+                }
+                segments = bounded;
+            }
+
             // 1b) LT-09: draft survey / shifting windows not counted unless the contract says they count
             var surveyAndShifting = new List<(DateTime From, DateTime To, string Reason)>();
 

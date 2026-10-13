@@ -77,7 +77,8 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
         r.CalendarType,
         r.NoticeHours,
         r.IsReversible,
-        r.UnlessSoonerCommenced);
+        r.UnlessSoonerCommenced,
+        r.FixedLaytimeHours);
 
         public DemurrageTerms MapDemurrage(DemurrageTermsRequest r) =>
             DemurrageTerms.Create(
@@ -116,7 +117,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 
         public CargoOperationTermsResponse MapCargoOpResponse(CargoOperationTerms t) =>
     new(t.OperationType, t.RateMtPerDay, t.CalendarType,
-        t.NoticeHours, t.IsReversible, t.IsWeatherWorkingDay, t.UnlessSoonerCommenced);
+        t.NoticeHours, t.IsReversible, t.IsWeatherWorkingDay, t.UnlessSoonerCommenced, t.FixedLaytimeHours);
 
         public DemurrageTermsResponse MapDemurrageResponse(DemurrageTerms d) =>
             new(d.RateUsdPerDay, d.OnceOnDemurrageAlwaysOnDemurrage);
