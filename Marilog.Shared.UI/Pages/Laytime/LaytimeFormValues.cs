@@ -56,7 +56,9 @@ namespace Marilog.Shared.UI.Pages.Laytime
             WeekendDay1 = r.WeekendDay1 ?? DayOfWeek.Friday,
             WeekendDay2 = r.WeekendDay2,
             TimeReversible = r.TimeReversible,
-            AllowShiftingTime = r.AllowShiftingTime
+            AllowShiftingTime = r.AllowShiftingTime,
+            WeekendStartTime = r.WeekendStartTime,
+            WeekendEndTime = r.WeekendEndTime
         };
     }
 }
