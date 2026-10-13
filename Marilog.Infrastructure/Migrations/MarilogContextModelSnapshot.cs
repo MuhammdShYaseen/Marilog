@@ -2876,9 +2876,15 @@ namespace Marilog.Infrastructure.Migrations
                                         .HasColumnType("nvarchar(20)")
                                         .HasColumnName("Rules_WeekendDay2");
 
+                                    b2.Property<TimeSpan?>("WeekendEndTime")
+                                        .HasColumnType("time");
+
                                     b2.Property<bool>("WeekendIncluded")
                                         .HasColumnType("bit")
                                         .HasColumnName("Rules_WeekendIncluded");
+
+                                    b2.Property<TimeSpan?>("WeekendStartTime")
+                                        .HasColumnType("time");
 
                                     b2.HasKey("LaytimeTermsCharterTermsId");
 

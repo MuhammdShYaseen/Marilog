@@ -216,7 +216,8 @@
         Strike = 6,
         PortCongestion = 7,
         Custom = 8,
-        Other = 9
+        Other = 9,
+        UnlessUsed = 10
     }
 
     /// <summary>

@@ -48,7 +48,9 @@ namespace Marilog.Contracts.DTOs.Requests.LayTimeDTOs
         DayOfWeek WeekendDay2,
         bool SundaysIncluded,
         bool TimeReversible,
-        bool AllowShiftingTime);
+        bool AllowShiftingTime,
+        TimeSpan? WeekendStartTime = null,
+        TimeSpan? WeekendEndTime = null);
 
     // ═══════════════════════════════════════════════════════════════════════
     // Laytime Calculation — Requests

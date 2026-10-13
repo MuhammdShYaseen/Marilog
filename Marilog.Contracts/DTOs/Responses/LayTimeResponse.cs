@@ -45,7 +45,9 @@ namespace Marilog.Contracts.DTOs.Responses
         DayOfWeek? WeekendDay1,
         DayOfWeek? WeekendDay2,
         bool TimeReversible,
-        bool AllowShiftingTime);
+        bool AllowShiftingTime,
+        TimeSpan? WeekendStartTime = null,
+        TimeSpan? WeekendEndTime = null);
 
     // ═══════════════════════════════════════════════════════════════════════
     // Laytime Calculation — Response

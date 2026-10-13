@@ -50,6 +50,7 @@ namespace Marilog.Shared.UI.Pages.Laytime
             LaytimeExceptionType.PortCongestion => "Port Congestion",
             LaytimeExceptionType.Custom => "Custom",
             LaytimeExceptionType.Other => "Other",
+            LaytimeExceptionType.UnlessUsed => "Unless Used (worked in weekend/holiday)",
             _ => value.ToString()
         };
 

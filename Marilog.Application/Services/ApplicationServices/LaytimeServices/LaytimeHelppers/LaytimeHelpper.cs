@@ -88,14 +88,16 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             DespatchTerms.Create(r.RateUsdPerDay, r.Basis);
 
         public LaytimeRuleOptions MapRuleOptions(LaytimeRuleOptionsRequest r) =>
-            LaytimeRuleOptions.Create(
-                r.DraftSurveyCounts,
-                r.HolidaysIncluded,
-                r.WeekendIncluded,
-                r.WeekendDay1,
-                r.WeekendDay2,
-                r.TimeReversible,
-                r.AllowShiftingTime);
+        LaytimeRuleOptions.Create(
+        r.DraftSurveyCounts,
+        r.HolidaysIncluded,
+        r.WeekendIncluded,
+        r.WeekendDay1,
+        r.WeekendDay2,
+        r.TimeReversible,
+        r.AllowShiftingTime,
+        r.WeekendStartTime,
+        r.WeekendEndTime);
 
         // ═══════════════════════════════════════════════════════════════════
         //  — Domain → Response Mappers
@@ -123,8 +125,9 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             new(d.RateUsdPerDay, d.Basis);
 
         public LaytimeRuleOptionsResponse MapRuleOptionsResponse(LaytimeRuleOptions r) =>
-            new(r.DraftSurveyCounts, r.HolidaysIncluded, r.WeekendIncluded,
-                r.WeekendDay1, r.WeekendDay2, r.TimeReversible, r.AllowShiftingTime);
+    new(r.DraftSurveyCounts, r.HolidaysIncluded, r.WeekendIncluded,
+        r.WeekendDay1, r.WeekendDay2, r.TimeReversible, r.AllowShiftingTime,
+        r.WeekendStartTime, r.WeekendEndTime);
 
         public LaytimeCalculationResponse MapCalculationResponse(LaytimeCalculation c) =>
             new(

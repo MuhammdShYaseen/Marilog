@@ -123,7 +123,22 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             var overallFrom = events[0].EventTime;
             var overallTo = events[^1].EventTime;
 
-            var excludedPeriods = GetExcludedPeriods(overallFrom, overallTo, operationTerms.CalendarType, ruleOptions);
+            // LT-06: holidays are entered by the user as Holiday exceptions and
+            // excluded under the same calendar rules as the weekend
+            var holidayPeriods = GetHolidayPeriods(calculation.Exceptions, operationTerms.CalendarType, ruleOptions);
+            var calendarPeriods = GetExcludedPeriods(
+                    overallFrom, overallTo, operationTerms.CalendarType, ruleOptions)
+                         .Concat(holidayPeriods)
+                         .ToList();
+
+            // LT-11: "unless used" — time the user records as worked inside a weekend/holiday
+            // is taken out of the exclusion and counted at the factor the user entered
+            var unlessUsed = calculation.Exceptions
+                .Where(e => e.ExceptionType == LaytimeExceptionType.UnlessUsed)
+                .ToList();
+
+            var excludedPeriods = SubtractUsed(calendarPeriods, unlessUsed);
+            var usedWindows = UsedWindows(calculation.Id, calendarPeriods, unlessUsed);
 
             if (excludedPeriods.Count > 0)
             {
@@ -144,7 +159,10 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             }
 
             // 4) LT-04: LaytimeException records
-            segments = ApplyExceptions(calculation.Id, segments, calculation.Exceptions);
+            segments = ApplyExceptions(calculation.Id, segments, calculation.Exceptions
+                        .Where(e => e.ExceptionType is not (LaytimeExceptionType.Holiday or LaytimeExceptionType.UnlessUsed))
+                        .Concat(usedWindows)
+                        .ToList());
 
             // 5) LT-05: find the expiry instant; after it, demurrage rules apply
             var allowedTicks = (long)(allowedDays * TimeSpan.TicksPerDay);
@@ -162,8 +180,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 var remainingTicks = allowedTicks - finalSegments.Sum(s => s.CountedDuration.Ticks);
                 if (remainingTicks > 0)
                 {
-                    var hypotheticalExpiry = FindHypotheticalExpiry(
-                        completedAt, remainingTicks, operationTerms.CalendarType, ruleOptions);
+                    var hypotheticalExpiry = FindHypotheticalExpiry(completedAt, remainingTicks, operationTerms.CalendarType, ruleOptions, holidayPeriods);
                     allTimeSaved = hypotheticalExpiry - completedAt;
                 }
             }
@@ -256,56 +273,53 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
         /// حالياً يُطبَّق استبعاد عطلة نهاية الأسبوع فقط، أما HolidaysIncluded=false
         /// بدون قائمة عطل فعلية فلن يستبعد أي يوم إضافي.
         /// </summary>
+        /// <summary>
+        /// يحسب فترات عطلة نهاية الأسبوع المستبعدة من احتساب الـ Laytime.
+        /// SHINC / SSHINC → لا استبعاد. SHEX / WeatherWorkingDay → الـ weekend مستبعد
+        /// ما لم يكن WeekendIncluded = true.
+        /// LT-11: الـ weekend نافذة زمنية — تبدأ يوم WeekendDay1 الساعة WeekendStartTime
+        /// وتنتهي في اليوم التالي لآخر يوم عطلة الساعة WeekendEndTime
+        /// (القيمة الافتراضية 00:00 = أيام كاملة كما في السابق).
+        /// العطل الرسمية تُدخَل كـ Holiday exceptions (انظر GetHolidayPeriods).
+        /// </summary>
         internal static IReadOnlyList<(DateTime From, DateTime To, string Reason)> GetExcludedPeriods(
             DateTime from,
             DateTime to,
             LaytimeCalendarType calendarType,
-            LaytimeRuleOptions ruleOptions,
-            IReadOnlyCollection<DateOnly>? holidayDates = null)
+            LaytimeRuleOptions ruleOptions)
         {
             var excluded = new List<(DateTime, DateTime, string)>();
 
             var appliesCalendarExclusion =
                 calendarType is LaytimeCalendarType.SHEX or LaytimeCalendarType.WeatherWorkingDay;
 
-            if (!appliesCalendarExclusion)
+            if (!appliesCalendarExclusion || ruleOptions.WeekendIncluded || ruleOptions.WeekendDay1 is not { } firstDay)
                 return excluded;
 
-            var excludeWeekend = !ruleOptions.WeekendIncluded;
-            var excludeHolidays = !ruleOptions.HolidaysIncluded && holidayDates is { Count: > 0 };
+            var lastDay = ruleOptions.WeekendDay2 ?? firstDay;
 
-            if (!excludeWeekend && !excludeHolidays)
-                return excluded;
+            // Two consecutive days entered in reverse order (e.g. Saturday, Friday)
+            if (((int)firstDay - (int)lastDay + 7) % 7 == 1)
+                (firstDay, lastDay) = (lastDay, firstDay);
 
-            var day = from.Date;
-            var endDate = to.Date;
+            var spanDays = ((int)lastDay - (int)firstDay + 7) % 7 + 1;
+            var startTime = ruleOptions.WeekendStartTime ?? TimeSpan.Zero;
+            var endTime = ruleOptions.WeekendEndTime ?? TimeSpan.Zero;
 
-            while (day <= endDate)
+            // Start a week early so a window that began before 'from' is still caught
+            for (var day = from.Date.AddDays(-7); day <= to.Date; day = day.AddDays(1))
             {
-                var isWeekendDay = excludeWeekend && ruleOptions.IsWeekendDay(day.DayOfWeek);
-                var isHoliday = excludeHolidays && holidayDates!.Contains(DateOnly.FromDateTime(day));
+                if (day.DayOfWeek != firstDay)
+                    continue;
 
-                if (isWeekendDay || isHoliday)
-                {
-                    var dayStart = day;
-                    var dayEnd = day.AddDays(1);
+                var windowStart = day + startTime;
+                var windowEnd = day.AddDays(spanDays) + endTime;
 
-                    var windowStart = dayStart > from ? dayStart : from;
-                    var windowEnd = dayEnd < to ? dayEnd : to;
+                var clippedStart = windowStart > from ? windowStart : from;
+                var clippedEnd = windowEnd < to ? windowEnd : to;
 
-                    if (windowEnd > windowStart)
-                    {
-                        var reason = isWeekendDay && isHoliday
-                            ? "Weekend & Holiday - Excluded"
-                            : isWeekendDay
-                                ? "Weekend - Excluded"
-                                : "Holiday - Excluded";
-
-                        excluded.Add((windowStart, windowEnd, reason));
-                    }
-                }
-
-                day = day.AddDays(1);
+                if (clippedEnd > clippedStart)
+                    excluded.Add((clippedStart, clippedEnd, "Weekend - Excluded"));
             }
 
             return excluded;
@@ -558,16 +572,26 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             DateTime start,
             long remainingTicks,
             LaytimeCalendarType calendarType,
-            LaytimeRuleOptions ruleOptions)
+            LaytimeRuleOptions ruleOptions,
+            IReadOnlyList<(DateTime From, DateTime To, string Reason)> holidayPeriods)
         {
-            // Exclusions add at most 2 days per week, so this horizon always covers the remaining laytime
-            var horizon = start.AddTicks(remainingTicks * 2).AddDays(14);
-            var excluded = GetExcludedPeriods(start, horizon, calendarType, ruleOptions);
+            // Weekends add at most 2 days per week; holidays add their own length.
+            // This horizon always covers the remaining laytime.
+            var holidayTicks = holidayPeriods.Sum(h => (h.To - h.From).Ticks);
+            var horizon = start.AddTicks(remainingTicks * 2 + holidayTicks).AddDays(14);
+
+            var excluded = GetExcludedPeriods(start, horizon, calendarType, ruleOptions)
+                .Concat(holidayPeriods)
+                .OrderBy(p => p.From);
 
             var cursor = start;
             foreach (var period in excluded)
             {
-                var available = (period.From - cursor).Ticks;
+                // Weekend and holiday periods may overlap; skip what is already behind the cursor
+                if (period.To <= cursor)
+                    continue;
+
+                var available = Math.Max(0, (period.From - cursor).Ticks);
                 if (available >= remainingTicks)
                     break;
 
@@ -642,6 +666,94 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             }
 
             return windows;
+        }
+
+
+        // ─────────────────────────────────────────────────────────────────
+        // LT-06: Holidays
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Holiday exceptions entered by the user, excluded only when the calendar
+        /// excludes holidays (SHEX / WWD) and the contract does not include them.
+        /// </summary>
+        private static List<(DateTime From, DateTime To, string Reason)> GetHolidayPeriods(
+            IReadOnlyCollection<LaytimeException> exceptions,
+            LaytimeCalendarType calendarType,
+            LaytimeRuleOptions ruleOptions)
+        {
+            var calendarExcludesHolidays =
+                calendarType is LaytimeCalendarType.SHEX or LaytimeCalendarType.WeatherWorkingDay;
+
+            if (!calendarExcludesHolidays || ruleOptions.HolidaysIncluded)
+                return [];
+
+            return exceptions
+                .Where(e => e.ExceptionType == LaytimeExceptionType.Holiday)
+                .Select(e => (e.From, e.To, "Holiday - Excluded"))
+                .ToList();
+        }
+
+
+        // ─────────────────────────────────────────────────────────────────
+        // LT-11: Unless used
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>Excluded periods minus the time the user recorded as worked.</summary>
+        private static List<(DateTime From, DateTime To, string Reason)> SubtractUsed(
+            List<(DateTime From, DateTime To, string Reason)> periods,
+            List<LaytimeException> used)
+        {
+            if (used.Count == 0)
+                return periods;
+
+            var result = new List<(DateTime From, DateTime To, string Reason)>();
+
+            foreach (var period in periods)
+            {
+                var cursor = period.From;
+
+                foreach (var u in used.Where(u => u.Overlaps(period.From, period.To)).OrderBy(u => u.From))
+                {
+                    if (u.From > cursor)
+                        result.Add((cursor, u.From, period.Reason));
+
+                    if (u.To > cursor)
+                        cursor = u.To;
+                }
+
+                if (cursor < period.To)
+                    result.Add((cursor, period.To, period.Reason));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The worked time that falls inside excluded periods, as transient exceptions
+        /// carrying the user's factor (1 = unless used, 0.5 = half time used).
+        /// These are never added to the calculation.
+        /// </summary>
+        private static List<LaytimeException> UsedWindows(
+            int calculationId,
+            List<(DateTime From, DateTime To, string Reason)> periods,
+            List<LaytimeException> used)
+        {
+            var result = new List<LaytimeException>();
+
+            foreach (var period in periods)
+            {
+                foreach (var u in used.Where(u => u.Overlaps(period.From, period.To)))
+                {
+                    var from = u.From > period.From ? u.From : period.From;
+                    var to = u.To < period.To ? u.To : period.To;
+
+                    result.Add(LaytimeException.Create(
+                        calculationId, from, to, LaytimeExceptionType.UnlessUsed, u.Factor));
+                }
+            }
+
+            return result;
         }
     }
 }

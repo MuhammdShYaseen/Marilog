@@ -6,8 +6,8 @@
         <MudCheckBox T="bool" Value="Values.WeekendIncluded" ValueChanged="@(v => Update(x => x.WeekendIncluded = v))" Label="Weekend Included (counts toward Laytime)" Color="Color.Primary" />
     </MudItem>
     <MudItem xs="6">
-        <MudCheckBox T="bool" Value="Values.HolidaysIncluded" ValueChanged="@(v => Update(x => x.HolidaysIncluded = v))" Label="Holidays Included" Color="Color.Primary" Disabled="true" />
-        <MudText Typo="Typo.caption" Color="Color.Warning">Not yet applied in calculation — no holiday data</MudText>
+        <MudCheckBox T="bool" Value="Values.HolidaysIncluded" ValueChanged="@(v => Update(x => x.HolidaysIncluded = v))" Label="Holidays Included" Color="Color.Primary" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Add each holiday as a "Holiday" exception on the calculation</MudText>
     </MudItem>
     <MudItem xs="6">
         <MudCheckBox T="bool" Value="Values.DraftSurveyCounts" ValueChanged="@(v => Update(x => x.DraftSurveyCounts = v))" Label="Draft Survey Counts" Color="Color.Primary" Disabled="true" />
@@ -39,6 +39,15 @@
                     <MudSelectItem Value="day">@day</MudSelectItem>
                 }
             </MudSelect>
+        </MudItem>
+
+        <MudItem xs="6">
+            <MudTimePicker Time="Values.WeekendStartTime" TimeChanged="@(v => Update(x => x.WeekendStartTime = v))"
+                           Label="Weekend Starts At" HelperText="On Weekend Day 1 — empty = 00:00" />
+        </MudItem>
+        <MudItem xs="6">
+            <MudTimePicker Time="Values.WeekendEndTime" TimeChanged="@(v => Update(x => x.WeekendEndTime = v))"
+                           Label="Weekend Ends At" HelperText="On the day after the last weekend day — empty = 00:00" />
         </MudItem>
     }
 </MudGrid>

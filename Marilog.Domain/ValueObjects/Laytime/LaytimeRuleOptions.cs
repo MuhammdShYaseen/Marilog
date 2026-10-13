@@ -23,6 +23,12 @@ namespace Marilog.Domain.ValueObjects.Laytime
         /// <summary>اليوم الثاني لعطلة نهاية الأسبوع (اختياري — مثال: Saturday عندما تكون العطلة يومين).</summary>
         public DayOfWeek? WeekendDay2 { get; private set; }
 
+
+        /// <summary>LT-11: time on WeekendDay1 when the weekend exclusion starts (null = 00:00)</summary>
+        public TimeSpan? WeekendStartTime { get; private set; }
+
+        /// <summary>LT-11: time on the day after the last weekend day when the exclusion ends (null = 00:00)</summary>
+        public TimeSpan? WeekendEndTime { get; private set; }
         public bool TimeReversible { get; private set; }
 
         public bool AllowShiftingTime { get; private set; }
@@ -39,7 +45,9 @@ namespace Marilog.Domain.ValueObjects.Laytime
             DayOfWeek? weekendDay1,
             DayOfWeek? weekendDay2,
             bool timeReversible,
-            bool allowShiftingTime)
+            bool allowShiftingTime,
+            TimeSpan? weekendStartTime = null,
+            TimeSpan? weekendEndTime = null)
         {
             if (!weekendIncluded && weekendDay1 is null)
                 throw new ArgumentException(
@@ -54,6 +62,12 @@ namespace Marilog.Domain.ValueObjects.Laytime
                 throw new ArgumentException(
                     "WeekendDay2 cannot be set without WeekendDay1.", nameof(weekendDay2));
 
+            if (weekendStartTime is { } start && (start < TimeSpan.Zero || start >= TimeSpan.FromDays(1)))
+                throw new ArgumentException("Weekend start time must be a time of day.", nameof(weekendStartTime));
+
+            if (weekendEndTime is { } end && (end < TimeSpan.Zero || end >= TimeSpan.FromDays(1)))
+                throw new ArgumentException("Weekend end time must be a time of day.", nameof(weekendEndTime));
+
             return new LaytimeRuleOptions
             {
                 DraftSurveyCounts = draftSurveyCounts,
@@ -62,7 +76,9 @@ namespace Marilog.Domain.ValueObjects.Laytime
                 WeekendDay1 = weekendDay1,
                 WeekendDay2 = weekendDay2,
                 TimeReversible = timeReversible,
-                AllowShiftingTime = allowShiftingTime
+                AllowShiftingTime = allowShiftingTime,
+                WeekendStartTime = weekendStartTime,
+                WeekendEndTime = weekendEndTime
             };
         }
 
