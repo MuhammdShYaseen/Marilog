@@ -2918,6 +2918,9 @@ namespace Marilog.Infrastructure.Migrations
                                         .HasColumnType("decimal(18,3)")
                                         .HasColumnName("Discharging_RateMtPerDay");
 
+                                    b2.Property<bool>("UnlessSoonerCommenced")
+                                        .HasColumnType("bit");
+
                                     b2.HasKey("LaytimeTermsCharterTermsId");
 
                                     b2.ToTable("CharterTerms");
@@ -2955,6 +2958,9 @@ namespace Marilog.Infrastructure.Migrations
                                         .HasPrecision(18, 3)
                                         .HasColumnType("decimal(18,3)")
                                         .HasColumnName("Loading_RateMtPerDay");
+
+                                    b2.Property<bool>("UnlessSoonerCommenced")
+                                        .HasColumnType("bit");
 
                                     b2.HasKey("LaytimeTermsCharterTermsId");
 

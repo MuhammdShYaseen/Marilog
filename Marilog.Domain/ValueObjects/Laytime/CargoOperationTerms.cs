@@ -26,7 +26,11 @@ namespace Marilog.Domain.ValueObjects.Laytime
         /// (Reversible Laytime في بعض Charter Parties)
         /// </summary>
         public bool IsReversible { get; private set; }
-
+        /// <summary>
+        /// LT-10: "unless sooner commenced" — if cargo work starts before the notice
+        /// period runs out, laytime starts when work starts.
+        /// </summary>
+        public bool UnlessSoonerCommenced { get; private set; }
         /// <summary>
         /// مشتق من CalendarType — لا يحتاج تخزيناً مستقلاً.
         /// true إذا كان CalendarType = WeatherWorkingDay.
@@ -44,7 +48,8 @@ namespace Marilog.Domain.ValueObjects.Laytime
             decimal rateMtPerDay,
             LaytimeCalendarType calendarType,
             int noticeHours,
-            bool isReversible = false)
+            bool isReversible = false,
+            bool unlessSoonerCommenced = false)
         {
             if (rateMtPerDay <= 0)
                 throw new ArgumentException(
@@ -60,7 +65,8 @@ namespace Marilog.Domain.ValueObjects.Laytime
                 RateMtPerDay = rateMtPerDay,
                 CalendarType = calendarType,
                 NoticeHours = noticeHours,
-                IsReversible = isReversible
+                IsReversible = isReversible,
+                UnlessSoonerCommenced = unlessSoonerCommenced
             };
         }
 
@@ -72,9 +78,10 @@ namespace Marilog.Domain.ValueObjects.Laytime
             RateMtPerDay == other.RateMtPerDay &&
             CalendarType == other.CalendarType &&
             NoticeHours == other.NoticeHours &&
-            IsReversible == other.IsReversible;
+            IsReversible == other.IsReversible &&
+            UnlessSoonerCommenced == other.UnlessSoonerCommenced;
 
         public override int GetHashCode() =>
-            HashCode.Combine(OperationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible);
+            HashCode.Combine(OperationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible, UnlessSoonerCommenced);
     }
 }

@@ -78,6 +78,31 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             // All events share the same timestamp — nothing to count
             if (segments.Count == 0)
                 return new LaytimeSegmentBuild(segments, null, null);
+
+            // 1b) LT-09: draft survey / shifting windows not counted unless the contract says they count
+            var surveyAndShifting = new List<(DateTime From, DateTime To, string Reason)>();
+
+            if (!ruleOptions.DraftSurveyCounts)
+                surveyAndShifting.AddRange(FindWindows(
+                    events, SofEventType.DraftSurveyStart, SofEventType.DraftSurveyEnd, "Draft Survey - Not Counted"));
+
+            if (!ruleOptions.AllowShiftingTime)
+                surveyAndShifting.AddRange(FindWindows(
+                    events, SofEventType.ShiftingStart, SofEventType.ShiftingEnd, "Shifting - Not Counted"));
+
+            if (surveyAndShifting.Count > 0)
+            {
+                var windowed = new List<LaytimeSegment>(segments.Count);
+                foreach (var segment in segments)
+                {
+                    if (segment.ImpactType == LaytimeImpactType.NoCount)
+                        windowed.Add(segment);
+                    else
+                        windowed.AddRange(ApplyExclusions(calculation.Id, segment, surveyAndShifting));
+                }
+                segments = windowed;
+            }
+
             // ─────────────────────────────
             // 2) فترة الإشعار (Notice Hours) — لا يُحتسب شيء قبل
             //    NorTendered + NoticeHours حتى لو كانت الأحداث تقول غير ذلك
@@ -159,6 +184,20 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 return segments;
 
             var earliestCountable = norTendered.EventTime.AddHours(noticeHours);
+
+            // LT-10: "unless sooner commenced" — notice ends early if cargo work starts before it runs out
+            if (operationTerms.UnlessSoonerCommenced)
+            {
+                var workStarted = operationTerms.OperationType == OperationType.Loading
+                    ? SofEventType.LoadingCommenced
+                    : SofEventType.DischargingCommenced;
+
+                var commenced = events.FirstOrDefault(e =>
+                    e.EventType == workStarted && e.EventTime >= norTendered.EventTime);
+
+                if (commenced is not null && commenced.EventTime < earliestCountable)
+                    earliestCountable = commenced.EventTime;
+            }
 
             var result = new List<LaytimeSegment>(segments.Count);
 
@@ -566,6 +605,34 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             return days > 0
                 ? $"{days}d {hours:D2}h {minutes:D2}m"
                 : $"{hours:D2}h {minutes:D2}m";
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // LT-09: Draft survey / shifting windows
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Pairs each start event with the first matching end event after it.
+        /// A start with no end is left alone (its own SOF impact applies).
+        /// </summary>
+        private static List<(DateTime From, DateTime To, string Reason)> FindWindows(
+            List<SofEvent> events,
+            SofEventType startType,
+            SofEventType endType,
+            string reason)
+        {
+            var windows = new List<(DateTime From, DateTime To, string Reason)>();
+
+            foreach (var start in events.Where(e => e.EventType == startType))
+            {
+                var end = events.FirstOrDefault(e =>
+                    e.EventType == endType && e.EventTime > start.EventTime);
+
+                if (end is not null)
+                    windows.Add((start.EventTime, end.EventTime, reason));
+            }
+
+            return windows;
         }
     }
 }

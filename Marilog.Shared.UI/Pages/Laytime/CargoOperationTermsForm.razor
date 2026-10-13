@@ -21,6 +21,9 @@
         <MudCheckBox T="bool" Value="Values.IsReversible" ValueChanged="@(v => Update(x => x.IsReversible = v))" Label="Reversible Laytime" Color="Color.Primary" Disabled="true" />
         <MudText Typo="Typo.caption" Color="Color.Warning">Not yet applied in calculation</MudText>
     </MudItem>
+    <MudItem xs="6" Class="d-flex align-center">
+        <MudCheckBox T="bool" Value="Values.UnlessSoonerCommenced" ValueChanged="@(v => Update(x => x.UnlessSoonerCommenced = v))" Label="Unless Sooner Commenced" Color="Color.Primary" />
+    </MudItem>
 </MudGrid>
 
 @code {

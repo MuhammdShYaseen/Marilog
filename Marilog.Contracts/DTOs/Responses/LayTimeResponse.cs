@@ -26,7 +26,8 @@ namespace Marilog.Contracts.DTOs.Responses
         LaytimeCalendarType CalendarType,
         int NoticeHours,
         bool IsReversible,
-        bool IsWeatherWorkingDay);
+        bool IsWeatherWorkingDay,
+        bool UnlessSoonerCommenced = false);
 
     public record DemurrageTermsResponse(
         decimal RateUsdPerDay,

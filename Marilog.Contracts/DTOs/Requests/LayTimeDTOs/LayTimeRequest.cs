@@ -28,7 +28,8 @@ namespace Marilog.Contracts.DTOs.Requests.LayTimeDTOs
         decimal RateMtPerDay,
         LaytimeCalendarType CalendarType,
         int NoticeHours,
-        bool IsReversible = false);
+        bool IsReversible = false,
+        bool UnlessSoonerCommenced = false);
 
     public record DemurrageTermsRequest(
         decimal RateUsdPerDay,

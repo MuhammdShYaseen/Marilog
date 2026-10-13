@@ -71,12 +71,13 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
         // ═══════════════════════════════════════════════════════════════════
 
         public CargoOperationTerms MapCargoOperation(CargoOperationTermsRequest r) =>
-            CargoOperationTerms.Create(
-                r.OperationType,
-                r.RateMtPerDay,
-                r.CalendarType,
-                r.NoticeHours,
-                r.IsReversible);
+    CargoOperationTerms.Create(
+        r.OperationType,
+        r.RateMtPerDay,
+        r.CalendarType,
+        r.NoticeHours,
+        r.IsReversible,
+        r.UnlessSoonerCommenced);
 
         public DemurrageTerms MapDemurrage(DemurrageTermsRequest r) =>
             DemurrageTerms.Create(
@@ -112,8 +113,8 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 MapRuleOptionsResponse(ct.LaytimeTerms.RuleOptions));
 
         public CargoOperationTermsResponse MapCargoOpResponse(CargoOperationTerms t) =>
-            new(t.OperationType, t.RateMtPerDay, t.CalendarType,
-                t.NoticeHours, t.IsReversible, t.IsWeatherWorkingDay);
+    new(t.OperationType, t.RateMtPerDay, t.CalendarType,
+        t.NoticeHours, t.IsReversible, t.IsWeatherWorkingDay, t.UnlessSoonerCommenced);
 
         public DemurrageTermsResponse MapDemurrageResponse(DemurrageTerms d) =>
             new(d.RateUsdPerDay, d.OnceOnDemurrageAlwaysOnDemurrage);

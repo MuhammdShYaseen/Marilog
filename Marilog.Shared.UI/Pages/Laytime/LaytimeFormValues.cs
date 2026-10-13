@@ -13,18 +13,19 @@ namespace Marilog.Shared.UI.Pages.Laytime
         public LaytimeCalendarType CalendarType { get; set; }
         public int NoticeHours { get; set; } = 12;
         public bool IsReversible { get; set; }
-
+        public bool UnlessSoonerCommenced { get; set; }
         public bool IsValid => RateMtPerDay > 0 && NoticeHours >= 0;
 
         public CargoOperationTermsRequest ToRequest(OperationType operationType) =>
-            new(operationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible);
+            new(operationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible, UnlessSoonerCommenced);
 
         public static CargoOperationFormValues FromResponse(CargoOperationTermsResponse r) => new()
         {
             RateMtPerDay = r.RateMtPerDay,
             CalendarType = r.CalendarType,
             NoticeHours = r.NoticeHours,
-            IsReversible = r.IsReversible
+            IsReversible = r.IsReversible,
+            UnlessSoonerCommenced = r.UnlessSoonerCommenced
         };
     }
 
