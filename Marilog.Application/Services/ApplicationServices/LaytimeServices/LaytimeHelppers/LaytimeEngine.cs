@@ -99,6 +99,10 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             if (commencedMarker is not null && commencedMarker.EventTime > events[0].EventTime)
                 markerWindows.Add((events[0].EventTime, commencedMarker.EventTime, "Before Laytime Commenced"));
 
+            // LT-12: an explicit LaytimeCommenced marker is the agreed start; it overrides the notice period
+            if (commencedMarker is null)
+                segments = ApplyNoticePeriod(calculation.Id, events, operationTerms, segments);
+
             var completedMarker = events.FirstOrDefault(e => e.EventType == SofEventType.LaytimeCompleted);
             if (completedMarker is not null && completedMarker.EventTime < events[^1].EventTime)
                 markerWindows.Add((completedMarker.EventTime, events[^1].EventTime, "After Laytime Completed"));

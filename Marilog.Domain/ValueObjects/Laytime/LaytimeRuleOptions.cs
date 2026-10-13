@@ -68,6 +68,10 @@ namespace Marilog.Domain.ValueObjects.Laytime
             if (weekendEndTime is { } end && (end < TimeSpan.Zero || end >= TimeSpan.FromDays(1)))
                 throw new ArgumentException("Weekend end time must be a time of day.", nameof(weekendEndTime));
 
+            if (weekendDay1 is { } d1 && weekendDay2 is { } d2 && ((int)d1 - (int)d2 + 7) % 7 is not (1 or 6))
+                throw new ArgumentException(
+                    "Weekend days must be consecutive (e.g. Friday and Saturday).", nameof(weekendDay2));
+
             return new LaytimeRuleOptions
             {
                 DraftSurveyCounts = draftSurveyCounts,
