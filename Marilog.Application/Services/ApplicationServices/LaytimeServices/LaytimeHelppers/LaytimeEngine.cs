@@ -48,14 +48,20 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 despatchAmount);
         }
 
-        public LaytimeSegmentBuild BuildSegments(LaytimeCalculation calculation, CargoOperationTerms operationTerms, LaytimeRuleOptions ruleOptions, bool onceOnDemurrage)
+        public LaytimeSegmentBuild BuildSegments(
+                                                    LaytimeCalculation calculation,
+                                                    CargoOperationTerms operationTerms,
+                                                    LaytimeRuleOptions ruleOptions,
+                                                    bool onceOnDemurrage,
+                                                    decimal? allowedDaysOverride = null)
         {
             var events = calculation.SofEvents
                         .OrderBy(e => e.EventTime)
                         .ThenBy(e => e.Id) // LT-01: deterministic order for same-time events
                         .ToList();
             // LT-16: allowed time comes from quantity/rate or a fixed number of hours
-            var allowedDays = operationTerms.AllowedDays(calculation.CargoQuantityMt);
+            // LT-08: under reversible laytime the service passes the remaining pooled time
+            var allowedDays = allowedDaysOverride ?? operationTerms.AllowedDays(calculation.CargoQuantityMt);
 
             if (events.Count < 2)
                 return new LaytimeSegmentBuild(allowedDays, [], null, null);
@@ -501,7 +507,12 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                     expiry = segment.To;
 
                 expiredAt = expiry;
-
+                // No laytime left at all (e.g. reversible pool already used up at an earlier port)
+                if (expiry == segment.From)
+                {
+                    result.Add(AfterExpiry(segment));
+                    continue;
+                }
                 if (expiry == segment.To)
                 {
                     result.Add(segment);

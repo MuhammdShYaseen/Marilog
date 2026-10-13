@@ -10,10 +10,11 @@ namespace Marilog.Application.Interfaces.Services.Laytime
     public interface ILaytimeEngine
     {
         LaytimeSegmentBuild BuildSegments(
-    LaytimeCalculation calculation,
-    CargoOperationTerms operationTerms,
-    LaytimeRuleOptions ruleOptions,
-    bool onceOnDemurrage);
+                        LaytimeCalculation calculation,
+                        CargoOperationTerms operationTerms,
+                        LaytimeRuleOptions ruleOptions,
+                        bool onceOnDemurrage,
+                        decimal? allowedDaysOverride = null);
 
         LaytimeResult Calculate(LaytimeCalculation calculation, LaytimeSegmentBuild build,
                                 decimal demurrageRateUsdPerDay, decimal despatchRateUsdPerDay,

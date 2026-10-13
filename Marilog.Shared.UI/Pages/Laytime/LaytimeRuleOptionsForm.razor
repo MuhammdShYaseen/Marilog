@@ -14,8 +14,8 @@
         <MudText Typo="Typo.caption" Color="Color.Warning">Not yet applied — set the impact on the SOF event</MudText>
     </MudItem>
     <MudItem xs="6">
-        <MudCheckBox T="bool" Value="Values.TimeReversible" ValueChanged="@(v => Update(x => x.TimeReversible = v))" Label="Time Reversible" Color="Color.Primary" Disabled="true" />
-        <MudText Typo="Typo.caption" Color="Color.Warning">Not yet applied in calculation</MudText>
+        <MudCheckBox T="bool" Value="Values.TimeReversible" ValueChanged="@(v => Update(x => x.TimeReversible = v))" Label="Time Reversible" Color="Color.Primary" Disabled="false" />
+       
     </MudItem>
     <MudItem xs="6">
         <MudCheckBox T="bool" Value="Values.AllowShiftingTime" ValueChanged="@(v => Update(x => x.AllowShiftingTime = v))" Label="Allow Shifting Time" Color="Color.Primary" Disabled="true" />
