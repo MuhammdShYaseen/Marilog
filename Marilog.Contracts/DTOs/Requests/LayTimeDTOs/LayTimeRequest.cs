@@ -45,7 +45,7 @@ namespace Marilog.Contracts.DTOs.Requests.LayTimeDTOs
         bool HolidaysIncluded,
         bool WeekendIncluded,
         DayOfWeek WeekendDay1,
-        DayOfWeek WeekendDay2,
+        DayOfWeek? WeekendDay2,
         bool SundaysIncluded,
         bool TimeReversible,
         bool AllowShiftingTime,

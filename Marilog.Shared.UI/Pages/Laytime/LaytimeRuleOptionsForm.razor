@@ -33,10 +33,12 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="6">
-            <MudSelect T="DayOfWeek" Value="Values.WeekendDay2" ValueChanged="@(v => Update(x => x.WeekendDay2 = v))" Label="Weekend Day 2" HelperText="Leave empty for a window like Fri 12:00 → Sat 08:00 — the end time falls on the day after the last weekend day">
+            <MudSelect T="DayOfWeek?" Value="Values.WeekendDay2" ValueChanged="@(v => Update(x => x.WeekendDay2 = v))"
+                       Label="Weekend Day 2" Clearable="true"
+                       HelperText="Leave empty for a window like Fri 12:00 → Sat 08:00 — the end time falls on the day after the last weekend day">
                 @foreach (var day in Enum.GetValues<DayOfWeek>())
                 {
-                    <MudSelectItem Value="day">@day</MudSelectItem>
+                    <MudSelectItem T="DayOfWeek?" Value="@((DayOfWeek?)day)">@day</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>

@@ -37,7 +37,7 @@ namespace Marilog.Shared.UI.Pages.Laytime
         public bool HolidaysIncluded { get; set; }
         public bool WeekendIncluded { get; set; } = true;
         public DayOfWeek WeekendDay1 { get; set; } = DayOfWeek.Friday;
-        public DayOfWeek WeekendDay2 { get; set; } = DayOfWeek.Saturday;
+        public DayOfWeek? WeekendDay2 { get; set; }
         public bool SundaysIncluded { get; set; } = true;
         public bool TimeReversible { get; set; }
         public bool AllowShiftingTime { get; set; }
@@ -45,8 +45,8 @@ namespace Marilog.Shared.UI.Pages.Laytime
         public TimeSpan? WeekendEndTime { get; set; }
         public TimeSpan? WeekendStartTime{ get; set; }
         public LaytimeRuleOptionsRequest ToRequest() =>
-            new(DraftSurveyCounts, HolidaysIncluded, WeekendIncluded, WeekendDay1, WeekendDay2,
-                SundaysIncluded, TimeReversible, AllowShiftingTime);
+    new(DraftSurveyCounts, HolidaysIncluded, WeekendIncluded, WeekendDay1, WeekendDay2,
+        SundaysIncluded, TimeReversible, AllowShiftingTime, WeekendStartTime, WeekendEndTime);
 
         public static LaytimeRuleOptionsFormValues FromResponse(LaytimeRuleOptionsResponse r) => new()
         {
@@ -54,7 +54,7 @@ namespace Marilog.Shared.UI.Pages.Laytime
             HolidaysIncluded = r.HolidaysIncluded,
             WeekendIncluded = r.WeekendIncluded,
             WeekendDay1 = r.WeekendDay1 ?? DayOfWeek.Friday,
-            WeekendDay2 = r.WeekendDay2 ?? DayOfWeek.Saturday,
+            WeekendDay2 = r.WeekendDay2,
             TimeReversible = r.TimeReversible,
             AllowShiftingTime = r.AllowShiftingTime
         };
