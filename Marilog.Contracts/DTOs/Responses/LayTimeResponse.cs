@@ -27,7 +27,8 @@ namespace Marilog.Contracts.DTOs.Responses
         int NoticeHours,
         bool IsReversible,
         bool IsWeatherWorkingDay,
-        bool UnlessSoonerCommenced = false);
+        bool UnlessSoonerCommenced = false,
+        decimal? FixedLaytimeHours = null);
 
     public record DemurrageTermsResponse(
         decimal RateUsdPerDay,

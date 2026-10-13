@@ -7,13 +7,18 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
 {
     public sealed class LaytimeEngine : ILaytimeEngine
     {
-        public LaytimeResult Calculate(LaytimeCalculation calculation, LaytimeSegmentBuild build, decimal loadingRateMtPerDay, decimal demurrageRateUsdPerDay, decimal despatchRateUsdPerDay, DespatchBasis despatchBasis)
+        public LaytimeResult Calculate(
+                                LaytimeCalculation calculation,
+                                LaytimeSegmentBuild build,
+                                decimal demurrageRateUsdPerDay,
+                                decimal despatchRateUsdPerDay,
+                                DespatchBasis despatchBasis)
         {
             var usedTicks = build.Segments.Sum(s => s.CountedDuration.Ticks);
 
             // LT-14: decimal math from ticks; no double round-trip
             var usedDays = (decimal)usedTicks / TimeSpan.TicksPerDay;
-            var allowedDays = calculation.CargoQuantityMt / loadingRateMtPerDay;
+            var allowedDays = build.AllowedDays; // LT-16: quantity/rate or fixed hours
 
             decimal demurrageAmount = 0;
             decimal despatchAmount = 0;
@@ -49,9 +54,11 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                         .OrderBy(e => e.EventTime)
                         .ThenBy(e => e.Id) // LT-01: deterministic order for same-time events
                         .ToList();
+            // LT-16: allowed time comes from quantity/rate or a fixed number of hours
+            var allowedDays = operationTerms.AllowedDays(calculation.CargoQuantityMt);
 
             if (events.Count < 2)
-                return new LaytimeSegmentBuild([], null, null);
+                return new LaytimeSegmentBuild(allowedDays, [], null, null);
 
             // ─────────────────────────────
             // 1) بناء Segments خام من الفارق بين كل حدثين متتاليين
@@ -77,7 +84,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             }
             // All events share the same timestamp — nothing to count
             if (segments.Count == 0)
-                return new LaytimeSegmentBuild(segments, null, null);
+                return new LaytimeSegmentBuild(allowedDays, segments, null, null);
 
             // 1b) LT-09: draft survey / shifting windows not counted unless the contract says they count
             var surveyAndShifting = new List<(DateTime From, DateTime To, string Reason)>();
@@ -116,8 +123,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             var overallFrom = events[0].EventTime;
             var overallTo = events[^1].EventTime;
 
-            var excludedPeriods = GetExcludedPeriods(
-    overallFrom, overallTo, operationTerms.CalendarType, ruleOptions);
+            var excludedPeriods = GetExcludedPeriods(overallFrom, overallTo, operationTerms.CalendarType, ruleOptions);
 
             if (excludedPeriods.Count > 0)
             {
@@ -141,7 +147,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             segments = ApplyExceptions(calculation.Id, segments, calculation.Exceptions);
 
             // 5) LT-05: find the expiry instant; after it, demurrage rules apply
-            var allowedTicks = (long)(calculation.CargoQuantityMt / operationTerms.RateMtPerDay * TimeSpan.TicksPerDay);
+            var allowedTicks = (long)(allowedDays * TimeSpan.TicksPerDay);
             var completedAt = FindCompletion(events, calculation.OperationType);
 
             var (finalSegments, expiredAt) = ApplyExpiry(
@@ -162,7 +168,7 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 }
             }
 
-            return new LaytimeSegmentBuild(finalSegments, expiredAt, allTimeSaved);
+            return new LaytimeSegmentBuild(allowedDays, finalSegments, expiredAt, allTimeSaved);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -179,7 +185,10 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
             if (noticeHours <= 0)
                 return segments;
 
-            var norTendered = events.FirstOrDefault(e => e.EventType == SofEventType.NorTendered);
+            // LT-15: the valid NOR is the first one tendered with no rejection at or after it
+            var norTendered = events.FirstOrDefault(e =>
+                e.EventType == SofEventType.NorTendered &&
+                !events.Any(r => r.EventType == SofEventType.NorRejected && r.EventTime >= e.EventTime));
             if (norTendered is null)
                 return segments;
 

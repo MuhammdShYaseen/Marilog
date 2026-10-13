@@ -78,6 +78,7 @@ namespace Marilog.Shared.UI.Pages.Laytime
             SofEventType.HatchesClosed => "Hatches Closed",
             SofEventType.VesselUnberthed => "Vessel Unberthed",
             SofEventType.Custom => "Custom",
+            SofEventType.NorRejected => "NOR Rejected",
             _ => value.ToString()
         };
 
@@ -98,6 +99,7 @@ namespace Marilog.Shared.UI.Pages.Laytime
             ("Cargo Operations", new[] { SofEventType.LoadingCommenced, SofEventType.LoadingCompleted, SofEventType.DischargingCommenced, SofEventType.DischargingCompleted }),
             ("Draft Survey", new[] { SofEventType.DraftSurveyStart, SofEventType.DraftSurveyEnd }),
             ("Delays", new[] { SofEventType.CraneBreakdownStart, SofEventType.CraneBreakdownEnd, SofEventType.RainStart, SofEventType.RainEnd, SofEventType.ShiftingStart, SofEventType.ShiftingEnd }),
+            ("Arrival & Notice", new[] { SofEventType.NorTendered, SofEventType.NorRejected, SofEventType.NorAccepted, SofEventType.PilotOnBoard }),
             ("Other", new[] { SofEventType.Custom }),
         };
     }

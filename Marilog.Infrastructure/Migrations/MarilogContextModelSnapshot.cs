@@ -2899,6 +2899,10 @@ namespace Marilog.Infrastructure.Migrations
                                         .HasColumnType("nvarchar(30)")
                                         .HasColumnName("Discharging_CalendarType");
 
+                                    b2.Property<decimal?>("FixedLaytimeHours")
+                                        .HasPrecision(9, 2)
+                                        .HasColumnType("decimal(9,2)");
+
                                     b2.Property<bool>("IsReversible")
                                         .HasColumnType("bit")
                                         .HasColumnName("Discharging_IsReversible");
@@ -2939,6 +2943,10 @@ namespace Marilog.Infrastructure.Migrations
                                         .HasMaxLength(30)
                                         .HasColumnType("nvarchar(30)")
                                         .HasColumnName("Loading_CalendarType");
+
+                                    b2.Property<decimal?>("FixedLaytimeHours")
+                                        .HasPrecision(9, 2)
+                                        .HasColumnType("decimal(9,2)");
 
                                     b2.Property<bool>("IsReversible")
                                         .HasColumnType("bit")

@@ -31,6 +31,14 @@ namespace Marilog.Domain.ValueObjects.Laytime
         /// period runs out, laytime starts when work starts.
         /// </summary>
         public bool UnlessSoonerCommenced { get; private set; }
+
+        /// <summary>LT-16: fixed laytime in hours regardless of quantity; null = quantity ÷ rate</summary>
+        public decimal? FixedLaytimeHours { get; private set; }
+
+        /// <summary>Allowed laytime in days for this operation.</summary>
+        public decimal AllowedDays(decimal cargoQuantityMt) =>
+            FixedLaytimeHours is { } hours ? hours / 24m : cargoQuantityMt / RateMtPerDay;
+
         /// <summary>
         /// مشتق من CalendarType — لا يحتاج تخزيناً مستقلاً.
         /// true إذا كان CalendarType = WeatherWorkingDay.
@@ -49,7 +57,8 @@ namespace Marilog.Domain.ValueObjects.Laytime
             LaytimeCalendarType calendarType,
             int noticeHours,
             bool isReversible = false,
-            bool unlessSoonerCommenced = false)
+            bool unlessSoonerCommenced = false,
+            decimal? fixedLaytimeHours = null)
         {
             if (rateMtPerDay <= 0)
                 throw new ArgumentException(
@@ -59,6 +68,10 @@ namespace Marilog.Domain.ValueObjects.Laytime
                 throw new ArgumentException(
                     "Notice hours cannot be negative.", nameof(noticeHours));
 
+            if (fixedLaytimeHours is <= 0)
+                throw new ArgumentException(
+                    "Fixed laytime hours must be greater than zero.", nameof(fixedLaytimeHours));
+
             return new CargoOperationTerms
             {
                 OperationType = operationType,
@@ -66,7 +79,8 @@ namespace Marilog.Domain.ValueObjects.Laytime
                 CalendarType = calendarType,
                 NoticeHours = noticeHours,
                 IsReversible = isReversible,
-                UnlessSoonerCommenced = unlessSoonerCommenced
+                UnlessSoonerCommenced = unlessSoonerCommenced,
+                FixedLaytimeHours = fixedLaytimeHours
             };
         }
 
@@ -79,9 +93,10 @@ namespace Marilog.Domain.ValueObjects.Laytime
             CalendarType == other.CalendarType &&
             NoticeHours == other.NoticeHours &&
             IsReversible == other.IsReversible &&
-            UnlessSoonerCommenced == other.UnlessSoonerCommenced;
+            UnlessSoonerCommenced == other.UnlessSoonerCommenced &&
+            FixedLaytimeHours == other.FixedLaytimeHours;
 
         public override int GetHashCode() =>
-            HashCode.Combine(OperationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible, UnlessSoonerCommenced);
+            HashCode.Combine(OperationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible, UnlessSoonerCommenced, FixedLaytimeHours);
     }
 }

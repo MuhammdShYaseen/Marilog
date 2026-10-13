@@ -76,7 +76,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                       .HasConversion<string>()
                       .HasColumnName("Loading_OperationType")
                       .HasMaxLength(20);
-
+                    lo.Property(p => p.FixedLaytimeHours).HasPrecision(9, 2);
                     lo.Ignore(p => p.IsWeatherWorkingDay);
                 });
 
@@ -102,7 +102,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                       .HasConversion<string>()
                       .HasColumnName("Discharging_OperationType")
                       .HasMaxLength(20);
-
+                    di.Property(p => p.FixedLaytimeHours).HasPrecision(9, 2);
                     di.Ignore(p => p.IsWeatherWorkingDay);
                 });
 

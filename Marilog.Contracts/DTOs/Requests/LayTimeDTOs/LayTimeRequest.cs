@@ -29,7 +29,8 @@ namespace Marilog.Contracts.DTOs.Requests.LayTimeDTOs
         LaytimeCalendarType CalendarType,
         int NoticeHours,
         bool IsReversible = false,
-        bool UnlessSoonerCommenced = false);
+        bool UnlessSoonerCommenced = false,
+        decimal? FixedLaytimeHours = null);
 
     public record DemurrageTermsRequest(
         decimal RateUsdPerDay,

@@ -247,6 +247,7 @@
         ShiftingEnd = 20,
         HatchesClosed = 21,
         VesselUnberthed = 22,
+        NorRejected = 23,
         Custom = 99
     }
 

@@ -94,12 +94,11 @@ namespace Marilog.Application.Services.ApplicationServices.LaytimeServices.Layti
                 calculation.AddSegment(segment);
 
             var result = _engine.Calculate(
-                calculation,
-                build,
-                operationTerms.RateMtPerDay,
-                charterTerms.LaytimeTerms.Demurrage.RateUsdPerDay,
-                charterTerms.LaytimeTerms.Despatch?.RateUsdPerDay ?? 0,
-                charterTerms.LaytimeTerms.Despatch?.Basis ?? DespatchBasis.OnWorkingTimeSaved);
+                        calculation,
+                        build,
+                        charterTerms.LaytimeTerms.Demurrage.RateUsdPerDay,
+                        charterTerms.LaytimeTerms.Despatch?.RateUsdPerDay ?? 0,
+                        charterTerms.LaytimeTerms.Despatch?.Basis ?? DespatchBasis.OnWorkingTimeSaved);
 
             var setResult = calculation.SetResult(result, charterTerms.TermsVersion, build.LaytimeExpiredAt);
             if (setResult.IsFailure)

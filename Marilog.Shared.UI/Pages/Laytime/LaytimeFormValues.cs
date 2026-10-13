@@ -14,10 +14,11 @@ namespace Marilog.Shared.UI.Pages.Laytime
         public int NoticeHours { get; set; } = 12;
         public bool IsReversible { get; set; }
         public bool UnlessSoonerCommenced { get; set; }
+        public decimal? FixedLaytimeHours { get; set; }
         public bool IsValid => RateMtPerDay > 0 && NoticeHours >= 0;
 
         public CargoOperationTermsRequest ToRequest(OperationType operationType) =>
-            new(operationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible, UnlessSoonerCommenced);
+            new(operationType, RateMtPerDay, CalendarType, NoticeHours, IsReversible, UnlessSoonerCommenced, FixedLaytimeHours);
 
         public static CargoOperationFormValues FromResponse(CargoOperationTermsResponse r) => new()
         {
@@ -25,7 +26,8 @@ namespace Marilog.Shared.UI.Pages.Laytime
             CalendarType = r.CalendarType,
             NoticeHours = r.NoticeHours,
             IsReversible = r.IsReversible,
-            UnlessSoonerCommenced = r.UnlessSoonerCommenced
+            UnlessSoonerCommenced = r.UnlessSoonerCommenced,
+            FixedLaytimeHours = r.FixedLaytimeHours
         };
     }
 

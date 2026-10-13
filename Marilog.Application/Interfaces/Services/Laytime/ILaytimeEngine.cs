@@ -15,12 +15,8 @@ namespace Marilog.Application.Interfaces.Services.Laytime
     LaytimeRuleOptions ruleOptions,
     bool onceOnDemurrage);
 
-        LaytimeResult Calculate(
-            LaytimeCalculation calculation,
-            LaytimeSegmentBuild build,
-            decimal loadingRateMtPerDay,
-            decimal demurrageRateUsdPerDay,
-            decimal despatchRateUsdPerDay,
-            DespatchBasis despatchBasis);
+        LaytimeResult Calculate(LaytimeCalculation calculation, LaytimeSegmentBuild build,
+                                decimal demurrageRateUsdPerDay, decimal despatchRateUsdPerDay,
+                                DespatchBasis despatchBasis);
     }
 }
