@@ -3,6 +3,11 @@
 @using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
 @using MudBlazor
 @using Marilog.Shared.UI.Pages.Laytime
+@using Marilog.Contracts.DTOs.Reports.Contract
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@inject IPortService PortService
+@inject IContractService ContractService
+@inject ICharterTermsService CharterTermsService
 @inject ILaytimeCalculationService CalculationService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -42,7 +47,8 @@
 
     private IReadOnlyList<LaytimeCalculationSummaryResponse> _calculations = Array.Empty<LaytimeCalculationSummaryResponse>();
     private bool _isLoading = true;
-
+    private IReadOnlyList<PortResponse>? _ports;
+    private IReadOnlyList<ContractSummary>? _contracts;
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
@@ -70,10 +76,24 @@
 
     private async Task OpenCreateDialogAsync()
     {
+        try
+        {
+            _ports ??= await PortService.GetActiveAsync();
+            _contracts ??= (await ContractService.GetPagedAsync(new ContractFilter { PageSize = 1000 })).Items;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load contracts and ports: {ex.Message}", Severity.Error);
+            return;
+        }
+
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
         var parameters = new DialogParameters<LaytimeCalculationCreateDialog>
         {
-            { x => x.VoyageId, VoyageId }
+            { x => x.VoyageId, VoyageId },
+            { x => x.Contracts, _contracts },
+            { x => x.Ports, _ports },
+            { x => x.LoadCharterTerms, id => CharterTermsService.GetCharterTermsAsync(id) }
         };
 
         var dialog = await DialogService.ShowAsync<LaytimeCalculationCreateDialog>("New Calculation", parameters, options);

@@ -1,4 +1,6 @@
 @using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Laytime
@@ -14,15 +16,31 @@
 
     <DialogContent>
         <MudStack Spacing="3">
-            <MudNumericField T="int" @bind-Value="_contractId" Label="Contract ID" Min="1" />
-            <MudNumericField T="int" @bind-Value="_portId" Label="Port ID" Min="1" />
-            <MudSelect T="OperationType" @bind-Value="_operationType" Label="Operation Type">
+            <MudAutocomplete T="ContractSummary" Value="_contract" ValueChanged="OnContractChanged"
+                             Label="Contract" Required="true" SearchFunc="SearchContracts"
+                             MaxItems="50" ResetValueOnEmptyText="true"
+                             ToStringFunc="@(c => c is null ? null : $"{c.ContractNumber} — {c.Type}")" />
+
+            @if (_hasCharterTerms == false)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">
+                    This contract has no charter terms yet — set them up before creating a laytime calculation.
+                </MudAlert>
+            }
+
+            <MudAutocomplete T="PortResponse" @bind-Value="_port" Label="Port" Required="true"
+                             SearchFunc="SearchPorts" MaxItems="50" ResetValueOnEmptyText="true"
+                             ToStringFunc="@(p => p is null ? null : $"{p.Name} ({p.Code})")" />
+
+            <MudSelect T="OperationType?" @bind-Value="_operationType" Label="Operation Type" Required="true">
                 @foreach (var value in Enum.GetValues<OperationType>())
                 {
-                    <MudSelectItem Value="value">@LaytimeEnumLabels.Label(value)</MudSelectItem>
+                    <MudSelectItem T="OperationType?" Value="@((OperationType?)value)">@LaytimeEnumLabels.Label(value)</MudSelectItem>
                 }
             </MudSelect>
-            <MudNumericField T="decimal" @bind-Value="_cargoQuantityMt" Label="Cargo Quantity (MT)" Min="0.01m" />
+
+            <MudNumericField T="decimal" @bind-Value="_cargoQuantityMt" Label="Cargo Quantity (MT)" Min="0.01m"
+                             HelperText="Filled from the contract's charter terms — adjust if this port handles part of the cargo" />
         </MudStack>
     </DialogContent>
 
@@ -42,12 +60,63 @@
     [Parameter, EditorRequired]
     public int VoyageId { get; set; }
 
-    private int _contractId;
-    private int _portId;
-    private OperationType _operationType;
-    private decimal _cargoQuantityMt = 1000;
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ContractSummary> Contracts { get; set; } = [];
 
-    private bool IsValid => _contractId > 0 && _portId > 0 && _cargoQuantityMt > 0;
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+
+    /// <summary>Supplied by the host; used to prefill quantity and warn when terms are missing.</summary>
+    [Parameter]
+    public Func<int, Task<CharterTermsResponse?>>? LoadCharterTerms { get; set; }
+
+    private ContractSummary? _contract;
+    private PortResponse? _port;
+    private OperationType? _operationType;
+    private decimal _cargoQuantityMt;
+    private bool? _hasCharterTerms;
+
+    private bool IsValid =>
+        _contract is not null &&
+        _hasCharterTerms != false &&
+        _port is not null &&
+        _operationType is not null &&
+        _cargoQuantityMt > 0;
+
+    private async Task OnContractChanged(ContractSummary? contract)
+    {
+        _contract = contract;
+        _hasCharterTerms = null;
+
+        if (contract is null || LoadCharterTerms is null)
+            return;
+
+        var terms = await LoadCharterTerms(contract.Id);
+        _hasCharterTerms = terms is not null;
+
+        if (terms is { CargoQuantityMt: > 0 })
+            _cargoQuantityMt = terms.CargoQuantityMt;
+    }
+
+    private Task<IEnumerable<ContractSummary>> SearchContracts(string? text, CancellationToken token)
+    {
+        var result = string.IsNullOrWhiteSpace(text)
+            ? Contracts
+            : Contracts.Where(c => c.ContractNumber.Contains(text, StringComparison.OrdinalIgnoreCase)
+                                || c.Type.Contains(text, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(result);
+    }
+
+    private Task<IEnumerable<PortResponse>> SearchPorts(string? text, CancellationToken token)
+    {
+        var result = string.IsNullOrWhiteSpace(text)
+            ? Ports
+            : Ports.Where(p => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase)
+                            || p.Code.Contains(text, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(result);
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -55,7 +124,9 @@
     {
         if (!IsValid) return;
 
-        var request = new CreateLaytimeCalculationRequest(VoyageId, _contractId, _portId, _operationType, _cargoQuantityMt);
+        var request = new CreateLaytimeCalculationRequest(
+            VoyageId, _contract!.Id, _port!.Id, _operationType!.Value, _cargoQuantityMt);
+
         MudDialog.Close(DialogResult.Ok(request));
     }
 }
