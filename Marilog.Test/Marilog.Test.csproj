@@ -19,12 +19,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 	  <PackageReference Include="FluentAssertions" Version="8.10.0" />
-	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
-	  <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.9" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="10.0.9" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.NetTopologySuite" Version="10.0.9" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.9" />
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+	  <PackageReference Include="Microsoft.Data.Sqlite.Core"  Version="10.0.13"/>
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory"  Version="10.0.13" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core"  Version="10.0.13" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.NetTopologySuite"  Version="10.0.13" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite"  Version="10.0.13" />
 	  <PackageReference Include="Moq" Version="4.20.72" />
   </ItemGroup>
 
@@ -42,5 +42,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+  </ItemGroup>
 </Project>
