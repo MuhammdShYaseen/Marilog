@@ -79,6 +79,9 @@ namespace Marilog.Client.Extensions
 
             //==vesselFinder=================================
             services.AddScoped<IVesselPositionService, VesselPositionService>();
+
+            //===Vessel Certificate==========================
+            services.AddScoped<IVesselCertificateService, VesselCertificateService>();
             return services;
         }
     }

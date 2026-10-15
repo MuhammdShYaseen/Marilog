@@ -1,5 +1,13 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+
+    public enum CertificateExpiryStatus
+    {
+        Valid = 1,
+        ExpiringSoon = 2,
+        Expired = 3,
+        NoExpiry = 4
+    }
     public enum PersonCertificateType
     {
         Other = 0,

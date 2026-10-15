@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Rules;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -29,7 +30,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
-                .Select(ToResponse)
+                .Select(ToResponse(CertificateRules.Today()))
                 .FirstOrDefaultAsync(ct);
         }
 
@@ -39,7 +40,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.IMONumber == imoNumber)
-                .Select(ToResponse)
+                .Select(ToResponse(CertificateRules.Today()))
                 .FirstOrDefaultAsync(ct);
         }
         public async Task<IReadOnlyList<VesselResponse>> GetAllAsync(CancellationToken ct = default)
@@ -47,7 +48,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _repo.Query()
                 .AsNoTracking()
                 .OrderBy(x => x.VesselName)
-                .Select(ToResponse)
+                .Select(ToResponse(CertificateRules.Today()))
                 .ToListAsync(ct);
         }
 
@@ -66,7 +67,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.VesselName)
-                .Select(ToResponse)
+                .Select(ToResponse(CertificateRules.Today()))
                 .ToListAsync(ct);
         }
 
@@ -77,7 +78,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(x => x.CompanyID == companyId && x.IsActive)
                 .OrderBy(x => x.VesselName)
-                .Select(ToResponse)
+                .Select(ToResponse(CertificateRules.Today()))
                 .ToListAsync(ct);
         }
 
@@ -348,38 +349,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CompanyName = x.Company != null ? x.Company.CompanyName  : null,
         };
 
-        private static readonly Expression<Func<Vessel, VesselResponse>> ToResponse =
-        x => new VesselResponse
+        private static Expression<Func<Vessel, VesselResponse>> ToResponse(DateOnly today)
         {
-            Id = x.Id,
-            Name = x.VesselName,
-            IMONumber = x.IMONumber,
-            GrossTonnage = x.GrossTonnage,
-            Notes = x.Notes,
-            Certificates = x.Certificates.Select(c => new CertificateResponse
+            var soon = today.AddDays(CertificateRules.ExpiringSoonDays);
+
+            return x => new VesselResponse
             {
-                CertificateName = c.Certificate.CertificateName,
-                CertificateNumber = c.Certificate.CertificateNumber,
-                Description = c.Certificate.Description,
-                ExpiryDate = c.Certificate.ExpiryDate,
-                Index = c.Id,
-                IssueDate = c.Certificate.IssueDate,
-                IssuingAuthority = c.Certificate.IssuingAuthority,
-                VType = c.Type
+                Id = x.Id,
+                Name = x.VesselName,
+                IMONumber = x.IMONumber,
+                GrossTonnage = x.GrossTonnage,
+                Notes = x.Notes,
 
-            }).ToList(),
-            
-            CompanyId = x.CompanyID,
-            CompanyName = x.Company != null
-                ? x.Company.CompanyName
-                : null,
+                CompanyId = x.CompanyID,
+                CompanyName = x.Company != null ? x.Company.CompanyName : null,
 
-            FlagCountryId = x.FlagCountryID,
-            FlagCountryName = x.FlagCountry != null
-                ? x.FlagCountry.CountryName
-                : null,
+                FlagCountryId = x.FlagCountryID,
+                FlagCountryName = x.FlagCountry != null ? x.FlagCountry.CountryName : null,
 
-            IsActive = x.IsActive
-        };
+                IsActive = x.IsActive,
+
+                CertificatesCount = x.Certificates.Count(),
+                ExpiredCertificates = x.Certificates.Count(c => c.Certificate.ExpiryDate < today),
+                ExpiringCertificates = x.Certificates.Count(c => c.Certificate.ExpiryDate >= today
+                                                              && c.Certificate.ExpiryDate <= soon)
+            };
+        }
     }
 }

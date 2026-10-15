@@ -101,6 +101,13 @@ namespace Marilog.Application
 
             //---FunctionaltyServices--------------------------------------------
             services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
+
+
+            //---Vessel certificate-----------------------------------------------
+            services.AddScoped<IVesselCertificateService, VesselCertificateService>();
+
+
+
             return services;
         }
     }
