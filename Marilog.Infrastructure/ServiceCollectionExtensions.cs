@@ -4,10 +4,13 @@ using Marilog.Application.Interfaces.Email;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
+using Marilog.Application.Interfaces.VesselPosition;
 using Marilog.Application.Services.ApplicationServices.Encryption;
+using Marilog.Application.Services.ApplicationServices.VesselPositions;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
+using Marilog.Contracts.Interfaces.Services.VesselPositions;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
@@ -23,6 +26,7 @@ using Marilog.Infrastructure.Services.Email.Factory;
 using Marilog.Infrastructure.Services.Email.Google;
 using Marilog.Infrastructure.Services.Email.Smtp;
 using Marilog.Infrastructure.Services.EmailNotification;
+using Marilog.Infrastructure.Services.VesselPositions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -110,6 +114,22 @@ namespace Marilog.Infrastructure
             services.AddScoped<INotificationSchedule, NotificationSchedule>();
             services.AddSingleton<INotificationScheduleChangeNotifier, NotificationScheduleChangeNotifier>();
             services.AddHostedService<DailyNotificationBackgroundService>();
+
+
+            //===VesselFinder===================================================================
+            services.AddMemoryCache();
+
+            services.AddHttpClient<IVesselPositionProvider, VesselFinderPositionProvider>(c =>
+            {
+                c.BaseAddress = new Uri("https://www.vesselfinder.com/");
+                c.Timeout = TimeSpan.FromSeconds(15);
+                c.DefaultRequestHeaders.UserAgent.ParseAdd(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36");
+            });
+
+            services.AddScoped<IVesselPositionService, VesselPositionService>();
+
+
             return services;
 
 
