@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.DTOs.Responses.Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -20,6 +21,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             var result = await _service.GetSummaryAsync(vesselId, includeInactiveVessels, ct);
             return Ok(ApiResponse<CertificateSummaryResponse>.Ok(result));
+        }
+
+
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<PagedResponse<CertificateResponse>>>> GetPaged([FromQuery] PagedRequest paging, [FromQuery] VesselCertificateFilter filter, CancellationToken ct)
+        {
+            var result = await _service.GetPagedAsync(paging, filter, ct);
+            return Ok(ApiResponse<PagedResponse<CertificateResponse>>.Ok(result));
         }
     }
 }

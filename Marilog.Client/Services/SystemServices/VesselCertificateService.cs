@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.DTOs.Responses.Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -21,6 +22,26 @@ namespace Marilog.Client.Services.SystemServices
 
             var response = await _http.GetFromJsonAsync<ApiResponse<CertificateSummaryResponse>>(url, ct);
             return response?.Data ?? new();
+        }
+
+        public async Task<PagedResponse<CertificateResponse>> GetPagedAsync(PagedRequest paging, VesselCertificateFilter filter, CancellationToken ct = default)
+        {
+            var query = new List<string>
+            {
+                $"page={paging.Page}",
+                $"pageSize={paging.PageSize}",
+                $"includeInactiveVessels={filter.IncludeInactiveVessels.ToString().ToLowerInvariant()}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(paging.SearchTerm)) query.Add($"searchTerm={Uri.EscapeDataString(paging.SearchTerm)}");
+            if (filter.VesselId is not null) query.Add($"vesselId={filter.VesselId}");
+            if (filter.Status is not null) query.Add($"status={filter.Status}");
+            if (filter.Type is not null) query.Add($"type={filter.Type}");
+
+            var response = await _http.GetFromJsonAsync<ApiResponse<PagedResponse<CertificateResponse>>>(
+                $"{Base}?{string.Join("&", query)}", ct);
+
+            return response?.Data ?? new PagedResponse<CertificateResponse> { Page = paging.Page, PageSize = paging.PageSize };
         }
     }
 }
