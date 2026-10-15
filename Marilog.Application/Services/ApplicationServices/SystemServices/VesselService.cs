@@ -84,10 +84,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<VesselResponse> CreateAsync(int companyId, string vesselName,
-            string? imoNumber = null, decimal? grossTonnage = null,
-            int? flagCountryId = null, string? notes = null,
-            CancellationToken ct = default)
+     string? imoNumber = null, decimal? grossTonnage = null,
+     int? flagCountryId = null, string? notes = null,
+     CancellationToken ct = default)
         {
+            imoNumber = NormalizeImo(imoNumber);
+
             var companyExists = await _companyRepo.Query()
                 .AnyAsync(x => x.Id == companyId && x.IsActive, ct);
             if (!companyExists)
@@ -99,14 +101,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                                        flagCountryId, notes);
             await _repo.AddAsync(vessel, ct);
             await _repo.SaveChangesAsync(ct);
-            return new VesselResponse
-            {
-                CompanyId = companyId,
-                Name = vesselName,
-                FlagCountryId = flagCountryId,
-                IMONumber = imoNumber,
-                GrossTonnage = grossTonnage,
-            };
+
+            return (await GetByIdAsync(vessel.Id, ct))!;
         }
 
         // Application/Vessels/Services/VesselService.cs
@@ -133,11 +129,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             // --- تحقق من التكرار في IMO داخل الـ batch ---
             var imoSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var c in commandList.Where(c => !string.IsNullOrWhiteSpace(c.ImoNumber)))
+            foreach (var imo in commandList.Select(c => NormalizeImo(c.ImoNumber)).Where(i => i is not null))
             {
-                if (!imoSet.Add(c.ImoNumber!))
+                if (!imoSet.Add(imo!))
                     throw new InvalidOperationException(
-                        $"Duplicate IMO number found in the request: '{c.ImoNumber}'");
+                        $"Duplicate IMO number found in the request: '{imo}'");
             }
 
             // --- تحقق من التكرار في DB بـ query واحدة ---
@@ -159,7 +155,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(c => Vessel.Create(
                     c.CompanyId,
                     c.VesselName,
-                    c.ImoNumber,
+                    NormalizeImo(c.ImoNumber),
                     c.GrossTonnage,
                     c.FlagCountryId,
                     c.Notes))
@@ -187,6 +183,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             int? flagCountryId = null, string? notes = null,
             CancellationToken ct = default)
         {
+            imoNumber = NormalizeImo(imoNumber);
             var vessel = await GetOrThrowAsync(id, ct);
             await EnsureUniqueImoAsync(imoNumber, excludeId: id, ct);
 
@@ -338,6 +335,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new InvalidOperationException(
                     $"IMO number '{imoNumber}' is already registered.");
         }
+
+        private static string? NormalizeImo(string? imo)
+             => string.IsNullOrWhiteSpace(imo) ? null : imo.Trim();
 
         private static readonly Expression<Func<Vessel, VesselLookupResponse>> ToLookUpResponse =
         x => new VesselLookupResponse

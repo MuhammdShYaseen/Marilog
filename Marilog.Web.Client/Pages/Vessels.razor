@@ -23,7 +23,7 @@
 }
 else
 {
-    <SharedVesselPage @ref="_sharedPage"
+    <SharedVesselPage 
                 Vessels="@_vessels"
                 OnAddClicked="OpenAddDialog"
                 OnEditClicked="OpenEditDialog"
@@ -180,17 +180,23 @@ else
 
     private async Task OpenAddCertificateDialog(VesselResponse vessel)
     {
-        var paramaters = new DialogParameters 
+        var parameters = new DialogParameters
         { [nameof(CertificateDialog.Entity)] = EntityType.Vessel };
-        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate", paramaters);
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var request = (UpsertCertificateRequest)result.Data!;
-        await VesselService.AddCertificateAsync(vessel.Id, request);
-        Snackbar.Add("Certificate added.", Severity.Success);
-        await LoadAsync();
-        await RefreshSelected(vessel.Id);
+        try
+        {
+            var request = (UpsertCertificateRequest)result.Data!;
+            await VesselService.AddCertificateAsync(vessel.Id, request);
+            Snackbar.Add("Certificate added.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private async Task OpenEditCertificateDialog((VesselResponse vessel, CertificateResponse cert) args)
@@ -200,11 +206,17 @@ else
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var request = (UpsertCertificateRequest)result.Data!;
-        await VesselService.UpdateCertificateAsync(args.vessel.Id, args.cert.Index, request);
-        Snackbar.Add("Certificate updated.", Severity.Success);
-        await LoadAsync();
-        await RefreshSelected(args.vessel.Id);
+        try
+        {
+            var request = (UpsertCertificateRequest)result.Data!;
+            await VesselService.UpdateCertificateAsync(args.vessel.Id, args.cert.Index, request);
+            Snackbar.Add("Certificate updated.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private async Task ConfirmRemoveCertificate((VesselResponse vessel, CertificateResponse cert) args)
@@ -214,18 +226,18 @@ else
             $"Remove '{args.cert.CertificateName}'?",
             yesText: "Remove", cancelText: "Cancel");
 
-        if (confirmed == true)
+        if (confirmed != true) return;
+
+        try
         {
             await VesselService.RemoveCertificateAsync(args.vessel.Id, args.cert.Index);
             Snackbar.Add("Certificate removed.", Severity.Success);
             await LoadAsync();
-            await RefreshSelected(args.vessel.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
-    private SharedVesselPage _sharedPage = default!;
-    private async Task RefreshSelected(int vesselId)
-    {
-        var updated = await VesselService.GetByIdAsync(vesselId) ?? new();
-        _sharedPage?.UpdateSelected(updated);
-    }
+    
 }

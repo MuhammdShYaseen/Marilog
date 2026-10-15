@@ -77,7 +77,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 ct
             );
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, Ok(ApiResponse<VesselResponse>.Ok(result)));
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<VesselResponse>.Ok(result));
         }
         [HttpPost("batch")]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<VesselResponse>>>> CreateRange(

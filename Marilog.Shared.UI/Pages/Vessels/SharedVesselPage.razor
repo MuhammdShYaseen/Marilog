@@ -356,7 +356,6 @@
     private VesselResponse? _selected;
     private string _search = string.Empty;
     private int _activeTab;
-    private int? _lastSelectedId;
     private string _certificateSearch = string.Empty;
     private IEnumerable<VesselResponse> _filtered =>
         Filter(Vessels);
@@ -379,10 +378,11 @@
     private void OnRowSelected(VesselResponse vessel) => _selected = vessel;
     private void ClosePanel() => _selected = null;
 
-    public void UpdateSelected(VesselResponse vessel)
+   
+
+    protected override void OnParametersSet()
     {
-        _selected = vessel;
-        _lastSelectedId = vessel.Id;
-        StateHasChanged();
+        if (_selected is null) return;
+        _selected = Vessels.FirstOrDefault(v => v.Id == _selected.Id);
     }
 }

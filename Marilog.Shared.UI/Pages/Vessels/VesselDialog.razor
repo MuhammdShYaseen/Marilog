@@ -24,8 +24,13 @@
                            @bind-Value="_companyId"
                            Label="Company"
                            Required="true"
+                           Disabled="@(Vessel is not null)"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
+                    @if (Vessel is not null && !Companies.Any(c => c.Id == Vessel.CompanyId))
+                    {
+                        <MudSelectItem T="int" Value="Vessel.CompanyId">@(Vessel.CompanyName ?? "—")</MudSelectItem>
+                    }
                     @foreach (var c in Companies)
                     {
                         <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>

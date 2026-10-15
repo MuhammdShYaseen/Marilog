@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.VesselDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace Marilog.Client.Services.SystemServices
@@ -18,13 +19,19 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<VesselResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<VesselResponse>>($"{Base}/{id}", ct);
+            var http = await _http.GetAsync($"{Base}/{id}", ct);
+            if (http.StatusCode == HttpStatusCode.NotFound) return null;
+            http.EnsureSuccessStatusCode();
+            var response = await http.Content.ReadFromJsonAsync<ApiResponse<VesselResponse>>(ct);
             return response?.Data;
         }
 
         public async Task<VesselResponse?> GetByImoAsync(string imoNumber, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<VesselResponse>>($"{Base}/by-imo/{Uri.EscapeDataString(imoNumber)}", ct);
+            var http = await _http.GetAsync($"{Base}/by-imo/{Uri.EscapeDataString(imoNumber)}", ct);
+            if (http.StatusCode == HttpStatusCode.NotFound) return null;
+            http.EnsureSuccessStatusCode();
+            var response = await http.Content.ReadFromJsonAsync<ApiResponse<VesselResponse>>(ct);
             return response?.Data;
         }
 
