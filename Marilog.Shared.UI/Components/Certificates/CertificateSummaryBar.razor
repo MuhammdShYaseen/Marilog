@@ -1,0 +1,63 @@
+
+@using Marilog.Contracts.DTOs.Responses.Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Kernel.Rules
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Certificates
+
+<MudGrid Spacing="2">
+    @foreach (var status in _order)
+    {
+        var current = status;
+        <MudItem xs="6" sm="3">
+            <MudPaper Outlined="true"
+                      Elevation="0"
+                      Class="pa-3"
+                      Style="@TileStyle(current)"
+                      @onclick="() => ToggleAsync(current)">
+                <MudText Typo="Typo.caption"
+                         Color="Color.Secondary"
+                         Style="text-transform:uppercase; letter-spacing:.04em">
+                    @TileLabel(current)
+                </MudText>
+                <MudText Typo="Typo.h5" Color="@CertificateUi.GetColor(current)">
+                    @CountOf(current)
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter] public CertificateSummaryResponse Summary { get; set; } = new();
+    [Parameter] public CertificateExpiryStatus? SelectedStatus { get; set; }
+    [Parameter] public EventCallback<CertificateExpiryStatus?> SelectedStatusChanged { get; set; }
+
+    private static readonly CertificateExpiryStatus[] _order =
+    [
+        CertificateExpiryStatus.Expired,
+        CertificateExpiryStatus.ExpiringSoon,
+        CertificateExpiryStatus.Valid,
+        CertificateExpiryStatus.NoExpiry
+    ];
+
+    private int CountOf(CertificateExpiryStatus status) => status switch
+    {
+        CertificateExpiryStatus.Expired => Summary.Expired,
+        CertificateExpiryStatus.ExpiringSoon => Summary.ExpiringSoon,
+        CertificateExpiryStatus.Valid => Summary.Valid,
+        _ => Summary.NoExpiry
+    };
+
+    private static string TileLabel(CertificateExpiryStatus status) =>
+        status == CertificateExpiryStatus.ExpiringSoon
+            ? $"Expiring ≤ {CertificateRules.ExpiringSoonDays} days"
+            : CertificateUi.GetLabel(status);
+
+    private string TileStyle(CertificateExpiryStatus status) =>
+        $"cursor:pointer; border-left:4px solid {CertificateUi.GetCssVar(status)};" +
+        (SelectedStatus == status ? " background-color:var(--mud-palette-action-default-hover);" : "");
+
+    private Task ToggleAsync(CertificateExpiryStatus status) =>
+        SelectedStatusChanged.InvokeAsync(SelectedStatus == status ? null : status);
+}

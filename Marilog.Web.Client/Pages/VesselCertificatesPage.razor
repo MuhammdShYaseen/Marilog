@@ -1,0 +1,16 @@
+﻿@page "/vessel-certificates"
+@using MudBlazor
+@inject NavigationManager Navigation
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Color="Color.Primary" />
+        <MudText Typo="Typo.h6">Vessel Certificates</MudText>
+    </MudStack>
+
+    <VesselCertificatesPanel OnVesselClicked="OpenVessel" />
+</MudPaper>
+
+@code {
+    private void OpenVessel(int vesselId) => Navigation.NavigateTo($"/vessels?vesselId={vesselId}");
+}

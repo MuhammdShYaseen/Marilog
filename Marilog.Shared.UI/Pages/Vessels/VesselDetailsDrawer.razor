@@ -1,0 +1,201 @@
+@* VesselDetailsDrawer.razor *@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+
+<MudDrawer Open="Open"
+           OpenChanged="OpenChanged"
+           Anchor="Anchor.End"
+           Variant="DrawerVariant.Temporary"
+           Overlay="true"
+           Elevation="0"
+           Width="max(50vw, min(560px, 100vw))">
+
+    @if (Vessel is not null)
+    {
+        <div class="pa-4">
+
+            @* ── Header ── *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" />
+                </MudAvatar>
+                <MudStack Spacing="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudText Typo="Typo.h6">@Vessel.Name</MudText>
+                        <MudChip T="string"
+                                 Color="@(Vessel.IsActive ? Color.Success : Color.Default)"
+                                 Size="Size.Small"
+                                 Variant="Variant.Filled">
+                            @(Vessel.IsActive ? "Active" : "Inactive")
+                        </MudChip>
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        IMO @(Vessel.IMONumber ?? "—") · @(Vessel.CompanyName ?? "—")
+                    </MudText>
+                </MudStack>
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                               Size="Size.Small"
+                               OnClick="() => OpenChanged.InvokeAsync(false)" />
+            </MudStack>
+
+            @* ── Command bar ── *@
+            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-2">
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="() => OnEditClicked.InvokeAsync(Vessel)">Edit</MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Receipt"
+                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Vessel.Id, EntityType.Vessel))">Files</MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small"
+                           Color="@(Vessel.IsActive ? Color.Warning : Color.Success)"
+                           StartIcon="@(Vessel.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                           OnClick="() => OnToggleActiveClicked.InvokeAsync(Vessel)">
+                    @(Vessel.IsActive ? "Deactivate" : "Activate")
+                </MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(Vessel)">Delete</MudButton>
+            </MudStack>
+
+            <MudDivider />
+
+            @* ── Tabs ── *@
+            <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0" Rounded="true" Class="mt-2">
+
+                <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Info">
+                    <MudGrid Spacing="2" Class="mt-1">
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">IMO Number</MudText>
+                            <MudText Typo="Typo.body2">@(Vessel.IMONumber ?? "—")</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Gross Tonnage</MudText>
+                            <MudText Typo="Typo.body2">@(Vessel.GrossTonnage?.ToString("N0") ?? "—")</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Company</MudText>
+                            <MudText Typo="Typo.body2">@(Vessel.CompanyName ?? "—")</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Flag</MudText>
+                            <MudText Typo="Typo.body2">@(Vessel.FlagCountryName ?? "—")</MudText>
+                        </MudItem>
+                        @if (!string.IsNullOrWhiteSpace(Vessel.Notes))
+                        {
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+                                <MudText Typo="Typo.body2">@Vessel.Notes</MudText>
+                            </MudItem>
+                        }
+                    </MudGrid>
+
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-3 mt-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="text-transform:uppercase">Certificates</MudText>
+                                <MudStack Row="true" Spacing="3">
+                                    <MudText Typo="Typo.body2">Total <b>@Vessel.CertificatesCount</b></MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Error">Expired <b>@Vessel.ExpiredCertificates</b></MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Warning">Expiring <b>@Vessel.ExpiringCertificates</b></MudText>
+                                </MudStack>
+                            </MudStack>
+                            <MudSpacer />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                       EndIcon="@Icons.Material.Filled.ChevronRight"
+                                       OnClick="() => _activeTab = 1">Open</MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudTabPanel>
+
+                <MudTabPanel>
+                    <TabContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.CardMembership" Size="Size.Small" />
+                            <span>Certificates</span>
+                            @if (Issues > 0)
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@CertificateBadgeColor"
+                                         Variant="Variant.Filled"
+                                         Class="ma-0">
+                                    @Issues
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </TabContent>
+                    <ChildContent>
+                        <div class="mt-2">
+                            @if (CertificatesContent is not null)
+                            {
+                                @CertificatesContent(Vessel)
+                            }
+                        </div>
+                    </ChildContent>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Position" Icon="@Icons.Material.Filled.Place">
+                    @if (PositionContent is not null)
+                    {
+                        @PositionContent(Vessel)
+                    }
+                    else
+                    {
+                        @Placeholder(Icons.Material.Filled.Place, "Live position", "Vessel position, voyage and port calls from VesselFinder will appear here.")
+                    }
+                </MudTabPanel>
+
+                <MudTabPanel Text="Weather" Icon="@Icons.Material.Filled.Cloud">
+                    @if (WeatherContent is not null)
+                    {
+                        @WeatherContent(Vessel)
+                    }
+                    else
+                    {
+                        @Placeholder(Icons.Material.Filled.Cloud, "Weather", "Weather at the vessel's current position will appear here.")
+                    }
+                </MudTabPanel>
+
+            </MudTabs>
+        </div>
+    }
+</MudDrawer>
+
+@code {
+    [Parameter] public VesselResponse? Vessel { get; set; }
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    [Parameter] public RenderFragment<VesselResponse>? CertificatesContent { get; set; }
+    [Parameter] public RenderFragment<VesselResponse>? PositionContent { get; set; }
+    [Parameter] public RenderFragment<VesselResponse>? WeatherContent { get; set; }
+
+    private int _activeTab;
+    private int? _lastVesselId;
+
+    private int Issues => Vessel is null ? 0 : Vessel.ExpiredCertificates + Vessel.ExpiringCertificates;
+    private Color CertificateBadgeColor => Vessel?.ExpiredCertificates > 0 ? Color.Error : Color.Warning;
+
+    protected override void OnParametersSet()
+    {
+        if (Vessel?.Id == _lastVesselId) return;
+        _activeTab = 0;
+        _lastVesselId = Vessel?.Id;
+    }
+
+    private RenderFragment Placeholder(string icon, string title, string text) => @<MudPaper Outlined="true" Elevation="0" Class="pa-8 mt-2">
+        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@icon" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle2">@title</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">@text</MudText>
+        </MudStack>
+    </MudPaper>;
+}

@@ -1,0 +1,17 @@
+@using Marilog.Kernel.Enums
+@using Marilog.Kernel.Rules
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Certificates
+
+<MudChip T="string"
+         Color="@CertificateUi.GetColor(_status)"
+         Size="Size.Small"
+         Variant="@(_status == CertificateExpiryStatus.NoExpiry ? Variant.Outlined : Variant.Filled)">
+    @CertificateUi.GetLabel(_status)
+</MudChip>
+
+@code {
+    [Parameter] public DateOnly? ExpiryDate { get; set; }
+
+    private CertificateExpiryStatus _status => CertificateRules.GetStatus(ExpiryDate, CertificateRules.Today());
+}

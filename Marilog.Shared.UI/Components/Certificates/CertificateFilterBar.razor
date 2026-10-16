@@ -1,0 +1,81 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Certificates
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+
+    <MudTextField T="string"
+                  Value="SearchTerm"
+                  ValueChanged="SearchTermChanged"
+                  Placeholder="Search name, number, authority..."
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  DebounceInterval="400"
+                  Clearable="true"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Style="min-width:220px; max-width:280px" />
+
+    @if (ShowVesselFilter)
+    {
+        <MudSelect T="int?"
+                   Value="VesselId"
+                   ValueChanged="VesselIdChanged"
+                   ToStringFunc="VesselName"
+                   Label="Vessel"
+                   Clearable="true"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Style="min-width:180px">
+            @foreach (var v in Vessels)
+            {
+                <MudSelectItem T="int?" Value="(int?)v.Id">@v.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    <MudSelect T="VesselCertificateType?"
+               Value="Type"
+               ValueChanged="TypeChanged"
+               ToStringFunc="@(t => t is null ? string.Empty : CertificateUi.TypeLabel(t))"
+               Label="Type"
+               Clearable="true"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Style="min-width:220px">
+        @foreach (var t in Enum.GetValues<VesselCertificateType>())
+        {
+            <MudSelectItem T="VesselCertificateType?" Value="(VesselCertificateType?)t">@CertificateUi.TypeLabel(t)</MudSelectItem>
+        }
+    </MudSelect>
+
+    @if (ShowVesselFilter)
+    {
+        <MudSwitch T="bool"
+                   Value="IncludeInactive"
+                   ValueChanged="IncludeInactiveChanged"
+                   Label="Include inactive vessels"
+                   Color="Color.Primary" />
+    }
+
+</MudStack>
+
+@code {
+    [Parameter] public string? SearchTerm { get; set; }
+    [Parameter] public EventCallback<string?> SearchTermChanged { get; set; }
+
+    [Parameter] public VesselCertificateType? Type { get; set; }
+    [Parameter] public EventCallback<VesselCertificateType?> TypeChanged { get; set; }
+
+    [Parameter] public bool ShowVesselFilter { get; set; }
+    [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
+    [Parameter] public int? VesselId { get; set; }
+    [Parameter] public EventCallback<int?> VesselIdChanged { get; set; }
+
+    [Parameter] public bool IncludeInactive { get; set; }
+    [Parameter] public EventCallback<bool> IncludeInactiveChanged { get; set; }
+
+    private string VesselName(int? id) =>
+        id is null ? string.Empty : Vessels.FirstOrDefault(v => v.Id == id)?.Name ?? string.Empty;
+}

@@ -1,0 +1,237 @@
+﻿@* VesselCertificatesPanel.razor *@
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Requests.Common
+@using Marilog.Contracts.DTOs.Requests.VesselDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.DTOs.Responses.Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Components.Certificates
+@using Marilog.Shared.UI.Components.SharedDialogs
+@using Marilog.Shared.UI.Pages.Vessels
+@using Marilog.Web.Client.Services.Interfaces
+@using MudBlazor
+
+@inject IVesselCertificateService CertificateService
+@inject IVesselService VesselService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IManageStoredFiles ManageStoredFiles
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+<CertificateSummaryBar Summary="_summary"
+                       SelectedStatus="_status"
+                       SelectedStatusChanged="OnStatusChangedAsync" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="my-3">
+    <CertificateFilterBar SearchTerm="@_search"
+                          SearchTermChanged="OnSearchChangedAsync"
+                          Type="_type"
+                          TypeChanged="OnTypeChangedAsync"
+                          ShowVesselFilter="VesselId is null"
+                          Vessels="_vessels"
+                          VesselId="_filterVesselId"
+                          VesselIdChanged="OnVesselFilterChangedAsync"
+                          IncludeInactive="_includeInactive"
+                          IncludeInactiveChanged="OnIncludeInactiveChangedAsync" />
+    <MudSpacer />
+    <MudTooltip Text="@(EffectiveVesselId is null ? "Select a vessel to add a certificate" : string.Empty)">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@(EffectiveVesselId is null)"
+                   OnClick="AddAsync">
+            New
+        </MudButton>
+    </MudTooltip>
+</MudStack>
+
+<VesselCertificatesGrid Data="_page"
+                        Compact="@(VesselId is not null)"
+                        OnPageChanged="OnPageChangedAsync"
+                        OnEditClicked="EditAsync"
+                        OnDeleteClicked="DeleteAsync"
+                        OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
+                        OnVesselClicked="OnVesselClicked" />
+
+@code {
+    [Parameter] public int? VesselId { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback<int> OnVesselClicked { get; set; }
+
+    private const int PageSize = 20;
+
+    private CertificateSummaryResponse _summary = new();
+    private PagedResponse<CertificateResponse> _page = new() { Page = 1, PageSize = PageSize };
+    private IReadOnlyList<VesselLookupResponse> _vessels = [];
+
+    private CertificateExpiryStatus? _status;
+    private VesselCertificateType? _type;
+    private string? _search;
+    private int? _filterVesselId;
+    private bool _includeInactive;
+    private int _pageNumber = 1;
+
+    private bool _loading;
+    private bool _initialized;
+    private int? _loadedForVesselId;
+
+    private int? EffectiveVesselId => VesselId ?? _filterVesselId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && _loadedForVesselId == VesselId) return;
+
+        _initialized = true;
+        _loadedForVesselId = VesselId;
+        _status = null; _type = null; _search = null; _filterVesselId = null; _pageNumber = 1;
+
+        if (VesselId is null && _vessels.Count == 0)
+        {
+            try { _vessels = await VesselService.GetAllAsLookUpAsync(); }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var paging = new PagedRequest { Page = _pageNumber, PageSize = PageSize, SearchTerm = _search };
+            var filter = new VesselCertificateFilter
+            {
+                VesselId = EffectiveVesselId,
+                Status = _status,
+                Type = _type,
+                IncludeInactiveVessels = _includeInactive
+            };
+
+            var summaryTask = CertificateService.GetSummaryAsync(EffectiveVesselId, _includeInactive);
+            var pageTask = CertificateService.GetPagedAsync(paging, filter);
+            await Task.WhenAll(summaryTask, pageTask);
+
+            _summary = summaryTask.Result;
+            _page = pageTask.Result;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadAndNotifyAsync()
+    {
+        await LoadAsync();
+
+        // حذف آخر عنصر بآخر صفحة بيترك صفحة فاضية — ارجع لآخر صفحة فيها داتا
+        if (_page.Items.Count == 0 && _pageNumber > 1 && _page.TotalCount > 0)
+        {
+            _pageNumber = _page.TotalPages;
+            await LoadAsync();
+        }
+
+        await OnChanged.InvokeAsync();
+    }
+
+    // ── Filters ──────────────────────────────────────────────────────────
+
+    private async Task OnStatusChangedAsync(CertificateExpiryStatus? status)
+    { _status = status; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnTypeChangedAsync(VesselCertificateType? type)
+    { _type = type; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnSearchChangedAsync(string? search)
+    { _search = search; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnVesselFilterChangedAsync(int? vesselId)
+    { _filterVesselId = vesselId; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnIncludeInactiveChangedAsync(bool include)
+    { _includeInactive = include; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnPageChangedAsync(int page)
+    { _pageNumber = page; await LoadAsync(); }
+
+    // ── Commands ─────────────────────────────────────────────────────────
+
+    private async Task AddAsync()
+    {
+        if (EffectiveVesselId is not int vesselId) return;
+
+        var parameters = new DialogParameters { [nameof(CertificateDialog.Entity)] = EntityType.Vessel };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            await VesselService.AddCertificateAsync(vesselId, (UpsertCertificateRequest)result.Data!);
+            Snackbar.Add("Certificate added.", Severity.Success);
+            await ReloadAndNotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EditAsync(CertificateResponse cert)
+    {
+        if (cert.VId is not int vesselId) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(CertificateDialog.Certificate)] = cert,
+            [nameof(CertificateDialog.Entity)] = EntityType.Vessel
+        };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("Edit Certificate", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            await VesselService.UpdateCertificateAsync(vesselId, cert.Index, (UpsertCertificateRequest)result.Data!);
+            Snackbar.Add("Certificate updated.", Severity.Success);
+            await ReloadAndNotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteAsync(CertificateResponse cert)
+    {
+        if (cert.VId is not int vesselId) return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Certificate",
+            $"Remove '{cert.CertificateName}'?",
+            yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        try
+        {
+            await VesselService.RemoveCertificateAsync(vesselId, cert.Index);
+            Snackbar.Add("Certificate removed.", Severity.Success);
+            await ReloadAndNotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

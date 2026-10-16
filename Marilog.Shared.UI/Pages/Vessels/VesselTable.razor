@@ -9,8 +9,8 @@
              Hover="true"
              Dense="true"
              Striped="true"
-             SelectedItem="_selected"
-             SelectedItemChanged="OnRowSelectedChanged"
+             RowClick="OnRowClick"
+             RowStyle="cursor:pointer"
              Breakpoint="Breakpoint.Sm">
 
     <Columns>
@@ -19,6 +19,32 @@
         <PropertyColumn Property="x => x.GrossTonnage" Title="GRT" Format="N0" />
         <PropertyColumn Property="x => x.CompanyName" Title="Company" />
         <PropertyColumn Property="x => x.FlagCountryName" Title="Flag" />
+        <TemplateColumn Title="Certificates" Sortable="false">
+            <CellTemplate>
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    @if (context.Item.ExpiredCertificates > 0)
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">
+                            @context.Item.ExpiredCertificates expired
+                        </MudChip>
+                    }
+                    @if (context.Item.ExpiringCertificates > 0)
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">
+                            @context.Item.ExpiringCertificates soon
+                        </MudChip>
+                    }
+                    @if (context.Item.CertificatesCount == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                    }
+                    else if (context.Item.ExpiredCertificates == 0 && context.Item.ExpiringCertificates == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Success">OK (@context.Item.CertificatesCount)</MudText>
+                    }
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
         <TemplateColumn Title="Status" Sortable="false">
             <CellTemplate>
                 <MudChip T="string"
@@ -31,6 +57,7 @@
         </TemplateColumn>
         <TemplateColumn Title="" Sortable="false" CellStyle="width:120px">
             <CellTemplate>
+               <div @onclick:stopPropagation="true">
                 <MudStack Row="true" Spacing="1">
 
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
@@ -53,6 +80,7 @@
                                    Color="Color.Error"
                                    OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
                 </MudStack>
+               </div>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
@@ -67,21 +95,12 @@
 
 @code {
     [Parameter] public IEnumerable<VesselResponse> Items { get; set; } = [];
-    [Parameter] public VesselResponse? Selected { get; set; }
-    [Parameter] public EventCallback<VesselResponse> OnRowSelected { get; set; }
+    [Parameter] public EventCallback<VesselResponse> OnRowClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
-    private VesselResponse? _selected;
-
-    protected override void OnParametersSet() => _selected = Selected;
-
-    private async Task OnRowSelectedChanged(VesselResponse? item)
-    {
-        if (item is null) return;
-        _selected = item;
-        await OnRowSelected.InvokeAsync(item);
-    }
+    private Task OnRowClick(DataGridRowClickEventArgs<VesselResponse> args)
+        => OnRowClicked.InvokeAsync(args.Item);
 }

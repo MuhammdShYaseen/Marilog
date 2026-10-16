@@ -1,0 +1,139 @@
+@* VesselCertificatesGrid.razor *@
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Kernel.Rules
+@using Marilog.Shared.UI.Components.Certificates
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+
+<MudDataGrid T="CertificateResponse"
+             Items="Data.Items"
+             Hover="true"
+             Dense="true"
+             Striped="true"
+             SortMode="SortMode.None"
+             Breakpoint="Breakpoint.Sm">
+
+    <Columns>
+        <TemplateColumn Title="Status" HeaderStyle="width:120px" CellStyle="white-space:nowrap">
+            <CellTemplate>
+                <CertificateStatusChip ExpiryDate="context.Item.ExpiryDate" />
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Certificate">
+            <CellTemplate>
+                <MudText Typo="Typo.body2" title="@context.Item.CertificateName" Style="@ClampStyle">
+                    @context.Item.CertificateName
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @CertificateUi.TypeLabel(context.Item.VType)@(string.IsNullOrWhiteSpace(context.Item.CertificateNumber) ? "" : $" · {context.Item.CertificateNumber}")
+                </MudText>
+            </CellTemplate>
+        </TemplateColumn>
+
+        @if (!Compact)
+        {
+            <TemplateColumn Title="Vessel" CellStyle="white-space:nowrap">
+                <CellTemplate>
+                    @if (context.Item.VId is int vesselId)
+                    {
+                        <MudLink Typo="Typo.body2"
+                                 Style="cursor:pointer"
+                                 OnClick="() => OnVesselClicked.InvokeAsync(vesselId)">
+                            @context.Item.VName
+                        </MudLink>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.IssuingAuthority" Title="Issued By" />
+
+            <TemplateColumn Title="Issued" CellStyle="white-space:nowrap">
+                <CellTemplate>@(context.Item.IssueDate?.ToString("yyyy-MM-dd") ?? "—")</CellTemplate>
+            </TemplateColumn>
+        }
+
+        <TemplateColumn Title="Expiry" HeaderStyle="width:130px" CellStyle="white-space:nowrap">
+            <CellTemplate>
+                @if (context.Item.ExpiryDate is DateOnly expiry)
+                {
+                    var days = CertificateUi.DaysLeft(expiry, _today)!.Value;
+                    <MudText Typo="Typo.body2">@expiry.ToString("yyyy-MM-dd")</MudText>
+                    <MudText Typo="Typo.caption" Color="@DaysColor(days)">@CertificateUi.FormatDaysLeft(days)</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="" HeaderStyle="width:110px" CellStyle="white-space:nowrap">
+            <CellTemplate>
+                <MudStack Row="true" Spacing="0">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                   Size="Size.Small"
+                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Index, EntityType.VesselCertificate))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+            No certificates match the current filters.
+        </MudText>
+    </NoRecordsContent>
+
+</MudDataGrid>
+
+@if (Data.TotalCount > 0)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-2">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@RangeText</MudText>
+        @if (Data.TotalPages > 1)
+        {
+            <MudPagination Count="Data.TotalPages"
+                           Selected="Data.Page"
+                           SelectedChanged="OnPageChanged"
+                           Size="Size.Small" />
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter] public PagedResponse<CertificateResponse> Data { get; set; } = new();
+    [Parameter] public bool Compact { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+    [Parameter] public EventCallback<CertificateResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CertificateResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<int> OnVesselClicked { get; set; }
+
+    private readonly DateOnly _today = CertificateRules.Today();
+    private const string ClampStyle =
+    "display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-width:220px";
+
+    private static Color DaysColor(int days) =>
+        days < 0 ? Color.Error :
+        days <= CertificateRules.ExpiringSoonDays ? Color.Warning :
+        Color.Secondary;
+    private string RangeText
+    {
+        get
+        {
+            var from = (Data.Page - 1) * Data.PageSize + 1;
+            var to = from + Data.Items.Count - 1;
+            return $"{from}–{to} of {Data.TotalCount}";
+        }
+    }
+}

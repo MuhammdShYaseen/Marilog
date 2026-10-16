@@ -4,367 +4,146 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Vessels
 
-<MudGrid>
+<MudPaper Class="pa-4" Elevation="2">
 
-    @* ── List Panel ───────────────────────────────────────────── *@
-    <MudItem xs="12" md="@(_selected is null ? 12 : 7)">
-        <MudPaper Class="pa-4" Elevation="2">
+    @* ── Toolbar ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h6">Vessels</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_search"
+                      Placeholder="Search..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Class="mr-2"
+                      Style="max-width:220px" />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OnAddClicked">
+            New
+        </MudButton>
+    </MudStack>
 
-            @* ── Toolbar ──────────────────────────────────────── *@
-            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-                <MudText Typo="Typo.h6">Vessels</MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_search"
-                              Placeholder="Search..."
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search"
-                              Immediate="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              Class="mr-2"
-                              Style="max-width:220px" />
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="OnAddClicked">
-                    New
-                </MudButton>
-            </MudStack>
+    @* ── Summary Chips ── *@
+    <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
+        <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+            Total: @Vessels.Count
+        </MudChip>
+        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
+            Active: @Vessels.Count(v => v.IsActive)
+        </MudChip>
+        <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small">
+            Inactive: @Vessels.Count(v => !v.IsActive)
+        </MudChip>
+        @if (_vesselsWithIssues > 0)
+        {
+            <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">
+                Certificate issues: @_vesselsWithIssues vessel(s)
+            </MudChip>
+        }
+    </MudStack>
 
-            @* ── Summary Chips ────────────────────────────────── *@
-            <MudStack Row="true" Spacing="2" Class="mb-3">
-                <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
-                    Total: @Vessels.Count
-                </MudChip>
-                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
-                    Active: @Vessels.Count(v => v.IsActive)
-                </MudChip>
-                <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small">
-                    Inactive: @Vessels.Count(v => !v.IsActive)
-                </MudChip>
-            </MudStack>
+    @* ── Tabs ── *@
+    <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0" Rounded="true" Class="mb-3">
 
-            @* ── Tabs ─────────────────────────────────────────── *@
-            <MudTabs @bind-ActivePanelIndex="_activeTab"
-                     Elevation="0"
-                     Rounded="true"
-                     Class="mb-3">
+        <MudTabPanel Text="All">
+            <VesselTable Items="_filtered"
+                         OnRowClicked="OpenDrawer"
+                         OnEditClicked="OnEditClicked"
+                         OnDeleteClicked="OnDeleteClicked"
+                         OnToggleActiveClicked="OnToggleActiveClicked"
+                         OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+        </MudTabPanel>
 
-                <MudTabPanel Text="All">
-                    <VesselTable Items="_filtered"
-                                 Selected="_selected"
-                                 OnRowSelected="OnRowSelected"
-                                 OnEditClicked="OnEditClicked"
-                                 OnDeleteClicked="OnDeleteClicked"
-                                 OnToggleActiveClicked="OnToggleActiveClicked"
-                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
-                </MudTabPanel>
+        <MudTabPanel Text="Active">
+            <VesselTable Items="_filteredActive"
+                         OnRowClicked="OpenDrawer"
+                         OnEditClicked="OnEditClicked"
+                         OnDeleteClicked="OnDeleteClicked"
+                         OnToggleActiveClicked="OnToggleActiveClicked"
+                         OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+        </MudTabPanel>
 
-                <MudTabPanel Text="Active">
-                    <VesselTable Items="_filteredActive"
-                                 Selected="_selected"
-                                 OnRowSelected="OnRowSelected"
-                                 OnEditClicked="OnEditClicked"
-                                 OnDeleteClicked="OnDeleteClicked"
-                                 OnToggleActiveClicked="OnToggleActiveClicked"
-                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
-                </MudTabPanel>
+        <MudTabPanel Text="Inactive">
+            <VesselTable Items="_filteredInactive"
+                         OnRowClicked="OpenDrawer"
+                         OnEditClicked="OnEditClicked"
+                         OnDeleteClicked="OnDeleteClicked"
+                         OnToggleActiveClicked="OnToggleActiveClicked"
+                         OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+        </MudTabPanel>
 
-                <MudTabPanel Text="Inactive">
-                    <VesselTable Items="_filteredInactive"
-                                 Selected="_selected"
-                                 OnRowSelected="OnRowSelected"
-                                 OnEditClicked="OnEditClicked"
-                                 OnDeleteClicked="OnDeleteClicked"
-                                 OnToggleActiveClicked="OnToggleActiveClicked"
-                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
-                </MudTabPanel>
+    </MudTabs>
 
-            </MudTabs>
+</MudPaper>
 
-        </MudPaper>
-    </MudItem>
-
-    @* ── Detail Panel ──────────────────────────────────────────── *@
-    @if (_selected is not null)
-    {
-        <MudItem xs="12" md="5">
-            <MudPaper Class="pa-4" Elevation="2">
-
-                @* ── Header ───────────────────────────────────── *@
-                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-                    <MudAvatar Color="Color.Primary" Size="Size.Medium">
-                        @(_selected.Name.Length > 0 ? _selected.Name[0] : '?')
-                    </MudAvatar>
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h6">@_selected.Name</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @(_selected.CompanyName ?? "—")
-                        </MudText>
-                    </MudStack>
-                    <MudSpacer />
-                    <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                   Size="Size.Small"
-                                   OnClick="ClosePanel" />
-                </MudStack>
-
-                <MudDivider Class="mb-3" />
-
-                @* ── Detail Tabs ──────────────────────────────── *@
-                <MudTabs Elevation="0" Rounded="true" Class="mb-2">
-
-                    @* ── Details ── *@
-                    <MudTabPanel Text="Details" Icon="@Icons.Material.Filled.Info">
-                        <MudGrid Spacing="2" Class="mt-1">
-
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">IMO Number</MudText>
-                                <MudText Typo="Typo.body2">@(_selected.IMONumber ?? "—")</MudText>
-                            </MudItem>
-
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Gross Tonnage</MudText>
-                                <MudText Typo="Typo.body2">
-                                    @(_selected.GrossTonnage.HasValue
-                                        ? _selected.GrossTonnage.Value.ToString("N0")
-                                        : "—")
-                                </MudText>
-                            </MudItem>
-
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Company</MudText>
-                                <MudText Typo="Typo.body2">@(_selected.CompanyName ?? "—")</MudText>
-                            </MudItem>
-
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Flag</MudText>
-                                <MudText Typo="Typo.body2">@(_selected.FlagCountryName ?? "—")</MudText>
-                            </MudItem>
-
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
-                                <MudChip T="string"
-                                         Color="@(_selected.IsActive ? Color.Success : Color.Default)"
-                                         Size="Size.Small"
-                                         Variant="Variant.Filled">
-                                    @(_selected.IsActive ? "Active" : "Inactive")
-                                </MudChip>
-                            </MudItem>
-
-                            @if (!string.IsNullOrWhiteSpace(_selected.Notes))
-                            {
-                                <MudItem xs="12">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
-                                    <MudText Typo="Typo.body2">@_selected.Notes</MudText>
-                                </MudItem>
-                            }
-
-                        </MudGrid>
-                    </MudTabPanel>
-
-                    @* ── Certificates ── *@
-                    <MudTabPanel Text="Certificates" Icon="@Icons.Material.Filled.CardMembership">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2 mt-1">
-                            <MudText Typo="Typo.subtitle2">Certificates</MudText>
-                            <MudSpacer />
-                            <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                           Size="Size.Small"
-                                           Color="Color.Primary"
-                                           OnClick="() => OnAddCertificateClicked.InvokeAsync(_selected)" />
-                        </MudStack>
-
-                        <MudTextField T="string"
-                                      Value="_certificateSearch"
-                                      ValueChanged="@((string v) => _certificateSearch = v)"
-                                      Placeholder="Search certificates by name..."
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Search"
-                                      Immediate="true"
-                                      Clearable="true"
-                                      Class="mb-2" />
-
-                        @if (_selected.Certificates == null || _selected.Certificates.Count == 0)
-                        {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">No certificates added.</MudText>
-                        }
-                        else
-                        {
-                            var filteredCertificates = string.IsNullOrWhiteSpace(_certificateSearch)
-                                 ? _selected.Certificates
-                                    : _selected.Certificates
-                                        .Where(c => !string.IsNullOrWhiteSpace(c.CertificateName) &&
-                            c.CertificateName.Contains(_certificateSearch, StringComparison.OrdinalIgnoreCase)).ToList();
-                            @if (filteredCertificates.Count == 0)
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">No certificates match your search.</MudText>
-                            }
-                            else
-                            {
-                                
-                            @foreach (var cert in filteredCertificates)
-                            {
-                                var certToday = DateOnly.FromDateTime(DateTime.Today);
-                                var certExpired = cert.ExpiryDate.HasValue && cert.ExpiryDate.Value < certToday;
-                                var certExpiringSoon = !certExpired && cert.ExpiryDate.HasValue &&
-                                                       (cert.ExpiryDate.Value.DayNumber - certToday.DayNumber) <= 90;
-
-                                <MudPaper Elevation="0" Class="pa-3 mb-2"
-                                          Style="border:1px solid var(--mud-palette-divider); border-radius:8px;">
-                                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="3">
-
-                                        <MudAvatar Color="@(certExpired ? Color.Error : certExpiringSoon ? Color.Warning : Color.Primary)"
-                                                   Variant="Variant.Text"
-                                                   Size="Size.Medium">
-                                            <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small" />
-                                        </MudAvatar>
-
-                                        <MudStack Spacing="1" Style="flex:1; min-width:0">
-
-                                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                                    <MudText Typo="Typo.subtitle2">@cert.CertificateName</MudText>
-                                                    @if (certExpired)
-                                                    {
-                                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">Expired</MudChip>
-                                                    }
-                                                    else if (certExpiringSoon)
-                                                    {
-                                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">Expiring Soon</MudChip>
-                                                    }
-                                                </MudStack>
-
-                                                <MudStack Row="true" Spacing="0">
-
-                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                                   Size="Size.Small"
-                                                                   OnClick="() => OnEditCertificateClicked.InvokeAsync((_selected, cert))" />
-
-                                                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
-                                                                   Size="Size.Small"
-                                                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((cert.Index, EntityType.VesselCertificate))" />
-
-                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                                   Size="Size.Small"
-                                                                   Color="Color.Error"
-                                                                   OnClick="() => OnRemoveCertificateClicked.InvokeAsync((_selected, cert))" />
-                                                </MudStack>
-                                            </MudStack>
-
-                                            @if (!string.IsNullOrWhiteSpace(cert.CertificateNumber) || !string.IsNullOrWhiteSpace(cert.IssuingAuthority))
-                                            {
-                                                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
-                                                    @if (!string.IsNullOrWhiteSpace(cert.CertificateNumber))
-                                                    {
-                                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Tag">
-                                                            @cert.CertificateNumber
-                                                        </MudChip>
-                                                    }
-                                                    @if (!string.IsNullOrWhiteSpace(cert.IssuingAuthority))
-                                                    {
-                                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.AccountBalance">
-                                                            @cert.IssuingAuthority
-                                                        </MudChip>
-                                                    }
-                                                </MudStack>
-                                            }
-
-                                            <MudDivider Class="my-1" />
-
-                                            <MudStack Row="true" Spacing="4">
-                                                <MudStack Spacing="0">
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Issue date</MudText>
-                                                    <MudText Typo="Typo.body2">@(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")</MudText>
-                                                </MudStack>
-                                                <MudStack Spacing="0">
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Expiry date</MudText>
-                                                    <MudText Typo="Typo.body2"
-                                                             Color="@(certExpired ? Color.Error : certExpiringSoon ? Color.Warning : Color.Default)">
-                                                        @(cert.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")
-                                                    </MudText>
-                                                </MudStack>
-                                            </MudStack>
-
-                                            @if (!string.IsNullOrWhiteSpace(cert.Description))
-                                            {
-                                                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="mt-1">
-                                                    @cert.Description
-                                                </MudText>
-                                            }
-
-                                        </MudStack>
-                                    </MudStack>
-                                </MudPaper>
-                            }
-                        }
-                        }
-                    </MudTabPanel>
-
-                </MudTabs>
-
-                <MudDivider Class="my-3" />
-
-                @* ── Actions ──────────────────────────────────── *@
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
-                        Edit
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Receipt"
-                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected.Id, EntityType.Vessel))">
-                        Files
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Color="@(_selected.IsActive ? Color.Warning : Color.Success)"
-                               StartIcon="@(_selected.IsActive
-                                                                                                    ? Icons.Material.Filled.ToggleOff
-                                                                                            : Icons.Material.Filled.ToggleOn)"
-                               OnClick="() => OnToggleActiveClicked.InvokeAsync(_selected)">
-                        @(_selected.IsActive ? "Deactivate" : "Activate")
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
-                        Delete
-                    </MudButton>
-                </MudStack>
-
-            </MudPaper>
-        </MudItem>
-    }
-
-</MudGrid>
+@if (_selected is not null)
+{
+    <VesselDetailsDrawer Vessel="_selected"
+                         @bind-Open="_drawerOpen"
+                         OnEditClicked="OnEditClicked"
+                         OnDeleteClicked="OnDeleteClicked"
+                         OnToggleActiveClicked="OnToggleActiveClicked"
+                         OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                         CertificatesContent="CertificatesContent"
+                         PositionContent="PositionContent"
+                         WeatherContent="WeatherContent" />
+}
 
 @code {
     [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public int? OpenVesselId { get; set; }
+
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
-    [Parameter] public EventCallback<VesselResponse> OnAddCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(VesselResponse Vessel, CertificateResponse Certificate)> OnEditCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(VesselResponse Vessel, CertificateResponse Certificate)> OnRemoveCertificateClicked { get; set; }
+    [Parameter] public RenderFragment<VesselResponse>? CertificatesContent { get; set; }
+    [Parameter] public RenderFragment<VesselResponse>? PositionContent { get; set; }
+    [Parameter] public RenderFragment<VesselResponse>? WeatherContent { get; set; }
 
     private VesselResponse? _selected;
+    private bool _drawerOpen;
+    private int? _openedFromQueryId;
     private string _search = string.Empty;
     private int _activeTab;
-    private string _certificateSearch = string.Empty;
-    private IEnumerable<VesselResponse> _filtered =>
-        Filter(Vessels);
+    private int _vesselsWithIssues;
 
-    private IEnumerable<VesselResponse> _filteredActive =>
-        Filter(Vessels.Where(v => v.IsActive));
+    private IEnumerable<VesselResponse> _filtered => Filter(Vessels);
+    private IEnumerable<VesselResponse> _filteredActive => Filter(Vessels.Where(v => v.IsActive));
+    private IEnumerable<VesselResponse> _filteredInactive => Filter(Vessels.Where(v => !v.IsActive));
 
-    private IEnumerable<VesselResponse> _filteredInactive =>
-        Filter(Vessels.Where(v => !v.IsActive));
+    protected override void OnParametersSet()
+    {
+        _vesselsWithIssues = Vessels.Count(v => v.ExpiredCertificates + v.ExpiringCertificates > 0);
+
+        if (_selected is not null)
+        {
+            _selected = Vessels.FirstOrDefault(v => v.Id == _selected.Id);
+            if (_selected is null) _drawerOpen = false;
+        }
+
+        if (OpenVesselId is not null && _openedFromQueryId != OpenVesselId)
+        {
+            var vessel = Vessels.FirstOrDefault(v => v.Id == OpenVesselId);
+            if (vessel is not null)
+            {
+                _openedFromQueryId = OpenVesselId;
+                OpenDrawer(vessel);
+            }
+        }
+    }
+
+    private void OpenDrawer(VesselResponse vessel)
+    {
+        _selected = vessel;
+        _drawerOpen = true;
+    }
 
     private IEnumerable<VesselResponse> Filter(IEnumerable<VesselResponse> source) =>
         string.IsNullOrWhiteSpace(_search)
@@ -374,15 +153,4 @@
                 (v.IMONumber ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
                 (v.CompanyName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
                 (v.FlagCountryName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
-
-    private void OnRowSelected(VesselResponse vessel) => _selected = vessel;
-    private void ClosePanel() => _selected = null;
-
-   
-
-    protected override void OnParametersSet()
-    {
-        if (_selected is null) return;
-        _selected = Vessels.FirstOrDefault(v => v.Id == _selected.Id);
-    }
 }
