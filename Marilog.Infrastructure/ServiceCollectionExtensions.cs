@@ -5,6 +5,7 @@ using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Interfaces.VesselPosition;
+using Marilog.Application.Interfaces.Weather;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Application.Services.ApplicationServices.VesselPositions;
 using Marilog.Contracts.Interfaces.DataManagment;
@@ -18,6 +19,7 @@ using Marilog.Infrastructure.BackgroundServices;
 using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.Interfaces.EmailNotification;
+using Marilog.Infrastructure.Models.Weather;
 using Marilog.Infrastructure.Persistence;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
@@ -27,6 +29,7 @@ using Marilog.Infrastructure.Services.Email.Google;
 using Marilog.Infrastructure.Services.Email.Smtp;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.VesselPositions;
+using Marilog.Infrastructure.Services.Weather;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,6 +132,15 @@ namespace Marilog.Infrastructure
 
             services.AddScoped<IVesselPositionService, VesselPositionService>();
 
+
+
+            //====Weather=========================================================================
+            services.Configure<OpenMeteoOptions>(configuration.GetSection(OpenMeteoOptions.SectionName));
+            services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Marilog/1.0");
+            });
 
             return services;
 

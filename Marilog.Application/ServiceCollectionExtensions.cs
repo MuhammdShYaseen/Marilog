@@ -108,6 +108,10 @@ namespace Marilog.Application
 
 
 
+            //---Weather------------------------------------------------------------
+            services.AddScoped<IWeatherService, WeatherService>();
+
+
             return services;
         }
     }
