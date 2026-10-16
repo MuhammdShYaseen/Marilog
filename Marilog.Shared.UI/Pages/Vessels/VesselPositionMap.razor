@@ -1,0 +1,73 @@
+@* VesselPositionMap.razor *@
+@using Microsoft.JSInterop
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div style="position:relative">
+    <div @ref="_element"
+         style="height:@Height; width:100%; border:1px solid var(--mud-palette-lines-default); border-radius:4px; isolation:isolate; background:var(--mud-palette-background-gray)">
+    </div>
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Filled"
+                  Style="position:absolute; top:12px; left:12px; right:12px">
+            @_error
+        </MudAlert>
+    }
+</div>
+
+@code {
+    [Parameter] public double Latitude { get; set; }
+    [Parameter] public double Longitude { get; set; }
+    [Parameter] public double Course { get; set; }
+    [Parameter] public bool Stationary { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string Height { get; set; } = "320px";
+
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private string? _renderedKey;
+    private string? _error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var key = $"{Latitude}|{Longitude}|{Course}|{Stationary}";
+        if (key == _renderedKey) return;
+        _renderedKey = key;
+
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Marilog.Shared.UI/js/vesselMap.js");
+
+            await _module.InvokeVoidAsync("render", _element, new
+            {
+                latitude = Latitude,
+                longitude = Longitude,
+                course = Course,
+                stationary = Stationary,
+                name = Name,
+                precisionDegrees = VesselPositionUi.PositionPrecisionDegrees
+            });
+            _error = null;
+        }
+        catch (Exception)
+        {
+            _error = "The map couldn't be loaded. Check the internet connection — the rest of the data is still valid.";
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null) return;
+        try
+        {
+            await _module.InvokeVoidAsync("dispose", _element);
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+    }
+}

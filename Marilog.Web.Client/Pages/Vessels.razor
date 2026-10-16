@@ -31,6 +31,9 @@
         <CertificatesContent Context="vessel">
             <VesselCertificatesPanel VesselId="vessel.Id" OnChanged="LoadAsync" />
         </CertificatesContent>
+        <PositionContent Context="vessel">
+            <VesselPositionPanel Vessel="vessel" />
+        </PositionContent>
     </SharedVesselPage>
 }
 

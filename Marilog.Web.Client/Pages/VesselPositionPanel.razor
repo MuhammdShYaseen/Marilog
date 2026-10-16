@@ -1,0 +1,98 @@
+﻿@* VesselPositionPanel.razor *@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.VesselPositions
+@using Marilog.Shared.UI.Pages.Vessels
+@using MudBlazor
+
+@inject IVesselPositionService PositionService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+        @_error
+    </MudAlert>
+    @if (_position is null && _imo is not null && !_loading)
+    {
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">Retry</MudButton>
+    }
+}
+
+@if (_position is not null)
+{
+    <VesselPositionView Vessel="Vessel"
+                        Data="_position"
+                        Loading="_loading"
+                        OnRefreshClicked="LoadAsync" />
+}
+
+@code {
+    [Parameter, EditorRequired] public VesselResponse Vessel { get; set; } = null!;
+
+    private VesselPositionResponse? _position;
+    private string? _error;
+    private bool _loading;
+    private int? _imo;
+    private bool _initialized;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var imo = ParseImo(Vessel.IMONumber);
+        if (_initialized && imo == _imo) return;
+
+        _initialized = true;
+        _imo = imo;
+        _position = null;
+        _error = null;
+
+        if (imo is null)
+        {
+            _error = "This vessel has no valid 7-digit IMO number, so its position can't be looked up.";
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_imo is not int imo) return;
+
+        _loading = true;
+        _error = null;
+        try
+        {
+            var result = await PositionService.GetByImoAsync(imo);
+            if (result is null)
+            {
+                _position = null;
+                _error = $"VesselFinder returned no data for IMO {imo}.";
+            }
+            else
+            {
+                _position = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            // إذا كان في داتا قديمة منخليها ظاهرة، ومنعرض الخطأ فوقها
+            _error = $"Couldn't load the position: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static int? ParseImo(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        return digits.Length == 7 && int.TryParse(digits, out var imo) ? imo : null;
+    }
+}

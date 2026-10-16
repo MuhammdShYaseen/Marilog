@@ -1,0 +1,273 @@
+@* VesselPositionView.razor *@
+@using System.Globalization
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+
+@{
+    var p = Data.Position;
+    var v = Data.Voyage;
+    var d = Data.Dimensions;
+    var stationary = VesselPositionUi.IsStationary(p);
+    var differences = VesselPositionUi.CompareWithRecord(Vessel, Data);
+    (string Value, string? Unit) since = v.LastPortDepartureUtc is DateTime dep ? VesselPositionUi.Elapsed(dep) : ("—", null);
+}
+
+@* ── Status strip ── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-2">
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+             Icon="@(stationary ? Icons.Material.Filled.Anchor : Icons.Material.Filled.Navigation)">
+        @VesselPositionUi.StatusText(p)
+    </MudChip>
+    @if (p.LastReportUtc is DateTime reportedAt)
+    {
+        <MudText Typo="Typo.caption" Color="@(VesselPositionUi.IsStale(reportedAt) ? Color.Warning : Color.Secondary)">
+            Last AIS report @VesselPositionUi.FormatUtc(reportedAt) · @VesselPositionUi.Ago(reportedAt)
+        </MudText>
+    }
+    <MudSpacer />
+    <MudTooltip Text="Refresh from VesselFinder">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"
+                       Disabled="Loading" OnClick="OnRefreshClicked" />
+    </MudTooltip>
+</MudStack>
+
+@* ── Record check ── *@
+@if (differences.Count > 0)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+        <MudText Typo="Typo.body2" Style="font-weight:600">Marilog record differs from VesselFinder</MudText>
+        @foreach (var diff in differences)
+        {
+            <MudText Typo="Typo.body2">@diff</MudText>
+        }
+    </MudAlert>
+}
+
+@* ── Map ── *@
+<VesselPositionMap Latitude="p.Latitude"
+                   Longitude="p.Longitude"
+                   Course="p.Course"
+                   Stationary="stationary"
+                   Name="@Data.Name" />
+<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
+    @VesselPositionUi.FormatCoordinates(p.Latitude, p.Longitude) · @(p.Area ?? "Open sea")
+</MudText>
+
+@* ── Readouts ── *@
+<MudGrid Spacing="2" Class="mt-1">
+    <MudItem xs="6" sm="3">@(Tile("Speed", p.Speed.ToString("0.0", Inv), "kn"))</MudItem>
+    <MudItem xs="6" sm="3">@(Tile("Course", Math.Round(p.Course).ToString("0", Inv), "°"))</MudItem>
+    <MudItem xs="6" sm="3">@(Tile("Draught", p.CurrentDraught?.ToString("0.0", Inv) ?? "—", p.CurrentDraught is null ? null : "m"))</MudItem>
+    <MudItem xs="6" sm="3">@(Tile("Since departure", since.Value, since.Unit))</MudItem>
+</MudGrid>
+
+@* ── Voyage ── *@
+<MudPaper Outlined="true" Elevation="0" Class="pa-3 mt-3">
+    @SectionTitle("Current voyage")
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="5">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Last port</MudText>
+            @PortBlock(v.LastPort)
+            @if (v.LastPortDepartureUtc is DateTime departed)
+            {
+                <MudText Typo="Typo.caption" Class="d-block mt-1">
+                    Departed @VesselPositionUi.FormatUtc(departed)
+                    <span style="color:var(--mud-palette-text-secondary)">(@VesselPositionUi.Ago(departed))</span>
+                </MudText>
+            }
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-none d-sm-flex align-center">
+            <div style="width:100%; border-top:2px dashed var(--mud-palette-primary); opacity:.6"></div>
+        </MudItem>
+        <MudItem xs="12" sm="5" Style="text-align:right">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Destination</MudText>
+            @PortBlock(v.Destination)
+            <MudText Typo="Typo.caption" Class="d-block mt-1">
+                @(string.IsNullOrWhiteSpace(v.Eta) ? "ETA not reported" : $"ETA {v.Eta}")
+            </MudText>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ── Particulars + Photo ── *@
+<MudGrid Spacing="2" Class="mt-1">
+    <MudItem xs="12" md="7">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="height:100%">
+            @SectionTitle("Particulars")
+            @Spec("Ship type", Data.ShipType)
+            @Spec("AIS type", Data.AisType)
+            @(Spec("Year built", Data.YearBuilt is int y ? $"{y} ({DateTime.UtcNow.Year - y} yrs)" : null))
+            @(Spec("MMSI", Data.Mmsi.ToString(Inv)))
+            @Spec("Call sign", Data.CallSign)
+            @(Spec("Length overall", d.LengthOverall is double loa ? $"{loa.ToString("0.#", Inv)} m" : null))
+            @(Spec("Beam", d.Beam is double beam ? $"{beam.ToString("0.#", Inv)} m" : null))
+            @(Spec("Gross tonnage", d.GrossTonnage?.ToString("N0", Inv)))
+            @(Spec("Deadweight", d.Deadweight is int dwt ? $"{dwt.ToString("N0", Inv)} t" : null))
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Outlined="true" Elevation="0"
+                  Style="height:100%; overflow:hidden; display:flex; flex-direction:column">
+            @if (!string.IsNullOrWhiteSpace(Data.PhotoUrl) && !_photoFailed)
+            {
+                <img src="@Data.PhotoUrl"
+                     alt="Photo of @Data.Name"
+                     referrerpolicy="no-referrer"
+                     style="width:100%; flex:1; min-height:200px; object-fit:cover; display:block"
+                     @onerror="() => _photoFailed = true" />
+            }
+            else
+            {
+                <div style="flex:1; min-height:200px; display:grid; place-items:center; background:var(--mud-palette-background-gray)">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBoat" Color="Color.Secondary" Style="font-size:4rem" />
+                </div>
+            }
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block pa-2"
+                     Style="border-top:1px solid var(--mud-palette-lines-default)">
+                @(_photoFailed || string.IsNullOrWhiteSpace(Data.PhotoUrl)
+                    ? "No photo available from the source."
+                    : "Photo from VesselFinder — may date from an earlier name or flag.")
+            </MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ── History + Trading pattern ── *@
+<MudGrid Spacing="2" Class="mt-1">
+    <MudItem xs="12" md="6">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="height:100%">
+            @SectionTitle("Name and flag history")
+            @if (Data.History.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No history recorded.</MudText>
+            }
+            else
+            {
+                <div style="margin-left:5px; padding-left:20px; border-left:2px solid var(--mud-palette-lines-default)">
+                    @for (var i = 0; i < Data.History.Count; i++)
+                    {
+                        var h = Data.History[i];
+                        var current = i == 0;
+                        <div style="position:relative; padding-bottom:14px">
+                            <span style="position:absolute; left:-28px; top:5px; width:12px; height:12px; border-radius:50%;
+                            background:@(current ? "var(--mud-palette-primary)" : "var(--mud-palette-surface)");
+                            border:2px solid @(current ? "var(--mud-palette-primary)" : "var(--mud-palette-text-secondary)")"></span>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@h.Date.ToString("MMM yyyy", Inv)</MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudText Typo="Typo.body1" Style="font-weight:600">@(h.VesselName ?? "Flag change")</MudText>
+                                @if (current)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined" Class="ma-0">Current</MudChip>
+                                }
+                            </MudStack>
+                            @if (!string.IsNullOrWhiteSpace(h.Flag))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Flag: @h.Flag</MudText>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="height:100%">
+            @if (Data.Utilization is { } u)
+            {
+                @SectionTitle($"Trading pattern {u.Year}")
+                <MudStack Row="true" Spacing="4" Class="mb-3">
+                    @(Figure(u.PortCalls?.ToString(Inv), null, "Port calls"))
+                    @(Figure(u.SpeedAverage?.ToString("0.0", Inv), "kn", "Average speed"))
+                    @(Figure(u.SpeedMax?.ToString("0.0", Inv), "kn", "Top speed"))
+                </MudStack>
+                @if (u.Ports.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">Ports recorded that year</MudText>
+                    @foreach (var port in u.Ports)
+                    {
+                        <div style="display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--mud-palette-lines-default)">
+                            <MudText Typo="Typo.body2">@port.Name</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@port.Country</MudText>
+                        </div>
+                    }
+                }
+            }
+            else
+            {
+                @SectionTitle("Trading pattern")
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No yearly statistics available for this vessel.</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ── Source note ── *@
+<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+    @VesselPositionUi.PrecisionNote(p.Latitude)
+    Source: VesselFinder public data · tiles © Esri · seamarks © OpenSeaMap.
+</MudText>
+
+@code {
+    [Parameter, EditorRequired] public VesselResponse Vessel { get; set; } = null!;
+    [Parameter, EditorRequired] public VesselPositionResponse Data { get; set; } = null!;
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private bool _photoFailed;
+    private string? _photoUrl;
+
+    protected override void OnParametersSet()
+    {
+        if (_photoUrl == Data.PhotoUrl) return;
+        _photoUrl = Data.PhotoUrl;
+        _photoFailed = false;
+    }
+
+    private RenderFragment SectionTitle(string text) =>
+        @<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1"
+          Style="text-transform:uppercase; letter-spacing:.04em">@text</MudText>;
+
+    private RenderFragment Tile(string label, string value, string? unit = null) =>
+        @<MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="border-left:4px solid var(--mud-palette-primary)">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="text-transform:uppercase; letter-spacing:.04em">@label</MudText>
+            <MudText Typo="Typo.h5">
+                @value
+                @if (unit is not null)
+                {
+                    <span style="font-size:.85rem; color:var(--mud-palette-text-secondary); margin-left:2px">@unit</span>
+                }
+            </MudText>
+        </MudPaper>;
+
+    private RenderFragment Spec(string label, string? value) =>
+        @<div style="display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--mud-palette-lines-default)">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@label</MudText>
+            <MudText Typo="Typo.body2" Style="font-weight:500; text-align:right">@(string.IsNullOrWhiteSpace(value) ? "—" : value)</MudText>
+        </div>;
+
+    private RenderFragment PortBlock(PortReference? port) =>
+        @<div>
+            <MudText Typo="Typo.h6">@(port?.Name ?? "Not reported")</MudText>
+            @if (!string.IsNullOrWhiteSpace(port?.Country))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@port!.Country</MudText>
+            }
+        </div>;
+
+    private RenderFragment Figure(string? value, string? unit, string label) =>
+        @<div style="border-top:2px solid var(--mud-palette-text-primary); padding-top:8px; min-width:90px">
+            <MudText Typo="Typo.h5">
+                @(value ?? "—")
+                @if (unit is not null && value is not null)
+                {
+                    <span style="font-size:.85rem; color:var(--mud-palette-text-secondary); margin-left:2px">@unit</span>
+                }
+            </MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
+        </div>;
+}
