@@ -82,6 +82,9 @@ namespace Marilog.Client.Extensions
 
             //===Vessel Certificate==========================
             services.AddScoped<IVesselCertificateService, VesselCertificateService>();
+
+            //===Weather ====================================
+            services.AddScoped<IWeatherService, WeatherService>();
             return services;
         }
     }

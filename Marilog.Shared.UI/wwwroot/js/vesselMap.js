@@ -34,14 +34,21 @@ export async function render(element, data) {
     const accent = css.getPropertyValue('--mud-palette-primary').trim() || '#00796b';
     const surface = css.getPropertyValue('--mud-palette-surface').trim() || '#ffffff';
 
-    const map = L.map(element, { zoomControl: false, scrollWheelZoom: false });
+    const map = L.map(element, {
+        zoomControl: false,
+        scrollWheelZoom: false,
+        minZoom: 2,
+        maxBounds: [[-85, -180], [85, 180]],
+        maxBoundsViscosity: 1.0,
+        worldCopyJump: false
+    });
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.attributionControl.setPrefix(false);
 
     const esri = path => `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
-    L.tileLayer(esri('Ocean/World_Ocean_Base'), { maxZoom: 13, attribution: 'Tiles © Esri, GEBCO, NOAA, Garmin, HERE' }).addTo(map);
-    L.tileLayer(esri('Ocean/World_Ocean_Reference'), { maxZoom: 13 }).addTo(map);
-    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18, opacity: 0.9, attribution: '© OpenSeaMap' }).addTo(map);
+    L.tileLayer(esri('Ocean/World_Ocean_Base'), { maxZoom: 13, noWrap: true, attribution: 'Tiles © Esri, GEBCO, NOAA, Garmin, HERE' }).addTo(map);
+    L.tileLayer(esri('Ocean/World_Ocean_Reference'), { maxZoom: 13, noWrap: true }).addTo(map);
+    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18, noWrap: true, opacity: 0.9, attribution: '© OpenSeaMap' }).addTo(map);
 
     const lat = data.latitude, lon = data.longitude, half = data.precisionDegrees / 2;
     const bounds = [[lat - half, lon - half], [lat + half, lon + half]];
@@ -57,12 +64,26 @@ export async function render(element, data) {
         keyboard: false
     }).addTo(map);
 
-    map.fitBounds(bounds, { padding: [40, 40] });
     map.on('click', () => map.scrollWheelZoom.enable());
     map.on('mouseout', () => map.scrollWheelZoom.disable());
 
-    // الـ drawer بيتحرّك والـ tabs بتتبدّل — خلّي الخريطة تعيد حساب حجمها
-    const observer = new ResizeObserver(() => map.invalidateSize());
+    // Leaflet calculates the zoom from the container size. If the container has no size yet
+    // (drawer still opening, tab not laid out), fitting now gives zoom 0 — so fit on the first real size.
+    let fitted = false;
+    const hasSize = () => element.clientWidth > 0 && element.clientHeight > 0;
+    const fit = () => {
+        map.invalidateSize();
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 9 });
+        fitted = true;
+    };
+
+    if (hasSize()) fit();
+
+    const observer = new ResizeObserver(() => {
+        if (!hasSize()) return;
+        if (fitted) map.invalidateSize();
+        else fit();
+    });
     observer.observe(element);
 
     instances.set(element, { map, observer });

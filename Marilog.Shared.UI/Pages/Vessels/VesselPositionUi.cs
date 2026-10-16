@@ -84,5 +84,12 @@ namespace Marilog.Shared.UI.Pages.Vessels
 
             return differences;
         }
+
+        public static int? ParseImo(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var digits = new string(raw.Where(char.IsDigit).ToArray());
+            return digits.Length == 7 && int.TryParse(digits, out var imo) ? imo : null;
+        }
     }
 }

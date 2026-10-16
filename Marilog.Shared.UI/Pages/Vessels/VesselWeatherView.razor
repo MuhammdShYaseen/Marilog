@@ -1,0 +1,213 @@
+@* VesselWeatherView.razor *@
+@using System.Globalization
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Weather
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Vessels
+
+@{
+    var c = Data.Current;
+    var s = Data.Sea;
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+}
+
+@* ── Status strip ── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Small" Color="Color.Primary" />
+    @if (Data.ModelTimeUtc is DateTime at)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Model data for @VesselPositionUi.FormatUtc(at)</MudText>
+    }
+</MudStack>
+
+@if (PositionReportedUtc is DateTime reported && VesselPositionUi.IsStale(reported))
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+        The vessel's position was last reported @VesselPositionUi.Ago(reported).
+        This weather is for that position, which may no longer be where the vessel is.
+    </MudAlert>
+}
+
+@* ── Wind + Sea ── *@
+<MudGrid Spacing="2">
+    <MudItem xs="12" sm="6">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="height:100%">
+            @SectionTitle("Wind")
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <div style="flex:0 0 auto; width:56px; height:56px; border-radius:50%; border:1px solid var(--mud-palette-lines-default);
+                    display:grid; place-items:center; color:var(--mud-palette-primary)"
+                     title="Arrow shows where the wind is blowing to">
+                    @if (c.WindDirectionDeg is double windDir)
+                    {
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"
+                             style="transform:rotate(@((windDir + 180).ToString("0", Inv))deg)">
+                            <path d="M12 2l5 9h-3.5v11h-3V11H7z" />
+                        </svg>
+                    }
+                </div>
+                <div>
+                    <MudText Typo="Typo.h4">
+                        @WeatherUi.Number(c.WindSpeedKn, "0")
+                        <span style="font-size:.9rem; color:var(--mud-palette-text-secondary)">kn</span>
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        from @WeatherUi.Compass(c.WindDirectionDeg)
+                        <span style="color:var(--mud-palette-text-secondary)">(@WeatherUi.Number(c.WindDirectionDeg, "000")°)</span>
+                    </MudText>
+                </div>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="@WeatherUi.BeaufortColor(c.Beaufort)" Class="d-block mt-2" Style="font-weight:600">
+                Force @(c.Beaufort?.ToString(Inv) ?? "—") — @WeatherUi.BeaufortName(c.Beaufort)
+            </MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                Gusts @WeatherUi.Number(c.WindGustsKn, "0") kn
+            </MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="height:100%">
+            @SectionTitle("Sea state")
+            @if (s is null)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    No sea-state data for this point — it may be too close to the coast or inland.
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h4" Color="@WeatherUi.WaveColor(s.WaveHeightM)">
+                    @WeatherUi.Number(s.WaveHeightM, "0.0#")
+                    <span style="font-size:.9rem; color:var(--mud-palette-text-secondary)">m waves</span>
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    from @WeatherUi.Compass(s.WaveDirectionDeg) · @WeatherUi.Number(s.WavePeriodS) s
+                </MudText>
+                @if (s.WaveHeightM is double wh)
+                {
+                    var state = WeatherUi.SeaState(wh);
+                    <MudText Typo="Typo.body2" Color="@WeatherUi.WaveColor(wh)" Class="d-block mt-2" Style="font-weight:600">
+                        Sea state @state.Code — @state.Name
+                    </MudText>
+                }
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                    Swell @WeatherUi.Number(s.SwellHeightM, "0.0#") m from @WeatherUi.Compass(s.SwellDirectionDeg) · @WeatherUi.Number(s.SwellPeriodS) s
+                    · wind waves @WeatherUi.Number(s.WindWaveHeightM, "0.0#") m
+                </MudText>
+                @if (s.CurrentSpeedKn is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                        Current @WeatherUi.Number(s.CurrentSpeedKn) kn · @WeatherUi.Number(s.CurrentDirectionDeg, "000")°
+                    </MudText>
+                }
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ── Readouts ── *@
+<MudGrid Spacing="2" Class="mt-1">
+    <MudItem xs="6" sm="4" md="2">@(Tile("Air", WeatherUi.Number(c.TemperatureC, "0"), "°C"))</MudItem>
+    <MudItem xs="6" sm="4" md="2">@(Tile("Sea surface", WeatherUi.Number(s?.SeaSurfaceTemperatureC, "0"), s?.SeaSurfaceTemperatureC is null ? null : "°C"))</MudItem>
+    <MudItem xs="6" sm="4" md="2">@(Tile("Pressure", WeatherUi.Number(c.PressureHpa, "0"), "hPa"))</MudItem>
+    <MudItem xs="6" sm="4" md="2">@(Tile("Visibility", WeatherUi.Visibility(c.VisibilityM), null, WeatherUi.VisibilityColor(c.VisibilityM)))</MudItem>
+    <MudItem xs="6" sm="4" md="2">@(Tile("Humidity", WeatherUi.Number(c.HumidityPercent, "0"), "%"))</MudItem>
+    <MudItem xs="6" sm="4" md="2">@(Tile("Sky", c.Description ?? "—"))</MudItem>
+</MudGrid>
+
+@* ── Forecast ── *@
+@if (Data.Daily.Count > 0)
+{
+    <div class="mt-3">
+        @SectionTitle($"{Data.Daily.Count}-day forecast (GMT days)")
+        <MudDataGrid T="DailyWeather"
+                     Items="Data.Daily"
+                     Dense="true"
+                     Hover="true"
+                     SortMode="SortMode.None"
+                     Breakpoint="Breakpoint.Sm">
+            <Columns>
+                <TemplateColumn Title="Day" CellStyle="white-space:nowrap">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Style="font-weight:500">
+                            @(context.Item.Date == today ? "Today" : context.Item.Date.ToString("ddd dd MMM", Inv))
+                        </MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Sky">
+                    <CellTemplate>@(context.Item.Description ?? "—")</CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Temp" CellStyle="white-space:nowrap">
+                    <CellTemplate>
+                        @WeatherUi.Number(context.Item.TemperatureMinC, "0")–@WeatherUi.Number(context.Item.TemperatureMaxC, "0") °C
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Wind max" CellStyle="white-space:nowrap">
+                    <CellTemplate>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.body2">
+                                @WeatherUi.Number(context.Item.WindSpeedMaxKn, "0") kn @WeatherUi.Compass(context.Item.WindDirectionDominantDeg)
+                            </MudText>
+                            @if (context.Item.BeaufortMax is int bf)
+                            {
+                                <MudChip T="string" Size="Size.Small" Class="ma-0"
+                                         Color="@WeatherUi.BeaufortColor(bf)"
+                                         Variant="@(bf >= 6 ? Variant.Filled : Variant.Outlined)">F@(bf)</MudChip>
+                            }
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Gusts" CellStyle="white-space:nowrap">
+                    <CellTemplate>@WeatherUi.Number(context.Item.WindGustsMaxKn, "0") kn</CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Waves max" CellStyle="white-space:nowrap">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Color="@WeatherUi.WaveColor(context.Item.WaveHeightMaxM)">
+                            @(context.Item.WaveHeightMaxM is null ? "—" : $"{WeatherUi.Number(context.Item.WaveHeightMaxM, "0.0#")} m")
+                        </MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Rain" CellStyle="white-space:nowrap">
+                    <CellTemplate>@WeatherUi.Number(context.Item.PrecipitationMm) mm</CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </div>
+}
+
+@* ── Source note ── *@
+<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+    Forecast model data for grid point @VesselPositionUi.FormatCoordinates(Data.Latitude, Data.Longitude),
+    taken from the vessel's reported position (rounded to whole degrees, so up to about 30 nm away).
+    Indicative only — not for navigation or operational decisions.
+    Weather data by Open-Meteo.com (CC BY 4.0); wave models include DWD.
+</MudText>
+
+@code {
+    [Parameter, EditorRequired] public WeatherResponse Data { get; set; } = null!;
+    [Parameter] public DateTime? PositionReportedUtc { get; set; }
+
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private RenderFragment SectionTitle(string text) =>
+        @<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1"
+          Style="text-transform:uppercase; letter-spacing:.04em">@text</MudText>;
+
+    private RenderFragment Tile(string label, string value, string? unit = null, Color color = Color.Default) =>
+        @<MudPaper Outlined="true" Elevation="0" Class="pa-3" Style="height:100%; border-left:4px solid var(--mud-palette-primary)">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="text-transform:uppercase; letter-spacing:.04em">@label</MudText>
+            <MudText Typo="Typo.h6" Color="@color">
+                @value
+                @if (unit is not null)
+                {
+                    <span style="font-size:.8rem; color:var(--mud-palette-text-secondary); margin-left:2px">@unit</span>
+                }
+            </MudText>
+        </MudPaper>;
+}

@@ -1,0 +1,100 @@
+﻿@* VesselWeatherPanel.razor *@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Contracts.Interfaces.Services.VesselPositions
+@using Marilog.Shared.UI.Pages.Vessels
+@using MudBlazor
+
+@inject IVesselPositionService PositionService
+@inject IWeatherService WeatherService
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+        @_error
+    </MudAlert>
+    @if (_weather is null && _imo is not null && !_loading)
+    {
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">Retry</MudButton>
+    }
+}
+
+@if (_weather is not null)
+{
+    <VesselWeatherView Data="_weather" PositionReportedUtc="_reportedAt" />
+}
+
+@code {
+    [Parameter, EditorRequired] public VesselResponse Vessel { get; set; } = null!;
+
+    private WeatherResponse? _weather;
+    private DateTime? _reportedAt;
+    private string? _error;
+    private bool _loading;
+    private int? _imo;
+    private bool _initialized;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var imo = VesselPositionUi.ParseImo(Vessel.IMONumber);
+        if (_initialized && imo == _imo) return;
+
+        _initialized = true;
+        _imo = imo;
+        _weather = null;
+        _error = null;
+
+        if (imo is null)
+        {
+            _error = "This vessel has no valid 7-digit IMO number, so its position and weather can't be looked up.";
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_imo is not int imo) return;
+
+        _loading = true;
+        _error = null;
+        try
+        {
+            // Position is cached on the server, so this doesn't hit VesselFinder again after the Position tab
+            var position = await PositionService.GetByImoAsync(imo);
+            if (position is null)
+            {
+                _weather = null;
+                _error = $"No position available for IMO {imo}, so the weather can't be shown.";
+                return;
+            }
+
+            _reportedAt = position.Position.LastReportUtc;
+
+            var weather = await WeatherService.GetAtAsync(position.Position.Latitude, position.Position.Longitude);
+            if (weather is null)
+            {
+                _weather = null;
+                _error = "Weather data is unavailable right now. Try again in a few minutes.";
+                return;
+            }
+
+            _weather = weather;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Couldn't load the weather: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
