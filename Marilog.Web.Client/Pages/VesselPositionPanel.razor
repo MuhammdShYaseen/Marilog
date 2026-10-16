@@ -1,10 +1,12 @@
 ﻿@* VesselPositionPanel.razor *@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Contracts.Interfaces.Services.VesselPositions
 @using Marilog.Shared.UI.Pages.Vessels
 @using MudBlazor
 
 @inject IVesselPositionService PositionService
+@inject IWeatherService WeatherService
 
 @if (_loading)
 {
@@ -28,6 +30,8 @@
     <VesselPositionView Vessel="Vessel"
                         Data="_position"
                         Loading="_loading"
+                        Weather="_weather"
+                        WindField="_windField"
                         OnRefreshClicked="LoadAsync" />
 }
 
@@ -39,6 +43,8 @@
     private bool _loading;
     private int? _imo;
     private bool _initialized;
+    private WeatherResponse? _weather;
+    private IReadOnlyList<WindFieldPoint>? _windField;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -49,6 +55,8 @@
         _imo = imo;
         _position = null;
         _error = null;
+        _weather = null;
+        _windField = null;
 
         if (imo is null)
         {
@@ -80,12 +88,38 @@
         }
         catch (Exception ex)
         {
-            // إذا كان في داتا قديمة منخليها ظاهرة، ومنعرض الخطأ فوقها
             _error = $"Couldn't load the position: {ex.Message}";
         }
         finally
         {
             _loading = false;
+        }
+
+        if (_position is not null)
+            await LoadWeatherAsync(_position);
+    }
+
+    private async Task LoadWeatherAsync(VesselPositionResponse position)
+    {
+        StateHasChanged(); // show the position right away; the weather layer follows
+
+        try
+        {
+            var lat = position.Position.Latitude;
+            var lon = position.Position.Longitude;
+
+            var weatherTask = WeatherService.GetAtAsync(lat, lon);
+            var windTask = WeatherService.GetWindFieldAsync(lat, lon);
+            await Task.WhenAll(weatherTask, windTask);
+
+            _weather = weatherTask.Result;
+            _windField = windTask.Result;
+        }
+        catch (Exception)
+        {
+            // Weather is a bonus on this tab — if it fails, the position stays fully usable
+            _weather = null;
+            _windField = null;
         }
     }
 

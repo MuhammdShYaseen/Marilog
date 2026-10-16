@@ -1,4 +1,5 @@
 @* VesselPositionMap.razor *@
+@using Marilog.Contracts.DTOs.Responses
 @using Microsoft.JSInterop
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Vessels
@@ -9,12 +10,19 @@
     <div @ref="_element"
          style="height:@Height; width:100%; border:1px solid var(--mud-palette-lines-default); border-radius:4px; isolation:isolate; background:var(--mud-palette-background-gray)">
     </div>
+
     @if (_error is not null)
     {
         <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Filled"
                   Style="position:absolute; top:12px; left:12px; right:12px">
             @_error
         </MudAlert>
+    }
+    else if (Overlay is not null)
+    {
+        <div style="position:absolute; top:12px; right:12px; z-index:1; max-width:calc(100% - 24px)">
+            @Overlay
+        </div>
     }
 </div>
 
@@ -25,38 +33,58 @@
     [Parameter] public bool Stationary { get; set; }
     [Parameter] public string? Name { get; set; }
     [Parameter] public string Height { get; set; } = "320px";
+    [Parameter] public IReadOnlyList<WindFieldPoint>? WindField { get; set; }
+    [Parameter] public RenderFragment? Overlay { get; set; }
 
     private ElementReference _element;
     private IJSObjectReference? _module;
     private string? _renderedKey;
+    private IReadOnlyList<WindFieldPoint>? _renderedWind;
     private string? _error;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var key = $"{Latitude}|{Longitude}|{Course}|{Stationary}";
-        if (key == _renderedKey) return;
-        _renderedKey = key;
+        if (key != _renderedKey)
+        {
+            _renderedKey = key;
+            _renderedWind = null; // a new map has no wind layer yet
 
+            try
+            {
+                _module ??= await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Marilog.Shared.UI/js/vesselMap.js");
+
+                await _module.InvokeVoidAsync("render", _element, new
+                {
+                    latitude = Latitude,
+                    longitude = Longitude,
+                    course = Course,
+                    stationary = Stationary,
+                    name = Name,
+                    precisionDegrees = VesselPositionUi.PositionPrecisionDegrees
+                });
+                _error = null;
+            }
+            catch (Exception)
+            {
+                _error = "The map couldn't be loaded. Check the internet connection — the rest of the data is still valid.";
+                StateHasChanged();
+                return;
+            }
+        }
+
+        // The wind field usually arrives after the map; read the parameter again after any await
+        if (_module is null || _error is not null || ReferenceEquals(WindField, _renderedWind)) return;
+
+        _renderedWind = WindField;
         try
         {
-            _module ??= await JS.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Marilog.Shared.UI/js/vesselMap.js");
-
-            await _module.InvokeVoidAsync("render", _element, new
-            {
-                latitude = Latitude,
-                longitude = Longitude,
-                course = Course,
-                stationary = Stationary,
-                name = Name,
-                precisionDegrees = VesselPositionUi.PositionPrecisionDegrees
-            });
-            _error = null;
+            await _module.InvokeVoidAsync("setWind", _element, WindField ?? Array.Empty<WindFieldPoint>());
         }
-        catch (Exception)
+        catch (JSException)
         {
-            _error = "The map couldn't be loaded. Check the internet connection — the rest of the data is still valid.";
-            StateHasChanged();
+            // Wind barbs are optional — the map stays usable without them
         }
     }
 

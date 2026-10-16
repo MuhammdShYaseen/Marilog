@@ -46,4 +46,12 @@
         double? WaveHeightMaxM,
         double? SwellHeightMaxM,
         double? WaveDirectionDominantDeg);
+
+
+    public sealed record WindFieldPoint(
+    double Latitude,
+    double Longitude,
+    double? WindSpeedKn,
+    double? WindDirectionDeg,       // direction the wind blows FROM
+    int? Beaufort);
 }

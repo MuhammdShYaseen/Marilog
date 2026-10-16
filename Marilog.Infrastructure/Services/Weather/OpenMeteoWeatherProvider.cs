@@ -41,6 +41,38 @@ namespace Marilog.Infrastructure.Services.Weather
             return Map(forecast, marineTask.Result);
         }
 
+        public async Task<IReadOnlyList<WindFieldPoint>> GetCurrentWindAsync(
+    IReadOnlyList<(double Latitude, double Longitude)> points, CancellationToken ct = default)
+        {
+            // Open-Meteo answers a multi-location request with a JSON array in request order.
+            // A single location comes back as a plain object, so this method expects two or more points.
+            if (points.Count < 2) return [];
+
+            var lats = string.Join(",", points.Select(p => p.Latitude.ToString(Inv)));
+            var lons = string.Join(",", points.Select(p => p.Longitude.ToString(Inv)));
+
+            var url = AppendKey(
+                $"{_options.ForecastBaseUrl.TrimEnd('/')}/v1/forecast" +
+                $"?latitude={lats}&longitude={lons}" +
+                "&timezone=GMT&wind_speed_unit=kn&current=wind_speed_10m,wind_direction_10m");
+
+            var results = await GetJsonAsync<List<ForecastDto>>(url, ct);
+            if (results is null || results.Count != points.Count) return [];
+
+            var field = new List<WindFieldPoint>(points.Count);
+            for (var i = 0; i < points.Count; i++)
+            {
+                var c = results[i].Current;
+                field.Add(new WindFieldPoint(
+                    points[i].Latitude,
+                    points[i].Longitude,
+                    c?.WindSpeed,
+                    c?.WindDirection,
+                    Beaufort(c?.WindSpeed)));
+            }
+            return field;
+        }
+
         // ── Requests ─────────────────────────────────────────────────────────
 
         private string BuildForecastUrl(double lat, double lon) => AppendKey(

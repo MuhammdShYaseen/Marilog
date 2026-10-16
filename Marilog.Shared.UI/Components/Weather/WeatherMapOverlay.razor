@@ -1,0 +1,69 @@
+@* WeatherMapOverlay.razor *@
+@using System.Globalization
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Weather
+
+@{
+    var c = Data.Current;
+    var s = Data.Sea;
+}
+
+<div style="width:280px; max-width:100%; padding:10px 12px; border:1px solid var(--mud-palette-lines-default); border-radius:4px;
+    background:color-mix(in srgb, var(--mud-palette-surface) 88%, transparent);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px)">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="text-transform:uppercase; letter-spacing:.04em">Weather</MudText>
+        @if (Data.ModelTimeUtc is DateTime at)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@at.ToString("dd MMM HH:mm", Inv) UTC</MudText>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-1">
+        <div style="flex:0 0 auto; width:40px; height:40px; border-radius:50%; border:1px solid var(--mud-palette-lines-default);
+            display:grid; place-items:center; color:var(--mud-palette-primary)"
+             title="Arrow shows where the wind is blowing to">
+            @if (c.WindDirectionDeg is double dir)
+            {
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"
+                     style="transform:rotate(@((dir + 180).ToString("0", Inv))deg)">
+                    <path d="M12 2l5 9h-3.5v11h-3V11H7z" />
+                </svg>
+            }
+        </div>
+        <div>
+            <MudText Typo="Typo.h6" Style="line-height:1.15">
+                @WeatherUi.Number(c.WindSpeedKn, "0") kn
+                <span style="font-size:.8rem; color:var(--mud-palette-text-secondary)">from @WeatherUi.Compass(c.WindDirectionDeg)</span>
+            </MudText>
+            <MudText Typo="Typo.caption" Color="@WeatherUi.BeaufortColor(c.Beaufort)" Class="d-block">
+                Force @(c.Beaufort?.ToString(Inv) ?? "—") · gusts @WeatherUi.Number(c.WindGustsKn, "0") kn
+            </MudText>
+        </div>
+    </MudStack>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-top:8px; padding-top:8px;
+        border-top:1px solid var(--mud-palette-lines-default)">
+        @(Item("Waves",
+               s?.WaveHeightM is double wh ? $"{WeatherUi.Number(wh, "0.0#")} m · {WeatherUi.SeaState(wh).Name}" : "—",
+               WeatherUi.WaveColor(s?.WaveHeightM)))
+        @(Item("Swell",
+               s?.SwellHeightM is double sw ? $"{WeatherUi.Number(sw, "0.0#")} m {WeatherUi.Compass(s.SwellDirectionDeg)}" : "—"))
+        @(Item("Air", c.TemperatureC is double t ? $"{WeatherUi.Number(t, "0")} °C" : "—"))
+        @(Item("Sea", s?.SeaSurfaceTemperatureC is double sst ? $"{WeatherUi.Number(sst, "0")} °C" : "—"))
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public WeatherResponse Data { get; set; } = null!;
+
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private RenderFragment Item(string label, string value, Color color = Color.Default) =>
+        @<div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@label</MudText>
+            <MudText Typo="Typo.body2" Color="@color" Style="font-weight:600">@value</MudText>
+        </div>;
+}

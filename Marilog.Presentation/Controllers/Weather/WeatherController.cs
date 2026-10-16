@@ -23,5 +23,16 @@ namespace Marilog.Presentation.Controllers.Weather
             var result = await _service.GetAtAsync(lat!.Value, lon!.Value, ct);
             return result is null ? NotFound() : Ok(ApiResponse<WeatherResponse>.Ok(result));
         }
+
+
+        [HttpGet("wind-field")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<WindFieldPoint>>>> GetWindField(
+    [FromQuery, Required, Range(-90, 90)] double? lat,
+    [FromQuery, Required, Range(-180, 180)] double? lon,
+    CancellationToken ct)
+        {
+            var result = await _service.GetWindFieldAsync(lat!.Value, lon!.Value, ct);
+            return Ok(ApiResponse<IReadOnlyList<WindFieldPoint>>.Ok(result));
+        }
     }
 }

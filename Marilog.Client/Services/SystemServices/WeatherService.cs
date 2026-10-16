@@ -25,5 +25,14 @@ namespace Marilog.Client.Services.SystemServices
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<WeatherResponse>>(ct);
             return response?.Data;
         }
+
+        public async Task<IReadOnlyList<WindFieldPoint>> GetWindFieldAsync(double latitude, double longitude, CancellationToken ct = default)
+        {
+            var url = $"api/weather/wind-field?lat={latitude.ToString(CultureInfo.InvariantCulture)}" +
+                      $"&lon={longitude.ToString(CultureInfo.InvariantCulture)}";
+
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<WindFieldPoint>>>(url, ct);
+            return response?.Data ?? [];
+        }
     }
 }

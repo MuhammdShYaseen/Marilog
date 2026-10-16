@@ -1,6 +1,7 @@
 @* VesselPositionView.razor *@
 @using System.Globalization
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Weather
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Vessels
 
@@ -49,7 +50,15 @@
                    Longitude="p.Longitude"
                    Course="p.Course"
                    Stationary="stationary"
-                   Name="@Data.Name" />
+                   Name="@Data.Name"
+                   WindField="WindField">
+    <Overlay>
+        @if (Weather is not null)
+        {
+            <WeatherMapOverlay Data="Weather" />
+        }
+    </Overlay>
+</VesselPositionMap>
 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
     @VesselPositionUi.FormatCoordinates(p.Latitude, p.Longitude) · @(p.Area ?? "Open sea")
 </MudText>
@@ -207,7 +216,7 @@
 @* ── Source note ── *@
 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
     @VesselPositionUi.PrecisionNote(p.Latitude)
-    Source: VesselFinder public data · tiles © Esri · seamarks © OpenSeaMap.
+    Source: VesselFinder public data · tiles © Esri · seamarks © OpenSeaMap · weather Open-Meteo.com (CC BY 4.0).
 </MudText>
 
 @code {
@@ -215,6 +224,8 @@
     [Parameter, EditorRequired] public VesselPositionResponse Data { get; set; } = null!;
     [Parameter] public bool Loading { get; set; }
     [Parameter] public EventCallback OnRefreshClicked { get; set; }
+    [Parameter] public WeatherResponse? Weather { get; set; }
+    [Parameter] public IReadOnlyList<WindFieldPoint>? WindField { get; set; }
 
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
