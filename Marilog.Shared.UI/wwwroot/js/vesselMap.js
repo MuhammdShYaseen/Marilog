@@ -3,15 +3,33 @@ const instances = new WeakMap();
 const pendingWind = new WeakMap();
 let leafletLoading = null;
 
+// Base maps per theme brightness — both from Esri, no API key needed
+const TILES = {
+    light: {
+        base: 'Ocean/World_Ocean_Base',
+        reference: 'Ocean/World_Ocean_Reference',
+        maxZoom: 13,
+        attribution: 'Tiles © Esri, GEBCO, NOAA, Garmin, HERE'
+    },
+    dark: {
+        base: 'Canvas/World_Dark_Gray_Base',
+        reference: 'Canvas/World_Dark_Gray_Reference',
+        maxZoom: 16,
+        attribution: 'Tiles © Esri'
+    }
+};
+
 function ensureLeaflet() {
     if (window.L) return Promise.resolve();
     if (leafletLoading) return leafletLoading;
 
     leafletLoading = new Promise((resolve, reject) => {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = `${CDN}/leaflet.min.css`;
-        document.head.appendChild(css);
+        if (!document.querySelector(`link[href="${CDN}/leaflet.min.css"]`)) {
+            const css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = `${CDN}/leaflet.min.css`;
+            document.head.appendChild(css);
+        }
 
         const script = document.createElement('script');
         script.src = `${CDN}/leaflet.min.js`;
@@ -20,6 +38,49 @@ function ensureLeaflet() {
         document.head.appendChild(script);
     });
     return leafletLoading;
+}
+
+function readPalette() {
+    const css = getComputedStyle(document.documentElement);
+    return {
+        accent: css.getPropertyValue('--mud-palette-primary').trim() || '#00796b',
+        surface: css.getPropertyValue('--mud-palette-surface').trim() || '#ffffff',
+        ink: css.getPropertyValue('--mud-palette-text-primary').trim() || '#1f2937',
+        warning: css.getPropertyValue('--mud-palette-warning').trim() || '#f59e0b',
+        error: css.getPropertyValue('--mud-palette-error').trim() || '#dc2626'
+    };
+}
+
+// Works with any theme: a dark surface colour means a dark theme.
+// The browser converts any colour format (#hex, rgba, named) to "rgb(r, g, b)" for us.
+function isDark(surfaceColor) {
+    const probe = document.createElement('div');
+    probe.style.display = 'none';
+    probe.style.color = surfaceColor;
+    document.body.appendChild(probe);
+    const rgb = (getComputedStyle(probe).color.match(/\d+(\.\d+)?/g) ?? ['255', '255', '255']).map(Number);
+    probe.remove();
+
+    const [r, g, b] = rgb;
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
+}
+
+function applyTiles(instance) {
+    for (const layer of instance.tileLayers) instance.map.removeLayer(layer);
+
+    const set = instance.dark ? TILES.dark : TILES.light;
+    const esri = path => `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
+
+    const base = L.tileLayer(esri(set.base), { maxZoom: set.maxZoom, noWrap: true, attribution: set.attribution });
+    const reference = L.tileLayer(esri(set.reference), { maxZoom: set.maxZoom, noWrap: true });
+    instance.tileLayers = [base, reference];
+
+    // Send the labels back first, then the base behind them — so the order is base, labels, then seamarks on top
+    reference.addTo(instance.map).bringToBack();
+    base.addTo(instance.map).bringToBack();
+
+    // Colour shown behind tiles while they load
+    instance.element.style.background = instance.palette.surface;
 }
 
 const anchorSvg = size =>
@@ -56,18 +117,64 @@ function windArrowSvg(speedKn, directionDeg, color, halo) {
         `${group(halo, width + 2.5)}${group(color, width)}${label}</svg>`;
 }
 
+function vesselIcon(data, palette) {
+    const html = data.stationary
+        ? `<div style="color:${palette.accent};width:32px;height:32px;background:${palette.surface};border:2px solid ${palette.accent};border-radius:50%;display:grid;place-items:center">${anchorSvg(18)}</div>`
+        : `<div style="color:${palette.accent};transform:rotate(${data.course}deg)">${headingSvg(32)}</div>`;
+    return L.divIcon({ className: '', html, iconSize: [32, 32], iconAnchor: [16, 16] });
+}
+
+// MudBlazor rewrites a <style> element when the user switches theme — react to that
+function watchTheme(instance) {
+    let scheduled = false;
+
+    const check = () => {
+        scheduled = false;
+        const palette = readPalette();
+        if (JSON.stringify(palette) === JSON.stringify(instance.palette)) return;
+
+        instance.palette = palette;
+        const dark = isDark(palette.surface);
+        if (dark !== instance.dark) {
+            instance.dark = dark;
+            applyTiles(instance);
+        } else {
+            instance.element.style.background = palette.surface;
+        }
+
+        // Recolour everything drawn with the old palette
+        instance.area.setStyle({ color: palette.accent, fillColor: palette.accent });
+        instance.vesselMarker.setIcon(vesselIcon(instance.data, palette));
+        applyWind(instance, instance.windPoints);
+    };
+
+    const isStyleNode = n => n?.nodeName === 'STYLE' || n?.parentNode?.nodeName === 'STYLE';
+    const isRoot = n => n === document.documentElement || n === document.body;
+
+    instance.themeObserver = new MutationObserver(mutations => {
+        if (scheduled) return;
+        const relevant = mutations.some(m =>
+            m.type === 'attributes' ? isRoot(m.target)
+                : isStyleNode(m.target) || [...m.addedNodes].some(isStyleNode));
+        if (!relevant) return;
+        scheduled = true;
+        requestAnimationFrame(check);
+    });
+
+    instance.themeObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+}
+
 export async function render(element, data) {
     await ensureLeaflet();
     teardown(element);
 
-    const css = getComputedStyle(document.documentElement);
-    const palette = {
-        accent: css.getPropertyValue('--mud-palette-primary').trim() || '#00796b',
-        surface: css.getPropertyValue('--mud-palette-surface').trim() || '#ffffff',
-        ink: css.getPropertyValue('--mud-palette-text-primary').trim() || '#1f2937',
-        warning: css.getPropertyValue('--mud-palette-warning').trim() || '#f59e0b',
-        error: css.getPropertyValue('--mud-palette-error').trim() || '#dc2626'
-    };
+    const palette = readPalette();
 
     const map = L.map(element, {
         zoomControl: false,
@@ -80,9 +187,6 @@ export async function render(element, data) {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.attributionControl.setPrefix(false);
 
-    const esri = path => `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
-    L.tileLayer(esri('Ocean/World_Ocean_Base'), { maxZoom: 13, noWrap: true, attribution: 'Tiles © Esri, GEBCO, NOAA, Garmin, HERE' }).addTo(map);
-    L.tileLayer(esri('Ocean/World_Ocean_Reference'), { maxZoom: 13, noWrap: true }).addTo(map);
     const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
         maxZoom: 18, noWrap: true, opacity: 0.9, attribution: '© OpenSeaMap'
     }).addTo(map);
@@ -92,18 +196,26 @@ export async function render(element, data) {
 
     const lat = data.latitude, lon = data.longitude, half = data.precisionDegrees / 2;
     const bounds = [[lat - half, lon - half], [lat + half, lon + half]];
-    L.rectangle(bounds, { color: palette.accent, weight: 2, dashArray: '6 6', fillColor: palette.accent, fillOpacity: 0.08 }).addTo(map);
+    const area = L.rectangle(bounds, { color: palette.accent, weight: 2, dashArray: '6 6', fillColor: palette.accent, fillOpacity: 0.08 }).addTo(map);
 
-    const html = data.stationary
-        ? `<div style="color:${palette.accent};width:32px;height:32px;background:${palette.surface};border:2px solid ${palette.accent};border-radius:50%;display:grid;place-items:center">${anchorSvg(18)}</div>`
-        : `<div style="color:${palette.accent};transform:rotate(${data.course}deg)">${headingSvg(32)}</div>`;
-
-    L.marker([lat, lon], {
-        icon: L.divIcon({ className: '', html, iconSize: [32, 32], iconAnchor: [16, 16] }),
+    const vesselMarker = L.marker([lat, lon], {
+        icon: vesselIcon(data, palette),
         title: data.name ?? '',
         keyboard: false,
         zIndexOffset: 1000 // the vessel always sits above the wind arrows
     }).addTo(map);
+
+    const instance = {
+        element, map, windLayer, palette, data, area, vesselMarker,
+        dark: isDark(palette.surface),
+        tileLayers: [],
+        windPoints: [],
+        observer: null,
+        themeObserver: null
+    };
+
+    applyTiles(instance);
+    watchTheme(instance);
 
     map.on('click', () => map.scrollWheelZoom.enable());
     map.on('mouseout', () => map.scrollWheelZoom.disable());
@@ -120,14 +232,13 @@ export async function render(element, data) {
 
     if (hasSize()) fit();
 
-    const observer = new ResizeObserver(() => {
+    instance.observer = new ResizeObserver(() => {
         if (!hasSize()) return;
         if (fitted) map.invalidateSize();
         else fit();
     });
-    observer.observe(element);
+    instance.observer.observe(element);
 
-    const instance = { map, observer, windLayer, palette };
     instances.set(element, instance);
 
     // Wind data that arrived while the map was still being created
@@ -144,8 +255,10 @@ export function setWind(element, points) {
 }
 
 function applyWind(instance, points) {
+    instance.windPoints = points ?? [];
     instance.windLayer.clearLayers();
-    for (const p of points ?? []) {
+
+    for (const p of instance.windPoints) {
         if (p.windSpeedKn == null || p.windDirectionDeg == null) continue;
 
         const bf = p.beaufort ?? 0;
@@ -167,7 +280,8 @@ function applyWind(instance, points) {
 function teardown(element) {
     const instance = instances.get(element);
     if (!instance) return;
-    instance.observer.disconnect();
+    instance.observer?.disconnect();
+    instance.themeObserver?.disconnect();
     instance.map.remove();
     instances.delete(element);
 }

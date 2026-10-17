@@ -1,0 +1,333 @@
+@using System.Globalization
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Weather
+@using Microsoft.JSInterop
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Fleet
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@{
+    var sel = SelectedVessel;
+}
+
+<div class="az-card mb-4">
+    <div class="az-card-header">
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Public" Size="Size.Small" Color="Color.Primary" />
+            <span class="az-card-title">Fleet Map</span>
+        </div>
+        <div class="d-flex align-center gap-2">
+            @if (!Loading)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@Vessels.Count located</MudChip>
+            }
+            <MudTooltip Text="Reload positions">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"
+                               Disabled="Loading" OnClick="@(() => OnRefresh.InvokeAsync())" />
+            </MudTooltip>
+        </div>
+    </div>
+
+    <div class="fleet-map-wrap">
+        <div @ref="_mapElement" class="fleet-map"></div>
+
+        @if (Loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="fleet-map-progress" />
+        }
+
+        @if (_mapError is not null)
+        {
+            <div class="fleet-map-error">
+                <MudText Typo="Typo.body2" Color="Color.Error">@_mapError</MudText>
+            </div>
+        }
+
+        @if (sel is not null)
+        {
+            var p = sel.Position.Position;
+            var voyage = sel.Position.Voyage;
+            var stale = IsStale(sel);
+
+            <div class="fleet-card">
+                <div class="d-flex align-start justify-space-between gap-2">
+                    <div>
+                        <div class="fleet-card-title">@sel.VesselName</div>
+                        <div class="fleet-card-sub">@JoinParts(sel.Position.Flag, sel.Position.ShipType)</div>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                   OnClick="@(() => OnSelectionCleared.InvokeAsync())" />
+                </div>
+
+                <div class="d-flex align-center flex-wrap gap-2 mt-1">
+                    @if (!string.IsNullOrWhiteSpace(p.NavigationStatus))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="az-status">@p.NavigationStatus</MudChip>
+                    }
+                    <span class="@(stale ? "fleet-age fleet-age--stale" : "fleet-age")">@Age(p.LastReportUtc)</span>
+                </div>
+
+                <div class="fleet-grid">
+                    @(Item("Speed", $"{N(p.Speed, "0.0")} kn"))
+                    @(Item("Course", $"{N(p.Course, "0")}°"))
+                    @(Item("Draught", p.CurrentDraught is double d ? $"{N(d, "0.0")} m" : "—"))
+                    @(Item("Area", p.Area ?? "—"))
+                    @(Item("Destination", Port(voyage.Destination)))
+                    @(Item("ETA", string.IsNullOrWhiteSpace(voyage.Eta) ? "—" : voyage.Eta))
+                    @(Item("Last port", Port(voyage.LastPort)))
+                    @(Item("Departed", voyage.LastPortDepartureUtc is DateTime atd ? $"{atd.ToString("dd MMM HH:mm", Inv)} UTC" : "—"))
+                </div>
+
+                @if (stale)
+                {
+                    <div class="fleet-stale-note">
+                        Position is more than 24 h old — the vessel may have moved or switched off AIS.
+                    </div>
+                }
+
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.OpenInNew"
+                           OnClick="@(() => OnOpenDetails.InvokeAsync(sel.VesselId))">
+                    Vessel details
+                </MudButton>
+
+                <div class="mt-3">
+                    @if (WeatherLoading)
+                    {
+                        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                    }
+                    else if (SelectedWeather is not null)
+                    {
+                        <WeatherMapOverlay Data="SelectedWeather" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Weather unavailable for this position.</MudText>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Loading && Unlocated.Count > 0)
+    {
+        <div class="fleet-unlocated">
+            <MudIcon Icon="@Icons.Material.Outlined.LocationOff" Size="Size.Small" Color="Color.Secondary" />
+            <span>No position (no IMO or not found): @string.Join(", ", Unlocated)</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<FleetVessel> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<string> Unlocated { get; set; } = [];
+    [Parameter] public bool Loading { get; set; }
+
+    [Parameter] public int? SelectedVesselId { get; set; }
+    [Parameter] public WeatherResponse? SelectedWeather { get; set; }
+    [Parameter] public bool WeatherLoading { get; set; }
+
+    [Parameter] public EventCallback<int> OnVesselSelected { get; set; }
+    [Parameter] public EventCallback OnSelectionCleared { get; set; }
+    [Parameter] public EventCallback<int> OnOpenDetails { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
+    // Same folder as vesselMap.js — match the path used by the Position tab
+    private const string ModulePath = "./_content/Marilog.Shared.UI/js/fleetMap.js";
+
+    private const double StationaryKn = 0.5;
+    private static readonly TimeSpan StaleAfter = TimeSpan.FromHours(24);
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private ElementReference _mapElement;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<FleetMap>? _selfRef;
+    private IReadOnlyList<FleetVessel>? _drawnVessels;
+    private int? _drawnSelection;
+    private string? _mapError;
+
+    private FleetVessel? SelectedVessel =>
+        SelectedVesselId is int id ? Vessels.FirstOrDefault(v => v.VesselId == id) : null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", ModulePath);
+                _selfRef = DotNetObjectReference.Create(this);
+            }
+
+            if (_module is null) return;
+
+            if (!ReferenceEquals(_drawnVessels, Vessels))
+            {
+                _drawnVessels = Vessels;
+                await _module.InvokeVoidAsync("render", _mapElement, Vessels.Select(ToMarker).ToArray(), _selfRef);
+            }
+
+            if (_drawnSelection != SelectedVesselId)
+            {
+                _drawnSelection = SelectedVesselId;
+                await _module.InvokeVoidAsync("select", _mapElement, SelectedVesselId);
+            }
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Fleet map failed: {ex.Message}");
+            _mapError = "The map could not be loaded.";
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public Task OnMarkerClick(int vesselId) => OnVesselSelected.InvokeAsync(vesselId);
+
+    private static object ToMarker(FleetVessel v) => new
+    {
+        vesselId = v.VesselId,
+        name = v.VesselName,
+        latitude = v.Position.Position.Latitude,
+        longitude = v.Position.Position.Longitude,
+        course = v.Position.Position.Course,
+        stationary = v.Position.Position.Speed < StationaryKn,
+        stale = IsStale(v)
+    };
+
+    private static bool IsStale(FleetVessel v) =>
+        v.Position.Position.LastReportUtc is not DateTime t || DateTime.UtcNow - t > StaleAfter;
+
+    private static string Age(DateTime? utc)
+    {
+        if (utc is not DateTime t) return "Last report unknown";
+        var age = DateTime.UtcNow - t;
+        if (age < TimeSpan.Zero) age = TimeSpan.Zero;
+
+        return age.TotalMinutes < 60 ? $"Updated {age.TotalMinutes.ToString("0", Inv)} min ago"
+             : age.TotalHours < 48 ? $"Updated {age.TotalHours.ToString("0", Inv)} h ago"
+             : $"Updated {age.TotalDays.ToString("0", Inv)} d ago";
+    }
+
+    private static string N(double value, string format) => value.ToString(format, Inv);
+
+    private static string Port(PortReference? port) =>
+        port is null ? "—"
+        : string.IsNullOrWhiteSpace(port.Country) ? port.Name
+        : $"{port.Name}, {port.Country}";
+
+    private static string JoinParts(params string?[] parts) =>
+        string.Join(" · ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    private RenderFragment Item(string label, string value) =>
+        @<div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@label</MudText>
+            <MudText Typo="Typo.body2" Style="font-weight:600">@value</MudText>
+        </div>;
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("dispose", _mapElement);
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+
+        _selfRef?.Dispose();
+    }
+}
+
+<style>
+    .fleet-map-wrap {
+        position: relative;
+    }
+
+    .fleet-map {
+        height: 480px;
+        width: 100%;
+    }
+
+    .fleet-map-progress {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1001;
+    }
+
+    .fleet-map-error {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        z-index: 1001;
+        background-color: var(--mud-palette-surface);
+    }
+
+    .fleet-card {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 302px;
+        max-width: calc(100% - 20px);
+        max-height: calc(100% - 20px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 10px;
+        z-index: 1001;
+        background-color: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 2px;
+    }
+
+    .fleet-card-title {
+        font-size: .9375rem;
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .fleet-card-sub {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .fleet-age {
+        font-size: .6875rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .fleet-age--stale {
+        color: var(--mud-palette-warning);
+        font-weight: 600;
+    }
+
+    .fleet-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+        margin: 8px 0;
+        padding-top: 8px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .fleet-stale-note {
+        font-size: .6875rem;
+        color: var(--mud-palette-warning);
+        margin-bottom: 8px;
+    }
+
+    .fleet-unlocated {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+</style>

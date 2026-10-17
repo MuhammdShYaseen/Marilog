@@ -1,5 +1,6 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Fleet
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Dashboard
 
@@ -84,6 +85,18 @@
     </div>
 
 </div>
+
+@* ── Fleet map ───────────────────────────────────────────── *@
+<FleetMap Vessels="FleetVessels"
+          Unlocated="UnlocatedVessels"
+          Loading="FleetLoading"
+          SelectedVesselId="SelectedFleetVesselId"
+          SelectedWeather="SelectedFleetWeather"
+          WeatherLoading="FleetWeatherLoading"
+          OnVesselSelected="OnFleetVesselSelected"
+          OnSelectionCleared="OnFleetSelectionCleared"
+          OnOpenDetails="OnVesselClick"
+          OnRefresh="OnFleetRefresh" />
 
 @* ── Filter ────────────────────────────────────────────────── *@
 <div class="az-section mb-4">
@@ -484,6 +497,17 @@
     [Parameter] public IReadOnlyList<DocumentTypeResponse>? DocTypes { get; set; }
     [Parameter] public IReadOnlyList<CompanyResponse>? Companies { get; set; }
     [Parameter] public EventCallback<DocumentFilterOptions> OnFilterChanged { get; set; }
+
+
+    [Parameter] public IReadOnlyList<FleetVessel> FleetVessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<string> UnlocatedVessels { get; set; } = [];
+    [Parameter] public bool FleetLoading { get; set; }
+    [Parameter] public int? SelectedFleetVesselId { get; set; }
+    [Parameter] public WeatherResponse? SelectedFleetWeather { get; set; }
+    [Parameter] public bool FleetWeatherLoading { get; set; }
+    [Parameter] public EventCallback<int> OnFleetVesselSelected { get; set; }
+    [Parameter] public EventCallback OnFleetSelectionCleared { get; set; }
+    [Parameter] public EventCallback OnFleetRefresh { get; set; }
 
     private static string FormatSigned(decimal value)
         => value > 0 ? $"+{value:N2}" : value.ToString("N2");

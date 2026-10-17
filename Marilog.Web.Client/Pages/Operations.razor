@@ -3,6 +3,8 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Contracts.Interfaces.Services.VesselPositions
+@using Marilog.Shared.UI.Components.Fleet
 @using Marilog.Shared.UI.Pages.Dashboard
 
 @inject IOperationsDashboardService DashboardService
@@ -10,7 +12,8 @@
 @inject IVesselService VesselService
 @inject IDocumentTypeService DocTypeService
 @inject ICompanyService CompanyService
-
+@inject IVesselPositionService PositionService
+@inject IWeatherService WeatherService
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -28,12 +31,30 @@ else
                                    OnFilterChanged="OnFilterChanged"
                                    OnVesselClick="OnVesselClicked"
                                    OnVoyageClick="OnVoyageClicked"
-                                   OnDocumentClick="OnDocumentClicked" />
+                                   OnDocumentClick="OnDocumentClicked"
+                                   FleetVessels="_fleet"
+                                   UnlocatedVessels="_unlocated"
+                                   FleetLoading="_fleetLoading"
+                                   SelectedFleetVesselId="_selectedFleetVesselId"
+                                   SelectedFleetWeather="_selectedFleetWeather"
+                                   FleetWeatherLoading="_fleetWeatherLoading"
+                                   OnFleetVesselSelected="OnFleetVesselSelected"
+                                   OnFleetSelectionCleared="OnFleetSelectionCleared"
+                                   OnFleetRefresh="LoadFleetAsync"
+                                   />
 }
 
 @code {
     private OperationsDashboardResponse? _data;
     private bool _loading = true;
+
+
+    private IReadOnlyList<FleetVessel> _fleet = [];
+    private IReadOnlyList<string> _unlocated = [];
+    private bool _fleetLoading;
+    private int? _selectedFleetVesselId;
+    private WeatherResponse? _selectedFleetWeather;
+    private bool _fleetWeatherLoading;
 
     private IReadOnlyList<VesselResponse> _vessels = [];
     private IReadOnlyList<VesselLookupResponse> _vesselLookups = [];
@@ -67,6 +88,9 @@ else
         {
             _loading = false;
         }
+
+        StateHasChanged();
+        await LoadFleetAsync();
     }
 
     private void OnVoyageClicked(int id) => Nav.NavigateTo($"/voyages/{id}");
@@ -77,6 +101,95 @@ else
     {
         _filter = filter;
         await LoadChartsAsync();
+    }
+
+    private async Task LoadFleetAsync()
+    {
+        _fleetLoading = true;
+        StateHasChanged();
+
+        // At most 3 requests at a time, so VesselFinder isn't hit with the whole fleet at once
+        using var gate = new SemaphoreSlim(3);
+
+        async Task<(VesselResponse Vessel, VesselPositionResponse? Position)> FetchAsync(VesselResponse vessel)
+        {
+            if (!TryGetImo(vessel.IMONumber, out var imo)) return (vessel, null);
+
+            await gate.WaitAsync();
+            try
+            {
+                return (vessel, await PositionService.GetByImoAsync(imo));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Position for {vessel.Name} failed: {ex.Message}");
+                return (vessel, null);
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }
+
+        var results = await Task.WhenAll(_vessels.Select(FetchAsync));
+
+        _fleet = results
+            .Where(r => r.Position is not null)
+            .Select(r => new FleetVessel(r.Vessel.Id, r.Vessel.Name, r.Position!))
+            .OrderBy(f => f.VesselName)
+            .ToList();
+
+        _unlocated = results
+            .Where(r => r.Position is null)
+            .Select(r => r.Vessel.Name)
+            .OrderBy(n => n)
+            .ToList();
+
+        if (_selectedFleetVesselId is int id && _fleet.All(f => f.VesselId != id))
+            OnFleetSelectionCleared();
+
+        _fleetLoading = false;
+        StateHasChanged();
+    }
+
+    private static bool TryGetImo(string? raw, out int imo)
+        => int.TryParse(raw?.Trim(), out imo) && imo is >= 1000000 and <= 9999999;
+
+    private async Task OnFleetVesselSelected(int vesselId)
+    {
+        var vessel = _fleet.FirstOrDefault(f => f.VesselId == vesselId);
+        if (vessel is null) return;
+
+        _selectedFleetVesselId = vesselId;
+        _selectedFleetWeather = null;
+        _fleetWeatherLoading = true;
+
+        try
+        {
+            var weather = await WeatherService.GetAtAsync(
+                vessel.Position.Position.Latitude,
+                vessel.Position.Position.Longitude);
+
+            // Ignore the answer if the user picked another vessel meanwhile
+            if (_selectedFleetVesselId == vesselId)
+                _selectedFleetWeather = weather;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fleet weather failed: {ex.Message}");
+        }
+        finally
+        {
+            if (_selectedFleetVesselId == vesselId)
+                _fleetWeatherLoading = false;
+        }
+    }
+
+    private void OnFleetSelectionCleared()
+    {
+        _selectedFleetVesselId = null;
+        _selectedFleetWeather = null;
+        _fleetWeatherLoading = false;
     }
 
     private async Task LoadChartsAsync()
