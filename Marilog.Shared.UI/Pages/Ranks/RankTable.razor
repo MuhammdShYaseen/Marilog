@@ -1,0 +1,80 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Ranks
+<MudTable T="RankResponse" Items="FilteredItems" Loading="Loading" Dense="true" Hover="true"
+          Outlined="true" Elevation="0" FixedHeader="true">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Ranks</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_search" Placeholder="Search code or name" Immediate="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Class="mr-2" />
+        <MudSelect T="Department?" @bind-Value="_department" Placeholder="All departments" Clearable="true"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2" Style="max-width:200px">
+            @foreach (var d in Enum.GetValues<Department>())
+            {
+                <MudSelectItem T="Department?" Value="d">@d</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSwitch T="bool" @bind-Value="_showInactive" Label="Show inactive" Color="Color.Primary" Class="mr-2" />
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="OnRefresh" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd" Class="ml-2">New rank</MudButton>
+    </ToolBarContent>
+
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<RankResponse, object>(x => x.Code)">CODE</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<RankResponse, object>(x => x.Name)">NAME</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<RankResponse, object>(x => x.Department)">DEPARTMENT</MudTableSortLabel></MudTh>
+        <MudTh>STATUS</MudTh>
+        <MudTh Style="width:48px"></MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="Code">@context.Code</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Department">@context.Department</MudTd>
+        <MudTd DataLabel="Status">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                     Color="@(context.IsActive ? Color.Success : Color.Default)">
+                @(context.IsActive ? "Active" : "Inactive")
+            </MudChip>
+        </MudTd>
+        <MudTd>
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OnEdit.InvokeAsync(context)">Edit</MudMenuItem>
+                <MudMenuItem Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)"
+                             OnClick="() => OnToggleActive.InvokeAsync(context)">
+                    @(context.IsActive ? "Deactivate" : "Activate")
+                </MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="() => OnDelete.InvokeAsync(context)">Delete</MudMenuItem>
+            </MudMenu>
+        </MudTd>
+    </RowTemplate>
+
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">No ranks found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter] public IReadOnlyList<RankResponse> Items { get; set; } = [];
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public EventCallback OnAdd { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback<RankResponse> OnEdit { get; set; }
+    [Parameter] public EventCallback<RankResponse> OnToggleActive { get; set; }
+    [Parameter] public EventCallback<RankResponse> OnDelete { get; set; }
+
+    private string? _search;
+    private Department? _department;
+    private bool _showInactive;
+
+    private IEnumerable<RankResponse> FilteredItems => Items
+        .Where(x => _showInactive || x.IsActive)
+        .Where(x => _department is null || x.Department == _department)
+        .Where(x => string.IsNullOrWhiteSpace(_search)
+                    || x.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                    || x.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+}

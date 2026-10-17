@@ -25,12 +25,7 @@ namespace Marilog.Domain.Entities.Frontend
             IsActive = true
         };
 
-        public void Update(
-    string title,
-    string? route,
-    string? icon,
-    int? parentId,
-    int order)
+        public void Update(string title, string? route, string? icon, int? parentId, int order)
         {
             Title = title;
             Route = route;
@@ -38,5 +33,15 @@ namespace Marilog.Domain.Entities.Frontend
             ParentId = parentId;
             Order = order;
         }
+
+        public void Move(int? parentId, int order)
+        {
+            ParentId = parentId;
+            Order = order;
+        }
+
+        public void SetActive(bool isActive) => IsActive = isActive;
+
+        public void AddChild(NavItem child) => Children.Add(child);
     }
 }

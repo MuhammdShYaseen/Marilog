@@ -12,5 +12,12 @@ namespace Marilog.Contracts.Interfaces.FrontendServices
         Task<NavItemResponse> UpdateAsync(int id, string title, string? route, string? icon, int? parentId, int order, CancellationToken ct = default);
 
 
+        Task<List<NavItemResponse>> GetAllAsync(CancellationToken ct = default);
+        Task SaveLayoutAsync(List<NavItemLayoutRequest> items, CancellationToken ct = default);
+        Task SetActiveAsync(int id, bool isActive, CancellationToken ct = default);
+        Task<List<NavItemExport>> ExportAsync(CancellationToken ct = default);
+        Task ImportAsync(List<NavItemExport> items, CancellationToken ct = default);
+
+
     }
 }

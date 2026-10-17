@@ -1,0 +1,111 @@
+﻿@page "/admin/ranks"
+@using Marilog.Contracts.DTOs.Requests.RankDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Ranks
+@inject IRankService RankService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Ranks</PageTitle>
+
+<RankTable Items="_ranks" Loading="_loading"
+           OnAdd="AddAsync" OnRefresh="LoadAsync" OnEdit="EditAsync"
+           OnToggleActive="ToggleActiveAsync" OnDelete="DeleteAsync" />
+
+@code {
+    private IReadOnlyList<RankResponse> _ranks = [];
+    private bool _loading;
+
+    private static readonly DialogOptions EditorOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _ranks = await RankService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load ranks: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task AddAsync() => OpenEditorAsync(
+        "New rank",
+        new CreateRankRequest { RankCode = "", RankName = "" },
+        m => TryRunAsync(
+            () => RankService.CreateAsync(m.RankCode.Trim(), m.RankName.Trim(), m.Department),
+            "Rank created"));
+
+    private Task EditAsync(RankResponse rank) => OpenEditorAsync(
+        $"Edit rank — {rank.Code}",
+        new CreateRankRequest { RankCode = rank.Code, RankName = rank.Name, Department = rank.Department },
+        m => TryRunAsync(
+            () => RankService.UpdateAsync(rank.Id, m.RankCode.Trim(), m.RankName.Trim(), m.Department),
+            "Rank updated"));
+
+    private async Task ToggleActiveAsync(RankResponse rank)
+    {
+        var ok = rank.IsActive
+            ? await TryRunAsync(() => RankService.DeactivateAsync(rank.Id), "Rank deactivated")
+            : await TryRunAsync(() => RankService.ActivateAsync(rank.Id), "Rank activated");
+
+        if (ok) await LoadAsync();
+    }
+
+    private async Task DeleteAsync(RankResponse rank)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete rank",
+            $"Delete {rank.Code} — {rank.Name}? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        if (await TryRunAsync(() => RankService.DeleteAsync(rank.Id), "Rank deleted"))
+            await LoadAsync();
+    }
+
+    private async Task OpenEditorAsync(string title, CreateRankRequest model, Func<CreateRankRequest, Task<bool>> save)
+    {
+        var parameters = new DialogParameters<RankEditDialog>
+        {
+            { x => x.Model, model },
+            { x => x.OnSave, save }
+        };
+
+        var dialog = await DialogService.ShowAsync<RankEditDialog>(title, parameters, EditorOptions);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private async Task<bool> TryRunAsync(Func<Task> action, string successMessage)
+    {
+        try
+        {
+            await action();
+            Snackbar.Add(successMessage, Severity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+    }
+}

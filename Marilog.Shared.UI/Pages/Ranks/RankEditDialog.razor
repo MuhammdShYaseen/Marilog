@@ -1,0 +1,55 @@
+@using Marilog.Contracts.DTOs.Requests.RankDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Ranks
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Disabled="_saving">
+            <MudTextField @bind-Value="Model.RankCode" Label="Code" Required="true" RequiredError="Code is required"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" Class="mb-3" />
+            <MudTextField @bind-Value="Model.RankName" Label="Name" Required="true" RequiredError="Name is required"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" Class="mb-3" />
+            <MudSelect T="Department" @bind-Value="Model.Department" Label="Department"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var d in Enum.GetValues<Department>())
+                {
+                    <MudSelectItem T="Department" Value="d">@d</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_saving">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public CreateRankRequest Model { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<CreateRankRequest, Task<bool>> OnSave { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _saving;
+
+    private async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (await OnSave(Model))
+                MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
