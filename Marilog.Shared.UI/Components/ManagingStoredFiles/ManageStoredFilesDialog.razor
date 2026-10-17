@@ -201,6 +201,12 @@
                                                        OnClick="@(() => OpenFileInNewTabAsync(file))" />
                                     </MudTooltip>
 
+                                    <MudTooltip Text="Rename">
+                                        <MudIconButton Icon="@Icons.Material.Filled.DriveFileRenameOutline"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => RenameFileAsync(file))" />
+                                    </MudTooltip>
+
                                     <MudTooltip Text="Download">
                                         <MudIconButton Icon="@Icons.Material.Filled.Download"
                                                        Size="Size.Small"
@@ -283,6 +289,11 @@
                                     <MudIconButton Icon="@Icons.Material.Filled.ContentCut"
                                                    Size="Size.Small"
                                                    OnClick="@(() => CutFile(_selectedFile))" />
+                                </MudTooltip>
+                                <MudTooltip Text="Rename">
+                                    <MudIconButton Icon="@Icons.Material.Filled.DriveFileRenameOutline"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => RenameFileAsync(_selectedFile))" />
                                 </MudTooltip>
                                 <MudTooltip Text="Open in new tab">
                                     <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
@@ -491,6 +502,9 @@
     // Optional: not wired by the host yet until the update-content endpoint exists.
     [Parameter]
     public Func<int, string, CancellationToken, Task<bool>>? SaveContentFunc { get; set; }
+
+    [Parameter]
+    public Func<int, string, CancellationToken, Task<bool>>? RenameFunc { get; set; }
 
     // Optional: host wires this to build/navigate to a routable page mirroring this
     // dialog's content (e.g. "/documents/{id}/files"). A dialog has no URL of its own,
@@ -715,6 +729,67 @@
         else
         {
             Snackbar.Add("Failed to save content.", Severity.Error);
+        }
+    }
+
+
+    private async Task RenameFileAsync(StoredFileResponse file)
+    {
+        if (RenameFunc is null)
+        {
+            Snackbar.Add("Renaming is currently unavailable.", Severity.Info);
+            return;
+        }
+
+        // نعرض الاسم بدون الامتداد ونرجّعه بعد الإدخال حتى ما ينضاف الامتداد بالغلط
+        var ext = System.IO.Path.GetExtension(file.OriginalFileName);
+        var baseName = System.IO.Path.GetFileNameWithoutExtension(file.OriginalFileName);
+
+        var input = await PromptFolderNameAsync("Rename File", baseName);
+        if (input is null)
+            return;
+
+        var newName = input.Trim();
+        if (string.IsNullOrEmpty(newName))
+            return;
+
+        if (!string.IsNullOrEmpty(ext) && !newName.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+            newName += ext;
+
+        if (string.Equals(newName, file.OriginalFileName, StringComparison.Ordinal))
+            return;
+
+        if (_files.Any(f => f.FolderId == file.FolderId && f.Id != file.Id
+                         && string.Equals(f.OriginalFileName, newName, StringComparison.OrdinalIgnoreCase)))
+        {
+            Snackbar.Add($"There is a file named \"{newName}\"here.", Severity.Warning);
+            return;
+        }
+
+        var success = await RenameFunc(file.Id, newName, CancellationToken.None);
+
+        if (!success)
+        {
+            Snackbar.Add("Renaming failed.", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("Renaming successful.", Severity.Success);
+
+        var wasSelectedId = _selectedFile?.Id;
+        var currentTab = _activeTabIndex;
+
+        await ReloadAsync();
+
+        // إذا الملف كان مفتوح بالـ drawer نحدّث الكائن حتى يظهر الاسم الجديد
+        if (wasSelectedId == file.Id)
+        {
+            var refreshed = _files.FirstOrDefault(f => f.Id == file.Id);
+            if (refreshed is not null)
+            {
+                SelectFile(refreshed);
+                _activeTabIndex = currentTab;
+            }
         }
     }
 

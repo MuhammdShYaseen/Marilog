@@ -48,6 +48,7 @@ namespace Marilog.Web.Client.Services.Implementation
                 { x => x.BuildDownloadUrl, file => $"{_http.BaseAddress}api/StoredFiles/{file.Id}/stream" },
                 { x => x.BuildThumbnailUrl, file => $"{_http.BaseAddress}api/StoredFiles/{file.Id}/thumbnailStream" },
                 { x => x.SaveContentFunc,(id, content, ct) => UpdateContentAsync(id, content, ct) },
+                { x => x.RenameFunc,(id, newName, ct) => RenameAsync(id, newName, ct) },
                                 { x => x.UploadFilesFunc, async (files, folderId, ct) =>
                     {
                         var requests = files.Select(f => new UploadFileRequest
@@ -142,5 +143,11 @@ namespace Marilog.Web.Client.Services.Implementation
             await _storedFileService.UpdateContentFromUserAsync(fileId, content, ct);
             return true;
         }
+        private async Task<bool> RenameAsync (int fileId, string newName, CancellationToken ct = default)
+        {
+            await _storedFileService.RenameAsync(fileId, newName, ct);
+            return true;
+        }
+
     }
 }
