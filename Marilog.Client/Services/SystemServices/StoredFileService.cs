@@ -6,6 +6,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Enums;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Reflection.Metadata;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -160,13 +161,17 @@ namespace Marilog.Client.Services.SystemServices
             throw new NotImplementedException();
         }
 
-        public async Task UpdateContentFromUserAsync(int id, string content, CancellationToken cancellationToken = default)
+        public async Task UpdateContentFromUserAsync(int id, string content, CancellationToken ct = default)
         {
-            var response = await _http.PutAsJsonAsync( $"{Base}/{id}/user-content", content, cancellationToken);
+            var response = await _http.PutAsJsonAsync( $"{Base}/{id}/user-content", content, ct);
             response.EnsureSuccessStatusCode();
         }
 
-
+        public async Task RenameAsync(int id, string newName, CancellationToken ct = default)
+        {
+            var response = await _http.PutAsJsonAsync($"{Base}/{id}/rename", newName, ct);
+            response.EnsureSuccessStatusCode();
+        }
 
         // ── Folders ──────────────────────────────────────────────────────────
 
@@ -216,5 +221,7 @@ namespace Marilog.Client.Services.SystemServices
             var httpResponse = await _http.PostAsJsonAsync($"{Base}/move", request, ct);
             httpResponse.EnsureSuccessStatusCode();
         }
+
+        
     }
 }

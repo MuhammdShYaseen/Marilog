@@ -146,6 +146,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+        [HttpPut("{id:int}/rename")]
+        public async Task<IActionResult> Rename(int id, [FromBody] string newName, CancellationToken ct)
+        {
+            await _service.RenameAsync(id, newName, ct);
+
+            return NoContent();
+        }
+
 
         // ── Tags ─────────────────────────────────────────────────────────────
 

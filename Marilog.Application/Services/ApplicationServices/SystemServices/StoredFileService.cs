@@ -271,6 +271,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repoStoredFile.SaveChangesAsync(ct);
         }
 
+        public async Task RenameAsync (int id, string newName, CancellationToken ct = default)
+        {
+            var file = await _repoStoredFile.GetByIdAsync(id, ct);
+            if (file == null)
+                throw new KeyNotFoundException($"there is no stored file with ID : {id}");
+
+            file.Rename(newName);
+            _repoStoredFile.Update(file);
+            await _repoStoredFile.SaveChangesAsync(ct);
+        }
+
         // ── Tags ─────────────────────────────────────────────────────────────
 
         public async Task AddTagAsync(int storedFileId, string name, string color, CancellationToken ct = default)

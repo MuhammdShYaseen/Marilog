@@ -71,6 +71,13 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
+        public void Rename(string newName) 
+        {  
+            if (string.IsNullOrWhiteSpace(newName))
+                throw new ArgumentNullException(nameof(newName));
+
+            OriginalFileName = newName;
+        }
 
         //---Tags-------------------------------------------------------------------
         public void AddTag(string name, string color)
