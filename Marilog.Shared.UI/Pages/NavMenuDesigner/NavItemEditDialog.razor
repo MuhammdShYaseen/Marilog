@@ -1,0 +1,126 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.NavMenuDesigner
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Disabled="_saving">
+            <MudSelect T="string" Value="Model.Route" ValueChanged="OnPageChanged" ToStringFunc="PageText"
+                       Label="Page" HelperText="Leave empty to make this a group header" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" MaxHeight="350" Class="mb-3">
+                @foreach (var p in PageItems)
+                {
+                    <MudSelectItem T="string" Value="p.Route">@p.Title — @p.Route</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="Model.Title" Label="Title" Required="true" RequiredError="Title is required"
+                          MaxLength="100" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" Class="mb-3" />
+
+            <div class="d-flex align-center gap-2 mb-3">
+                <MudIcon Icon="@(NavIcons.Resolve(Model.Icon) ?? Icons.Material.Outlined.Image)" />
+                <MudSelect T="string" @bind-Value="Model.Icon" Label="Icon" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" MaxHeight="350">
+                    @foreach (var name in IconItems)
+                    {
+                        <MudSelectItem T="string" Value="name">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@(NavIcons.Resolve(name) ?? Icons.Material.Outlined.HelpOutline)" Size="Size.Small" />
+                                <span>@name</span>
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <MudSelect T="int?" @bind-Value="Model.ParentId" ToStringFunc="ParentText"
+                       Label="Parent" HelperText="Leave empty for top level" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" MaxHeight="350">
+                @foreach (var p in Parents)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Path</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_saving">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public NavItemFormModel Model { get; set; } = null!;
+    [Parameter] public IReadOnlyList<NavPageOption> Pages { get; set; } = [];
+    [Parameter] public IReadOnlyList<NavParentOption> Parents { get; set; } = [];
+    [Parameter, EditorRequired] public Func<NavItemFormModel, Task<bool>> OnSave { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string? _suggestedTitle;
+
+    protected override void OnInitialized()
+    {
+        // Snap a stored route ("vessels") to the catalog form ("/vessels") so the select shows it
+        var match = FindPage(Model.Route);
+        if (match is not null)
+        {
+            Model.Route = match.Route;
+            _suggestedTitle = match.Title;
+        }
+    }
+
+    private IEnumerable<NavPageOption> PageItems =>
+        string.IsNullOrWhiteSpace(Model.Route) || FindPage(Model.Route) is not null
+            ? Pages
+            : Pages.Prepend(new NavPageOption(Model.Route, "(page not found)"));
+
+    private IEnumerable<string> IconItems =>
+        string.IsNullOrWhiteSpace(Model.Icon) || NavIcons.Resolve(Model.Icon) is not null
+            ? NavIcons.Names
+            : NavIcons.Names.Prepend(Model.Icon);
+
+    private NavPageOption? FindPage(string? route) =>
+        string.IsNullOrWhiteSpace(route)
+            ? null
+            : Pages.FirstOrDefault(p => NavPageOption.Normalize(p.Route) == NavPageOption.Normalize(route));
+
+    private void OnPageChanged(string? route)
+    {
+        Model.Route = route;
+
+        // Fill the title from the page, unless the user already typed their own
+        var page = FindPage(route);
+        if (page is not null && (string.IsNullOrWhiteSpace(Model.Title) || Model.Title == _suggestedTitle))
+            Model.Title = page.Title;
+
+        _suggestedTitle = page?.Title;
+    }
+
+    private string? PageText(string? route)
+    {
+        var page = FindPage(route);
+        return page is null ? route : $"{page.Title} — {page.Route}";
+    }
+
+    private string? ParentText(int? id) => Parents.FirstOrDefault(p => p.Id == id)?.Path;
+
+    private async Task SubmitAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (await OnSave(Model))
+                MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

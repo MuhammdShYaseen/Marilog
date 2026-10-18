@@ -1,0 +1,143 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.NavMenuDesigner
+<div class="d-flex align-center flex-wrap gap-2 mb-3">
+    <MudText Typo="Typo.h6">Navigation designer</MudText>
+    <MudSpacer />
+    @if (MenuChanged)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="OnReloadMenu">Reload to apply</MudButton>
+    }
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="OnExport">Export</MudButton>
+    <InputFile id="nav-import-file" @key="_importKey" class="d-none" accept=".json" OnChange="HandleImportAsync" />
+    <MudButton HtmlTag="label" for="nav-import-file" Variant="Variant.Outlined" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Upload">Import</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddRoot">New item</MudButton>
+</div>
+
+@if (Loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="8">
+        <MudPaper Outlined="true" Elevation="0">
+            <div class="px-3 py-1" style="@RowStyle">
+                <MudText Typo="Typo.overline">Menu structure</MudText>
+            </div>
+            @if (Items.Count == 0 && !Loading)
+            {
+                <MudText Typo="Typo.body2" Class="pa-3">The menu is empty. Add pages from the list on the right.</MudText>
+            }
+            @for (var i = 0; i < Items.Count; i++)
+            {
+                @Node(Items[i], i, Items.Count, 0)
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Outlined="true" Elevation="0">
+            <div class="px-3 py-1" style="@RowStyle">
+                <MudText Typo="Typo.overline">Pages not in menu (@UnassignedPages.Count)</MudText>
+            </div>
+            @if (UnassignedPages.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="pa-3">Every page is already in the menu.</MudText>
+            }
+            @foreach (var p in UnassignedPages)
+            {
+                <div class="d-flex align-center px-3 py-1" style="@RowStyle">
+                    <div class="flex-grow-1" style="min-width:0">
+                        <MudText Typo="Typo.body2">@p.Title</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Route</MudText>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" title="Add to menu"
+                                   OnClick="() => OnAddPage.InvokeAsync(p)" />
+                </div>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public List<NavItemResponse> Items { get; set; } = new();
+    [Parameter] public IReadOnlyList<NavPageOption> UnassignedPages { get; set; } = [];
+    [Parameter] public IReadOnlySet<string> KnownRoutes { get; set; } = new HashSet<string>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public bool MenuChanged { get; set; }
+
+    [Parameter] public EventCallback OnAddRoot { get; set; }
+    [Parameter] public EventCallback<NavItemResponse> OnAddChild { get; set; }
+    [Parameter] public EventCallback<NavPageOption> OnAddPage { get; set; }
+    [Parameter] public EventCallback<NavItemResponse> OnEdit { get; set; }
+    [Parameter] public EventCallback<NavItemResponse> OnMoveUp { get; set; }
+    [Parameter] public EventCallback<NavItemResponse> OnMoveDown { get; set; }
+    [Parameter] public EventCallback<NavItemResponse> OnToggleActive { get; set; }
+    [Parameter] public EventCallback<NavItemResponse> OnDelete { get; set; }
+    [Parameter] public EventCallback OnExport { get; set; }
+    [Parameter] public EventCallback<IBrowserFile> OnImport { get; set; }
+    [Parameter] public EventCallback OnReloadMenu { get; set; }
+    private int _importKey;
+
+    private async Task HandleImportAsync(InputFileChangeEventArgs e)
+    {
+        await OnImport.InvokeAsync(e.File);
+        _importKey++;   // fresh input, so picking the same file again still fires
+    }
+    private const string RowStyle = "border-bottom:1px solid var(--mud-palette-lines-default);";
+
+    private bool IsMissingPage(NavItemResponse item) =>
+        !string.IsNullOrWhiteSpace(item.Route) && !KnownRoutes.Contains(NavPageOption.Normalize(item.Route));
+
+    private RenderFragment Node(NavItemResponse item, int index, int count, int depth) => @<div>
+        <div class="d-flex align-center gap-2 pr-2 py-1"
+             style="@($"padding-left:{12 + depth * 24}px;{RowStyle}{(item.IsActive ? "" : "opacity:.55;")}")">
+            <MudIcon Size="Size.Small"
+                     Icon="@(NavIcons.Resolve(item.Icon) ?? (string.IsNullOrWhiteSpace(item.Route) ? Icons.Material.Outlined.Folder : Icons.Material.Outlined.Link))" />
+            <div class="flex-grow-1" style="min-width:0">
+                <MudText Typo="Typo.body2">@item.Title</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @(string.IsNullOrWhiteSpace(item.Route) ? "Group" : item.Route)
+                </MudText>
+            </div>
+
+            @if (IsMissingPage(item))
+            {
+                <MudTooltip Text="No page with this route exists">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+                </MudTooltip>
+            }
+            @if (!item.IsActive)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Hidden</MudChip>
+            }
+
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" title="Move up"
+                           Disabled="index == 0" OnClick="() => OnMoveUp.InvokeAsync(item)" />
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" title="Move down"
+                           Disabled="index == count - 1" OnClick="() => OnMoveDown.InvokeAsync(item)" />
+            @if (string.IsNullOrWhiteSpace(item.Route))
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Size="Size.Small" title="Add sub-item"
+                               OnClick="() => OnAddChild.InvokeAsync(item)" />
+            }
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                           OnClick="() => OnEdit.InvokeAsync(item)" />
+            <MudIconButton Icon="@(item.IsActive ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                           Size="Size.Small" title="@(item.IsActive ? "Hide" : "Show")"
+                           OnClick="() => OnToggleActive.InvokeAsync(item)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" title="Delete"
+                           Disabled="item.Children.Count > 0" OnClick="() => OnDelete.InvokeAsync(item)" />
+        </div>
+
+        @for (var c = 0; c < item.Children.Count; c++)
+        {
+            @Node(item.Children[c], c, item.Children.Count, depth + 1)
+        }
+    </div>;
+}

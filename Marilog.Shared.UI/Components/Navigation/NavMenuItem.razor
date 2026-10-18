@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Pages.NavMenuDesigner
 @using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
 
@@ -32,44 +33,6 @@ else
     public NavItemResponse Item { get; set; }
         = default!;
 
-    string GetIcon(string? icon) => icon switch
-    {
-        "Dashboard" => Icons.Material.Filled.Dashboard,
-        "DirectionsBoat" => Icons.Material.Filled.DirectionsBoat,
-        "Route" => Icons.Material.Filled.Route,
-        "People" => Icons.Material.Filled.People,
-        "AccountBalance" => Icons.Material.Filled.AccountBalance,
-        "Assessment" => Icons.Material.Filled.Assessment,
-        "Storage" => Icons.Material.Filled.Storage,
-        "Description" => Icons.Material.Filled.Description,
-        "Payments" => Icons.Material.Filled.Payments,
-        "Email" => Icons.Material.Filled.Email,
-        "Settings" => Icons.Material.Filled.Settings,
-        "Apartment" => Icons.Material.Filled.Apartment,
-        "LocationOn" => Icons.Material.Filled.LocationOn,
-        "Business" => Icons.Material.Filled.Business,
-        "Person" => Icons.Material.Filled.Person,
-        "Map" => Icons.Material.Filled.Map,
-        "Badge" => Icons.Material.Filled.Badge,
-        "Folder" => Icons.Material.Filled.Folder,
-        "SwapHoriz" => Icons.Material.Filled.SwapHoriz,
-        "Security" => Icons.Material.Filled.Security,
-        "Public" => Icons.Material.Filled.Public,
-        "AttachMoney" => Icons.Material.Filled.AttachMoney,
-        "log" => Icons.Material.Filled.ReceiptLong,
-        "calculator" => Icons.Material.Filled.Calculate,
-        "bank" => Icons.Material.Filled.Business,
-        "pdf" => Icons.Material.Filled.PictureAsPdf,
-        "backup" => Icons.Material.Filled.Backup,
-        "inbox" => Icons.Material.Filled.Inbox,
-        "outbox" => Icons.Material.Filled.Outbox,
-        "draft" => Icons.Material.Filled.Drafts,
-        "account" => Icons.Material.Filled.ManageAccounts,
-        "notification" => Icons.Material.Filled.Notifications,
-        "Credit" => Icons.Material.Filled.CreditCard,
-        "theme" => Icons.Material.Filled.Palette,
-        "rank" => Icons.Material.Filled.LocalPolice,
-        _ => Icons.Material.Filled.QuestionMark
-    };
+    string GetIcon(string? icon) => NavIcons.Resolve(icon) ?? Icons.Material.Filled.QuestionMark;
     
 }

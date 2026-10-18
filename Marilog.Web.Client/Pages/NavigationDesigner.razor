@@ -1,0 +1,305 @@
+﻿@page "/navigation-designer"
+@using System.Text.Json
+@using Marilog.Contracts.DTOs.Frontend.NavItem
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.FrontendServices
+@using Marilog.Shared.UI.Pages.NavMenuDesigner
+@using Marilog.Web.Client.Services.Standalone.Nav
+@using Microsoft.AspNetCore.Components.Forms
+@inject INavigationService NavService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Navigation designer</PageTitle>
+
+<NavMenuDesigner Items="_tree" UnassignedPages="_unassigned" KnownRoutes="_knownRoutes"
+                 Loading="_loading" MenuChanged="_menuChanged"
+                 OnAddRoot="() => AddAsync(null, null)"
+                 OnAddChild="item => AddAsync(item.Id, null)"
+                 OnAddPage="page => AddAsync(null, page)"
+                 OnEdit="EditAsync"
+                 OnMoveUp="item => MoveAsync(item, -1)"
+                 OnMoveDown="item => MoveAsync(item, 1)"
+                 OnToggleActive="ToggleActiveAsync"
+                 OnDelete="DeleteAsync"
+                 OnExport="ExportAsync"
+                 OnImport="ImportAsync"
+                 OnReloadMenu="ReloadMenu" />
+
+@code {
+    private static readonly JsonSerializerOptions ImportJson = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions ExportJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly DialogOptions EditorOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private List<NavItemResponse> _tree = new();
+    private IReadOnlyList<NavPageOption> _unassigned = [];
+    private readonly HashSet<string> _knownRoutes = PageCatalog.Pages
+        .Select(p => NavPageOption.Normalize(p.Route))
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private bool _loading;
+    private bool _menuChanged;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    // ── Loading ──────────────────────────────────────────────────────────────
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _tree = await NavService.GetAllAsync();
+            RefreshUnassigned();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load the menu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void RefreshUnassigned()
+    {
+        var used = Flatten(_tree)
+            .Where(x => !string.IsNullOrWhiteSpace(x.Route))
+            .Select(x => NavPageOption.Normalize(x.Route!))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        _unassigned = PageCatalog.Pages
+            .Where(p => !used.Contains(NavPageOption.Normalize(p.Route)))
+            .ToList();
+    }
+
+    // ── Create / edit ────────────────────────────────────────────────────────
+
+    private Task AddAsync(int? parentId, NavPageOption? page)
+    {
+        var model = new NavItemFormModel { ParentId = parentId, Route = page?.Route, Title = page?.Title ?? "" };
+
+        return OpenEditorAsync("New menu item", model, editing: null, m =>
+            TryRunAsync(
+                () => NavService.CreateAsync(m.Title.Trim(), Blank(m.Route), Blank(m.Icon), m.ParentId, NextOrder(m.ParentId)),
+                "Menu item created"));
+    }
+
+    private Task EditAsync(NavItemResponse item)
+    {
+        var model = new NavItemFormModel { Title = item.Title, Route = item.Route, Icon = item.Icon, ParentId = item.ParentId };
+
+        return OpenEditorAsync($"Edit — {item.Title}", model, editing: item, m =>
+        {
+            // Moving to another parent puts the item at the end of its new siblings
+            var order = m.ParentId == item.ParentId ? item.Order : NextOrder(m.ParentId);
+
+            return TryRunAsync(
+                () => NavService.UpdateAsync(item.Id, m.Title.Trim(), Blank(m.Route), Blank(m.Icon), m.ParentId, order),
+                "Menu item updated");
+        });
+    }
+
+    private async Task OpenEditorAsync(string title, NavItemFormModel model, NavItemResponse? editing,
+                                       Func<NavItemFormModel, Task<bool>> save)
+    {
+        var parameters = new DialogParameters<NavItemEditDialog>
+        {
+            { x => x.Model, model },
+            { x => x.Pages, PageCatalog.Pages },
+            { x => x.Parents, ParentOptions(editing) },
+            { x => x.OnSave, save }
+        };
+
+        var dialog = await DialogService.ShowAsync<NavItemEditDialog>(title, parameters, EditorOptions);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _menuChanged = true;
+            await LoadAsync();
+        }
+    }
+
+    // Every item except the one being edited and its whole subtree (prevents cycles)
+    private List<NavParentOption> ParentOptions(NavItemResponse? editing)
+    {
+        var result = new List<NavParentOption>();
+
+        void Walk(IEnumerable<NavItemResponse> nodes, string prefix)
+        {
+            foreach (var n in nodes)
+            {
+                if (editing is not null && n.Id == editing.Id)
+                    continue;
+
+                var path = prefix.Length == 0 ? n.Title : $"{prefix} › {n.Title}";
+                if (string.IsNullOrWhiteSpace(n.Route))
+                    result.Add(new NavParentOption(n.Id, path));
+                Walk(n.Children, path);
+            }
+        }
+
+        Walk(_tree, "");
+        return result;
+    }
+
+    // ── Layout ───────────────────────────────────────────────────────────────
+
+    private async Task MoveAsync(NavItemResponse item, int delta)
+    {
+        var siblings = SiblingsOf(item.ParentId);
+        var index = siblings.IndexOf(item);
+        var target = index + delta;
+
+        if (index < 0 || target < 0 || target >= siblings.Count)
+            return;
+
+        // Reorder locally first so the UI moves instantly
+        siblings.RemoveAt(index);
+        siblings.Insert(target, item);
+        for (var i = 0; i < siblings.Count; i++)
+            siblings[i].Order = i;
+
+        var layout = siblings
+            .Select(s => new NavItemLayoutRequest { Id = s.Id, ParentId = s.ParentId, Order = s.Order })
+            .ToList();
+
+        if (await TryRunAsync(() => NavService.SaveLayoutAsync(layout), successMessage: null))
+            _menuChanged = true;
+        else
+            await LoadAsync();
+    }
+
+    private async Task ToggleActiveAsync(NavItemResponse item)
+    {
+        var ok = await TryRunAsync(
+            () => NavService.SetActiveAsync(item.Id, !item.IsActive),
+            item.IsActive ? "Hidden from menu" : "Shown in menu");
+
+        if (ok)
+        {
+            item.IsActive = !item.IsActive;
+            _menuChanged = true;
+        }
+    }
+
+    private async Task DeleteAsync(NavItemResponse item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete menu item",
+            $"Delete '{item.Title}'? The page itself is not affected.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        if (await TryRunAsync(() => NavService.DeleteAsync(item.Id), "Menu item deleted"))
+        {
+            _menuChanged = true;
+            await LoadAsync();
+        }
+    }
+
+    // ── Export / import ──────────────────────────────────────────────────────
+
+    // The endpoint returns an attachment, so the browser downloads it and stays on this page
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var items = await NavService.ExportAsync();
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(items, ExportJson);
+
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+
+            await JS.InvokeVoidAsync("downloadFileFromStream", $"marilog-navigation-{DateTime.Now:yyyyMMdd}.json", streamRef);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Export failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ImportAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+
+        List<NavItemExport>? items;
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024);
+            items = await JsonSerializer.DeserializeAsync<List<NavItemExport>>(stream, ImportJson);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Invalid menu file: {ex.Message}", Severity.Error);
+            return;
+        }
+
+        if (items is null || items.Count == 0)
+        {
+            Snackbar.Add("The file has no menu items", Severity.Warning);
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Import menu",
+            $"Replace the whole menu with {CountItems(items)} items from '{file.Name}'? Export first if you want a backup.",
+            yesText: "Replace", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        if (await TryRunAsync(() => NavService.ImportAsync(items), "Menu imported"))
+        {
+            _menuChanged = true;
+            await LoadAsync();
+        }
+    }
+
+    private void ReloadMenu() => Nav.Refresh(forceReload: true);
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private List<NavItemResponse> SiblingsOf(int? parentId) =>
+        parentId is null
+            ? _tree
+            : Flatten(_tree).FirstOrDefault(x => x.Id == parentId)?.Children ?? new();
+
+    private int NextOrder(int? parentId)
+    {
+        var siblings = SiblingsOf(parentId);
+        return siblings.Count == 0 ? 0 : siblings.Max(s => s.Order) + 1;
+    }
+
+    private static IEnumerable<NavItemResponse> Flatten(IEnumerable<NavItemResponse> items)
+        => items.SelectMany(x => Flatten(x.Children).Prepend(x));
+
+    private static int CountItems(IEnumerable<NavItemExport> items)
+        => items.Sum(x => 1 + CountItems(x.Children ?? new()));
+
+    private static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    private async Task<bool> TryRunAsync(Func<Task> action, string? successMessage)
+    {
+        try
+        {
+            await action();
+            if (successMessage is not null)
+                Snackbar.Add(successMessage, Severity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+    }
+}
