@@ -19,5 +19,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? SwiftReference { get; set; }
         public string? Notes { get; set; }
         public string? CancelReason { get; set; }
+        public string? Reference { get; set; }
     }
 }

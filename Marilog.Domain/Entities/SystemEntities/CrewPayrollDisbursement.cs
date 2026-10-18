@@ -1,98 +1,64 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Kernel.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
     /// <summary>
-    /// Owned entity — single payment installment inside CrewPayroll.
-    /// All amounts in USD.
+    /// Single payment installment inside CrewPayroll — amount in the payroll's currency.
+    /// Self-contained: no links to SWIFT, voyages, offices or any other financial record.
     ///
-    /// CashOnBoard  → VoyageId required
-    /// 
-    /// BankTransfer → SwiftTransferId required
+    /// CashOnBoard  → paid to the crew member on board; Reference = voucher no. (optional)
+    /// CashAtOffice → collected at the office; RecipientName + RecipientIdNumber required
+    /// BankTransfer → Reference (bank transfer reference) required
     /// </summary>
     public class CrewPayrollDisbursement : Entity
     {
         public int PayrollId { get; private set; }
         public PaymentMethod Method { get; private set; }
-        public decimal Amount { get; private set; }   // USD
+        public decimal Amount { get; private set; }
         public DateOnly PaidOn { get; private set; }
         public DisbursementStatus Status { get; private set; } = DisbursementStatus.Pending;
 
-        // ── CashOnBoard ───────────────────────────────────────────────────────────
-        public int? VoyageId { get; private set; }
-        public Voyage? Voyage { get; private set; }
-
-        // ── CashAtOffice ──────────────────────────────────────────────────────────
-        public int? OfficeId { get; private set; }
-        public Office? Office { get; private set; }
-        public string? RecipientName { get; private set; }   // اسم المستلم
-        public string? RecipientIdNumber { get; private set; }   // رقم الهوية / الجواز
-
-        // ── BankTransfer ──────────────────────────────────────────────────────────
-        public int? SwiftTransferId { get; private set; }
-        public SwiftTransfer? SwiftTransfer { get; private set; }
+        public string? RecipientName { get; private set; }
+        public string? RecipientIdNumber { get; private set; }
+        public string? Reference { get; private set; }
 
         public string? Notes { get; private set; }
         public string? CancelReason { get; private set; }
 
         private CrewPayrollDisbursement() { }
 
-        internal static CrewPayrollDisbursement CreateCashOnBoard(
+        internal static CrewPayrollDisbursement Create(
             int payrollId,
-            int voyageId,
+            PaymentMethod method,
             decimal amount,
             DateOnly paidOn,
-            string? notes = null)
+            string? recipientName,
+            string? recipientIdNumber,
+            string? reference,
+            string? notes)
         {
-            return new CrewPayrollDisbursement
-            {
-                PayrollId = payrollId,
-                Method = PaymentMethod.CashOnBoard,
-                Amount = amount,
-                PaidOn = paidOn,
-                VoyageId = voyageId,
-                Notes = notes
-            };
-        }
+            if (!Enum.IsDefined(method))
+                throw new ArgumentException($"Unknown payment method: {method}.");
 
-        public static CrewPayrollDisbursement CreateCashAtOffice(int payrollId, int officeId, decimal amount, DateOnly paidOn,
-                                                                   string recipientName, string recipientIdNumber, string? notes = null)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(recipientName);
-            ArgumentException.ThrowIfNullOrWhiteSpace(recipientIdNumber);
+            if (method == PaymentMethod.CashAtOffice &&
+                (string.IsNullOrWhiteSpace(recipientName) || string.IsNullOrWhiteSpace(recipientIdNumber)))
+                throw new ArgumentException(
+                    "Recipient name and ID number are required for cash collected at the office.");
+
+            if (method == PaymentMethod.BankTransfer && string.IsNullOrWhiteSpace(reference))
+                throw new ArgumentException("Bank reference is required for bank transfers.");
 
             return new CrewPayrollDisbursement
             {
                 PayrollId = payrollId,
-                Method = PaymentMethod.CashAtOffice,
+                Method = method,
                 Amount = amount,
                 PaidOn = paidOn,
-                OfficeId = officeId,
-                RecipientName = recipientName,
-                RecipientIdNumber = recipientIdNumber,
-                Notes = notes
-            };
-        }
-
-        internal static CrewPayrollDisbursement CreateBankTransfer(
-            int payrollId,
-            int swiftTransferId,
-            decimal amount,
-            DateOnly paidOn,
-            string? notes = null)
-        {
-            return new CrewPayrollDisbursement
-            {
-                PayrollId = payrollId,
-                Method = PaymentMethod.BankTransfer,
-                Amount = amount,
-                PaidOn = paidOn,
-                SwiftTransferId = swiftTransferId,
-                Notes = notes
+                RecipientName = Clean(recipientName),
+                RecipientIdNumber = Clean(recipientIdNumber),
+                Reference = Clean(reference),
+                Notes = Clean(notes)
             };
         }
 
@@ -102,16 +68,23 @@ namespace Marilog.Domain.Entities.SystemEntities
                 throw new InvalidOperationException("Cannot confirm a cancelled disbursement.");
             if (Status == DisbursementStatus.Confirmed)
                 throw new InvalidOperationException("Disbursement is already confirmed.");
+
             Status = DisbursementStatus.Confirmed;
         }
 
         internal void Cancel(string reason)
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+            if (Status == DisbursementStatus.Cancelled)
+                throw new InvalidOperationException("Disbursement is already cancelled.");
             if (Status == DisbursementStatus.Confirmed)
                 throw new InvalidOperationException("Cannot cancel a confirmed disbursement.");
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
             Status = DisbursementStatus.Cancelled;
-            CancelReason = reason;
+            CancelReason = reason.Trim();
         }
+
+        private static string? Clean(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }

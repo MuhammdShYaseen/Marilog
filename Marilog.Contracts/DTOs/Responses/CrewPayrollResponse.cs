@@ -17,11 +17,13 @@ namespace Marilog.Contracts.DTOs.Responses
         public decimal Allowances { get; set; }
         public decimal Deductions { get; set; }
         public decimal GrossAmount { get; set; }
+        public string CurrencyCode { get; set; } = "USD";
         public decimal TotalDisbursed { get; set; }
         public decimal RemainingBalance { get; set; }
         public bool IsFullyPaid { get; set; }
         public PayrollStatus Status { get; set; }
         public string? Notes { get; set; }
+        public string? CancelReason { get; set; }
         public List<DisbursementResponse>? Disbursements { get; set; } = new List<DisbursementResponse>();
     }
 }

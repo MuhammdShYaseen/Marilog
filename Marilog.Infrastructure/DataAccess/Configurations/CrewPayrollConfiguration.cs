@@ -2,9 +2,6 @@
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Infrastructure.DataAccess.Configurations
 {
@@ -20,24 +17,26 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.WorkingDays).IsRequired();
 
             // ── Amounts (USD) ─────────────────────────────────────────────────────
+
+            builder.Property(x => x.CurrencyCode)
+                   .IsRequired()
+                   .HasMaxLength(3)
+                   .IsFixedLength()
+                   .HasDefaultValue("USD");
             builder.Property(x => x.BasicWage)
                    .IsRequired()
-                   .HasColumnType("decimal(12,2)")
-                   .HasComment("USD");
+                   .HasColumnType("decimal(12,2)");
             builder.Property(x => x.Allowances)
                    .IsRequired()
                    .HasColumnType("decimal(12,2)")
-                   .HasDefaultValue(0m)
-                   .HasComment("USD");
+                   .HasDefaultValue(0m);
             builder.Property(x => x.Deductions)
                    .IsRequired()
                    .HasColumnType("decimal(12,2)")
-                   .HasDefaultValue(0m)
-                   .HasComment("USD");
+                   .HasDefaultValue(0m);
             builder.Property(x => x.GrossAmount)
                    .IsRequired()
-                   .HasColumnType("decimal(12,2)")
-                   .HasComment("USD — BasicWage + Allowances - Deductions");
+                   .HasColumnType("decimal(12,2)");
 
             builder.Property(x => x.Status)
                    .IsRequired()
@@ -46,6 +45,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasDefaultValue(PayrollStatus.Draft);
 
             builder.Property(x => x.Notes).HasMaxLength(500);
+            builder.Property(x => x.CancelReason).HasMaxLength(300);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
 

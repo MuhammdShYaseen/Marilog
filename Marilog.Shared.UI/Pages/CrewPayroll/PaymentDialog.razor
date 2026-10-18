@@ -1,5 +1,4 @@
 @using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs
-@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.CrewPayroll
@@ -48,18 +47,28 @@
                                Size="Size.Small"
                                OnClick="() => _method = null" />
                 <MudText Typo="Typo.subtitle2">@MethodLabel</MudText>
+                <MudSpacer />
+                @if (RemainingBalance > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Remaining: @RemainingBalance.ToString("N2") @CurrencyCode
+                    </MudText>
+                }
             </MudStack>
 
-            @* ── Shared Fields ───────────────────────────────────── *@
             <MudGrid>
+
+                @* ── Shared Fields ───────────────────────────────── *@
                 <MudItem xs="12" sm="6">
                     <MudNumericField T="decimal"
                                      @bind-Value="_amount"
-                                     Label="Amount"
+                                     Label="@($"Amount ({CurrencyCode})")"
                                      Required="true"
                                      Variant="Variant.Outlined"
                                      Margin="Margin.Dense"
-                                     Min="0.01m" />
+                                     Min="0.01m"
+                                     Max="@(RemainingBalance > 0 ? RemainingBalance : decimal.MaxValue)"
+                                     Format="N2" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker @bind-Date="_paidOnDate"
@@ -69,56 +78,9 @@
                                    Margin="Margin.Dense" />
                 </MudItem>
 
-                @* ── Cash Fields ─────────────────────────────────── *@
-                @if (_method == PaymentMethod.CashOnBoard)
-                {
-                    <MudItem xs="12">
-                        <MudSelect T="int"
-                                   @bind-Value="_voyageId"
-                                   Label="Voyage"
-                                   Required="true"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   ToStringFunc="@(id => Voyages.FirstOrDefault(v => v.VoyageId == id)?.VoyageNumber ?? id.ToString())">
-                            @foreach (var v in Voyages)
-                            {
-                                <MudSelectItem Value="@v.VoyageId">
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body2">@v.VoyageNumber</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @v.VesselName · @v.VoyageMonth.ToString("MMM yyyy")
-                                        </MudText>
-                                    </MudStack>
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                }
-
                 @* ── Office Fields ───────────────────────────────── *@
                 @if (_method == PaymentMethod.CashAtOffice)
                 {
-                    <MudItem xs="12">
-                        <MudSelect T="int"
-                                   @bind-Value="_officeId"
-                                   Label="Office"
-                                   Required="true"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   ToStringFunc="@(id => Offices.FirstOrDefault(o => o.Id == id)?.Name ?? id.ToString())">
-                            @foreach (var o in Offices)
-                            {
-                                <MudSelectItem Value="@o.Id">
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body2">@o.Name</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @o.City · @o.CountryName
-                                        </MudText>
-                                    </MudStack>
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_recipientName"
                                       Label="Recipient Name"
@@ -135,33 +97,16 @@
                     </MudItem>
                 }
 
-                @* ── Bank Transfer Fields ────────────────────────── *@
-                @if (_method == PaymentMethod.BankTransfer)
-                {
-                    <MudItem xs="12">
-                        <MudSelect T="int"
-                                   @bind-Value="_swiftTransferId"
-                                   Label="SWIFT Transfer"
-                                   Required="true"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   ToStringFunc="@(id => SwiftTransfers.FirstOrDefault(s => s.Id == id)?.SwiftReference ?? id.ToString())">
-                            @foreach (var s in SwiftTransfers)
-                            {
-                                <MudSelectItem Value="@s.Id">
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body2">@s.SwiftReference</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @s.CurrencyCode @s.UnallocatedAmount.ToString("N2") unallocated · @s.TransactionDate.ToString("dd MMM yyyy")
-                                        </MudText>
-                                    </MudStack>
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                }
+                @* ── Reference ───────────────────────────────────── *@
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_reference"
+                                  Label="@ReferenceLabel"
+                                  Required="@(_method == PaymentMethod.BankTransfer)"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
 
-                @* ── Notes ──────────────────────────────────────── *@
+                @* ── Notes ───────────────────────────────────────── *@
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_notes"
                                   Label="Notes"
@@ -192,35 +137,52 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter] public IReadOnlyList<VoyageResponse> Voyages { get; set; } = [];
-    [Parameter] public IReadOnlyList<OfficeResponse> Offices { get; set; } = [];
-    [Parameter] public IReadOnlyList<SwiftTransferResponse> SwiftTransfers { get; set; } = [];
+    /// <summary>Optional — pre-fills the amount and caps it. 0 = no cap.</summary>
+    [Parameter] public decimal RemainingBalance { get; set; }
+
+    [Parameter] public string CurrencyCode { get; set; } = "USD";
 
     private PaymentMethod? _method;
     private decimal _amount;
-    private DateTime? _paidOnDate;
-    private int _voyageId;
-    private int _officeId;
+    private DateTime? _paidOnDate = DateTime.Today;
     private string _recipientName = string.Empty;
     private string _recipientIdNumber = string.Empty;
-    private int _swiftTransferId;
+    private string? _reference;
     private string? _notes;
+
+    protected override void OnInitialized()
+    {
+        if (RemainingBalance > 0)
+            _amount = RemainingBalance;
+    }
 
     private string MethodLabel => _method switch
     {
-        PaymentMethod.CashOnBoard => "Cash",
+        PaymentMethod.CashOnBoard => "Cash On Board",
         PaymentMethod.CashAtOffice => "Office Payment",
         PaymentMethod.BankTransfer => "Bank Transfer",
         _ => string.Empty
     };
 
+    private string ReferenceLabel => _method switch
+    {
+        PaymentMethod.CashOnBoard => "Voucher No. (optional)",
+        PaymentMethod.CashAtOffice => "Receipt No. (optional)",
+        PaymentMethod.BankTransfer => "Bank Reference",
+        _ => "Reference"
+    };
+
+    private bool AmountIsValid =>
+        _amount > 0 && (RemainingBalance <= 0 || _amount <= RemainingBalance);
+
     private bool IsValid => _method switch
     {
-        PaymentMethod.CashOnBoard => _amount > 0 && _paidOnDate is not null && _voyageId > 0,
-        PaymentMethod.CashAtOffice => _amount > 0 && _paidOnDate is not null && _officeId > 0
-                                       && !string.IsNullOrWhiteSpace(_recipientName)
-                                       && !string.IsNullOrWhiteSpace(_recipientIdNumber),
-        PaymentMethod.BankTransfer => _amount > 0 && _paidOnDate is not null && _swiftTransferId > 0,
+        PaymentMethod.CashOnBoard => AmountIsValid && _paidOnDate is not null,
+        PaymentMethod.CashAtOffice => AmountIsValid && _paidOnDate is not null
+                                             && !string.IsNullOrWhiteSpace(_recipientName)
+                                             && !string.IsNullOrWhiteSpace(_recipientIdNumber),
+        PaymentMethod.BankTransfer => AmountIsValid && _paidOnDate is not null
+                                             && !string.IsNullOrWhiteSpace(_reference),
         _ => false
     };
 
@@ -228,42 +190,19 @@
 
     private void Submit()
     {
-        var paidOn = DateOnly.FromDateTime(_paidOnDate!.Value);
+        var isOffice = _method == PaymentMethod.CashAtOffice;
 
-        object data = _method switch
+        var request = new PayCrewPayrollRequest
         {
-            PaymentMethod.CashOnBoard =>
-                new PayCashRequest 
-                { 
-                    VoyageId = _voyageId,
-                    Amount = _amount,
-                    PaidOn = paidOn,
-                    Notes = _notes 
-                },
-
-            PaymentMethod.CashAtOffice =>
-                new PayAtOfficeRequest
-                {
-                    OfficeId = _officeId,
-                    Amount = _amount,
-                    PaidOn = paidOn,
-                    RecipientName = _recipientName, 
-                    RecipientIdNumber = _recipientIdNumber, 
-                    Notes = _notes
-                },
-
-            PaymentMethod.BankTransfer =>
-                new PayByBankTransferRequest 
-                { 
-                    SwiftTransferId = _swiftTransferId,
-                    Amount = _amount,
-                    PaidOn = paidOn,
-                    Notes = _notes 
-                },
-
-            _ => throw new InvalidOperationException()
+            Method = _method!.Value,
+            Amount = Math.Round(_amount, 2, MidpointRounding.AwayFromZero),
+            PaidOn = DateOnly.FromDateTime(_paidOnDate!.Value),
+            RecipientName = isOffice ? _recipientName : null,
+            RecipientIdNumber = isOffice ? _recipientIdNumber : null,
+            Reference = _reference,
+            Notes = _notes
         };
 
-        MudDialog.Close(DialogResult.Ok((_method!.Value, data)));
+        MudDialog.Close(DialogResult.Ok(request));
     }
 }

@@ -3,7 +3,6 @@ using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics.Contracts;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -80,12 +79,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<ActionResult<CrewPayrollResponse>> Create([FromBody] CreateCrewPayrollRequest request, CancellationToken ct)
         {
             var payroll = await _service.CreateAsync(
-                request.ContractId,
-                request.PayrollMonth,
-                request.Allowances,
-                request.Deductions,
-                request.Notes,
-                ct);
+                        request.ContractId,
+                        request.PayrollMonth,
+                        request.CurrencyCode,
+                        request.Allowances,
+                        request.Deductions,
+                        request.Notes,
+                        ct);
 
             return CreatedAtAction(nameof(GetById), new { id = payroll.Id }, ApiResponse<CrewPayrollResponse>.Ok(payroll));
         }
@@ -95,31 +95,15 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [FromBody] IEnumerable<CreateCrewPayrollRequest> requests,
         CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateCrewPayrollRequest 
-            {
-               ContractId = r.ContractId,
-                PayrollMonth =  r.PayrollMonth,
-                Allowances = r.Allowances,
-                Deductions = r.Deductions,
-                Notes = r.Notes
-            });
-
-            var result = await _service.CreateRangeAsync(commands, ct);
+            var result = await _service.CreateRangeAsync(requests, ct);
             return Ok(ApiResponse<IReadOnlyList<CrewPayrollResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCrewPayrollRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync
-                (
-                    id,
-                    request.ContractId,
-                    request.Allowances,
-                    request.Deductions,
-                    request.Notes,
-                    ct
-                );
+            await _service.UpdateAsync(id, request.ContractId, request.CurrencyCode,
+                            request.Allowances, request.Deductions, request.Notes, ct);
             return NoContent();
         }
 
@@ -148,33 +132,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // Disbursements
         // ─────────────────────────────────────────────
 
-        [HttpPost("{payrollId:int}/pay-cash")]
-        public async Task<ActionResult<DisbursementResponse>> PayCash(int payrollId, [FromBody] PayCashRequest request, CancellationToken ct)
+        [HttpPost("{payrollId:int}/disbursements")]
+        public async Task<ActionResult<ApiResponse<DisbursementResponse>>> Pay(int payrollId, [FromBody] PayCrewPayrollRequest request, CancellationToken ct)
         {
-            var disbursement = await _service.PayCashAsync(payrollId, request.VoyageId, request.Amount,
-                                                           request.PaidOn, request.Notes, ct);
-            return Ok(disbursement);
-        }
-
-        [HttpPost("{payrollId:int}/pay-office")]
-        public async Task<ActionResult<DisbursementResponse>> PayAtOffice(int payrollId, [FromBody] PayAtOfficeRequest request, CancellationToken ct)
-        {
-            var disbursement = await _service.PayAtOfficeAsync(payrollId, request.OfficeId,
-                                                               request.Amount, request.PaidOn,
-                                                               request.RecipientName,
-                                                               request.RecipientIdNumber,
-                                                               request.Notes, ct);
-            return Ok(ApiResponse<DisbursementResponse>.Ok(disbursement));
-        }
-
-        [HttpPost("{payrollId:int}/pay-bank-transfer")]
-        public async Task<ActionResult<DisbursementResponse>> PayByBankTransfer(int payrollId, [FromBody] PayByBankTransferRequest request, CancellationToken ct)
-        {
-            var disbursement = await _service.PayByBankTransferAsync(payrollId,
-                                                                     request.SwiftTransferId,
-                                                                     request.Amount,
-                                                                     request.PaidOn,
-                                                                     request.Notes, ct);
+            var disbursement = await _service.PayAsync(payrollId, request, ct);
             return Ok(ApiResponse<DisbursementResponse>.Ok(disbursement));
         }
 

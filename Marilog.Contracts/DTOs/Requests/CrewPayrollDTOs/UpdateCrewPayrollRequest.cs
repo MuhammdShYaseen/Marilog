@@ -6,5 +6,6 @@
         public decimal Allowances { get; set; } = 0m;
         public decimal Deductions { get; set; } = 0m;
         public string? Notes { get; set; }
+        public string CurrencyCode { get; set; } = "USD";
     }
 }

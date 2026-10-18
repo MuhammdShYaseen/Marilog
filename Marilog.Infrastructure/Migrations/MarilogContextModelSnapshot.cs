@@ -17,7 +17,7 @@ namespace Marilog.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -1164,12 +1164,14 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<decimal>("Allowances")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(12,2)")
-                        .HasDefaultValue(0m)
-                        .HasComment("USD");
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("BasicWage")
-                        .HasColumnType("decimal(12,2)")
-                        .HasComment("USD");
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("ContractId")
                         .HasColumnType("int");
@@ -1179,15 +1181,21 @@ namespace Marilog.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)")
+                        .HasDefaultValue("USD")
+                        .IsFixedLength();
+
                     b.Property<decimal>("Deductions")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(12,2)")
-                        .HasDefaultValue(0m)
-                        .HasComment("USD");
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("GrossAmount")
-                        .HasColumnType("decimal(12,2)")
-                        .HasComment("USD — BasicWage + Allowances - Deductions");
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
@@ -1245,7 +1253,7 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(12,2)")
-                        .HasComment("USD");
+                        .HasComment("In the payroll's currency");
 
                     b.Property<string>("CancelReason")
                         .HasMaxLength(300)
@@ -1273,9 +1281,6 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<int?>("OfficeId")
-                        .HasColumnType("int");
-
                     b.Property<DateOnly>("PaidOn")
                         .HasColumnType("date");
 
@@ -1290,6 +1295,10 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1297,34 +1306,17 @@ namespace Marilog.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasDefaultValue("Pending");
 
-                    b.Property<int?>("SwiftTransferId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("VoyageId")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Guid")
                         .IsUnique();
 
-                    b.HasIndex("Method");
-
-                    b.HasIndex("OfficeId")
-                        .HasFilter("[OfficeId] IS NOT NULL");
-
                     b.HasIndex("PayrollId");
 
                     b.HasIndex("Status");
-
-                    b.HasIndex("SwiftTransferId")
-                        .HasFilter("[SwiftTransferId] IS NOT NULL");
-
-                    b.HasIndex("VoyageId")
-                        .HasFilter("[VoyageId] IS NOT NULL");
 
                     b.ToTable("CrewPayrollDisbursements", (string)null);
                 });
@@ -3514,32 +3506,11 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayrollDisbursement", b =>
                 {
-                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Office", "Office")
-                        .WithMany()
-                        .HasForeignKey("OfficeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.CrewPayroll", null)
                         .WithMany("Disbursements")
                         .HasForeignKey("PayrollId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Marilog.Domain.Entities.SystemEntities.SwiftTransfer", "SwiftTransfer")
-                        .WithMany()
-                        .HasForeignKey("SwiftTransferId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Voyage", "Voyage")
-                        .WithMany()
-                        .HasForeignKey("VoyageId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Office");
-
-                    b.Navigation("SwiftTransfer");
-
-                    b.Navigation("Voyage");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Document", b =>

@@ -31,44 +31,50 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<CrewPayrollResponse?> GetByContractAndMonthAsync(int contractId, DateOnly month, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CrewPayrollResponse>>($"{Base}/by-contract/{contractId}/month?month={month:yyyy-MM-dd}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<CrewPayrollResponse>>(
+                $"{Base}/by-contract/{contractId}/month?month={month:yyyy-MM-dd}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<CrewPayrollResponse>> GetByContractAsync(int contractId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>($"{Base}/by-contract/{contractId}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>(
+                $"{Base}/by-contract/{contractId}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<CrewPayrollResponse>> GetByMonthAsync(DateOnly month, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>($"{Base}/by-month?month={month:yyyy-MM-dd}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>(
+                $"{Base}/by-month?month={month:yyyy-MM-dd}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<CrewPayrollResponse>> GetByStatusAsync(PayrollStatus status, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>($"{Base}/by-status/{status}", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>(
+                $"{Base}/by-status/{status}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<CrewPayrollResponse>> GetOutstandingAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>($"{Base}/outstanding", ct);
+            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewPayrollResponse>>>(
+                $"{Base}/outstanding", ct);
             return response?.Data ?? [];
         }
 
-        // ── Commands ─────────────────────────────────────────────────────────────
+        // ── Commands ──────────────────────────────────────────────────────────────
 
         public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth,
-            decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
-            CancellationToken ct = default)
+            string currencyCode = "USD", decimal allowances = 0m, decimal deductions = 0m,
+            string? notes = null, CancellationToken ct = default)
         {
             var request = new CreateCrewPayrollRequest
             {
                 ContractId = contractId,
                 PayrollMonth = payrollMonth,
+                CurrencyCode = currencyCode,
                 Allowances = allowances,
                 Deductions = deductions,
                 Notes = notes
@@ -80,7 +86,8 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(IEnumerable<CreateCrewPayrollRequest> commands, CancellationToken ct = default)
+        public async Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(
+            IEnumerable<CreateCrewPayrollRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
             http.EnsureSuccessStatusCode();
@@ -88,13 +95,14 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, int contractId, decimal allowances = 0m,
-                                       decimal deductions = 0m, string? notes = null,
-                                       CancellationToken ct = default)
+        public async Task UpdateAsync(int id, int contractId, string currencyCode = "USD",
+            decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
+            CancellationToken ct = default)
         {
             var request = new UpdateCrewPayrollRequest
             {
                 ContractId = contractId,
+                CurrencyCode = currencyCode,
                 Allowances = allowances,
                 Deductions = deductions,
                 Notes = notes
@@ -125,41 +133,10 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Disbursements ─────────────────────────────────────────────────────────
 
-        public async Task<DisbursementResponse> PayCashAsync(int payrollId, int voyageId,
-            decimal amount, DateOnly paidOn, string? notes = null, CancellationToken ct = default)
+        public async Task<DisbursementResponse> PayAsync(int payrollId, PayCrewPayrollRequest request,
+            CancellationToken ct = default)
         {
-            var request = new PayCashRequest { VoyageId = voyageId, Amount = amount, PaidOn = paidOn, Notes = notes };
-            var http = await _http.PostAsJsonAsync($"{Base}/{payrollId}/pay-cash", request, ct);
-            http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<DisbursementResponse>(ct);
-            return response!;
-        }
-
-        public async Task<DisbursementResponse> PayAtOfficeAsync(int payrollId, int officeId,
-            decimal amount, DateOnly paidOn, string recipientName, string recipientIdNumber,
-            string? notes = null, CancellationToken ct = default)
-        {
-            var request = new PayAtOfficeRequest
-            {
-                OfficeId = officeId,
-                Amount = amount,
-                PaidOn = paidOn,
-                RecipientName = recipientName,
-                RecipientIdNumber = recipientIdNumber,
-                Notes = notes
-            };
-
-            var http = await _http.PostAsJsonAsync($"{Base}/{payrollId}/pay-office", request, ct);
-            http.EnsureSuccessStatusCode();
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<DisbursementResponse>>(ct);
-            return response!.Data!;
-        }
-
-        public async Task<DisbursementResponse> PayByBankTransferAsync(int payrollId, int swiftTransferId,
-            decimal amount, DateOnly paidOn, string? notes = null, CancellationToken ct = default)
-        {
-            var request = new PayByBankTransferRequest { SwiftTransferId = swiftTransferId, Amount = amount, PaidOn = paidOn, Notes = notes };
-            var http = await _http.PostAsJsonAsync($"{Base}/{payrollId}/pay-bank-transfer", request, ct);
+            var http = await _http.PostAsJsonAsync($"{Base}/{payrollId}/disbursements", request, ct);
             http.EnsureSuccessStatusCode();
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<DisbursementResponse>>(ct);
             return response!.Data!;
@@ -171,10 +148,12 @@ namespace Marilog.Client.Services.SystemServices
             http.EnsureSuccessStatusCode();
         }
 
-        public async Task CancelDisbursementAsync(int payrollId, int disbursementId, string reason, CancellationToken ct = default)
+        public async Task CancelDisbursementAsync(int payrollId, int disbursementId, string reason,
+            CancellationToken ct = default)
         {
             var request = new CancelDisbursementRequest { Reason = reason };
-            var http = await _http.PatchAsJsonAsync($"{Base}/{payrollId}/disbursements/{disbursementId}/cancel", request, ct);
+            var http = await _http.PatchAsJsonAsync(
+                $"{Base}/{payrollId}/disbursements/{disbursementId}/cancel", request, ct);
             http.EnsureSuccessStatusCode();
         }
 

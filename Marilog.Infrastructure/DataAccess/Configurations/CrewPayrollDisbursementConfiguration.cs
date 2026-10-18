@@ -27,7 +27,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Amount)
                    .IsRequired()
                    .HasColumnType("decimal(12,2)")
-                   .HasComment("USD");
+                   .HasComment("In the payroll's currency");
 
             builder.Property(x => x.PaidOn).IsRequired().HasColumnType("date");
 
@@ -37,44 +37,14 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasMaxLength(20)
                    .HasDefaultValue(DisbursementStatus.Pending);
 
-            // ── CashAtOffice fields ───────────────────────────────────────────────
             builder.Property(x => x.RecipientName).HasMaxLength(200);
             builder.Property(x => x.RecipientIdNumber).HasMaxLength(50);
-
+            builder.Property(x => x.Reference).HasMaxLength(100);
             builder.Property(x => x.Notes).HasMaxLength(300);
             builder.Property(x => x.CancelReason).HasMaxLength(300);
 
-            // ── CashOnBoard → Voyage ──────────────────────────────────────────────
-            builder.HasOne(x => x.Voyage)
-                   .WithMany()
-                   .HasForeignKey(x => x.VoyageId)
-                   .IsRequired(false)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            // ── CashAtOffice → Office ─────────────────────────────────────────────
-            builder.HasOne(x => x.Office)
-                   .WithMany()
-                   .HasForeignKey(x => x.OfficeId)
-                   .IsRequired(false)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            // ── BankTransfer → SwiftTransfer ──────────────────────────────────────
-            builder.HasOne(x => x.SwiftTransfer)
-                   .WithMany()
-                   .HasForeignKey(x => x.SwiftTransferId)
-                   .IsRequired(false)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            // ── Indexes ───────────────────────────────────────────────────────────
             builder.HasIndex(x => x.PayrollId);
-            builder.HasIndex(x => x.Method);
             builder.HasIndex(x => x.Status);
-            builder.HasIndex(x => x.VoyageId)
-                   .HasFilter("[VoyageId] IS NOT NULL");
-            builder.HasIndex(x => x.OfficeId)
-                   .HasFilter("[OfficeId] IS NOT NULL");
-            builder.HasIndex(x => x.SwiftTransferId)
-                   .HasFilter("[SwiftTransferId] IS NOT NULL");
         }
     }
 }

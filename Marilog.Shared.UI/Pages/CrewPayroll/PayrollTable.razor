@@ -7,8 +7,9 @@
           Dense="true"
           Hover="true"
           Striped="true"
-          SelectedItem="Selected"
+          SelectedItem="SelectedRow"
           SelectedItemChanged="OnRowSelected"
+          RowStyleFunc="RowStyle"
           T="CrewPayrollResponse">
     <HeaderContent>
         <MudTh>Name</MudTh>
@@ -23,11 +24,18 @@
         <MudTd>@context.PersonFullName</MudTd>
         <MudTd>@context.VesselName</MudTd>
         <MudTd>@context.PayrollMonth.ToString("MMM yyyy")</MudTd>
-        <MudTd>@context.GrossAmount.ToString("N2")</MudTd>
+        <MudTd>@context.GrossAmount.ToString("N2") @context.CurrencyCode</MudTd>
         <MudTd>
-            <MudText Color="@(context.RemainingBalance > 0 ? Color.Warning : Color.Success)">
-                @context.RemainingBalance.ToString("N2")
-            </MudText>
+            @if (context.Status == PayrollStatus.Cancelled)
+            {
+                <MudText Color="Color.Secondary">—</MudText>
+            }
+            else
+            {
+                <MudText Color="@(context.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+                    @context.RemainingBalance.ToString("N2") @context.CurrencyCode
+                </MudText>
+            }
         </MudTd>
         <MudTd>
             <MudChip T="string"
@@ -39,6 +47,7 @@
         <MudTd>
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
                            Size="Size.Small"
+                           Disabled="@(context.Status != PayrollStatus.Draft)"
                            OnClick="() => OnEditClicked.InvokeAsync(context)" />
             <MudIconButton Icon="@Icons.Material.Filled.Receipt"
                            Size="Size.Small"
@@ -47,6 +56,7 @@
             <MudIconButton Icon="@Icons.Material.Filled.Delete"
                            Size="Size.Small"
                            Color="Color.Error"
+                           Disabled="@(context.Status != PayrollStatus.Draft)"
                            OnClick="() => OnDeleteClicked.InvokeAsync(context)" />
         </MudTd>
     </RowTemplate>
@@ -62,6 +72,13 @@
     [Parameter] public EventCallback<CrewPayrollResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<CrewPayrollResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    // Selected comes from GetByIdAsync (a different instance) — match the row by Id
+    private CrewPayrollResponse? SelectedRow =>
+        Selected is null ? null : Items.FirstOrDefault(x => x.Id == Selected.Id);
+
+    private string RowStyle(CrewPayrollResponse item, int index) =>
+        item.Id == Selected?.Id ? "background-color: var(--mud-palette-primary-hover);" : string.Empty;
 
     private static Color StatusColor(PayrollStatus status) => status switch
     {

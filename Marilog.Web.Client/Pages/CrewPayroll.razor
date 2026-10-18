@@ -8,9 +8,6 @@
 @using Marilog.Web.Client.Services.Interfaces
 @inject ICrewPayrollService PayrollService
 @inject ICrewContractService CrewContractService
-@inject IVoyageService VoyageService
-@inject IOfficeService OfficeService
-@inject ISwiftTransferService SwiftTransferService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IManageStoredFiles ManageStoredFiles
@@ -20,17 +17,21 @@
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-else
+@if (_initialized)
 {
     <SharedCrewPayrollPage PayrollByMonth="_byMonth"
                            PayrollByStatus="_byStatus"
                            Outstanding="_outstanding"
+                           Selected="_selected"
+                           OnSelectedChanged="SelectAsync"
                            OnAddClicked="OpenAddDialog"
                            OnEditClicked="OpenEditDialog"
                            OnDeleteClicked="ConfirmDelete"
                            OnApproveClicked="Approve"
                            OnCancelClicked="Cancel"
                            OnPayClicked="OpenPayDialog"
+                           OnConfirmDisbursementClicked="@(a => ConfirmDisbursement(a.payrollId, a.disbursement))"
+                           OnCancelDisbursementClicked="@(a => CancelDisbursement(a.payrollId, a.disbursement))"
                            OnMonthSelected="LoadByMonth"
                            OnStatusChanged="LoadByStatus"
                            OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
@@ -41,36 +42,43 @@ else
     private IReadOnlyList<CrewPayrollResponse> _byStatus = [];
     private IReadOnlyList<CrewPayrollResponse> _outstanding = [];
     private IReadOnlyList<CrewContractResponse> _contracts = [];
-    private IReadOnlyList<VoyageResponse> _voyages = [];
-    private IReadOnlyList<OfficeResponse> _offices = [];
-    private IReadOnlyList<SwiftTransferResponse> _swifts = [];
     private bool _loading = true;
 
-    string? XLabel(int id) => _contracts.FirstOrDefault(x => x.ContractId == id) is { } x ? $"Crew Member : {x.PersonFullName}" : null;
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private DateOnly _selectedMonth = DateOnly.FromDateTime(DateTime.Today);
+    private PayrollStatus _selectedStatus = PayrollStatus.Draft;
+
+    string? XLabel(int payrollId) =>
+    _byMonth.Concat(_byStatus).Concat(_outstanding)
+            .FirstOrDefault(x => x.Id == payrollId) is { } p
+        ? $"Crew Member : {p.PersonFullName} — {p.PayrollMonth:MMM yyyy}"
+        : null;
+    private bool _initialized;
+    private CrewPayrollResponse? _selected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _initialized = true;
+    }
+    // ─── Loading ───────────────────────────────────────────────────────────
 
     private async Task LoadAsync()
     {
         _loading = true;
         try
         {
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            var t1 = PayrollService.GetByMonthAsync(today);
-            var t2 = PayrollService.GetByStatusAsync(PayrollStatus.Draft);
+            var t1 = PayrollService.GetByMonthAsync(_selectedMonth);
+            var t2 = PayrollService.GetByStatusAsync(_selectedStatus);
             var t3 = PayrollService.GetOutstandingAsync();
             var t4 = CrewContractService.GetAllAsync();
-            var t5 = VoyageService.GetActiveVoyagesAsync();
-            var t6 = OfficeService.GetActiveAsync();
-            var t7 = SwiftTransferService.GetUnallocatedAsync();
-            await Task.WhenAll(t1, t2, t3, t4, t5, t6, t7);
+            await Task.WhenAll(t1, t2, t3, t4);
 
             _byMonth = t1.Result;
             _byStatus = t2.Result;
             _outstanding = t3.Result;
             _contracts = t4.Result;
-            _voyages = t5.Result;
-            _offices = t6.Result;
-            _swifts = t7.Result;
+            if (_selected is not null)
+                _selected = await PayrollService.GetByIdAsync(_selected.Id);
         }
         catch (Exception ex)
         {
@@ -84,20 +92,66 @@ else
 
     private async Task LoadByMonth(DateOnly month)
     {
-        _byMonth = await PayrollService.GetByMonthAsync(month);
+        _selectedMonth = month;
+        try
+        {
+            _byMonth = await PayrollService.GetByMonthAsync(month);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         StateHasChanged();
     }
 
     private async Task LoadByStatus(PayrollStatus? status)
     {
-        _byStatus = status is null
-            ? await PayrollService.GetByStatusAsync(PayrollStatus.Draft)
-            : await PayrollService.GetByStatusAsync(status.Value);
+        _selectedStatus = status ?? PayrollStatus.Draft;
+        try
+        {
+            _byStatus = await PayrollService.GetByStatusAsync(_selectedStatus);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         StateHasChanged();
     }
 
+    private async Task SelectAsync(CrewPayrollResponse? payroll)
+    {
+        if (payroll is null)
+        {
+            _selected = null;
+            return;
+        }
 
-    //----PAYROLL DIALOGS--------------------------------------------------
+        try
+        {
+            _selected = await PayrollService.GetByIdAsync(payroll.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    /// <summary>Runs a command, shows the outcome, reloads on success.</summary>
+    private async Task RunAsync(Func<Task> action, string successMessage, Severity severity = Severity.Success)
+    {
+        try
+        {
+            await action();
+            Snackbar.Add(successMessage, severity);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    // ─── Payroll Dialogs ───────────────────────────────────────────────────
 
     private async Task OpenAddDialog()
     {
@@ -105,24 +159,21 @@ else
         {
             ["Contracts"] = _contracts
         };
+
         var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("New Payroll", parameters);
         var result = await dialog.Result;
-
-        if (result is null || result.Canceled)
-            return;
+        if (result is null || result.Canceled) return;
 
         if (result.Data is CreateCrewPayrollRequest request)
         {
-            await PayrollService.CreateAsync
-            (
-                request.ContractId,
-                request.PayrollMonth,
-                request.Allowances,
-                request.Deductions,
-                request.Notes
-            );
-            Snackbar.Add("Payroll Added.", Severity.Success);
-            await LoadAsync();
+            await RunAsync(() => PayrollService.CreateAsync(
+                                     request.ContractId,
+                                     request.PayrollMonth,
+                                     request.CurrencyCode,
+                                     request.Allowances,
+                                     request.Deductions,
+                                     request.Notes),
+                           "Payroll added.");
         }
     }
 
@@ -135,40 +186,39 @@ else
         };
 
         var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("Edit Payroll", parameters);
-
         var result = await dialog.Result;
-
-        if (result is null || result.Canceled)
-            return;
+        if (result is null || result.Canceled) return;
 
         if (result.Data is UpdateCrewPayrollRequest request)
         {
-            await PayrollService.UpdateAsync
-            (
-                payroll.Id,
-                request.ContractId,
-                request.Allowances,
-                request.Deductions,
-                request.Notes
-            );
-            Snackbar.Add("Payroll Updated.", Severity.Success);
-            await LoadAsync();
+            await RunAsync(() => PayrollService.UpdateAsync(
+                                     payroll.Id,
+                                     request.ContractId,
+                                     request.CurrencyCode,
+                                     request.Allowances,
+                                     request.Deductions,
+                                     request.Notes),
+                           "Payroll updated.");
         }
     }
 
     // ─── Payroll Actions ───────────────────────────────────────────────────
-    private async Task Approve(CrewPayrollResponse payroll)
-    {
-        await PayrollService.ApproveAsync(payroll.Id);
-        Snackbar.Add("Payroll approved.", Severity.Success);
-        await LoadAsync();
-    }
+
+    private Task Approve(CrewPayrollResponse payroll) =>
+        RunAsync(() => PayrollService.ApproveAsync(payroll.Id), "Payroll approved.");
 
     private async Task Cancel(CrewPayrollResponse payroll)
     {
-        await PayrollService.CancelAsync(payroll.Id, "Cancelled by user");
-        Snackbar.Add("Payroll cancelled.", Severity.Warning);
-        await LoadAsync();
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Cancel Payroll",
+            $"Cancel payroll for '{payroll.PersonFullName}' — {payroll.PayrollMonth:MMM yyyy}?",
+            yesText: "Cancel Payroll",
+            cancelText: "Back");
+
+        if (confirmed != true) return;
+
+        await RunAsync(() => PayrollService.CancelAsync(payroll.Id, "Cancelled by user"),
+                       "Payroll cancelled.", Severity.Warning);
     }
 
     private async Task ConfirmDelete(CrewPayrollResponse payroll)
@@ -181,9 +231,12 @@ else
 
         if (confirmed != true) return;
 
-        await PayrollService.DeleteAsync(payroll.Id);
-        Snackbar.Add("Payroll deleted.", Severity.Success);
-        await LoadAsync();
+        await RunAsync(async () =>
+        {
+            await PayrollService.DeleteAsync(payroll.Id);
+            if (_selected?.Id == payroll.Id) _selected = null;
+        }, 
+        "Payroll deleted.");
     }
 
     // ─── Disbursement ──────────────────────────────────────────────────────
@@ -192,58 +245,38 @@ else
     {
         var parameters = new DialogParameters
         {
-            ["Voyages"] = _voyages,
-            ["Offices"] = _offices,
-            ["SwiftTransfers"] = _swifts
+            ["RemainingBalance"] = payroll.RemainingBalance,
+            ["CurrencyCode"] = payroll.CurrencyCode
         };
 
         var dialog = await DialogService.ShowAsync<PaymentDialog>("Record Payment", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var (method, data) = ((PaymentMethod, object))result.Data!;
-
-        var outcome = method switch
+        if (result.Data is PayCrewPayrollRequest request)
         {
-            PaymentMethod.CashOnBoard => await HandlePayCash(payroll.Id, (PayCashRequest)data),
-            PaymentMethod.CashAtOffice => await HandlePayAtOffice(payroll.Id, (PayAtOfficeRequest)data),
-            PaymentMethod.BankTransfer => await HandlePayByBankTransfer(payroll.Id, (PayByBankTransferRequest)data),
-            _ => throw new InvalidOperationException()
-        };
-
-        if (outcome.Id > 0)
-        {
-            Snackbar.Add("Payment recorded.", Severity.Success);
-            await LoadAsync();
+            await RunAsync(() => PayrollService.PayAsync(payroll.Id, request), "Payment recorded.");
         }
     }
-
-    private Task<DisbursementResponse> HandlePayCash(int payrollId, PayCashRequest r) =>
-        PayrollService.PayCashAsync(payrollId, r.VoyageId, r.Amount, r.PaidOn, r.Notes);
-
-    private Task<DisbursementResponse> HandlePayAtOffice(int payrollId, PayAtOfficeRequest r) =>
-        PayrollService.PayAtOfficeAsync(payrollId, r.OfficeId, r.Amount, r.PaidOn,
-                                        r.RecipientName, r.RecipientIdNumber, r.Notes);
-
-    private Task<DisbursementResponse> HandlePayByBankTransfer(int payrollId, PayByBankTransferRequest r) =>
-        PayrollService.PayByBankTransferAsync(payrollId, r.SwiftTransferId, r.Amount, r.PaidOn, r.Notes);
 
     // ─── Disbursement Actions ──────────────────────────────────────────────
 
     public async Task ConfirmDisbursement(int payrollId, DisbursementResponse disbursement)
     {
-        await PayrollService.ConfirmDisbursementAsync(payrollId, disbursement.Id);
-        Snackbar.Add("Disbursement confirmed.", Severity.Success);
-        await LoadAsync();
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Confirm Disbursement",
+            $"Confirm disbursement of {disbursement.Amount:N2} via {disbursement.Method}? A confirmed disbursement cannot be cancelled.",
+            yesText: "Confirm",
+            cancelText: "Back");
+
+        if (confirmed != true) return;
+
+        await RunAsync(() => PayrollService.ConfirmDisbursementAsync(payrollId, disbursement.Id),
+                       "Disbursement confirmed.");
     }
 
     public async Task CancelDisbursement(int payrollId, DisbursementResponse disbursement)
     {
-        var parameters = new DialogParameters
-        {
-            ["Message"] = $"Cancel disbursement of {disbursement.Amount:N2} via {disbursement.Method}?"
-        };
-
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Cancel Disbursement",
             $"Cancel disbursement of {disbursement.Amount:N2} via {disbursement.Method}?",
@@ -252,8 +285,7 @@ else
 
         if (confirmed != true) return;
 
-        await PayrollService.CancelDisbursementAsync(payrollId, disbursement.Id, "Cancelled by user");
-        Snackbar.Add("Disbursement cancelled.", Severity.Warning);
-        await LoadAsync();
+        await RunAsync(() => PayrollService.CancelDisbursementAsync(payrollId, disbursement.Id, "Cancelled by user"),
+                       "Disbursement cancelled.", Severity.Warning);
     }
 }

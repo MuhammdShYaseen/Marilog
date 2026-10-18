@@ -4,14 +4,12 @@
 @namespace Marilog.Shared.UI.Pages.CrewPayroll
 
 @* ────────────────────────────────────────────────────────────────────────────
-   CrewPayrollEditDialog
-   One dialog for Create and Edit. WorkingDays/BasicWage are never user
-   input — CrewPayrollService computes them server-side from the contract
-   in both CreateAsync and UpdateAsync — so they're hidden in Create mode
-   and shown read-only (with a recalculation notice) in Edit mode.
-   ContractId is only meaningful at creation: UpdateCrewPayrollRequest
-   carries it but CrewPayroll.Update never actually reassigns it, so it's
-   disabled in Edit mode until that's resolved on the backend.
+   CrewPayrollFormDialog
+   One dialog for Create and Edit (Edit = Draft only).
+   WorkingDays / BasicWage are never user input — the server computes them
+   from the contract: full calendar month = full MonthlyWage, otherwise
+   service days × (MonthlyWage ÷ 30).
+   Contract and month are fixed after creation.
    ──────────────────────────────────────────────────────────────────────── *@
 <MudDialog>
     <DialogContent>
@@ -53,26 +51,42 @@
                                    HelperText="@(_isEdit ? "Not editable after creation" : "Any day in the target month works")" />
                 </MudItem>
 
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_currencyCode"
+                               Label="Currency"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Required="true"
+                               RequiredError="Currency is required"
+                               HelperText="All amounts of this payroll are in this currency">
+                        @foreach (var currency in CurrencyOptions)
+                        {
+                            <MudSelectItem Value="@currency">@currency</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
                 @if (_isEdit)
                 {
                     <MudItem xs="12" sm="6">
-                        <MudNumericField T="int" Value="_workingDays" Label="Working Days"
+                        <MudNumericField T="int" Value="_workingDays" Label="Service Days"
                                          Variant="Variant.Outlined" Margin="Margin.Dense"
                                          Disabled="true"
-                                         HelperText="Recalculated automatically from the contract on save" />
+                                         HelperText="Recalculated from the contract on save" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudNumericField T="decimal" Value="_basicWage" Label="Basic Wage"
                                          Variant="Variant.Outlined" Margin="Margin.Dense"
                                          Format="N2" Disabled="true"
-                                         HelperText="Recalculated automatically from the contract on save" />
+                                         HelperText="Recalculated from the contract on save" />
                     </MudItem>
                 }
                 else
                 {
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Info" Dense="true">
-                            Working days and basic wage are calculated automatically from the contract once this payroll is created.
+                            Basic wage is calculated from the contract: a full calendar month pays the full monthly wage,
+                            otherwise service days × (monthly wage ÷ 30).
                         </MudAlert>
                     </MudItem>
                 }
@@ -99,9 +113,8 @@
 
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   Disabled="@_isSaving" OnClick="SubmitAsync">
-            @(_isSaving ? "Saving..." : "Save")
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
+            Save
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -114,17 +127,26 @@
     [Parameter] public CrewPayrollResponse? Payroll { get; set; }
     [Parameter] public IReadOnlyList<CrewContractResponse> Contracts { get; set; } = [];
 
+    // Edit this list to match the currencies you pay crew in
+    static readonly string[] CommonCurrencies = ["USD", "AED", "EUR", "GBP", "SAR"];
+
     MudForm _form = default!;
     bool _isEdit;
-    bool _isSaving;
 
     int _workingDays;
     decimal _basicWage;
     decimal _allowances;
     decimal _deductions;
     string? _notes;
+    string _currencyCode = "USD";
     DateTime? _payrollMonthDate;
     int _contractId;
+
+    // keeps an existing payroll's currency selectable even if it isn't in the common list
+    IEnumerable<string> CurrencyOptions =>
+        CommonCurrencies.Contains(_currencyCode)
+            ? CommonCurrencies
+            : CommonCurrencies.Append(_currencyCode);
 
     protected override void OnParametersSet()
     {
@@ -137,6 +159,7 @@
         _allowances = Payroll.Allowances;
         _deductions = Payroll.Deductions;
         _notes = Payroll.Notes;
+        _currencyCode = Payroll.CurrencyCode;
         _payrollMonthDate = Payroll.PayrollMonth.ToDateTime(TimeOnly.MinValue);
         _contractId = Payroll.ContractId;
     }
@@ -155,40 +178,32 @@
             return;
         }
 
-        _isSaving = true;
-        try
+        var allowances = Math.Round(_allowances, 2, MidpointRounding.AwayFromZero);
+        var deductions = Math.Round(_deductions, 2, MidpointRounding.AwayFromZero);
+
+        if (!_isEdit)
         {
-            if (!_isEdit)
+            var monthDate = _payrollMonthDate!.Value;
+            MudDialog.Close(DialogResult.Ok(new CreateCrewPayrollRequest
             {
-                var monthDate = _payrollMonthDate!.Value;
-                MudDialog.Close(DialogResult.Ok(
-                    new CreateCrewPayrollRequest
-                    {
-                        ContractId = _contractId,
-                        PayrollMonth = new DateOnly(monthDate.Year, monthDate.Month, 1),
-                        Allowances = _allowances,
-                        Deductions = _deductions,
-                        Notes = _notes
-                        // WorkingDays / BasicWage intentionally omitted — the server
-                        // computes both from the contract; CreateAsync doesn't accept
-                        // them as parameters, so sending them here would be dead data.
-                    }));
-            }
-            else
-            {
-                MudDialog.Close(DialogResult.Ok(
-                    new UpdateCrewPayrollRequest
-                    {
-                        ContractId = _contractId,
-                        Allowances = _allowances,
-                        Deductions = _deductions,
-                        Notes = _notes
-                    }));
-            }
+                ContractId   = _contractId,
+                PayrollMonth = new DateOnly(monthDate.Year, monthDate.Month, 1),
+                CurrencyCode = _currencyCode,
+                Allowances   = allowances,
+                Deductions   = deductions,
+                Notes        = _notes
+            }));
         }
-        finally
+        else
         {
-            _isSaving = false;
+            MudDialog.Close(DialogResult.Ok(new UpdateCrewPayrollRequest
+            {
+                ContractId   = _contractId,
+                CurrencyCode = _currencyCode,
+                Allowances   = allowances,
+                Deductions   = deductions,
+                Notes        = _notes
+            }));
         }
     }
 }

@@ -1,18 +1,18 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
-using System.Diagnostics.Contracts;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
     /// <summary>
-    /// Aggregate Root — Monthly payroll for a single crew member.
+    /// Aggregate Root — monthly payroll for one crew contract.
     /// One record per (ContractId + PayrollMonth). All amounts in USD.
     ///
-    /// Three disbursement methods:
-    ///   PayCash()           → cash on board (deducted from Voyage.CashOnBoard)
-    ///   PayAtOffice()       → cash at company office (collected by crew family member)
-    ///   PayByBankTransfer() → wire transfer linked to SwiftTransfer
+    /// Lifecycle : Draft → Approved → PartiallyPaid → FullyPaid
+    ///             Cancelled: only when no active (Pending/Confirmed) disbursements exist.
+    /// BasicWage : MonthlyWage × ServiceDays ÷ DaysInMonth (sign-on and sign-off days both counted)
+    /// Gross     : BasicWage + Allowances − Deductions
+    /// Pending + Confirmed disbursements reserve the balance; FullyPaid requires all of them Confirmed.
     /// </summary>
     public class CrewPayroll : Entity
     {
@@ -20,183 +20,114 @@ namespace Marilog.Domain.Entities.SystemEntities
         public CrewContract Contract { get; private set; } = null!;
 
         // ── Period ────────────────────────────────────────────────────────────────
-        /// <summary>Always stored as first day of month: 2025-03-01</summary>
-        public DateOnly PayrollMonth { get; private set; }
+        public DateOnly PayrollMonth { get; private set; }   // always 1st of month
         public int WorkingDays { get; private set; }
 
         // ── Amounts (USD) ─────────────────────────────────────────────────────────
         public decimal BasicWage { get; private set; }
         public decimal Allowances { get; private set; }
         public decimal Deductions { get; private set; }
-        public decimal GrossAmount { get; private set; }  // BasicWage + Allowances - Deductions
-
+        public decimal GrossAmount { get; private set; }
+        public string CurrencyCode { get; private set; } = "USD";
         // ── Status ────────────────────────────────────────────────────────────────
         public PayrollStatus Status { get; private set; } = PayrollStatus.Draft;
         public string? Notes { get; private set; }
+        public string? CancelReason { get; private set; }
 
         private readonly List<CrewPayrollDisbursement> _disbursements = new();
-        public ICollection<CrewPayrollDisbursement> Disbursements
-            => _disbursements.AsReadOnly();
+        public ICollection<CrewPayrollDisbursement> Disbursements => _disbursements.AsReadOnly();
 
-        // ── Computed ──────────────────────────────────────────────────────────────
-        public decimal TotalDisbursed =>
-            _disbursements
-                .Where(d => d.Status != DisbursementStatus.Cancelled)
-                .Sum(d => d.Amount);
-
+        // ── Computed (in-memory — requires Disbursements loaded) ──────────────────
+        public decimal TotalDisbursed => ActiveDisbursements.Sum(d => d.Amount);
         public decimal RemainingBalance => GrossAmount - TotalDisbursed;
-        public bool IsFullyPaid => RemainingBalance <= 0;
+        public bool IsFullyPaid => Status == PayrollStatus.FullyPaid;
+
+        private IEnumerable<CrewPayrollDisbursement> ActiveDisbursements =>
+            _disbursements.Where(d => d.Status != DisbursementStatus.Cancelled);
 
         private CrewPayroll() { }
 
         // ── Factory ───────────────────────────────────────────────────────────────
         public static CrewPayroll Create(
-            int contractId,
-            DateOnly payrollMonth,
-            int workingDays,
-            decimal basicWage,
-            decimal allowances = 0m,
-            decimal deductions = 0m,
-            string? notes = null)
+     CrewContract contract,
+     DateOnly payrollMonth,
+     string currencyCode,
+     decimal allowances = 0m,
+     decimal deductions = 0m,
+     string? notes = null)
         {
-            if (contractId <= 0) throw new ArgumentException("Invalid ContractId.");
-            if (workingDays <= 0) throw new ArgumentException("WorkingDays must be positive.");
-            if (basicWage < 0) throw new ArgumentException("BasicWage cannot be negative.");
-            if (allowances < 0) throw new ArgumentException("Allowances cannot be negative.");
-            if (deductions < 0) throw new ArgumentException("Deductions cannot be negative.");
+            ArgumentNullException.ThrowIfNull(contract);
+            if (contract.Id <= 0)
+                throw new ArgumentException("Contract must be saved before creating a payroll.");
 
-            var gross = basicWage + allowances - deductions;
-            if (gross < 0)
-                throw new InvalidOperationException("GrossAmount cannot be negative.");
-
-            return new CrewPayroll
+            var payroll = new CrewPayroll
             {
-                ContractId = contractId,
-                PayrollMonth = new DateOnly(payrollMonth.Year, payrollMonth.Month, 1),
-                WorkingDays = workingDays,
-                BasicWage = basicWage,
-                Allowances = allowances,
-                Deductions = deductions,
-                GrossAmount = gross,
-                Notes = notes
+                ContractId = contract.Id,
+                PayrollMonth = new DateOnly(payrollMonth.Year, payrollMonth.Month, 1)
             };
+            payroll.Calculate(contract, currencyCode, allowances, deductions, notes);
+            return payroll;
         }
 
-        // ── Update (Draft only) ───────────────────────────────────────────────────
         public void Update(
-            int contractId,
-            int workingDays,
-            decimal basicWage,
+            CrewContract contract,
+            string currencyCode,
             decimal allowances = 0m,
             decimal deductions = 0m,
             string? notes = null)
         {
-            EnsureDraft("Update");
-            if (workingDays <= 0) throw new ArgumentException("WorkingDays must be positive.");
-            if (basicWage < 0) throw new ArgumentException("BasicWage cannot be negative.");
-            if (allowances < 0) throw new ArgumentException("Allowances cannot be negative.");
-            if (deductions < 0) throw new ArgumentException("Deductions cannot be negative.");
-            if (contractId <= 0) throw new ArgumentException("Invalid ContractId.");
+            EnsureStatus(PayrollStatus.Draft, "Update");
+            ArgumentNullException.ThrowIfNull(contract);
+            if (contract.Id != ContractId)
+                throw new InvalidOperationException("Contract does not belong to this payroll.");
 
-            var gross = basicWage + allowances - deductions;
-            if (gross < 0)
-                throw new InvalidOperationException("GrossAmount cannot be negative.");
-
-            WorkingDays = workingDays;
-            BasicWage = basicWage;
-            Allowances = allowances;
-            Deductions = deductions;
-            GrossAmount = gross;
-            Notes = notes;
+            Calculate(contract, currencyCode, allowances, deductions, notes);
             Touch();
         }
 
-        // ── Approval ──────────────────────────────────────────────────────────────
+        // ── Approval / Cancellation ───────────────────────────────────────────────
         public void Approve()
         {
-            EnsureDraft("Approve");
+            EnsureStatus(PayrollStatus.Draft, "Approve");
             Status = PayrollStatus.Approved;
-            Touch();
             AddDomainEvent(new CrewPayrollApprovedEvent(Id, ContractId, GrossAmount));
+            RefreshStatus();   // zero-amount payroll goes straight to FullyPaid
+            Touch();
         }
 
         public void Cancel(string reason)
         {
-            if (Status == PayrollStatus.FullyPaid)
-                throw new InvalidOperationException("Cannot cancel a fully paid payroll.");
+            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
             if (Status == PayrollStatus.Cancelled)
                 throw new InvalidOperationException("Payroll is already cancelled.");
+            if (ActiveDisbursements.Any())
+                throw new InvalidOperationException(
+                    "Cannot cancel a payroll with active disbursements. Cancel the disbursements first.");
 
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
             Status = PayrollStatus.Cancelled;
-            Notes = reason;
+            CancelReason = reason.Trim();
             Touch();
         }
 
-        // ── Disbursement methods ──────────────────────────────────────────────────
-
-        /// <summary>Cash paid on board — deducted from Voyage.CashOnBoard.</summary>
-        public CrewPayrollDisbursement PayCash(
-            int voyageId,
-            decimal amount,
-            DateOnly paidOn,
-            string? notes = null)
+        // ── Disbursements ─────────────────────────────────────────────────────────
+        public CrewPayrollDisbursement Pay(PaymentMethod method, decimal amount, DateOnly paidOn, string? recipientName = null,
+                                           string? recipientIdNumber = null, string? reference = null, string? notes = null)
         {
-            EnsureApproved();
-            ValidateAmount(amount);
-            if (voyageId <= 0) throw new ArgumentException("VoyageId is required.");
+            EnsureCanDisburse(amount);
 
-            var d = CrewPayrollDisbursement.CreateCashOnBoard(
-                Id, voyageId, amount, paidOn, notes);
+            var disbursement = CrewPayrollDisbursement.Create(
+                Id, method, amount, paidOn, recipientName, recipientIdNumber, reference, notes);
 
-            return Disburse(d);
-        }
-
-        /// <summary>
-        /// Cash collected at a registered company office by any person.
-        /// OfficeId, recipient name and ID number are required for audit trail.
-        /// </summary>
-        public CrewPayrollDisbursement PayAtOffice(
-            int officeId,
-            decimal amount,
-            DateOnly paidOn,
-            string recipientName,
-            string recipientIdNumber,
-            string? notes = null)
-        {
-            EnsureApproved();
-            ValidateAmount(amount);
-            if (officeId <= 0) throw new ArgumentException("OfficeId is required.");
-            ArgumentException.ThrowIfNullOrWhiteSpace(recipientName);
-            ArgumentException.ThrowIfNullOrWhiteSpace(recipientIdNumber);
-
-            var d = CrewPayrollDisbursement.CreateCashAtOffice(
-                Id, officeId, amount, paidOn,
-                recipientName, recipientIdNumber, notes);
-
-            return Disburse(d);
-        }
-
-        /// <summary>Wire transfer linked to a SwiftTransfer record.</summary>
-        public CrewPayrollDisbursement PayByBankTransfer(
-            int swiftTransferId,
-            decimal amount,
-            DateOnly paidOn,
-            string? notes = null)
-        {
-            EnsureApproved();
-            ValidateAmount(amount);
-            if (swiftTransferId <= 0) throw new ArgumentException("SwiftTransferId is required.");
-
-            var d = CrewPayrollDisbursement.CreateBankTransfer(
-                Id, swiftTransferId, amount, paidOn, notes);
-
-            return Disburse(d);
+            _disbursements.Add(disbursement);
+            RefreshStatus();
+            Touch();
+            return disbursement;
         }
 
         public void ConfirmDisbursement(int disbursementId)
         {
             GetDisbursement(disbursementId).Confirm();
+            RefreshStatus();
             Touch();
         }
 
@@ -207,51 +138,121 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
-        // ── Private helpers ───────────────────────────────────────────────────────
-        private CrewPayrollDisbursement Disburse(CrewPayrollDisbursement disbursement)
+        // ── Private: calculation ──────────────────────────────────────────────────
+        private const int DaysPerMonth = 30;
+
+        private void Calculate(CrewContract contract, string currencyCode,
+            decimal allowances, decimal deductions, string? notes)
+        {
+            var currency = NormalizeCurrency(currencyCode);
+            EnsureMoney(allowances, nameof(Allowances));
+            EnsureMoney(deductions, nameof(Deductions));
+            if (contract.MonthlyWage < 0)
+                throw new InvalidOperationException($"Contract {contract.Id} has a negative MonthlyWage.");
+
+            var serviceDays = CountServiceDays(contract.SignOnDate, contract.SignOffDate, PayrollMonth);
+            if (serviceDays == 0)
+                throw new InvalidOperationException(
+                    $"Contract {contract.Id} has no service days in {PayrollMonth:yyyy-MM}.");
+
+            // Full calendar month → full MonthlyWage; otherwise days × (MonthlyWage ÷ 30)
+            var isFullMonth = serviceDays == DateTime.DaysInMonth(PayrollMonth.Year, PayrollMonth.Month);
+            var basicWage = Math.Round(
+                isFullMonth ? contract.MonthlyWage : contract.MonthlyWage * serviceDays / DaysPerMonth,
+                2, MidpointRounding.AwayFromZero);
+
+            var gross = basicWage + allowances - deductions;
+            if (gross < 0)
+                throw new InvalidOperationException(
+                    $"Deductions ({deductions:N2}) exceed basic wage plus allowances ({basicWage + allowances:N2}).");
+
+            CurrencyCode = currency;
+            WorkingDays = serviceDays;
+            BasicWage = basicWage;
+            Allowances = allowances;
+            Deductions = deductions;
+            GrossAmount = gross;
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        }
+
+        private static string NormalizeCurrency(string currencyCode)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
+            var code = currencyCode.Trim().ToUpperInvariant();
+            if (code.Length != 3 || !code.All(char.IsAsciiLetter))
+                throw new ArgumentException($"'{currencyCode}' is not a valid 3-letter currency code.");
+            return code;
+        }
+
+        private static int CountServiceDays(DateOnly signOn, DateOnly? signOff, DateOnly month)
+        {
+            var firstDay = new DateOnly(month.Year, month.Month, 1);
+            var lastDay = firstDay.AddMonths(1).AddDays(-1);
+
+            var start = signOn > firstDay ? signOn : firstDay;
+            var end = signOff is { } off && off < lastDay ? off : lastDay;
+
+            return end < start ? 0 : end.DayNumber - start.DayNumber + 1;
+        }
+
+        // ── Private: disbursement helpers ─────────────────────────────────────────
+        private CrewPayrollDisbursement Add(CrewPayrollDisbursement disbursement)
         {
             _disbursements.Add(disbursement);
             RefreshStatus();
             Touch();
-
-            if (IsFullyPaid)
-                AddDomainEvent(new CrewPayrollFullyPaidEvent(Id, ContractId));
-
             return disbursement;
         }
 
         private CrewPayrollDisbursement GetDisbursement(int id) =>
             _disbursements.FirstOrDefault(x => x.Id == id)
-                ?? throw new InvalidOperationException($"Disbursement {id} not found.");
+                ?? throw new KeyNotFoundException($"Disbursement {id} not found in payroll {Id}.");
 
-        private void ValidateAmount(decimal amount)
+        private void EnsureCanDisburse(decimal amount)
         {
-            if (amount <= 0)
-                throw new ArgumentException("Amount must be positive.");
+            if (Status is not (PayrollStatus.Approved or PayrollStatus.PartiallyPaid))
+                throw new InvalidOperationException(
+                    $"Disbursements are only allowed on Approved or PartiallyPaid payrolls. Current: {Status}.");
+
+            EnsureMoney(amount, "Amount");
+            if (amount == 0) throw new ArgumentException("Amount must be positive.");
             if (amount > RemainingBalance)
                 throw new InvalidOperationException(
-                    $"Amount ${amount} exceeds remaining balance ${RemainingBalance}.");
-        }
-
-        private void EnsureDraft(string operation)
-        {
-            if (Status != PayrollStatus.Draft)
-                throw new InvalidOperationException(
-                    $"{operation} is only allowed on Draft payrolls. Current: {Status}.");
-        }
-
-        private void EnsureApproved()
-        {
-            if (Status is PayrollStatus.Draft or PayrollStatus.Cancelled)
-                throw new InvalidOperationException(
-                    $"Payroll must be Approved before disbursing. Current: {Status}.");
+                    $"Amount {amount:N2} {CurrencyCode} exceeds remaining balance {RemainingBalance:N2} {CurrencyCode}.");
         }
 
         private void RefreshStatus()
         {
-            Status = IsFullyPaid ? PayrollStatus.FullyPaid
-                   : TotalDisbursed > 0 ? PayrollStatus.PartiallyPaid
-                   : PayrollStatus.Approved;
+            var active = ActiveDisbursements.ToList();
+
+            var newStatus =
+                RemainingBalance <= 0 && active.All(d => d.Status == DisbursementStatus.Confirmed)
+                    ? PayrollStatus.FullyPaid
+                : active.Count > 0
+                    ? PayrollStatus.PartiallyPaid
+                    : PayrollStatus.Approved;
+
+            if (newStatus == Status) return;
+
+            Status = newStatus;
+            if (newStatus == PayrollStatus.FullyPaid)
+                AddDomainEvent(new CrewPayrollFullyPaidEvent(Id, ContractId));
+        }
+
+        // ── Private: guards ───────────────────────────────────────────────────────
+        private static void EnsureMoney(decimal value, string name)
+        {
+            if (value < 0)
+                throw new ArgumentException($"{name} cannot be negative.");
+            if (decimal.Round(value, 2) != value)
+                throw new ArgumentException($"{name} cannot have more than 2 decimal places.");
+        }
+
+        private void EnsureStatus(PayrollStatus required, string operation)
+        {
+            if (Status != required)
+                throw new InvalidOperationException(
+                    $"{operation} is only allowed on {required} payrolls. Current: {Status}.");
         }
     }
 }
