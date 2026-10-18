@@ -1235,7 +1235,8 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("ContractId", "PayrollMonth")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'Cancelled'");
 
                     b.ToTable("CrewPayrolls", (string)null);
                 });

@@ -79,12 +79,23 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         // ── Approval / Cancellation ───────────────────────────────────────────────
-        public void Approve()
+        public void Approve(CrewContract contract)
         {
             EnsureStatus(PayrollStatus.Draft, "Approve");
+            ArgumentNullException.ThrowIfNull(contract);
+            if (contract.Id != ContractId)
+                throw new InvalidOperationException("Contract does not belong to this payroll.");
+
+            var (serviceDays, basicWage) = ComputeBasicWage(contract, PayrollMonth);
+            if (serviceDays != WorkingDays || basicWage != BasicWage)
+                throw new InvalidOperationException(
+                    $"The contract changed after this draft was calculated " +
+                    $"({WorkingDays} days / {BasicWage:N2} → {serviceDays} days / {basicWage:N2}). " +
+                    "Open the draft and save it to recalculate, then approve.");
+
             Status = PayrollStatus.Approved;
             AddDomainEvent(new CrewPayrollApprovedEvent(Id, ContractId, GrossAmount));
-            RefreshStatus();   // zero-amount payroll goes straight to FullyPaid
+            RefreshStatus();
             Touch();
         }
 
@@ -135,24 +146,13 @@ namespace Marilog.Domain.Entities.SystemEntities
         private const int DaysPerMonth = 30;
 
         private void Calculate(CrewContract contract, int currencyId,
-                               decimal allowances, decimal deductions, string? notes)
+    decimal allowances, decimal deductions, string? notes)
         {
             if (currencyId <= 0) throw new ArgumentException("CurrencyId is required.");
             EnsureMoney(allowances, nameof(Allowances));
             EnsureMoney(deductions, nameof(Deductions));
-            if (contract.MonthlyWage < 0)
-                throw new InvalidOperationException($"Contract {contract.Id} has a negative MonthlyWage.");
 
-            var serviceDays = CountServiceDays(contract.SignOnDate, contract.SignOffDate, PayrollMonth);
-            if (serviceDays == 0)
-                throw new InvalidOperationException(
-                    $"Contract {contract.Id} has no service days in {PayrollMonth:yyyy-MM}.");
-
-            // Full calendar month → full MonthlyWage; otherwise days × (MonthlyWage ÷ 30)
-            var isFullMonth = serviceDays == DateTime.DaysInMonth(PayrollMonth.Year, PayrollMonth.Month);
-            var basicWage = Math.Round(
-                isFullMonth ? contract.MonthlyWage : contract.MonthlyWage * serviceDays / DaysPerMonth,
-                2, MidpointRounding.AwayFromZero);
+            var (serviceDays, basicWage) = ComputeBasicWage(contract, PayrollMonth);
 
             var gross = basicWage + allowances - deductions;
             if (gross < 0)
@@ -166,6 +166,25 @@ namespace Marilog.Domain.Entities.SystemEntities
             Deductions = deductions;
             GrossAmount = gross;
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        }
+
+        /// <summary>Full calendar month → full MonthlyWage; otherwise days × (MonthlyWage ÷ 30).</summary>
+        private static (int ServiceDays, decimal BasicWage) ComputeBasicWage(CrewContract contract, DateOnly month)
+        {
+            if (contract.MonthlyWage < 0)
+                throw new InvalidOperationException($"Contract {contract.Id} has a negative MonthlyWage.");
+
+            var serviceDays = CountServiceDays(contract.SignOnDate, contract.SignOffDate, month);
+            if (serviceDays == 0)
+                throw new InvalidOperationException(
+                    $"Contract {contract.Id} has no service days in {month:yyyy-MM}.");
+
+            var isFullMonth = serviceDays == DateTime.DaysInMonth(month.Year, month.Month);
+            var basicWage = Math.Round(
+                isFullMonth ? contract.MonthlyWage : contract.MonthlyWage * serviceDays / DaysPerMonth,
+                2, MidpointRounding.AwayFromZero);
+
+            return (serviceDays, basicWage);
         }
 
         private static string NormalizeCurrency(string currencyCode)

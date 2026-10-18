@@ -38,7 +38,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
         {
             var firstDay = FirstDayOf(month);
-            return FindAsync(x => x.ContractId == contractId && x.PayrollMonth == firstDay, ct);
+            return FindAsync(x => x.ContractId == contractId &&
+                      x.PayrollMonth == firstDay &&
+                      x.Status != PayrollStatus.Cancelled, ct);
         }
 
         public Task<IReadOnlyList<CrewPayrollResponse>> GetByContractAsync(int contractId,
@@ -226,7 +228,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new KeyNotFoundException($"Currency {missingCurrency[0]} not found or inactive.");
             var existing = (await _repo.Query()
                     .AsNoTracking()
-                    .Where(x => contractIds.Contains(x.ContractId) && months.Contains(x.PayrollMonth))
+                    .Where(x => contractIds.Contains(x.ContractId) && months.Contains(x.PayrollMonth) && x.Status != PayrollStatus.Cancelled)
                     .Select(x => new { x.ContractId, x.PayrollMonth })
                     .ToListAsync(ct))
                 .Select(x => (x.ContractId, x.PayrollMonth))
@@ -274,7 +276,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task ApproveAsync(int id, CancellationToken ct = default)
         {
             var payroll = await GetOrThrowAsync(id, ct);
-            payroll.Approve();
+            var contract = await GetContractOrThrowAsync(payroll.ContractId, ct);
+            payroll.Approve(contract);
             await SaveAsync(payroll, ct);
         }
 
@@ -389,7 +392,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private async Task EnsureNoDuplicatePayrollAsync(int contractId, DateOnly month, CancellationToken ct)
         {
             var firstDay = FirstDayOf(month);
-            if (await _repo.Query().AnyAsync(x => x.ContractId == contractId && x.PayrollMonth == firstDay, ct))
+            if (await _repo.Query().AnyAsync(x => x.ContractId == contractId &&
+                                      x.PayrollMonth == firstDay &&
+                                      x.Status != PayrollStatus.Cancelled, ct))
                 throw new InvalidOperationException(
                     $"A payroll already exists for contract {contractId} in {firstDay:yyyy-MM}.");
         }

@@ -61,7 +61,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
             // ── One payroll per contract per month (DB-level guarantee) ───────────
             builder.HasIndex(x => new { x.ContractId, x.PayrollMonth })
-                   .IsUnique();
+                   .IsUnique()
+                   .HasFilter("[Status] <> 'Cancelled'");
 
             builder.HasIndex(x => x.Status);
             builder.HasIndex(x => x.PayrollMonth);
