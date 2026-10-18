@@ -21,6 +21,13 @@
                               Margin="Margin.Dense"
                               Class="mr-2"
                               Style="max-width:220px" />
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PlaylistAdd"
+                           Class="mr-2"
+                           OnClick="OnGenerateClicked">
+                    Generate Month
+                </MudButton>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
@@ -210,22 +217,25 @@
                                 <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-1">Cancelled: @d.CancelReason</MudText>
                             }
 
-                            @if (d.Status == DisbursementStatus.Pending)
+                            @if (d.Status is DisbursementStatus.Pending or DisbursementStatus.Confirmed)
                             {
                                 <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1" Class="mt-1">
-                                    <MudButton Size="Size.Small"
-                                               Variant="Variant.Text"
-                                               Color="Color.Success"
-                                               StartIcon="@Icons.Material.Filled.Check"
-                                               OnClick="() => OnConfirmDisbursementClicked.InvokeAsync((p.Id, d))">
-                                        Confirm
-                                    </MudButton>
+                                    @if (d.Status == DisbursementStatus.Pending)
+                                    {
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   Color="Color.Success"
+                                                   StartIcon="@Icons.Material.Filled.Check"
+                                                   OnClick="() => OnConfirmDisbursementClicked.InvokeAsync((p.Id, d))">
+                                            Confirm
+                                        </MudButton>
+                                    }
                                     <MudButton Size="Size.Small"
                                                Variant="Variant.Text"
                                                Color="Color.Error"
                                                StartIcon="@Icons.Material.Filled.Close"
                                                OnClick="() => OnCancelDisbursementClicked.InvokeAsync((p.Id, d))">
-                                        Cancel
+                                        @(d.Status == DisbursementStatus.Confirmed ? "Void" : "Cancel")
                                     </MudButton>
                                 </MudStack>
                             }
@@ -301,6 +311,8 @@
     [Parameter] public EventCallback<PayrollStatus?> OnStatusChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> OnMonthSelected { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    [Parameter] public EventCallback OnGenerateClicked { get; set; }
 
     private string _search = string.Empty;
     private int _activeTab;

@@ -1,0 +1,214 @@
+@using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewPayroll
+
+@* ────────────────────────────────────────────────────────────────────────────
+   GeneratePayrollDialog
+   Creates the month's payrolls in one batch (CreateRangeAsync — all or nothing).
+   Lists every contract with service days in the month and no non-cancelled
+   payroll yet. Days are shown for checking only — the server computes the
+   actual service days and basic wage.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <DialogContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            <MudSelect T="int" @bind-Value="_vesselId"
+                       Label="Vessel"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Style="max-width:260px">
+                <MudSelectItem T="int" Value="0">All vessels</MudSelectItem>
+                @foreach (var vessel in _vessels)
+                {
+                    <MudSelectItem T="int" Value="@vessel.Id">@vessel.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="int" @bind-Value="_currencyId"
+                       Label="Currency"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Style="max-width:220px"
+                       ToStringFunc="@(id => Currencies.FirstOrDefault(c => c.Id == id)?.Code ?? string.Empty)">
+                @foreach (var currency in Currencies.Where(c => c.IsActive))
+                {
+                    <MudSelectItem Value="@currency.Id">@currency.Code — @currency.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSpacer />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @SelectedCount of @VisibleRows.Count() selected
+            </MudText>
+        </MudStack>
+
+        @if (_rows.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Every contract with service in @Month.ToString("MMM yyyy") already has a payroll.
+            </MudAlert>
+        }
+        else
+        {
+            <div style="max-height:55vh; overflow:auto;">
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">
+                                <MudCheckBox T="bool"
+                                             Value="AllVisibleSelected"
+                                             ValueChanged="ToggleAll"
+                                             Size="Size.Small"
+                                             Dense="true" />
+                            </th>
+                            <th>Crew Member</th>
+                            <th>Rank</th>
+                            <th>Vessel</th>
+                            <th>Monthly Wage</th>
+                            <th>Days</th>
+                            <th style="width:140px">Allowances</th>
+                            <th style="width:140px">Deductions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in VisibleRows)
+                        {
+                            <tr>
+                                <td>
+                                    <MudCheckBox T="bool" @bind-Value="row.Selected" Size="Size.Small" Dense="true" />
+                                </td>
+                                <td>@row.Contract.PersonFullName</td>
+                                <td>@row.Contract.RankName</td>
+                                <td>@row.Contract.VesselName</td>
+                                <td>@row.Contract.MonthlyWage.ToString("N2")</td>
+                                <td>@row.ServiceDays</td>
+                                <td>
+                                    <MudNumericField T="decimal" @bind-Value="row.Allowances"
+                                                     Min="0" Format="N2"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Disabled="@(!row.Selected)" />
+                                </td>
+                                <td>
+                                    <MudNumericField T="decimal" @bind-Value="row.Deductions"
+                                                     Min="0" Format="N2"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Disabled="@(!row.Selected)" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(SelectedCount == 0 || _currencyId <= 0)"
+                   OnClick="Submit">
+            Create @SelectedCount Payrolls
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public DateOnly Month { get; set; }
+    [Parameter] public IReadOnlyList<CrewContractResponse> Contracts { get; set; } = [];
+    [Parameter] public IReadOnlyList<CrewPayrollResponse> ExistingPayrolls { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+
+    private sealed class Row
+    {
+        public required CrewContractResponse Contract { get; init; }
+        public required int ServiceDays { get; init; }
+        public bool Selected { get; set; } = true;
+        public decimal Allowances { get; set; }
+        public decimal Deductions { get; set; }
+    }
+
+    private List<Row> _rows = [];
+    private List<(int Id, string Name)> _vessels = [];
+    private int _vesselId;
+    private int _currencyId;
+
+    private DateOnly FirstDay => new(Month.Year, Month.Month, 1);
+
+    protected override void OnInitialized()
+    {
+        var firstDay = FirstDay;
+        var lastDay = firstDay.AddMonths(1).AddDays(-1);
+
+        var alreadyHasPayroll = ExistingPayrolls
+            .Where(p => p.PayrollMonth == firstDay && p.Status != PayrollStatus.Cancelled)
+            .Select(p => p.ContractId)
+            .ToHashSet();
+
+        _rows = Contracts
+            .Where(c => !alreadyHasPayroll.Contains(c.ContractId))
+            .Select(c => new Row
+            {
+                Contract = c,
+                ServiceDays = CountServiceDays(c.SignOnDate, c.SignOffDate, firstDay, lastDay)
+            })
+            .Where(r => r.ServiceDays > 0)
+            .OrderBy(r => r.Contract.VesselName)
+            .ThenBy(r => r.Contract.PersonFullName)
+            .ToList();
+
+        _vessels = _rows
+            .Select(r => (Id: r.Contract.VesselId, Name: r.Contract.VesselName ?? string.Empty))
+            .Distinct()
+            .OrderBy(v => v.Name)
+            .ToList();
+
+        _currencyId = Currencies.FirstOrDefault(c => c.Code == "USD" && c.IsActive)?.Id
+                   ?? Currencies.FirstOrDefault(c => c.IsBaseCurrency)?.Id
+                   ?? 0;
+    }
+
+    private IEnumerable<Row> VisibleRows =>
+        _vesselId == 0 ? _rows : _rows.Where(r => r.Contract.VesselId == _vesselId);
+
+    private int SelectedCount => VisibleRows.Count(r => r.Selected);
+
+    private bool AllVisibleSelected => VisibleRows.Any() && VisibleRows.All(r => r.Selected);
+
+    private void ToggleAll(bool value)
+    {
+        foreach (var row in VisibleRows)
+            row.Selected = value;
+    }
+
+    private static int CountServiceDays(DateOnly signOn, DateOnly? signOff, DateOnly firstDay, DateOnly lastDay)
+    {
+        var start = signOn > firstDay ? signOn : firstDay;
+        var end = signOff is { } off && off < lastDay ? off : lastDay;
+        return end < start ? 0 : end.DayNumber - start.DayNumber + 1;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        // only rows visible under the current vessel filter are submitted
+        IReadOnlyList<CreateCrewPayrollRequest> requests = VisibleRows
+            .Where(r => r.Selected)
+            .Select(r => new CreateCrewPayrollRequest
+            {
+                ContractId = r.Contract.ContractId,
+                PayrollMonth = FirstDay,
+                CurrencyId = _currencyId,
+                Allowances = Math.Round(r.Allowances, 2, MidpointRounding.AwayFromZero),
+                Deductions = Math.Round(r.Deductions, 2, MidpointRounding.AwayFromZero)
+            })
+            .ToList();
+
+        MudDialog.Close(DialogResult.Ok(requests));
+    }
+}

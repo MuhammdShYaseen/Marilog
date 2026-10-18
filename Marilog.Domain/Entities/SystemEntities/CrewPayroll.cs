@@ -79,12 +79,19 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         // ── Approval / Cancellation ───────────────────────────────────────────────
-        public void Approve(CrewContract contract)
+        public void Approve(CrewContract contract, DateOnly today)
         {
             EnsureStatus(PayrollStatus.Draft, "Approve");
             ArgumentNullException.ThrowIfNull(contract);
             if (contract.Id != ContractId)
                 throw new InvalidOperationException("Contract does not belong to this payroll.");
+
+            var lastDay = PayrollMonth.AddMonths(1).AddDays(-1);
+            var signedOffInMonth = contract.SignOffDate is { } off && off <= lastDay && off <= today;
+            if (today < lastDay && !signedOffInMonth)
+                throw new InvalidOperationException(
+                    $"{PayrollMonth:MMM yyyy} payroll can be approved from {lastDay:dd MMM yyyy}, " +
+                    "or earlier once the crew member has signed off.");
 
             var (serviceDays, basicWage) = ComputeBasicWage(contract, PayrollMonth);
             if (serviceDays != WorkingDays || basicWage != BasicWage)

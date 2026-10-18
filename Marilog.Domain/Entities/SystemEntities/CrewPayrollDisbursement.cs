@@ -77,8 +77,6 @@ namespace Marilog.Domain.Entities.SystemEntities
             ArgumentException.ThrowIfNullOrWhiteSpace(reason);
             if (Status == DisbursementStatus.Cancelled)
                 throw new InvalidOperationException("Disbursement is already cancelled.");
-            if (Status == DisbursementStatus.Confirmed)
-                throw new InvalidOperationException("Cannot cancel a confirmed disbursement.");
 
             Status = DisbursementStatus.Cancelled;
             CancelReason = reason.Trim();

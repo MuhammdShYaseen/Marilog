@@ -34,6 +34,7 @@
                            OnCancelDisbursementClicked="@(a => CancelDisbursement(a.payrollId, a.disbursement))"
                            OnMonthSelected="LoadByMonth"
                            OnStatusChanged="LoadByStatus"
+                           OnGenerateClicked="OpenGenerateDialog"
                            OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
 }
 
@@ -188,6 +189,27 @@
         }
     }
 
+    private async Task OpenGenerateDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Month"] = _selectedMonth,
+            ["Contracts"] = _contracts,
+            ["ExistingPayrolls"] = _byMonth,
+            ["Currencies"] = _currencies
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<GeneratePayrollDialog>(
+            $"Generate Payroll — {_selectedMonth:MMM yyyy}", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        if (result.Data is IReadOnlyList<CreateCrewPayrollRequest> { Count: > 0 } requests)
+            await RunAsync(() => PayrollService.CreateRangeAsync(requests),
+                           $"{requests.Count} payrolls created.");
+    }
+
     private async Task OpenEditDialog(CrewPayrollResponse payroll)
     {
         var parameters = new DialogParameters
@@ -220,15 +242,13 @@
 
     private async Task Cancel(CrewPayrollResponse payroll)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
+        var reason = await AskReasonAsync(
             "Cancel Payroll",
             $"Cancel payroll for '{payroll.PersonFullName}' — {payroll.PayrollMonth:MMM yyyy}?",
-            yesText: "Cancel Payroll",
-            cancelText: "Back");
+            "Cancel Payroll");
+        if (reason is null) return;
 
-        if (confirmed != true) return;
-
-        await RunAsync(() => PayrollService.CancelAsync(payroll.Id, "Cancelled by user"),
+        await RunAsync(() => PayrollService.CancelAsync(payroll.Id, reason),
                        "Payroll cancelled.", Severity.Warning);
     }
 
@@ -272,11 +292,25 @@
 
     // ─── Disbursement Actions ──────────────────────────────────────────────
 
+    private async Task<string?> AskReasonAsync(string title, string message, string confirmText)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Message"] = message,
+            ["ConfirmText"] = confirmText
+        };
+        var dialog = await DialogService.ShowAsync<ReasonDialog>(title, parameters);
+        var result = await dialog.Result;
+        return result is null || result.Canceled ? null : result.Data as string;
+    }
+
+    
+
     public async Task ConfirmDisbursement(int payrollId, DisbursementResponse disbursement)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Confirm Disbursement",
-            $"Confirm disbursement of {disbursement.Amount:N2} via {disbursement.Method}? A confirmed disbursement cannot be cancelled.",
+            $"Confirm that {disbursement.Amount:N2} via {disbursement.Method} was actually paid?",
             yesText: "Confirm",
             cancelText: "Back");
 
@@ -288,15 +322,19 @@
 
     public async Task CancelDisbursement(int payrollId, DisbursementResponse disbursement)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Cancel Disbursement",
-            $"Cancel disbursement of {disbursement.Amount:N2} via {disbursement.Method}?",
-            yesText: "Cancel Disbursement",
-            cancelText: "Back");
+        var isConfirmed = disbursement.Status == DisbursementStatus.Confirmed;
+        var action = isConfirmed ? "Void" : "Cancel";
 
-        if (confirmed != true) return;
+        var reason = await AskReasonAsync(
+            $"{action} Disbursement",
+            $"{action} disbursement of {disbursement.Amount:N2} via {disbursement.Method}? The record is kept with your reason.",
+            $"{action} Disbursement");
+        if (reason is null) return;
 
-        await RunAsync(() => PayrollService.CancelDisbursementAsync(payrollId, disbursement.Id, "Cancelled by user"),
-                       "Disbursement cancelled.", Severity.Warning);
+        await RunAsync(() => PayrollService.CancelDisbursementAsync(payrollId, disbursement.Id, reason),
+                       isConfirmed ? "Disbursement voided." : "Disbursement cancelled.", Severity.Warning);
     }
+
+
+
 }

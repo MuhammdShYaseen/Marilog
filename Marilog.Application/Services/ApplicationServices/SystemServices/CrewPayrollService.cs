@@ -277,7 +277,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var payroll = await GetOrThrowAsync(id, ct);
             var contract = await GetContractOrThrowAsync(payroll.ContractId, ct);
-            payroll.Approve(contract);
+            payroll.Approve(contract, DateOnly.FromDateTime(DateTime.Today));
             await SaveAsync(payroll, ct);
         }
 
