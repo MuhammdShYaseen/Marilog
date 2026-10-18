@@ -11,7 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IManageStoredFiles ManageStoredFiles
-
+@inject ICurrencyService CurrencyService
 
 @if (_loading)
 {
@@ -42,6 +42,7 @@
     private IReadOnlyList<CrewPayrollResponse> _byStatus = [];
     private IReadOnlyList<CrewPayrollResponse> _outstanding = [];
     private IReadOnlyList<CrewContractResponse> _contracts = [];
+    private IReadOnlyList<CurrencyResponse> _currencies = [];
     private bool _loading = true;
 
     private DateOnly _selectedMonth = DateOnly.FromDateTime(DateTime.Today);
@@ -57,6 +58,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            _currencies = await CurrencyService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
         await LoadAsync();
         _initialized = true;
     }
@@ -157,7 +167,8 @@
     {
         var parameters = new DialogParameters
         {
-            ["Contracts"] = _contracts
+            ["Contracts"] = _contracts,
+            ["Currencies"] = _currencies
         };
 
         var dialog = await DialogService.ShowAsync<CrewPayrollFormDialog>("New Payroll", parameters);
@@ -169,7 +180,7 @@
             await RunAsync(() => PayrollService.CreateAsync(
                                      request.ContractId,
                                      request.PayrollMonth,
-                                     request.CurrencyCode,
+                                     request.CurrencyId,
                                      request.Allowances,
                                      request.Deductions,
                                      request.Notes),
@@ -194,7 +205,7 @@
             await RunAsync(() => PayrollService.UpdateAsync(
                                      payroll.Id,
                                      request.ContractId,
-                                     request.CurrencyCode,
+                                     request.CurrencyId,
                                      request.Allowances,
                                      request.Deductions,
                                      request.Notes),

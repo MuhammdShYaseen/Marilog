@@ -18,11 +18,10 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
             // ── Amounts (USD) ─────────────────────────────────────────────────────
 
-            builder.Property(x => x.CurrencyCode)
-                   .IsRequired()
-                   .HasMaxLength(3)
-                   .IsFixedLength()
-                   .HasDefaultValue("USD");
+            builder.HasOne(x => x.Currency)
+                   .WithMany()
+                   .HasForeignKey(x => x.CurrencyId)
+                   .OnDelete(DeleteBehavior.Restrict);
             builder.Property(x => x.BasicWage)
                    .IsRequired()
                    .HasColumnType("decimal(12,2)");

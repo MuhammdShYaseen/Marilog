@@ -81,7 +81,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var payroll = await _service.CreateAsync(
                         request.ContractId,
                         request.PayrollMonth,
-                        request.CurrencyCode,
+                        request.CurrencyId,
                         request.Allowances,
                         request.Deductions,
                         request.Notes,
@@ -102,7 +102,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCrewPayrollRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(id, request.ContractId, request.CurrencyCode,
+            await _service.UpdateAsync(id, request.ContractId, request.CurrencyId,
                             request.Allowances, request.Deductions, request.Notes, ct);
             return NoContent();
         }

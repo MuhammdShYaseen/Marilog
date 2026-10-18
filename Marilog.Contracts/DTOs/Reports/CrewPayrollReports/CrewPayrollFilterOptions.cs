@@ -12,6 +12,6 @@ namespace Marilog.Contracts.DTOs.Reports.CrewPayrollReports
         public PayrollStatus? Status { get; set; }            // فلترة حسب الحالة
         public bool OnlyOutstanding { get; set; } = false;    // للمتبقي
         public bool IncludeDisbursements { get; set; } = false; // لدفعات تفصيلية
-        public string CurrencyCode { get; set; } = "USD";
+        public int CurrencyId { get; set; }
     }
 }

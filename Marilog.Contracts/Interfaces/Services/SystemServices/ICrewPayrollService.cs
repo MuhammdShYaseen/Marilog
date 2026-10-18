@@ -18,14 +18,14 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<CrewPayrollResponse>> GetOutstandingAsync(CancellationToken ct = default);
 
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth, string currencyCode = "USD",
-                                              decimal allowances = 0m, decimal deductions = 0m,
-                                              string? notes = null, CancellationToken ct = default);
+        Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth, int currencyId,
+     decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
+     CancellationToken ct = default);
+
+        Task UpdateAsync(int id, int contractId, int currencyId, decimal allowances = 0m,
+                         decimal deductions = 0m, string? notes = null, CancellationToken ct = default);
         Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(IEnumerable<CreateCrewPayrollRequest> commands,
                                                  CancellationToken ct = default);
-        Task UpdateAsync(int id, int contractId, string currencyCode = "USD",
-                         decimal allowances = 0m, decimal deductions = 0m,
-                         string? notes = null, CancellationToken ct = default);
         Task              ApproveAsync(int id, CancellationToken ct = default);
         Task              CancelAsync(int id, string reason, CancellationToken ct = default);
         Task              DeleteAsync(int id, CancellationToken ct = default);

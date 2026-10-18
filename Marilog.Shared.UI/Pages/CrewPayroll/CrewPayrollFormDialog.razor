@@ -52,16 +52,17 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="string" @bind-Value="_currencyCode"
+                    <MudSelect T="int" @bind-Value="_currencyId"
                                Label="Currency"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
                                Required="true"
                                RequiredError="Currency is required"
-                               HelperText="All amounts of this payroll are in this currency">
+                               HelperText="All amounts of this payroll are in this currency"
+                               ToStringFunc="@(id => Currencies.FirstOrDefault(c => c.Id == id)?.Code ?? string.Empty)">
                         @foreach (var currency in CurrencyOptions)
                         {
-                            <MudSelectItem Value="@currency">@currency</MudSelectItem>
+                            <MudSelectItem Value="@currency.Id">@currency.Code — @currency.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -126,9 +127,8 @@
     /// <summary>Null => Create mode. Non-null => Edit mode.</summary>
     [Parameter] public CrewPayrollResponse? Payroll { get; set; }
     [Parameter] public IReadOnlyList<CrewContractResponse> Contracts { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
 
-    // Edit this list to match the currencies you pay crew in
-    static readonly string[] CommonCurrencies = ["USD", "AED", "EUR", "GBP", "SAR"];
 
     MudForm _form = default!;
     bool _isEdit;
@@ -138,20 +138,24 @@
     decimal _allowances;
     decimal _deductions;
     string? _notes;
-    string _currencyCode = "USD";
     DateTime? _payrollMonthDate;
     int _contractId;
+    int _currencyId;
 
     // keeps an existing payroll's currency selectable even if it isn't in the common list
-    IEnumerable<string> CurrencyOptions =>
-        CommonCurrencies.Contains(_currencyCode)
-            ? CommonCurrencies
-            : CommonCurrencies.Append(_currencyCode);
+    IEnumerable<CurrencyResponse> CurrencyOptions =>
+    Currencies.Where(c => c.IsActive || c.Id == _currencyId);
 
     protected override void OnParametersSet()
     {
         if (Payroll is null)
+        {
+            // default: USD if defined, otherwise the base currency
+            _currencyId = Currencies.FirstOrDefault(c => c.Code == "USD" && c.IsActive)?.Id
+                       ?? Currencies.FirstOrDefault(c => c.IsBaseCurrency)?.Id
+                       ?? 0;
             return;
+        }
 
         _isEdit = true;
         _workingDays = Payroll.WorkingDays;
@@ -159,7 +163,7 @@
         _allowances = Payroll.Allowances;
         _deductions = Payroll.Deductions;
         _notes = Payroll.Notes;
-        _currencyCode = Payroll.CurrencyCode;
+        _currencyId = Payroll.CurrencyId;
         _payrollMonthDate = Payroll.PayrollMonth.ToDateTime(TimeOnly.MinValue);
         _contractId = Payroll.ContractId;
     }
@@ -169,8 +173,15 @@
     async Task SubmitAsync()
     {
         await _form.ValidateAsync();
+
         if (!_form.IsValid)
             return;
+
+        if (_currencyId <= 0)
+        {
+            Snackbar.Add("Currency is required.", Severity.Warning);
+            return;
+        }
 
         if (!_isEdit && _payrollMonthDate is null)
         {
@@ -188,7 +199,7 @@
             {
                 ContractId   = _contractId,
                 PayrollMonth = new DateOnly(monthDate.Year, monthDate.Month, 1),
-                CurrencyCode = _currencyCode,
+                CurrencyId = _currencyId,
                 Allowances   = allowances,
                 Deductions   = deductions,
                 Notes        = _notes
@@ -199,7 +210,7 @@
             MudDialog.Close(DialogResult.Ok(new UpdateCrewPayrollRequest
             {
                 ContractId   = _contractId,
-                CurrencyCode = _currencyCode,
+                CurrencyId   = _currencyId,
                 Allowances   = allowances,
                 Deductions   = deductions,
                 Notes        = _notes

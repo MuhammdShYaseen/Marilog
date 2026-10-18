@@ -1181,13 +1181,8 @@ namespace Marilog.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nchar(3)")
-                        .HasDefaultValue("USD")
-                        .IsFixedLength();
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Deductions")
                         .ValueGeneratedOnAdd()
@@ -1229,6 +1224,8 @@ namespace Marilog.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CurrencyId");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -3501,7 +3498,15 @@ namespace Marilog.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Contract");
+
+                    b.Navigation("Currency");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayrollDisbursement", b =>

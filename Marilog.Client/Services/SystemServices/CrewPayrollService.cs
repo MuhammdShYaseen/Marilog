@@ -67,14 +67,14 @@ namespace Marilog.Client.Services.SystemServices
         // ── Commands ──────────────────────────────────────────────────────────────
 
         public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth,
-            string currencyCode = "USD", decimal allowances = 0m, decimal deductions = 0m,
-            string? notes = null, CancellationToken ct = default)
+     int currencyId, decimal allowances = 0m, decimal deductions = 0m,
+     string? notes = null, CancellationToken ct = default)
         {
             var request = new CreateCrewPayrollRequest
             {
                 ContractId = contractId,
                 PayrollMonth = payrollMonth,
-                CurrencyCode = currencyCode,
+                CurrencyId = currencyId,
                 Allowances = allowances,
                 Deductions = deductions,
                 Notes = notes
@@ -86,6 +86,23 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
+        public async Task UpdateAsync(int id, int contractId, int currencyId,
+            decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
+            CancellationToken ct = default)
+        {
+            var request = new UpdateCrewPayrollRequest
+            {
+                ContractId = contractId,
+                CurrencyId = currencyId,
+                Allowances = allowances,
+                Deductions = deductions,
+                Notes = notes
+            };
+
+            var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
+            http.EnsureSuccessStatusCode();
+        }
+
         public async Task<IReadOnlyList<CrewPayrollResponse>> CreateRangeAsync(
             IEnumerable<CreateCrewPayrollRequest> commands, CancellationToken ct = default)
         {
@@ -95,22 +112,7 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, int contractId, string currencyCode = "USD",
-            decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
-            CancellationToken ct = default)
-        {
-            var request = new UpdateCrewPayrollRequest
-            {
-                ContractId = contractId,
-                CurrencyCode = currencyCode,
-                Allowances = allowances,
-                Deductions = deductions,
-                Notes = notes
-            };
-
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
-        }
+        
 
         public async Task ApproveAsync(int id, CancellationToken ct = default)
         {

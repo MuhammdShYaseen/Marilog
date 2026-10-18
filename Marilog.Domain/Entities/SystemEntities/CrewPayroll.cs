@@ -28,7 +28,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public decimal Allowances { get; private set; }
         public decimal Deductions { get; private set; }
         public decimal GrossAmount { get; private set; }
-        public string CurrencyCode { get; private set; } = "USD";
+        public int CurrencyId { get; private set; }
+        public Currency Currency { get; private set; } = null!;
         // ── Status ────────────────────────────────────────────────────────────────
         public PayrollStatus Status { get; private set; } = PayrollStatus.Draft;
         public string? Notes { get; private set; }
@@ -48,13 +49,9 @@ namespace Marilog.Domain.Entities.SystemEntities
         private CrewPayroll() { }
 
         // ── Factory ───────────────────────────────────────────────────────────────
-        public static CrewPayroll Create(
-     CrewContract contract,
-     DateOnly payrollMonth,
-     string currencyCode,
-     decimal allowances = 0m,
-     decimal deductions = 0m,
-     string? notes = null)
+        public static CrewPayroll Create(CrewContract contract, DateOnly payrollMonth,
+                                         int currencyId, decimal allowances = 0m,
+                                         decimal deductions = 0m, string? notes = null)
         {
             ArgumentNullException.ThrowIfNull(contract);
             if (contract.Id <= 0)
@@ -65,23 +62,19 @@ namespace Marilog.Domain.Entities.SystemEntities
                 ContractId = contract.Id,
                 PayrollMonth = new DateOnly(payrollMonth.Year, payrollMonth.Month, 1)
             };
-            payroll.Calculate(contract, currencyCode, allowances, deductions, notes);
+            payroll.Calculate(contract, currencyId, allowances, deductions, notes);
             return payroll;
         }
 
-        public void Update(
-            CrewContract contract,
-            string currencyCode,
-            decimal allowances = 0m,
-            decimal deductions = 0m,
-            string? notes = null)
+        public void Update(CrewContract contract, int currencyId,
+                           decimal allowances = 0m, decimal deductions = 0m, string? notes = null)
         {
             EnsureStatus(PayrollStatus.Draft, "Update");
             ArgumentNullException.ThrowIfNull(contract);
             if (contract.Id != ContractId)
                 throw new InvalidOperationException("Contract does not belong to this payroll.");
 
-            Calculate(contract, currencyCode, allowances, deductions, notes);
+            Calculate(contract, currencyId, allowances, deductions, notes);
             Touch();
         }
 
@@ -141,10 +134,10 @@ namespace Marilog.Domain.Entities.SystemEntities
         // ── Private: calculation ──────────────────────────────────────────────────
         private const int DaysPerMonth = 30;
 
-        private void Calculate(CrewContract contract, string currencyCode,
-            decimal allowances, decimal deductions, string? notes)
+        private void Calculate(CrewContract contract, int currencyId,
+                               decimal allowances, decimal deductions, string? notes)
         {
-            var currency = NormalizeCurrency(currencyCode);
+            if (currencyId <= 0) throw new ArgumentException("CurrencyId is required.");
             EnsureMoney(allowances, nameof(Allowances));
             EnsureMoney(deductions, nameof(Deductions));
             if (contract.MonthlyWage < 0)
@@ -166,7 +159,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 throw new InvalidOperationException(
                     $"Deductions ({deductions:N2}) exceed basic wage plus allowances ({basicWage + allowances:N2}).");
 
-            CurrencyCode = currency;
+            CurrencyId = currencyId;
             WorkingDays = serviceDays;
             BasicWage = basicWage;
             Allowances = allowances;
@@ -218,7 +211,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (amount == 0) throw new ArgumentException("Amount must be positive.");
             if (amount > RemainingBalance)
                 throw new InvalidOperationException(
-                    $"Amount {amount:N2} {CurrencyCode} exceeds remaining balance {RemainingBalance:N2} {CurrencyCode}.");
+                    $"Amount {amount:N2} {Currency.CurrencyCode} exceeds remaining balance {RemainingBalance:N2} {Currency.CurrencyCode}.");
         }
 
         private void RefreshStatus()

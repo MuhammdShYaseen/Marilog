@@ -14,11 +14,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     {
         private readonly IRepository<CrewPayroll> _repo;
         private readonly IRepository<CrewContract> _contractRepo;
+        private readonly IRepository<Currency> _currencyRepo;
 
-        public CrewPayrollService(IRepository<CrewPayroll> repo, IRepository<CrewContract> contractRepo)
+        public CrewPayrollService(
+            IRepository<CrewPayroll> repo,
+            IRepository<CrewContract> contractRepo,
+            IRepository<Currency> currencyRepo)
         {
             _repo = repo;
             _contractRepo = contractRepo;
+            _currencyRepo = currencyRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -85,8 +90,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 var firstDay = new DateOnly(options.Month.Value.Year, options.Month.Value.Month, 1);
                 query = query.Where(x => x.PayrollMonth == firstDay);
             }
-            var currency = options.CurrencyCode.Trim().ToUpperInvariant();
-            query = query.Where(x => x.CurrencyCode == currency);
+            if (options.CurrencyId <= 0)
+                throw new ArgumentException("CurrencyId is required for the payroll report.");
+            query = query.Where(x => x.CurrencyId == options.CurrencyId);
 
             // Cancelled payrolls never count toward totals unless explicitly requested
             if (options.OnlyOutstanding)
@@ -161,14 +167,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ──────────────────────────────────────────────────────────────
 
-        public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth, string currencyCode = "USD",
-                                                           decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
-                                                           CancellationToken ct = default)
+        public async Task<CrewPayrollResponse> CreateAsync(int contractId, DateOnly payrollMonth, int currencyId,
+            decimal allowances = 0m, decimal deductions = 0m,  string? notes = null, CancellationToken ct = default)
         {
             var contract = await GetContractOrThrowAsync(contractId, ct);
+            await EnsureCurrencyExistsAsync(currencyId, ct);
             await EnsureNoDuplicatePayrollAsync(contractId, payrollMonth, ct);
 
-            var payroll = CrewPayroll.Create(contract, payrollMonth, currencyCode, allowances, deductions, notes);
+            var payroll = CrewPayroll.Create(contract, payrollMonth, currencyId, allowances, deductions, notes);
 
             await _repo.AddAsync(payroll, ct);
             await _repo.SaveChangesAsync(ct);
@@ -184,7 +190,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     c.ContractId,
                     Month = FirstDayOf(c.PayrollMonth),
-                    c.CurrencyCode,
+                    c.CurrencyId,
                     c.Allowances,
                     c.Deductions,
                     c.Notes
@@ -207,6 +213,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     .Where(x => contractIds.Contains(x.Id))
                     .ToDictionaryAsync(x => x.Id, ct);
 
+
+            var currencyIds = items.Select(i => i.CurrencyId).Distinct().ToList();
+            var validCurrencyIds = await _currencyRepo.Query()
+                .AsNoTracking()
+                .Where(x => currencyIds.Contains(x.Id) && x.IsActive)
+                .Select(x => x.Id)
+                .ToListAsync(ct);
+
+            var missingCurrency = currencyIds.Except(validCurrencyIds).ToList();
+            if (missingCurrency.Count > 0)
+                throw new KeyNotFoundException($"Currency {missingCurrency[0]} not found or inactive.");
             var existing = (await _repo.Query()
                     .AsNoTracking()
                     .Where(x => contractIds.Contains(x.ContractId) && months.Contains(x.PayrollMonth))
@@ -225,7 +242,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     throw new InvalidOperationException(
                         $"A payroll already exists for contract {i.ContractId} in {i.Month:yyyy-MM}.");
 
-                payrolls.Add(CrewPayroll.Create(contract, i.Month,i.CurrencyCode, i.Allowances, i.Deductions, i.Notes));
+                payrolls.Add(CrewPayroll.Create(contract, i.Month, i.CurrencyId, i.Allowances, i.Deductions, i.Notes));
             }
 
             await _repo.AddRangeAsync(payrolls, ct);
@@ -237,7 +254,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     .OrderBy(x => x.Contract.Person.FullName), ct);
         }
 
-        public async Task UpdateAsync(int id, int contractId, string currencyCode = "USD",
+        public async Task UpdateAsync(int id, int contractId, int currencyId,
                                       decimal allowances = 0m, decimal deductions = 0m, string? notes = null,
                                       CancellationToken ct = default)
         {
@@ -247,8 +264,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new InvalidOperationException(
                     "A payroll's contract cannot be changed. Delete it and create a new one.");
 
+            await EnsureCurrencyExistsAsync(currencyId, ct);
             var contract = await GetContractOrThrowAsync(payroll.ContractId, ct);
-            payroll.Update(contract, currencyCode, allowances, deductions, notes);
+            payroll.Update(contract, currencyId, allowances, deductions, notes);
 
             await SaveAsync(payroll, ct);
         }
@@ -354,9 +372,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Private: guards ───────────────────────────────────────────────────────
 
-        
 
-        
+
+        private async Task EnsureCurrencyExistsAsync(int currencyId, CancellationToken ct)
+        {
+            if (!await _currencyRepo.Query().AnyAsync(x => x.Id == currencyId && x.IsActive, ct))
+                throw new KeyNotFoundException($"Currency {currencyId} not found or inactive.");
+        }
 
         private async Task<CrewContract> GetContractOrThrowAsync(int contractId, CancellationToken ct)
         => await _contractRepo.Query()
@@ -412,7 +434,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Allowances = x.Allowances,
                 Deductions = x.Deductions,
                 GrossAmount = x.GrossAmount,
-                CurrencyCode = x.CurrencyCode,
+                CurrencyId = x.CurrencyId,
+                CurrencyCode = x.Currency.CurrencyCode,
                 TotalDisbursed = x.Disbursements
                                     .Where(d => d.Status != DisbursementStatus.Cancelled)
                                     .Sum(d => d.Amount),
