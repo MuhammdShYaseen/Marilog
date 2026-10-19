@@ -317,29 +317,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         /// Participants must include exactly one From and at least one To.
         /// Does NOT own the Email entity — persistence is handled by the event handler.
         /// </summary>
-        public void LogEmail(
-            string subject,
-            string body,
-            IReadOnlyList<EmailParticipantData> participants,
-            EmailDirection direction = EmailDirection.Outbound)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(subject);
-            ArgumentException.ThrowIfNullOrWhiteSpace(body);
-
-            if (!participants.Any(p => p.Role == ParticipantRole.From))
-                throw new InvalidOperationException("Email must have a sender.");
-            if (!participants.Any(p => p.Role == ParticipantRole.To))
-                throw new InvalidOperationException("Email must have at least one recipient.");
-
-            AddDomainEvent(new DocumentEmailRequestedEvent(
-                DocumentId: Id,
-                DocNumber: DocNumber,
-                EntityType: EntityType.Document,
-                Subject: subject,
-                Body: body,
-                Direction: direction,
-                Participants: participants));
-        }
+       
 
         //----voyage linked-------------
         public void LinkToVoyage(int voyageId)

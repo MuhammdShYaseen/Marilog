@@ -7,8 +7,6 @@
     <UserSecretsId>95ab1aa9-22fb-4c89-a996-250ce6af0f1c</UserSecretsId>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Google.Apis.Auth" Version="1.77.0" />
-		<PackageReference Include="Google.Apis.Gmail.v1" Version="1.77.0.4295" />
 		<PackageReference Include="HtmlAgilityPack" Version="1.13.1" />
 		<PackageReference Include="MailKit" Version="4.18.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
@@ -37,6 +35,13 @@
 
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\Email\" />
+    <Folder Include="Services\Email\Factory\" />
+    <Folder Include="Services\Email\Google\" />
+    <Folder Include="Services\Email\Smtp\" />
   </ItemGroup>
 
 </Project>

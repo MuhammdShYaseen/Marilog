@@ -67,11 +67,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct = default);
         Task<PaymentsReport> GetPaymentsReportAsync(FilterPaymentOptionsRequest options, CancellationToken ct = default);
 
-        // ── Emails ────────────────────────────────────────────────────────────────
-        Task LogEmailAsync(int documentId, string subject, string body,
-                           IReadOnlyList<EmailParticipantResponse> participants,
-                           EmailDirection direction = EmailDirection.Outbound,
-                           CancellationToken ct = default);
+        
         //---Reports------------------------------------------------------------------
         Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default);
 

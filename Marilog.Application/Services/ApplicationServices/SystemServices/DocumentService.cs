@@ -910,29 +910,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ══ Email ═════════════════════════════════════════════════════════════════
 
-        public async Task LogEmailAsync(
-            int documentId, string subject, string body,
-            IReadOnlyList<EmailParticipantResponse> participants,
-            EmailDirection direction = EmailDirection.Outbound,
-            CancellationToken ct = default)
-        {
-            var dtoParticipants = participants
-                .Select(x => new Domain.Events.EmailParticipantData(
-                    x.Role,
-                    x.ParticipantType,
-                    x.ParticipantId,
-                    x.DisplayName,
-                    x.EmailAddress))
-                .ToList()
-                .AsReadOnly();
-
-            var document = await GetOrThrowAsync(documentId, ct);
-
-            document.LogEmail(subject, body, dtoParticipants, direction);
-
-            _repo.Update(document);
-            await _repo.SaveChangesAsync(ct);
-        }
+        
 
         // ══ Reports ═══════════════════════════════════════════════════════════════
 

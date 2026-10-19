@@ -296,14 +296,7 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Emails ────────────────────────────────────────────────────────────────
 
-        public async Task LogEmailAsync(int documentId, string subject, string body,
-            IReadOnlyList<EmailParticipantResponse> participants,
-            EmailDirection direction = EmailDirection.Outbound, CancellationToken ct = default)
-        {
-            var request = new LogEmailRequest { Subject = subject, Body = body, Participants = participants, Direction = direction };
-            var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/email", request, ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-        }
+       
 
 
         //--------Reports--------------------------------------------------------------------------------

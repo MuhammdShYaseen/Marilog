@@ -1,6 +1,5 @@
 ﻿using Marilog.Application.EventHandlers;
 using Marilog.Application.Interfaces.DataManagment;
-using Marilog.Application.Interfaces.Email;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
@@ -24,9 +23,6 @@ using Marilog.Infrastructure.Persistence;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
 using Marilog.Infrastructure.Services.DataBackup;
-using Marilog.Infrastructure.Services.Email.Factory;
-using Marilog.Infrastructure.Services.Email.Google;
-using Marilog.Infrastructure.Services.Email.Smtp;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.VesselPositions;
 using Marilog.Infrastructure.Services.Weather;
@@ -80,7 +76,6 @@ namespace Marilog.Infrastructure
             //options
             services.Configure<UrlsOptions>(configuration.GetSection("Urls"));
             services.Configure<InternalApiKeysOptions>(configuration.GetSection("InternalApiKeys"));
-            services.Configure<GoogleOAuthOptions>(configuration.GetSection("GoogleOAuth"));
 
             //backup
             services.AddScoped<IDatabaseBackupService>(sp =>
@@ -99,11 +94,7 @@ namespace Marilog.Infrastructure
             services.AddScoped<IFullBackupService, FullBackupService>();
 
             //=====Email=====================================================================
-            services.AddSingleton<ImapSmtpEmailProviderClient>();
-            services.AddScoped<GoogleApiEmailProviderClient>();
-            services.AddScoped<IEmailProviderClientFactory, EmailProviderClientFactory>();
-            services.AddScoped<IGoogleOAuthTokenService, GoogleOAuthTokenService>();
-            services.AddHostedService<MailSyncBackgroundService>();
+            
 
 
             //=====OCR========================================================================

@@ -342,12 +342,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // Email
         // ─────────────────────────────────────────────
 
-        [HttpPost("{id:int}/email")]
-        public async Task<IActionResult> LogEmail(int id, [FromBody] LogEmailRequest request, CancellationToken ct)
-        {
-            await _service.LogEmailAsync(id, request.Subject, request.Body, request.Participants, request.Direction, ct);
-            return NoContent();
-        }
+       
         
     }
 }

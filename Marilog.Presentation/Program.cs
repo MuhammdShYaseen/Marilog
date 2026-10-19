@@ -49,10 +49,7 @@ namespace Marilog.Presentation
                                 .Get<InternalApiKeysOptions>()
                                 ?? throw new InvalidOperationException("InternalApiKeys configuration is missing.");
 
-                        var googleOAuth = builder.Configuration
-                                     .GetSection("GoogleOAuth")
-                                     .Get<GoogleOAuthOptions>()
-                                     ?? throw new InvalidOperationException("GoogleOAuth configuration is missing.");
+                       
                         policy
                             .WithOrigins(urls.Frontend.TrimEnd('/'))
                             .AllowAnyHeader()

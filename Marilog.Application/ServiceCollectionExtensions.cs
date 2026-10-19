@@ -14,7 +14,6 @@ using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Interfaces.Ai;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Application.Services.ApplicationServices.FunctionaltyServices;
-using Marilog.Contracts.Interfaces.Services.EmailServices;
 
 
 namespace Marilog.Application
@@ -52,10 +51,7 @@ namespace Marilog.Application
             // ── Payroll ───────────────────────────────────────────────────────────
             services.AddScoped<ICrewPayrollService, CrewPayrollService>();
 
-            // ── Communication ─────────────────────────────────────────────────────
-            services.AddScoped<IEmailService, EmailService>();
-            services.AddScoped<DocumentEmailRequestedEventHandler>();
-            services.AddScoped<IEmailAccountService, EmailAccountService>();
+
 
             // ── Domain Services ───────────────────────────────────────────────────
             services.AddScoped<IPayrollCalculatorService, PayrollCalculatorService>();

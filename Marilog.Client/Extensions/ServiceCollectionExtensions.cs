@@ -12,7 +12,6 @@ using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
-using Marilog.Contracts.Interfaces.Services.EmailServices;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Interfaces.Services.VesselPositions;
@@ -34,8 +33,6 @@ namespace Marilog.Client.Extensions
             services.AddScoped<ICurrencyService, CurrencyService>();
             services.AddScoped<IDocumentService, DocumentService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
-            services.AddScoped<IEmailService, EmailService>();
-            services.AddScoped<IEmailAccountService, EmailAccountService>();
             services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IOperationsDashboardService, OperationsDashboardService>();
             services.AddScoped<IPersonService, PersonService>();

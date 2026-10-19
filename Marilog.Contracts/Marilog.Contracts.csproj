@@ -11,7 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DTOs\Requests\EmailDTOs\" />
     <Folder Include="Interfaces\Services\CertificateService\" />
+    <Folder Include="Interfaces\Services\EmailServices\" />
   </ItemGroup>
 
 </Project>
