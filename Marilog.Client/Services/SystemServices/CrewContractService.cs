@@ -21,37 +21,37 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<CrewContractResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CrewContractResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<CrewContractResponse>>($"{Base}/{id}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetByPersonAsync(int personId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>($"{Base}/by-person/{personId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>($"{Base}/by-person/{personId}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>($"{Base}/by-vessel/{vesselId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>($"{Base}/by-vessel/{vesselId}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveByVesselAsync(int vesselId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>($"{Base}/active/by-vessel/{vesselId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>($"{Base}/active/by-vessel/{vesselId}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<CrewContractResponse?> GetActiveMasterAsync(int vesselId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CrewContractResponse>>($"{Base}/active-master/{vesselId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<CrewContractResponse>>($"{Base}/active-master/{vesselId}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<CrewContractResponse>> GetActiveOnDateAsync(DateOnly date, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<IReadOnlyList<CrewContractResponse>>($"{Base}/active-on-date?date={date:yyyy-MM-dd}", ct);
+            var response = await _http.GetCheckedAsync<IReadOnlyList<CrewContractResponse>>($"{Base}/active-on-date?date={date:yyyy-MM-dd}", ct);
             return response ?? [];
         }
 
@@ -80,7 +80,7 @@ namespace Marilog.Client.Services.SystemServices
             };
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<CrewContractResponse>>(ct);
             return response!.Data!;
         }
@@ -88,7 +88,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<CrewContractResponse>> CreateRangeAsync(IEnumerable<CreateCrewContractRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<CrewContractResponse>>>(ct);
             return response?.Data ?? [];
         }
@@ -111,7 +111,7 @@ namespace Marilog.Client.Services.SystemServices
                 Id = id
             };
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             return Result.Ok();
         }
 
@@ -119,14 +119,14 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new SignOffCrewContractRequest { SignOffDate = signOffDate, SignOffPort = signOffPort };
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/sign-off", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             return Result.Ok();
         }
 
         public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             return Result.Ok();
         }
 

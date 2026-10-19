@@ -21,7 +21,7 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<StoredFileResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<StoredFileResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<StoredFileResponse>>($"{Base}/{id}", ct);
             return response?.Data;
         }
 
@@ -30,7 +30,7 @@ namespace Marilog.Client.Services.SystemServices
             EntityType entityType,
             CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<StoredFileResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<StoredFileResponse>>>(
                 $"{Base}/entity/{(int)entityType}/{entityId}", ct);
             return response?.Data ?? Array.Empty<StoredFileResponse>();
         }
@@ -43,7 +43,7 @@ namespace Marilog.Client.Services.SystemServices
             CancellationToken ct = default)
         {
             var url = $"{Base}/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}&entityType={(int)entityType.GetValueOrDefault()}";
-            var response = await _http.GetFromJsonAsync<ApiResponse<PagedResponse<StoredFileResponse>>>(url, ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<PagedResponse<StoredFileResponse>>>(url, ct);
             return response?.Data ?? new PagedResponse<StoredFileResponse>();
         }
 
@@ -52,7 +52,7 @@ namespace Marilog.Client.Services.SystemServices
             CancellationToken ct = default)
         {
             var query = string.Join("&", tags.Select(t => $"tags={Uri.EscapeDataString(t)}"));
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<StoredFileResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<StoredFileResponse>>>(
                 $"{Base}/by-tags?{query}", ct);
             return response?.Data ?? Array.Empty<StoredFileResponse>();
         }
@@ -102,7 +102,7 @@ namespace Marilog.Client.Services.SystemServices
             }
 
             var httpResponse = await _http.PostAsync(Base, content, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
 
             var result = await httpResponse.Content
                 .ReadFromJsonAsync<IReadOnlyList<StoredFileResponse>>(cancellationToken: ct);
@@ -113,7 +113,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var httpResponse = await _http.DeleteAsync($"{Base}/{id}", ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateEntityLinkAsync(
@@ -124,7 +124,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new UpdateEntityLinkRequest { EntityType = entityType, EntityId = entityId };
             var httpResponse = await _http.PutAsJsonAsync($"{Base}/{id}/entity-link", request, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateContentFromOCRAsync(
@@ -145,13 +145,13 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new AddTagRequest { Name = name, Color = color };
             var httpResponse = await _http.PostAsJsonAsync($"{Base}/{storedFileId}/tags", request, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveTagAsync(int storedFileId, int tagId, CancellationToken ct = default)
         {
             var httpResponse = await _http.DeleteAsync($"{Base}/{storedFileId}/tags/{tagId}", ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         
@@ -164,13 +164,13 @@ namespace Marilog.Client.Services.SystemServices
         public async Task UpdateContentFromUserAsync(int id, string content, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync( $"{Base}/{id}/user-content", content, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RenameAsync(int id, string newName, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base}/{id}/rename", newName, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Folders ──────────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ namespace Marilog.Client.Services.SystemServices
             EntityType entityType,
             CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<StoredFolderResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<StoredFolderResponse>>>(
                 $"{Base}/folders/entity/{(int)entityType}/{entityId}", ct);
             return response?.Data ?? Array.Empty<StoredFolderResponse>();
         }
@@ -188,7 +188,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<StoredFolderResponse> CreateFolderAsync(CreateStoredFolderRequest request, CancellationToken ct = default)
         {
             var httpResponse = await _http.PostAsJsonAsync($"{Base}/folders", request, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
 
             var response = await httpResponse.Content
                 .ReadFromJsonAsync<ApiResponse<StoredFolderResponse>>(cancellationToken: ct);
@@ -200,26 +200,26 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new RenameStoredFolderRequest { Name = name };
             var httpResponse = await _http.PutAsJsonAsync($"{Base}/folders/{id}/name", request, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task MoveFolderAsync(int id, int? targetParentFolderId, CancellationToken ct = default)
         {
             var request = new MoveStoredFolderRequest { TargetParentFolderId = targetParentFolderId };
             var httpResponse = await _http.PutAsJsonAsync($"{Base}/folders/{id}/parent", request, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteFolderAsync(int id, CancellationToken ct = default)
         {
             var httpResponse = await _http.DeleteAsync($"{Base}/folders/{id}", ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task MoveFilesAsync(MoveStoredFilesRequest request, CancellationToken ct = default)
         {
             var httpResponse = await _http.PostAsJsonAsync($"{Base}/move", request, ct);
-            httpResponse.EnsureSuccessStatusCode();
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
 
         

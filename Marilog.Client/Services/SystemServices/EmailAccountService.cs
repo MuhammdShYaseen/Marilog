@@ -23,14 +23,14 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<IReadOnlyList<EmailAccountResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<List<EmailAccountResponse>>>(BaseRoute, ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<List<EmailAccountResponse>>>(BaseRoute, ct);
             return response?.Data ?? new List<EmailAccountResponse>();
         }
 
         public async Task<EmailAccountResponse> CreateAsync(CreateEmailAccountRequest request, CancellationToken ct = default)
         {
             var response = await _http.PostAsJsonAsync(BaseRoute, request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
             return (await response.Content.ReadFromJsonAsync<EmailAccountResponse>(cancellationToken: ct))!;
         }
 
@@ -38,32 +38,32 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new RenameEmailAccountRequest { DisplayName = displayName };
             var response = await _http.PatchAsJsonAsync($"{BaseRoute}/{id}/rename", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateConfigAsync(int id, Dictionary<string, string>? config, CancellationToken ct = default)
         {
             var request = new UpdateEmailAccountConfigRequest { Config = config };
             var response = await _http.PatchAsJsonAsync($"{BaseRoute}/{id}/config", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var response = await _http.PatchAsync($"{BaseRoute}/{id}/activate", null, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeactivateAsync(int id, CancellationToken ct = default)
         {
             var response = await _http.PatchAsync($"{BaseRoute}/{id}/deactivate", null, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var response = await _http.DeleteAsync($"{BaseRoute}/{id}", ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public Task<Dictionary<string, string>> GetDecryptedConfigAsync(int id, CancellationToken ct = default)

@@ -15,20 +15,20 @@ namespace Marilog.Client.Services.Logging
         public async Task<LogReadResult> QueryAsync(LogQuery query, CancellationToken ct = default)
         {
             var url = BuildQueryString(query);
-            var result = await _http.GetFromJsonAsync<LogReadResult>(url, ct);
+            var result = await _http.GetCheckedAsync<LogReadResult>(url, ct);
             return result ?? new LogReadResult([], 0, query.Page, query.PageSize, new(0, 0, 0, 0));
         }
 
         public async Task<IReadOnlyList<string>> GetAvailableFilesAsync(CancellationToken ct = default)
         {
-            var result = await _http.GetFromJsonAsync<IReadOnlyList<string>>($"{Base}/files", ct);
+            var result = await _http.GetCheckedAsync<IReadOnlyList<string>>($"{Base}/files", ct);
             return result ?? [];
         }
 
         public async Task<LogStats?> GetStatsAsync(string? fileName = null, CancellationToken ct = default)
         {
             var url = fileName is null ? $"{Base}/stats" : $"{Base}/stats?fileName={Uri.EscapeDataString(fileName)}";
-            return await _http.GetFromJsonAsync<LogStats>(url, ct);
+            return await _http.GetCheckedAsync<LogStats>(url, ct);
         }
 
         // ── Private ───────────────────────────────────────────────────────────────

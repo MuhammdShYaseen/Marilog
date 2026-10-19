@@ -20,7 +20,7 @@ namespace Marilog.Client.Services.SystemServices
 
             var http = await _http.GetAsync(url, ct);
             if (http.StatusCode == HttpStatusCode.NotFound) return null;
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
 
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<WeatherResponse>>(ct);
             return response?.Data;
@@ -31,7 +31,7 @@ namespace Marilog.Client.Services.SystemServices
             var url = $"api/weather/wind-field?lat={latitude.ToString(CultureInfo.InvariantCulture)}" +
                       $"&lon={longitude.ToString(CultureInfo.InvariantCulture)}";
 
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<WindFieldPoint>>>(url, ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<WindFieldPoint>>>(url, ct);
             return response?.Data ?? [];
         }
     }

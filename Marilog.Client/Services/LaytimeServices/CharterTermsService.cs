@@ -15,7 +15,7 @@ namespace Marilog.Client.Services.LaytimeServices
         public async Task<CharterTermsResponse> InitializeCharterTermsAsync(InitializeCharterTermsRequest request, CancellationToken ct = default)
         {
             var response = await _http.PostAsJsonAsync(Base, request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
             var result = await response.Content.ReadFromJsonAsync<ApiResponse<CharterTermsResponse>>(cancellationToken: ct);
             return result?.Data ?? throw new InvalidOperationException("Initialize charter terms failed.");
         }
@@ -24,7 +24,7 @@ namespace Marilog.Client.Services.LaytimeServices
         {
             var response = await _http.GetAsync($"{Base}/{contractId}", ct);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
             var result = await response.Content.ReadFromJsonAsync<ApiResponse<CharterTermsResponse>>(cancellationToken: ct);
             return result?.Data;
         }
@@ -32,31 +32,31 @@ namespace Marilog.Client.Services.LaytimeServices
         public async Task UpdateLoadingTermsAsync(int contractId, CargoOperationTermsRequest request, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base}/{contractId}/loading", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateDischargingTermsAsync(int contractId, CargoOperationTermsRequest request, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base}/{contractId}/discharging", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateDemurrageTermsAsync(int contractId, DemurrageTermsRequest request, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base}/{contractId}/demurrage", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateDespatchTermsAsync(int contractId, DespatchTermsRequest request, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base}/{contractId}/despatch", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateRuleOptionsAsync(int contractId, LaytimeRuleOptionsRequest request, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base}/{contractId}/rule-options", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
     }

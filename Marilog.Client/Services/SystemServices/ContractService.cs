@@ -19,33 +19,33 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<ContractDetailResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<ContractDetailResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<ContractDetailResponse>>($"{Base}/{id}", ct);
             return response?.Data;
         }
 
         public async Task<ContractDetailResponse?> GetByNumberAsync(string number, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<ContractDetailResponse>>($"{Base}/by-number/{Uri.EscapeDataString(number)}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<ContractDetailResponse>>($"{Base}/by-number/{Uri.EscapeDataString(number)}", ct);
             return response?.Data;
         }
 
         public async Task<PagedResponse<ContractSummary>> GetPagedAsync(ContractFilter filter, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/paged", filter, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<PagedResponse<ContractSummary>>>(ct);
             return response!.Data!;
         }
 
         public async Task<List<ContractSummary>> GetExpiringAsync(int withinDays, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<List<ContractSummary>>>($"{Base}/expiring?withinDays={withinDays}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<List<ContractSummary>>>($"{Base}/expiring?withinDays={withinDays}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<ContractReport> GetReportAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<ContractReport>>($"{Base}/report", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<ContractReport>>($"{Base}/report", ct);
             return response!.Data!;
         }
 
@@ -63,7 +63,7 @@ namespace Marilog.Client.Services.SystemServices
             );
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -80,14 +80,14 @@ namespace Marilog.Client.Services.SystemServices
                 notes
             );
             var http = await _http.PutAsJsonAsync($"{Base}/{id}/update",request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
         public async Task<Result> ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/activate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -95,7 +95,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<Result> SuspendAsync(int id, string reason, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/suspend", reason, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -103,7 +103,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<Result> TerminateAsync(int id, string reason, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/terminate", reason, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -111,7 +111,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<Result> MarkExpiredAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/mark-expired", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -120,7 +120,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new PartyRequest (companyId, role );
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/party", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -132,7 +132,7 @@ namespace Marilog.Client.Services.SystemServices
             {
                 Content = JsonContent.Create(request)
             }, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -144,7 +144,7 @@ namespace Marilog.Client.Services.SystemServices
             {
                 Content = JsonContent.Create(request)
             }, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -153,7 +153,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new AmendmentRequest (description,  effectiveDate, changedBy );
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/amendment", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -162,7 +162,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new ChangeExpiryRequest(newExpiryDate, changeBy);
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/change-expiry", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
@@ -171,7 +171,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new AttachFileRequest (fileUrl, fileName);
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/attach-file", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }

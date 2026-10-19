@@ -14,13 +14,13 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<OperationsDashboardResponse> GetAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<OperationsDashboardResponse>>("api/operations/dashboard", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<OperationsDashboardResponse>>("api/operations/dashboard", ct);
             return response!.Data!;
         }
 
         public async Task<IReadOnlyList<FinancialChartPointResponse>> GetFinancialSummaryAsync(DocumentFilterOptions options, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<FinancialChartPointResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<FinancialChartPointResponse>>>(
                 $"api/operations/dashboard/financial-summary{BuildQuery(options)}", ct);
             return response!.Data!;
         }
@@ -28,7 +28,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, int? vesselId = null, CancellationToken ct = default)
         {
             var query = $"?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + (vesselId.HasValue ? $"&vesselId={vesselId}" : "");
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageChartPointResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageChartPointResponse>>>(
                 $"api/operations/dashboard/voyage-summary{query}", ct);
             return response!.Data!;
         }

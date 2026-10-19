@@ -20,7 +20,7 @@ namespace Marilog.Client.Services.SystemServices
             var url = $"{Base}/summary?includeInactiveVessels={includeInactiveVessels.ToString().ToLowerInvariant()}";
             if (vesselId is not null) url += $"&vesselId={vesselId}";
 
-            var response = await _http.GetFromJsonAsync<ApiResponse<CertificateSummaryResponse>>(url, ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<CertificateSummaryResponse>>(url, ct);
             return response?.Data ?? new();
         }
 
@@ -38,7 +38,7 @@ namespace Marilog.Client.Services.SystemServices
             if (filter.Status is not null) query.Add($"status={filter.Status}");
             if (filter.Type is not null) query.Add($"type={filter.Type}");
 
-            var response = await _http.GetFromJsonAsync<ApiResponse<PagedResponse<CertificateResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<PagedResponse<CertificateResponse>>>(
                 $"{Base}?{string.Join("&", query)}", ct);
 
             return response?.Data ?? new PagedResponse<CertificateResponse> { Page = paging.Page, PageSize = paging.PageSize };

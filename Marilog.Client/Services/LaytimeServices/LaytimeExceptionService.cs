@@ -15,27 +15,27 @@ namespace Marilog.Client.Services.LaytimeServices
         public async Task<LaytimeExceptionResponse> AddExceptionAsync(int calculationId, AddLaytimeExceptionRequest request, CancellationToken ct = default)
         {
             var response = await _http.PostAsJsonAsync(Base(calculationId), request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
             var result = await response.Content.ReadFromJsonAsync<ApiResponse<LaytimeExceptionResponse>>(cancellationToken: ct);
             return result?.Data ?? throw new InvalidOperationException("Add exception failed.");
         }
 
         public async Task<IReadOnlyList<LaytimeExceptionResponse>> GetExceptionsAsync(int calculationId, CancellationToken ct = default)
         {
-            var result = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<LaytimeExceptionResponse>>>(Base(calculationId), ct);
+            var result = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<LaytimeExceptionResponse>>>(Base(calculationId), ct);
             return result?.Data ?? Array.Empty<LaytimeExceptionResponse>();
         }
 
         public async Task UpdateExceptionAsync(int calculationId, int exceptionId, UpdateLaytimeExceptionRequest request, CancellationToken ct = default)
         {
             var response = await _http.PutAsJsonAsync($"{Base(calculationId)}/{exceptionId}", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveExceptionAsync(int calculationId, int exceptionId, CancellationToken ct = default)
         {
             var response = await _http.DeleteAsync($"{Base(calculationId)}/{exceptionId}", ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
     }
 }

@@ -19,43 +19,43 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<PersonResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<PersonResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<PersonResponse>>($"{Base}/{id}", ct);
             return response?.Data;
         }
 
         public async Task<PersonResponse?> GetByPassportAsync(string passportNo, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<PersonResponse>>($"{Base}/passport/{Uri.EscapeDataString(passportNo)}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<PersonResponse>>($"{Base}/passport/{Uri.EscapeDataString(passportNo)}", ct);
             return response?.Data;
         }
 
         public async Task<PersonResponse?> GetBySeamanBookAsync(string seamanBookNo, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<PersonResponse>>($"{Base}/seamanbook/{Uri.EscapeDataString(seamanBookNo)}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<PersonResponse>>($"{Base}/seamanbook/{Uri.EscapeDataString(seamanBookNo)}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<PersonResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<PersonResponse>>>(Base, ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<PersonResponse>>>(Base, ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<PersonResponse>> GetActiveAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/active", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/active", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<PersonResponse>> SearchAsync(string term, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/search?term={Uri.EscapeDataString(term)}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/search?term={Uri.EscapeDataString(term)}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<PersonResponse>> GetWithExpiringPassportsAsync(int withinDays, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/expiring-passports?withinDays={withinDays}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<PersonResponse>>>($"{Base}/expiring-passports?withinDays={withinDays}", ct);
             return response?.Data ?? [];
         }
 
@@ -63,7 +63,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<PersonResponse>> GetFilteredPersonsAsync(PersonFilterOptions filter, CancellationToken ct = default)
         {
             var response = await _http.PostAsJsonAsync($"{Base}/filter", filter, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
             return await response.Content.ReadFromJsonAsync<List<PersonResponse>>(ct) ?? [];
         }
@@ -93,7 +93,7 @@ namespace Marilog.Client.Services.SystemServices
             };
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<PersonResponse>>(ct);
             return response!.Data!;
         }
@@ -101,7 +101,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<PersonResponse>> CreateRangeAsync(IEnumerable<CreatePersonRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<PersonResponse>>>(ct);
             return response?.Data ?? [];
         }
@@ -124,25 +124,25 @@ namespace Marilog.Client.Services.SystemServices
             };
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/activate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeactivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/deactivate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Bank Account ──────────────────────────────────────────────────────────
@@ -157,13 +157,13 @@ namespace Marilog.Client.Services.SystemServices
                 BankSwiftCode = bankSwiftCode
             };
             var http = await _http.PutAsJsonAsync($"{Base}/{id}/bank-account", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task ClearBankAccountAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/bank-account/clear", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
 
@@ -174,7 +174,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PostAsJsonAsync(
                 $"{Base}/{personId}/certificates", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateCertificateAsync(int personId, int index,
@@ -182,7 +182,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PutAsJsonAsync(
                 $"{Base}/{personId}/certificates/{index}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveCertificateAsync(int personId, int index,
@@ -190,7 +190,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.DeleteAsync(
                 $"{Base}/{personId}/certificates/{index}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Sea Services ─────────────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PostAsJsonAsync(
                 $"{Base}/{personId}/sea-services", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateSeaServiceAsync(int personId, int index,
@@ -208,7 +208,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PutAsJsonAsync(
                 $"{Base}/{personId}/sea-services/{index}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveSeaServiceAsync(int personId, int index,
@@ -216,7 +216,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.DeleteAsync(
                 $"{Base}/{personId}/sea-services/{index}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public Task<IReadOnlyList<CertificateResponse>> GetExpiringCertificates(CancellationToken ct = default)

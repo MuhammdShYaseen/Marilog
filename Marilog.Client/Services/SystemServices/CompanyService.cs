@@ -51,7 +51,7 @@ namespace Marilog.Client.Services.SystemServices
         {
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
 
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<CompanyResponse>>(ct);
             return response!.Data!;
@@ -60,7 +60,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<CompanyResponse>> CreateRangeAsync(IEnumerable<CreateCompanyRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
 
             var response = await http.Content.ReadFromJsonAsync<IReadOnlyList<CompanyResponse>>(ct);
             return response ?? [];
@@ -70,25 +70,25 @@ namespace Marilog.Client.Services.SystemServices
             CancellationToken ct = default)
         {
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/activate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeactivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/deactivate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Bank Accounts ─────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ namespace Marilog.Client.Services.SystemServices
                 IsPrimary = isPrimary
             };
             var http = await _http.PostAsJsonAsync($"{Base}/{companyId}/bank-accounts", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateBankAccountAsync(int companyId, string oldIban, string? newIban, string bankName, string? swiftCode,
@@ -123,13 +123,13 @@ namespace Marilog.Client.Services.SystemServices
                 IsPrimary = isPrimary
             };
             var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/bank-accounts/{Uri.EscapeDataString(oldIban)}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveBankAccountAsync(int companyId, string iban, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{companyId}/bank-accounts/{Uri.EscapeDataString(iban)}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Emails ────────────────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ namespace Marilog.Client.Services.SystemServices
                 IsPrimary = isPrimary
             };
             var http = await _http.PostAsJsonAsync($"{Base}/{companyId}/emails", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateEmailAsync(int companyId, string oldAddress, string newAddress, EmailRole role,
@@ -159,13 +159,13 @@ namespace Marilog.Client.Services.SystemServices
                 IsPrimary = isPrimary
             };
             var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/emails/{Uri.EscapeDataString(oldAddress)}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveEmailAsync(int companyId, string address, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{companyId}/emails/{Uri.EscapeDataString(address)}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Phones ────────────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ namespace Marilog.Client.Services.SystemServices
                 IsPrimary = isPrimary
             };
             var http = await _http.PostAsJsonAsync($"{Base}/{companyId}/phones", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdatePhoneAsync(int companyId, string oldNumber, PhoneType oldType, string newNumber,
@@ -197,14 +197,14 @@ namespace Marilog.Client.Services.SystemServices
                 IsPrimary = isPrimary
             };
             var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/phones", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemovePhoneAsync(int companyId, string number, PhoneType type, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync(
                 $"{Base}/{companyId}/phones?number={Uri.EscapeDataString(number)}&type={type}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
     }
 }

@@ -19,31 +19,31 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<SwiftTransferReport> GetSwiftTransfersReportAsync(SwiftTransferFilterOptions filter, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<SwiftTransferReport>>($"{Base}/swift-transfers{filter.ToQueryString()}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<SwiftTransferReport>>($"{Base}/swift-transfers{filter.ToQueryString()}", ct);
             return response!.Data!;
         }
 
         public async Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions filter, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<VoyageReport>>($"{Base}/voyages{filter.ToQueryString()}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<VoyageReport>>($"{Base}/voyages{filter.ToQueryString()}", ct);
             return response!.Data!;
         }
 
         public async Task<CrewPayrollReport> GetCrewPayrollReportAsync(CrewPayrollFilterOptions filter, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CrewPayrollReport>>($"{Base}/crew-payroll{filter.ToQueryString()}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<CrewPayrollReport>>($"{Base}/crew-payroll{filter.ToQueryString()}", ct);
             return response!.Data!;
         }
 
         public async Task<CrewContractReport> GetCrewContractsReportAsync(CrewContractFilterOptions filter, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<CrewContractReport>>($"{Base}/crew-contracts{filter.ToQueryString()}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<CrewContractReport>>($"{Base}/crew-contracts{filter.ToQueryString()}", ct);
             return response!.Data!;
         }
 
         public async Task<DocumentReport> GetDocumentsReportAsync(DocumentFilterOptions filter, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentReport>>($"{Base}/documents{filter.ToQueryString()}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentReport>>($"{Base}/documents{filter.ToQueryString()}", ct);
             return response!.Data!;
         }
     }

@@ -12,7 +12,7 @@ namespace Marilog.Client.Services.LaytimeServices
 
         public async Task<IReadOnlyList<LaytimeSegmentResponse>> GetSegmentsAsync(int calculationId, CancellationToken ct = default)
         {
-            var result = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<LaytimeSegmentResponse>>>(
+            var result = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<LaytimeSegmentResponse>>>(
                 $"api/laytime-calculations/{calculationId}/segments", ct);
             return result?.Data ?? Array.Empty<LaytimeSegmentResponse>();
         }

@@ -18,43 +18,43 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<EmailResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<EmailResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<EmailResponse>>($"{Base}/{id}", ct);
             return response?.Data;
         }
 
         public async Task<EmailResponse?> GetFullAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<EmailResponse>>($"{Base}/{id}/full", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<EmailResponse>>($"{Base}/{id}/full", ct);
             return response?.Data;
         }
         public async Task<PagedResponse<EmailResponse>> GetInboxAsync(PagedRequest request, CancellationToken ct = default)
         {
-            return await _http.GetFromJsonAsync<PagedResponse<EmailResponse>>(
+            return await _http.GetCheckedAsync<PagedResponse<EmailResponse>>(
                 $"{Base}/inbox?page={request.Page}&pageSize={request.PageSize}", ct)
                 ?? new PagedResponse<EmailResponse>();
         }
 
         public async Task<PagedResponse<EmailResponse>> GetOutboxAsync(PagedRequest request, CancellationToken ct = default)
         {
-            return await _http.GetFromJsonAsync<PagedResponse<EmailResponse>>(
+            return await _http.GetCheckedAsync<PagedResponse<EmailResponse>>(
                 $"{Base}/outbox?page={request.Page}&pageSize={request.PageSize}", ct)
                 ?? new PagedResponse<EmailResponse>();
         }
         public async Task<IReadOnlyList<EmailResponse>> GetByEntityAsync(EntityType entityType, int entityId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-entity?entityType={entityType}&entityId={entityId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-entity?entityType={entityType}&entityId={entityId}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<EmailResponse>> GetByStatusAsync(EmailStatus status, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-status/{status}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-status/{status}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<EmailResponse>> GetByParticipantAsync(ParticipantType participantType, int participantId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-participant?participantType={participantType}&participantId={participantId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<EmailResponse>>>($"{Base}/by-participant?participantType={participantType}&participantId={participantId}", ct);
             return response?.Data ?? [];
         }
 
@@ -64,7 +64,7 @@ namespace Marilog.Client.Services.SystemServices
             CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<EmailResponse>>(ct);
             return response!.Data!;
         }
@@ -78,7 +78,7 @@ namespace Marilog.Client.Services.SystemServices
             };
 
             var response = await _http.PutAsJsonAsync($"api/emails/{emailId}/entity", request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
             return (await response.Content.ReadFromJsonAsync<EmailResponse>(cancellationToken: ct))!;
         }
@@ -87,31 +87,31 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new MarkEmailSentRequest { SentAt = sentAt, ExternalId = externalId };
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/mark-sent", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task MarkAsReceivedAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/mark-received", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task MarkAsFailedAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/mark-failed", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RetryAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/retry", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Participants ──────────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ namespace Marilog.Client.Services.SystemServices
             };
 
             var http = await _http.PostAsJsonAsync($"{Base}/{emailId}/participants", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<EmailParticipantResponse>>(ct);
             return response!.Data!;
         }
@@ -139,7 +139,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task RemoveParticipantAsync(int emailId, int participantId, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{emailId}/participants/{participantId}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public Task<IReadOnlyList<EmailResponse>> GetUnlinkedAsync(CancellationToken ct = default)
@@ -156,7 +156,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PostAsync($"{Base}/{emailId}/send", null, ct);
 
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
 
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<EmailResponse>>(cancellationToken: ct);
 

@@ -19,7 +19,7 @@ namespace Marilog.Client.Services.DataManagment
             ArgumentNullException.ThrowIfNull(destination);
 
             using var response = await _httpClient.GetAsync($"{Base}/create", HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
             await using var responseStream =  await response.Content.ReadAsStreamAsync(ct);
 
@@ -40,7 +40,7 @@ namespace Marilog.Client.Services.DataManagment
 
             using var response = await _httpClient.PostAsync($"{Base}/restore", multipartContent, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
     }
 }

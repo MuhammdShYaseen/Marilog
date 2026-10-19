@@ -24,7 +24,7 @@ namespace Marilog.Client.Services.UiServices
             if (_cachedItems != null)
                 return _cachedItems;
 
-            var res = await _http.GetFromJsonAsync<ApiResponse<List<NavItemResponse>>>(Base, ct);
+            var res = await _http.GetCheckedAsync<ApiResponse<List<NavItemResponse>>>(Base, ct);
             _cachedItems = res?.Data ?? new();
 
             return _cachedItems;
@@ -32,13 +32,13 @@ namespace Marilog.Client.Services.UiServices
 
         public async Task<List<NavItemResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            var res = await _http.GetFromJsonAsync<ApiResponse<List<NavItemResponse>>>($"{Base}/all", ct);
+            var res = await _http.GetCheckedAsync<ApiResponse<List<NavItemResponse>>>($"{Base}/all", ct);
             return res?.Data ?? new();
         }
 
         public async Task<List<NavItemExport>> ExportAsync(CancellationToken ct = default)
         {
-            return await _http.GetFromJsonAsync<List<NavItemExport>>($"{Base}/export", ct) ?? new();
+            return await _http.GetCheckedAsync<List<NavItemExport>>($"{Base}/export", ct) ?? new();
         }
 
         // ── Commands ─────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ namespace Marilog.Client.Services.UiServices
         {
             var request = new CreateNavItemRequest { Title = title, Route = route, Icon = icon, ParentId = parentId, Order = order };
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
 
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<NavItemResponse>>(ct);
@@ -57,7 +57,7 @@ namespace Marilog.Client.Services.UiServices
         public async Task<List<NavItemResponse>> CreateRangeAsync(List<CreateNavItemRequest> items, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", items, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
 
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<List<NavItemResponse>>>(ct);
@@ -68,7 +68,7 @@ namespace Marilog.Client.Services.UiServices
         {
             var request = new UpdateNavItemRequest { Title = title, Route = route, Icon = icon, ParentId = parentId, Order = order };
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
 
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<NavItemResponse>>(ct);
@@ -78,7 +78,7 @@ namespace Marilog.Client.Services.UiServices
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
         }
 
@@ -86,21 +86,21 @@ namespace Marilog.Client.Services.UiServices
         {
             var action = isActive ? "activate" : "deactivate";
             var http = await _http.PostAsync($"{Base}/{id}/{action}", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
         }
 
         public async Task SaveLayoutAsync(List<NavItemLayoutRequest> items, CancellationToken ct = default)
         {
             var http = await _http.PutAsJsonAsync($"{Base}/layout", items, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
         }
 
         public async Task ImportAsync(List<NavItemExport> items, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/import", items, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             _cachedItems = null;
         }
     }

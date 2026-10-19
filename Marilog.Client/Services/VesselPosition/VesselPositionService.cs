@@ -15,7 +15,7 @@ namespace Marilog.Client.Services.VesselPosition
             if (res.StatusCode == HttpStatusCode.NotFound)
                 return null;
 
-            res.EnsureSuccessStatusCode();
+            await res.EnsureSuccessWithMessageAsync(ct);
             return await res.Content.ReadFromJsonAsync<VesselPositionResponse>(ct);
         }
     }

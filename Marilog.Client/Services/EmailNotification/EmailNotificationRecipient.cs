@@ -15,30 +15,30 @@ namespace Marilog.Client.Services.EmailNotification
             _httpClient = httpClient;
         }
 
-        public async Task<IReadOnlyList<string>> GetAllAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<string>> GetAllAsync(CancellationToken ct = default)
         {
-            var response = await _httpClient.GetAsync(BaseUrl, cancellationToken);
+            var response = await _httpClient.GetAsync(BaseUrl, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
-            return await response.Content.ReadFromJsonAsync<IReadOnlyList<string>>(cancellationToken) ?? [];
+            return await response.Content.ReadFromJsonAsync<IReadOnlyList<string>>(ct) ?? [];
         }
 
-        public async Task AddAsync(string email, CancellationToken cancellationToken = default)
+        public async Task AddAsync(string email, CancellationToken ct = default)
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, email, cancellationToken);
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, email, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
-        public async Task AddRangeAsync(IEnumerable<string> emails, CancellationToken cancellationToken = default)
+        public async Task AddRangeAsync(IEnumerable<string> emails, CancellationToken ct = default)
         {
-            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/bulk", emails, cancellationToken);
+            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/bulk", emails, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
-        public async Task UpdateAsync(string currentEmail, string newEmail, CancellationToken cancellationToken = default)
+        public async Task UpdateAsync(string currentEmail, string newEmail, CancellationToken ct = default)
         {
             var request = new UpdateNotificationRecipientRequest
             { 
@@ -46,21 +46,21 @@ namespace Marilog.Client.Services.EmailNotification
                 NewEmail = newEmail
             };
 
-            var response = await _httpClient.PutAsJsonAsync(BaseUrl, request, cancellationToken);
+            var response = await _httpClient.PutAsJsonAsync(BaseUrl, request, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
-        public async Task RemoveAsync(string email, CancellationToken cancellationToken = default)
+        public async Task RemoveAsync(string email, CancellationToken ct = default)
         {
             var url = $"{BaseUrl}?email={Uri.EscapeDataString(email)}";
 
-            var response = await _httpClient.DeleteAsync(url, cancellationToken);
+            var response = await _httpClient.DeleteAsync(url, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
-        public async Task RemoveRangeAsync(IEnumerable<string> emails, CancellationToken cancellationToken = default)
+        public async Task RemoveRangeAsync(IEnumerable<string> emails, CancellationToken ct = default)
         {
             var request = new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/bulk")
             {
@@ -69,9 +69,9 @@ namespace Marilog.Client.Services.EmailNotification
 
             using (request)
             {
-                var response = await _httpClient.SendAsync(request, cancellationToken);
+                var response = await _httpClient.SendAsync(request, ct);
 
-                response.EnsureSuccessStatusCode();
+                await response.EnsureSuccessWithMessageAsync(ct);
             }
         }
     }

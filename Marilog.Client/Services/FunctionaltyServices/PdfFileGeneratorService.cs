@@ -24,7 +24,7 @@ namespace Marilog.Client.Services.FunctionaltyServices
             using var response = await _http.GetAsync($"api/PdfFileGenerator/BillOfLadingPdf/{blId}",
         ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
             return await response.Content.ReadAsByteArrayAsync(ct);
         }

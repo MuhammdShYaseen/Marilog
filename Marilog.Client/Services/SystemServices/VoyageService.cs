@@ -20,48 +20,48 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<VoyageResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
             // Controller returns unwrapped on this endpoint
-            return await _http.GetFromJsonAsync<VoyageResponse>($"{Base}/{id}", ct);
+            return await _http.GetCheckedAsync<VoyageResponse>($"{Base}/{id}", ct);
         }
 
         public async Task<VoyageResponse?> GetWithStopsAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<VoyageResponse>>($"{Base}/{id}/with-stops", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<VoyageResponse>>($"{Base}/{id}/with-stops", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<VoyageResponse>> GetByVesselAsync(int vesselId, CancellationToken ct = default)
         {
             // Controller returns unwrapped on this endpoint
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-vessel/{vesselId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-vessel/{vesselId}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<VoyageResponse>> GetByMonthAsync(DateOnly month, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-month?month={month:yyyy-MM-dd}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-month?month={month:yyyy-MM-dd}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<VoyageResponse>> GetByStatusAsync(VoyageStatus status, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-status?status={status}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/by-status?status={status}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<VoyageResponse?> GetCurrentVoyageAsync(int vesselId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<VoyageResponse>>($"{Base}/current/{vesselId}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<VoyageResponse>>($"{Base}/current/{vesselId}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<VoyageResponse>> GetActiveVoyagesAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/active", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>($"{Base}/active", ct);
             return response?.Data ?? [];
         }
         public async Task<IReadOnlyList<VoyageLookupResponse>> GetAllLookupAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<VoyageLookupResponse>>>($"{Base}/lookup", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageLookupResponse>>>($"{Base}/lookup", ct);
             return response?.Data ?? [];
         }
         public Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions options, CancellationToken ct = default)
@@ -79,7 +79,7 @@ namespace Marilog.Client.Services.SystemServices
                 departurePortId, arrivalPortId, departureDate, arrivalDate, cargoType, cargoQuantityMt, notes);
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<VoyageResponse>>(ct);
             return response!.Data!;
         }
@@ -87,7 +87,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<VoyageResponse>> CreateRangeAsync(IEnumerable<CreateVoyageRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<VoyageResponse>>>(ct);
             return response?.Data ?? [];
         }
@@ -109,7 +109,7 @@ namespace Marilog.Client.Services.SystemServices
             );
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UpdateFinancialsAsync(int id, decimal cashOnBoard,
@@ -123,38 +123,38 @@ namespace Marilog.Client.Services.SystemServices
             );
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}/financials", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task AssignMasterAsync(int id, int contractId, CancellationToken ct = default)
         {
             var request = new AssignVoyageMasterRequest (contractId );
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/assign-master", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task StartAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/start", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task CompleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/complete", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task CancelAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/cancel", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Stops ─────────────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ namespace Marilog.Client.Services.SystemServices
             );
 
             var http = await _http.PostAsJsonAsync($"{Base}/{voyageId}/stops", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<VoyageStopResponse>>(ct);
             return response!.Data!;
         }
@@ -191,13 +191,13 @@ namespace Marilog.Client.Services.SystemServices
             );
 
             var http = await _http.PutAsJsonAsync($"{Base}/{voyageId}/stops/{stopOrder}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveStopAsync(int voyageId, int stopOrder, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{voyageId}/stops/{stopOrder}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
        

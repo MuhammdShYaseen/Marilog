@@ -27,15 +27,20 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
             }
             catch (Exception ex)
             {
+                if (context.Response.HasStarted)
+                {
+                    Log.Error(ex, "Exception after response started | Path: {Path}", context.Request.Path);
+                    throw;
+                }
                 await HandleExceptionAsync(context, ex);
             }
         }
 
         private async Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
-            context.Response.ContentType ??= "application/json";
+            context.Response.ContentType = "application/json";
 
-            var errorId = Guid.NewGuid().ToString();
+            var errorId = Guid.NewGuid().ToString("N")[..8];
 
             var statusCode = ex switch
             {
@@ -56,14 +61,16 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
 
            #if DEBUG
             var developerMessage = ex.ToString();
-           #else
+#else
             string? developerMessage = null;
-           #endif
+#endif
+
+            var isClientError = (int)statusCode < 500;
 
             var response = new ApiErrorResponse
             {
                 Success = false,
-                Message = "An unexpected error occurred.",
+                Message = isClientError ? GetUserMessage(ex) : $"An unexpected error occurred. Ref: {errorId}",
                 ErrorCode = statusCode.ToString(),
                 DeveloperMessage = developerMessage,
                 ErrorSummary = safeErrorDetails,
@@ -85,5 +92,12 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
                 Location = stackFrame is not null ? $"{stackFrame.GetMethod()?.DeclaringType?.Name}.{stackFrame.GetMethod()?.Name}" : "Unknown"
             };
         }
+
+        private static string GetUserMessage(Exception ex) => ex switch
+        {
+            ArgumentException { ParamName: not null } ae
+                => ae.Message.Replace($" (Parameter '{ae.ParamName}')", string.Empty),
+            _ => ex.Message
+        };
     }
 }

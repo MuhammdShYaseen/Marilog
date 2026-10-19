@@ -23,76 +23,76 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<DocumentResponse?> GetByIdAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}?treeView={treeView}", ct);
             return response?.Data;
         }
 
         public async Task<DocumentResponse?> GetWithItemsAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-items?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-items?treeView={treeView}", ct);
             return response?.Data;
         }
 
         public async Task<DocumentResponse?> GetWithPaymentsAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-payments?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/with-payments?treeView={treeView}", ct);
             return response?.Data;
         }
 
         public async Task<DocumentResponse?> GetFullAsync(int id, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/full?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentResponse>>($"{Base}/{id}/full?treeView={treeView}", ct);
             return response?.Data;
         }
 
         public async Task<DocumentResponse?> GetByNumberAsync(string docNumber, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>($"{Base}/by-number/{Uri.EscapeDataString(docNumber)}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentResponse>>($"{Base}/by-number/{Uri.EscapeDataString(docNumber)}?treeView={treeView}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(int supplierId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-supplier/{supplierId}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-supplier/{supplierId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> SearchAsync(string term, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/vector-search/{term}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/vector-search/{term}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-buyer/{buyerId}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-buyer/{buyerId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(int vesselId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-vessel/{vesselId}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-vessel/{vesselId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
         public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(int days, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/last-added/{days}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/last-added/{days}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
         public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(int voyageId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-voyage/{voyageId}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-voyage/{voyageId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-type/{docTypeId}?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/by-type/{docTypeId}?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/unpaid?treeView={treeView}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/unpaid?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
 
@@ -103,7 +103,7 @@ namespace Marilog.Client.Services.SystemServices
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
                 url += $"&searchTerm={Uri.EscapeDataString(request.SearchTerm)}";
 
-            return await _http.GetFromJsonAsync<PagedResponse<DocumentResponse>>(url, ct) ?? new PagedResponse<DocumentResponse>
+            return await _http.GetCheckedAsync<PagedResponse<DocumentResponse>>(url, ct) ?? new PagedResponse<DocumentResponse>
             {
                  Page = request.Page,
                  PageSize = request.PageSize,
@@ -113,20 +113,20 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/{parentDocumentId}/children", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/{parentDocumentId}/children", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>(
                 $"{Base}/tree", ct);
             return response?.Data ?? [];
         }
 
         public async Task<DocumentResponse?> GetTreeByDocumentIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<DocumentResponse>>(
+            var response = await _http.GetCheckedAsync<ApiResponse<DocumentResponse>>(
                 $"{Base}/{id}/tree", ct);
             return response?.Data;
         }
@@ -138,7 +138,7 @@ namespace Marilog.Client.Services.SystemServices
             
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<DocumentResponse>>(ct);
             return response!.Data!;
         }
@@ -146,7 +146,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> CreateRangeAsync(IEnumerable<CreateDocumentRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>(ct);
             return response?.Data ?? [];
         }
@@ -154,38 +154,38 @@ namespace Marilog.Client.Services.SystemServices
         public async Task UpdateAsync(int id, UpdateDocumentRequest request, CancellationToken ct = default)
         {
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task LinkToParentAsync(int id, int parentDocumentId, CancellationToken ct = default)
         {
             var request = new LinkParentRequest { ParentDocumentId = parentDocumentId };
             var http = await _http.PatchAsJsonAsync($"{Base}/{id}/link-parent", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task UnlinkFromParentAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/unlink-parent", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/activate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeactivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PatchAsync($"{Base}/{id}/deactivate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Items ─────────────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new AddDocumentItemRequest { ProductName = productName, Quantity = quantity, UnitPrice = unitPrice, Unit = unit };
             var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/items", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<DocumentItemResponse>(ct);
             return response!;
         }
@@ -203,7 +203,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<DocumentItemResponse>> AddItemsRangeAsync(int documentId, IEnumerable<AddDocumentItemRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/items/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<DocumentItemResponse>>>(ct);
             return response?.Data ?? [];
         }
@@ -213,13 +213,13 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new UpdateDocumentItemRequest { ProductName = productName, Quantity = quantity, UnitPrice = unitPrice, Unit = unit };
             var http = await _http.PutAsJsonAsync($"{Base}/{documentId}/items/{itemId}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task RemoveItemAsync(int documentId, int itemId, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{documentId}/items/{itemId}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
 
@@ -236,14 +236,14 @@ namespace Marilog.Client.Services.SystemServices
 
             var url = $"{Base}/item-price-history?{string.Join("&", query)}";
 
-            return await _http.GetFromJsonAsync<IReadOnlyList<PriceHistoryResponse>>(url,  cancellationToken) ?? [];
+            return await _http.GetCheckedAsync<IReadOnlyList<PriceHistoryResponse>>(url,  cancellationToken) ?? [];
         }
 
         // -- Adjustment ------------------------------------------------------------
         public async Task<AdjustmentResponse> AddAdjustmentAsync(CreateAdjustmentRequest request, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/adjustments", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<AdjustmentResponse>(ct);
             return response!;
         }
@@ -252,7 +252,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PutAsJsonAsync($"{Base}/adjustments/{adjustmentId}", request, ct);
 
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
 
             var response = await http.Content.ReadFromJsonAsync<AdjustmentResponse>(ct);
 
@@ -263,7 +263,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task RemoveAdjustmentAsync(int adjustmentId, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/adjustment/{adjustmentId}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
         // ── Payments ──────────────────────────────────────────────────────────────
 
@@ -271,7 +271,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             //var request = new AddPaymentRequest { SwiftTransferId = swiftTransferId, PaidAmount = paidAmount, PaymentDate = paymentDate };
             var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/payments", create, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<PaymentResponse>(ct);
             return response!;
         }
@@ -281,7 +281,7 @@ namespace Marilog.Client.Services.SystemServices
 
             var http = await _http.PutAsJsonAsync( $"{Base}/{documentId}/payments/{paymentId}", update, ct);
 
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
 
             var response = await http.Content.ReadFromJsonAsync<PaymentResponse>(ct);
 
@@ -291,7 +291,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{documentId}/payment/{paymentId}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         // ── Emails ────────────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new LogEmailRequest { Subject = subject, Body = body, Participants = participants, Direction = direction };
             var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/email", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
 

@@ -16,29 +16,29 @@ namespace Marilog.Client.Services.SystemServices
         public BankService(HttpClient http) => _http = http;
 
         public async Task<BankResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-            => await _http.GetFromJsonAsync<BankResponse>($"{BaseRoute}/{id}", cancellationToken);
+            => await _http.GetCheckedAsync<BankResponse>($"{BaseRoute}/{id}", cancellationToken);
 
         public async Task<PagedResponse<BankResponse>> GetPagedAsync(
      int page = 1, int pageSize = 20, bool treeMode = false,
      CancellationToken cancellationToken = default)
-     => await _http.GetFromJsonAsync<PagedResponse<BankResponse>>(
+     => await _http.GetCheckedAsync<PagedResponse<BankResponse>>(
             $"{BaseRoute}?page={page}&pageSize={pageSize}&treeMode={treeMode}", cancellationToken)
         ?? new PagedResponse<BankResponse>();
 
         public async Task<IReadOnlyList<BankResponse>> GetAllActiveAsync(
             bool treeMode = false, CancellationToken cancellationToken = default)
-            => await _http.GetFromJsonAsync<List<BankResponse>>(
+            => await _http.GetCheckedAsync<List<BankResponse>>(
                    $"{BaseRoute}/active?treeMode={treeMode}", cancellationToken)
                ?? new List<BankResponse>();
 
         public async Task<IReadOnlyList<BankResponse>> GetByCountryIdAsync(
             int countryId, bool treeMode = false, CancellationToken cancellationToken = default)
-            => await _http.GetFromJsonAsync<List<BankResponse>>(
+            => await _http.GetCheckedAsync<List<BankResponse>>(
                    $"{BaseRoute}/by-country/{countryId}?treeMode={treeMode}", cancellationToken)
                ?? new List<BankResponse>();
 
         public async Task<List<LookupItem<int>>> GetLookupAsync(CancellationToken cancellationToken = default)
-            => await _http.GetFromJsonAsync<List<LookupItem<int>>>(
+            => await _http.GetCheckedAsync<List<LookupItem<int>>>(
                    $"{BaseRoute}/lookup", cancellationToken)
                ?? new List<LookupItem<int>>();
 
@@ -49,22 +49,22 @@ namespace Marilog.Client.Services.SystemServices
                 ? $"{BaseRoute}/lookup/parents?excludeBankId={excludeBankId.Value}"
                 : $"{BaseRoute}/lookup/parents";
 
-            return await _http.GetFromJsonAsync<List<LookupItem<int>>>(url, cancellationToken)
+            return await _http.GetCheckedAsync<List<LookupItem<int>>>(url, cancellationToken)
                    ?? new List<LookupItem<int>>();
         }
 
-        public async Task<BankResponse> CreateAsync(CreateBankRequest request, CancellationToken cancellationToken = default)
+        public async Task<BankResponse> CreateAsync(CreateBankRequest request, CancellationToken ct = default)
         {
-            var response = await _http.PostAsJsonAsync(BaseRoute, request, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return (await response.Content.ReadFromJsonAsync<BankResponse>(cancellationToken))!;
+            var response = await _http.PostAsJsonAsync(BaseRoute, request, ct);
+            await response.EnsureSuccessWithMessageAsync(ct);
+            return (await response.Content.ReadFromJsonAsync<BankResponse>(ct))!;
         }
         public async Task<IReadOnlyList<BankResponse>> CreateRangAsync(
-            List<CreateBankRequest> requests, CancellationToken cancellationToken = default)
+            List<CreateBankRequest> requests, CancellationToken ct = default)
         {
-            var response = await _http.PostAsJsonAsync($"{BaseRoute}/batch", requests, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<List<BankResponse>>(cancellationToken)
+            var response = await _http.PostAsJsonAsync($"{BaseRoute}/batch", requests, ct);
+            await response.EnsureSuccessWithMessageAsync(ct);
+            return await response.Content.ReadFromJsonAsync<List<BankResponse>>(ct)
                    ?? new List<BankResponse>();
         }
         public async Task<Result> UpdateAsync(UpdateBankRequest request, CancellationToken cancellationToken = default)

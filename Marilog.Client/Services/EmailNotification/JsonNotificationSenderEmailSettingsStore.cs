@@ -20,23 +20,23 @@ namespace Marilog.Client.Services.EmailNotification
         public async Task<NotificationSenderEmailSettingsOptions> GetAsync(CancellationToken cancellationToken = default)
         {
             var options =
-                await _http.GetFromJsonAsync<NotificationSenderEmailSettingsOptions>(
+                await _http.GetCheckedAsync<NotificationSenderEmailSettingsOptions>(
                     Base,
                     cancellationToken);
 
             return options ?? throw new InvalidOperationException("Notification email settings response was empty.");
         }
 
-        public async Task UpdateAsync(NotificationSenderEmailSettingsOptions options, CancellationToken cancellationToken = default)
+        public async Task UpdateAsync(NotificationSenderEmailSettingsOptions options, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(options);
 
             var response = await _http.PutAsJsonAsync(
                 Base,
                 options,
-                cancellationToken);
+                ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
     }
 }

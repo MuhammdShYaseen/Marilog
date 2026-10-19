@@ -18,31 +18,31 @@ namespace Marilog.Client.Services.SystemServices
 
         public async Task<RankResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<RankResponse>>($"{Base}/{id}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<RankResponse>>($"{Base}/{id}", ct);
             return response?.Data;
         }
 
         public async Task<RankResponse?> GetByCodeAsync(string code, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<RankResponse>>($"{Base}/code/{Uri.EscapeDataString(code)}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<RankResponse>>($"{Base}/code/{Uri.EscapeDataString(code)}", ct);
             return response?.Data;
         }
 
         public async Task<IReadOnlyList<RankResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<RankResponse>>>(Base, ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<RankResponse>>>(Base, ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<RankResponse>> GetActiveAsync(CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<RankResponse>>>($"{Base}/active", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<RankResponse>>>($"{Base}/active", ct);
             return response?.Data ?? [];
         }
 
         public async Task<IReadOnlyList<RankResponse>> GetByDepartmentAsync(Department department, CancellationToken ct = default)
         {
-            var response = await _http.GetFromJsonAsync<ApiResponse<IReadOnlyList<RankResponse>>>($"{Base}/department/{department}", ct);
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<RankResponse>>>($"{Base}/department/{department}", ct);
             return response?.Data ?? [];
         }
 
@@ -52,7 +52,7 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new CreateRankRequest { RankCode = rankCode, RankName = rankName, Department = department };
             var http = await _http.PostAsJsonAsync(Base, request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<RankResponse>>(ct);
             return response!.Data!;
         }
@@ -60,7 +60,7 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<IReadOnlyList<RankResponse>> CreateRangeAsync(IEnumerable<CreateRankRequest> commands, CancellationToken ct = default)
         {
             var http = await _http.PostAsJsonAsync($"{Base}/batch", commands, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<RankResponse>>>(ct);
             return response?.Data ?? [];
         }
@@ -69,25 +69,25 @@ namespace Marilog.Client.Services.SystemServices
         {
             var request = new UpdateRankRequest { RankCode = rankCode, RankName = rankName, Department = department };
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/activate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeactivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/deactivate", null, ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
 
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
-            http.EnsureSuccessStatusCode();
+            await http.EnsureSuccessWithMessageAsync(ct);
         }
     }
 }

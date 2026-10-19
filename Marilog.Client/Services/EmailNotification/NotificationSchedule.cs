@@ -15,37 +15,37 @@ namespace Marilog.Client.Services.EmailNotification
             _httpClient = httpClient;
         }
 
-        public async Task<NotificationScheduleOptions> GetAsync(CancellationToken cancellationToken = default)
+        public async Task<NotificationScheduleOptions> GetAsync(CancellationToken ct = default)
         {
-            var response =await _httpClient.GetAsync(Endpoint, cancellationToken);
+            var response =await _httpClient.GetAsync(Endpoint, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
-            var result = await response.Content.ReadFromJsonAsync<NotificationScheduleOptions>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<NotificationScheduleOptions>(cancellationToken: ct);
 
             return result ?? throw new InvalidOperationException("Notification schedule response was empty.");
         }
 
-        public async Task SaveAsync(NotificationScheduleOptions options, CancellationToken cancellationToken = default)
+        public async Task SaveAsync(NotificationScheduleOptions options, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(options);
 
-            var response = await _httpClient.PutAsJsonAsync(Endpoint, options, cancellationToken);
+            var response = await _httpClient.PutAsJsonAsync(Endpoint, options, ct);
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
         }
 
-        public async Task<DateTimeOffset?> GetNextExecutionAsync(DateTimeOffset now, CancellationToken cancellationToken = default)
+        public async Task<DateTimeOffset?> GetNextExecutionAsync(DateTimeOffset now, CancellationToken ct = default)
         {
-            var response = await _httpClient.GetAsync($"{Endpoint}/next-execution?now={Uri.EscapeDataString(now.ToString("O"))}", cancellationToken);
+            var response = await _httpClient.GetAsync($"{Endpoint}/next-execution?now={Uri.EscapeDataString(now.ToString("O"))}", ct);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
                 return null;
 
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessWithMessageAsync(ct);
 
             return await response.Content.ReadFromJsonAsync<DateTimeOffset>(
-                cancellationToken: cancellationToken);
+                cancellationToken: ct);
         }
     }
 }
