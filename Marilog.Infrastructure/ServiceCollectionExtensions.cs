@@ -4,6 +4,7 @@ using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Interfaces.MapTiles;
+using Marilog.Application.Interfaces.UserIdentity;
 using Marilog.Application.Interfaces.VesselPosition;
 using Marilog.Application.Interfaces.Weather;
 using Marilog.Application.Options;
@@ -13,6 +14,7 @@ using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Marilog.Contracts.Interfaces.Services.VesselPositions;
+using Marilog.Contracts.Interfaces.UserIdenty;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
@@ -27,6 +29,7 @@ using Marilog.Infrastructure.Services;
 using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.MapTiles;
+using Marilog.Infrastructure.Services.UserIdenty;
 using Marilog.Infrastructure.Services.VesselPositions;
 using Marilog.Infrastructure.Services.Weather;
 using Microsoft.EntityFrameworkCore;
@@ -149,6 +152,11 @@ namespace Marilog.Infrastructure
             });
             services.AddHostedService<MapTileSeeder>();
 
+
+            //======UserIdenty=======================================================================
+            services.AddHttpContextAccessor();
+            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
 
             return services;
 

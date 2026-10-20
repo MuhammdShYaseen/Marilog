@@ -1,5 +1,12 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+
+    public enum LoginResult
+    {
+        Success,
+        InvalidCredentials,
+        LockedOut
+    }
     public enum UpstreamTileStatus { Ok, NotFound, Failed }
     public enum CertificateExpiryStatus
     {

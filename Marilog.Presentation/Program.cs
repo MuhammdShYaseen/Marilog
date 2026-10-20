@@ -2,7 +2,11 @@ using Marilog.Application;
 using Marilog.Contracts.Options;
 using Marilog.Infrastructure;
 using Marilog.Infrastructure.DataAccess.ContextDb;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Infrastructure.Models.Identity;
 using Marilog.Presentation.Extensions;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 namespace Marilog.Presentation
@@ -17,7 +21,50 @@ namespace Marilog.Presentation
                 .AddInfrastructure(builder.Configuration)
                 .AddApplication()
                 .AddApiServices();
+            builder.Services
+                .AddAuthentication(IdentityConstants.ApplicationScheme)
+                .AddIdentityCookies();
 
+            builder.Services
+                .AddIdentityCore<User>(options =>
+                {
+                    options.Password.RequiredLength = 4;
+                    options.Password.RequireNonAlphanumeric = false;
+                    options.Lockout.MaxFailedAccessAttempts = 5;
+                    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                    options.Password.RequireDigit = false;
+                    options.Password.RequireLowercase = false;
+                    options.Password.RequireUppercase = false;
+                })
+                .AddEntityFrameworkStores<MarilogContext>()
+                .AddSignInManager();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.Name = "Marilog.Auth";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.SlidingExpiration = true;
+
+                options.Events.OnRedirectToLogin = ctx =>
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = ctx =>
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
+            });
+
+            var dataProtection = builder.Services.AddDataProtection()
+                    .SetApplicationName("Marilog");
+
+            var keysPath = builder.Configuration["DataProtection:KeysPath"];
+            if (!string.IsNullOrWhiteSpace(keysPath))
+                dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
             builder.Services.AddControllers();
             //builder.Services.AddOpenApi(options =>
             //{
@@ -34,7 +81,8 @@ namespace Marilog.Presentation
                         policy
                             .SetIsOriginAllowed(_ => true)
                             .AllowAnyHeader()
-                            .AllowAnyMethod();
+                            .AllowAnyMethod()
+                            .AllowCredentials();
                     }
                     else
                     {
@@ -49,11 +97,12 @@ namespace Marilog.Presentation
                                 .Get<InternalApiKeysOptions>()
                                 ?? throw new InvalidOperationException("InternalApiKeys configuration is missing.");
 
-                       
+
                         policy
                             .WithOrigins(urls.Frontend.TrimEnd('/'))
                             .AllowAnyHeader()
-                            .AllowAnyMethod();
+                            .AllowAnyMethod()
+                            .AllowCredentials();
                     }
                 });
             });
@@ -63,6 +112,7 @@ namespace Marilog.Presentation
             {
                 var db = scope.ServiceProvider.GetRequiredService<MarilogContext>();
                 db.Database.Migrate();
+                IdentitySeeder.SeedAdminAsync(scope.ServiceProvider, builder.Configuration).GetAwaiter().GetResult();
             }
             app.UseCors("AllowClient");
             app.UseErrorHandler();
@@ -78,6 +128,7 @@ namespace Marilog.Presentation
             
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
