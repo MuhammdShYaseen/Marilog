@@ -3,8 +3,10 @@ using Marilog.Application.Interfaces.DataManagment;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
+using Marilog.Application.Interfaces.MapTiles;
 using Marilog.Application.Interfaces.VesselPosition;
 using Marilog.Application.Interfaces.Weather;
+using Marilog.Application.Options;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Application.Services.ApplicationServices.VesselPositions;
 using Marilog.Contracts.Interfaces.DataManagment;
@@ -24,6 +26,7 @@ using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
 using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.EmailNotification;
+using Marilog.Infrastructure.Services.MapTiles;
 using Marilog.Infrastructure.Services.VesselPositions;
 using Marilog.Infrastructure.Services.Weather;
 using Microsoft.EntityFrameworkCore;
@@ -133,10 +136,21 @@ namespace Marilog.Infrastructure
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Marilog/1.0");
             });
 
+            
+
+            //=======Map=============================================================================
+            services.Configure<MapTileOptions>(configuration.GetSection(MapTileOptions.SectionName));
+            services.AddSingleton<IMapTileStore, FileSystemMapTileStore>();
+            services.AddSingleton<IMapTileSource, HttpMapTileSource>();
+            services.AddHttpClient(HttpMapTileSource.HttpClientName, client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(20);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Marilog/1.0");
+            });
+            services.AddHostedService<MapTileSeeder>();
+
+
             return services;
-
-
-
 
 
         }

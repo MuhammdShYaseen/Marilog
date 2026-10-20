@@ -1,6 +1,6 @@
 ﻿namespace Marilog.Kernel.Enums
 {
-
+    public enum UpstreamTileStatus { Ok, NotFound, Failed }
     public enum CertificateExpiryStatus
     {
         Valid = 1,

@@ -6,7 +6,7 @@
 @namespace Marilog.Shared.UI.Components.Fleet
 @implements IAsyncDisposable
 @inject IJSRuntime JS
-
+@inject HttpClient Http
 @{
     var sel = SelectedVessel;
 }
@@ -165,7 +165,7 @@
             if (!ReferenceEquals(_drawnVessels, Vessels))
             {
                 _drawnVessels = Vessels;
-                await _module.InvokeVoidAsync("render", _mapElement, Vessels.Select(ToMarker).ToArray(), _selfRef);
+                await _module.InvokeVoidAsync("render", _mapElement, Vessels.Select(ToMarker).ToArray(), _selfRef, Http.BaseAddress?.ToString());
             }
 
             if (_drawnSelection != SelectedVesselId)

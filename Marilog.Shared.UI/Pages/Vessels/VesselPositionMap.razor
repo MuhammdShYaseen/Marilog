@@ -5,7 +5,7 @@
 @namespace Marilog.Shared.UI.Pages.Vessels
 @implements IAsyncDisposable
 @inject IJSRuntime JS
-
+@inject HttpClient Http
 <div style="position:relative">
     <div @ref="_element"
          style="height:@Height; width:100%; border:1px solid var(--mud-palette-lines-default); border-radius:4px; isolation:isolate; background:var(--mud-palette-background-gray)">
@@ -63,7 +63,7 @@
                     stationary = Stationary,
                     name = Name,
                     precisionDegrees = VesselPositionUi.PositionPrecisionDegrees
-                });
+                }, Http.BaseAddress?.ToString());
                 _error = null;
             }
             catch (Exception)

@@ -1,19 +1,21 @@
 ﻿using Marilog.Application.EventHandlers;
-using Microsoft.Extensions.DependencyInjection;
-using Marilog.Application.Services.FrontendServices;
-using Marilog.Contracts.Interfaces.FrontendServices;
-using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
-using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices;
-using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
-using Marilog.Application.Services.ApplicationServices.SystemServices;
-using Marilog.Application.Interfaces.Services.Laytime;
-using Marilog.Application.Interfaces.Services.Domain;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Contracts.Interfaces.Services.AiProviderServices;
-using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Interfaces.Ai;
-using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
+using Marilog.Application.Interfaces.Services.Domain;
+using Marilog.Application.Interfaces.Services.Laytime;
+using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Services.ApplicationServices.FunctionaltyServices;
+using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
+using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices;
+using Marilog.Application.Services.ApplicationServices.SystemServices;
+using Marilog.Application.Services.FrontendServices;
+using Marilog.Application.Services.MapService;
+using Marilog.Contracts.Interfaces.FrontendServices;
+using Marilog.Contracts.Interfaces.MapService;
+using Marilog.Contracts.Interfaces.Services.AiProviderServices;
+using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
+using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Marilog.Application
@@ -107,6 +109,9 @@ namespace Marilog.Application
             //---Weather------------------------------------------------------------
             services.AddScoped<IWeatherService, WeatherService>();
 
+
+            //----Map---------------------------------------------------------------
+            services.AddSingleton<IMapTileService, MapTileService>();
 
             return services;
         }

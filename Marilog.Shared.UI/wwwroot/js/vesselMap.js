@@ -2,18 +2,18 @@ const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4';
 const instances = new WeakMap();
 const pendingWind = new WeakMap();
 let leafletLoading = null;
-
+let apiBase = '';
 // Base maps per theme brightness — both from Esri, no API key needed
 const TILES = {
     light: {
-        base: 'Ocean/World_Ocean_Base',
-        reference: 'Ocean/World_Ocean_Reference',
+        base: 'ocean-base',
+        reference: 'ocean-reference',
         maxZoom: 13,
         attribution: 'Tiles © Esri, GEBCO, NOAA, Garmin, HERE'
     },
     dark: {
-        base: 'Canvas/World_Dark_Gray_Base',
-        reference: 'Canvas/World_Dark_Gray_Reference',
+        base: 'dark-gray-base',
+        reference: 'dark-gray-reference',
         maxZoom: 16,
         attribution: 'Tiles © Esri'
     }
@@ -69,7 +69,7 @@ function applyTiles(instance) {
     for (const layer of instance.tileLayers) instance.map.removeLayer(layer);
 
     const set = instance.dark ? TILES.dark : TILES.light;
-    const esri = path => `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
+    const esri = key => `${apiBase}/api/map-tiles/${key}/{z}/{y}/{x}`;
 
     const base = L.tileLayer(esri(set.base), { maxZoom: set.maxZoom, noWrap: true, attribution: set.attribution });
     const reference = L.tileLayer(esri(set.reference), { maxZoom: set.maxZoom, noWrap: true });
@@ -170,7 +170,8 @@ function watchTheme(instance) {
     });
 }
 
-export async function render(element, data) {
+export async function render(element, data, apiBaseUrl) {
+    apiBase = (apiBaseUrl ?? '').replace(/\/+$/, '');
     await ensureLeaflet();
     teardown(element);
 
@@ -187,7 +188,7 @@ export async function render(element, data) {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.attributionControl.setPrefix(false);
 
-    const seamarks = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+    const seamarks = L.tileLayer(`${apiBase}/api/map-tiles/seamarks/{z}/{y}/{x}`, {
         maxZoom: 18, noWrap: true, opacity: 0.9, attribution: '© OpenSeaMap'
     }).addTo(map);
 
