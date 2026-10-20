@@ -1,11 +1,13 @@
 ﻿using Marilog.Application.Interfaces.Events;
 using Marilog.Domain.Common;
+using Marilog.Infrastructure.Models.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Reflection;
 
 namespace Marilog.Infrastructure.DataAccess.ContextDb
 {
-    public class MarilogContext : DbContext
+    public class MarilogContext : IdentityUserContext<User, Guid>
     {
         private readonly IEventDispatcher _dispatcher;
         public MarilogContext(DbContextOptions<MarilogContext> options, IEventDispatcher dispatcher) : base(options)
