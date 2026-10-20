@@ -27,7 +27,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public decimal TotalAmount { get; private set; }
 
         public string? Reference { get; private set; }
-
+        [AuditIgnore]
         public string SearchVector { get; private set; } = string.Empty;
 
         // ── Parent reference only — no navigation ownership ──────────────────────

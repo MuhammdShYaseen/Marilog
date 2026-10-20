@@ -14,6 +14,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string RelativePath { get; private set; } = null!;
         public string? ThumbnailRelativePath { get; private set; }
         public string ContentType { get; private set; } = null!;
+        [AuditIgnore]
         public string? Content {  get; private set; } = null;
         public long Size { get; private set; }
         private readonly List<Tag> _tags = [];

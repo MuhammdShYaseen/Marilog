@@ -20,6 +20,7 @@ using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Infrastructure.BackgroundServices;
 using Marilog.Infrastructure.DataAccess.ContextDb;
+using Marilog.Infrastructure.DataAccess.Interceptors;
 using Marilog.Infrastructure.Dispatchers;
 using Marilog.Infrastructure.Interfaces.EmailNotification;
 using Marilog.Infrastructure.Models.Weather;
@@ -44,12 +45,16 @@ namespace Marilog.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             // ── DbContext ─────────────────────────────────────────────────────────
-            services.AddDbContext<MarilogContext>(options =>       // ← اسم الـ Context الفعلي
+            // ── DbContext ─────────────────────────────────────────────────────────
+            services.AddScoped<AuditSaveChangesInterceptor>();
+
+            services.AddDbContext<MarilogContext>((sp, options) =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
-                         sql => sql
-                    .MigrationsAssembly("Marilog.Infrastructure")  // ← اسم المشروع الفعلي
-                    .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
+                        configuration.GetConnectionString("DefaultConnection"),
+                        sql => sql
+                            .MigrationsAssembly("Marilog.Infrastructure")
+                            .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null))
+                    .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
             // ── Generic Repository — covers all Aggregate Roots ───────────────────
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));

@@ -1,6 +1,11 @@
 ﻿namespace Marilog.Kernel.Enums
 {
-
+    public enum AuditOperation
+    {
+        Create = 1,
+        Update = 2,
+        Delete = 3
+    }
     public enum LoginResult
     {
         Success,
@@ -164,6 +169,28 @@
         VesselCertificate = 12,
         Email = 13,
         Voyage = 14,
+        AiProvider = 15,
+        AppTheme = 16,
+        NavItem = 17,
+        CharterTerms = 18,
+        LaytimeCalculation = 19,
+        LaytimeException = 20,
+        LaytimeSegment = 21,
+        SofEvent = 22,
+        BillOfLading = 23,
+        Country = 24,
+        CrewPayrollDisbursement = 25,
+        Currency = 26,
+        DocumentAdjustment = 27,
+        DocumentType = 28,
+        Office = 29,
+        Payment = 30,
+        Port = 31,
+        Rank = 32,
+        StoredFile = 33,
+        StoredFolder = 34,
+        Tag = 35,
+        User = 36,
         NONE = 0
     }
     public enum JobStatus

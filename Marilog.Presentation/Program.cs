@@ -1,3 +1,4 @@
+
 using Marilog.Application;
 using Marilog.Contracts.Options;
 using Marilog.Infrastructure;
@@ -111,8 +112,11 @@ namespace Marilog.Presentation
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<MarilogContext>();
+                AuditEntityTypes.ValidateAll(db);
                 db.Database.Migrate();
                 IdentitySeeder.SeedAdminAsync(scope.ServiceProvider, builder.Configuration).GetAwaiter().GetResult();
+
+
             }
             app.UseCors("AllowClient");
             app.UseErrorHandler();
