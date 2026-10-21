@@ -1,0 +1,38 @@
+@using Marilog.Contracts.DTOs.Requests.AuditDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Audit
+
+<MudDialog>
+    <DialogContent>
+        <MudNumericField T="int"
+                         @bind-Value="_days"
+                         Label="Retention (days)"
+                         Min="AuditSettingsOptions.MinRetentionDays"
+                         HelperText="@($"Minimum {AuditSettingsOptions.MinRetentionDays} days. Purge by retention deletes entries older than this.")"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(_days < AuditSettingsOptions.MinRetentionDays || _days == Current.RetentionDays)"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AuditSettingsOptions Current { get; set; } = new();
+
+    private int _days;
+
+    protected override void OnInitialized() => _days = Current.RetentionDays;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new AuditSettingsOptions { RetentionDays = _days }));
+}

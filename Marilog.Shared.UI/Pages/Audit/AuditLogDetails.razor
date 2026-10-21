@@ -1,0 +1,214 @@
+@using System.Text.Json
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Audit
+
+<div class="az-drawer">
+
+    <div class="az-drawer-header">
+        <MudText Typo="Typo.subtitle1">Audit entry @(Details is null ? "" : $"#{Details.Id}")</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" title="Close" OnClick="OnClose" />
+    </div>
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (Details is { } d)
+    {
+        <div class="az-essentials">
+            @foreach (var (label, value) in Essentials(d))
+            {
+                <div>
+                    <div class="az-label">@label</div>
+                    <div class="az-value">@(string.IsNullOrWhiteSpace(value) ? "—" : value)</div>
+                </div>
+            }
+            <div>
+                <div class="az-label">Operation</div>
+                <div class="az-value">
+                    <span class="az-status">
+                        <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                 Color="@AuditDisplay.OperationColor(d.Operation)"
+                                 Style="font-size:10px" />
+                        @d.Operation
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="az-commandbar mt-3">
+            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.History"
+                       OnClick="() => OnShowRecordHistory.InvokeAsync(d)">
+                Record history
+            </MudButton>
+            @if (d.UserId.HasValue)
+            {
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Person"
+                           OnClick="() => OnShowUserActions.InvokeAsync(d)">
+                    User's actions
+                </MudButton>
+            }
+        </div>
+
+        <div class="az-section-label mt-3 mb-2">Changes</div>
+
+        @if (_parseFailed)
+        {
+            @* Not a flat JSON object: show it as stored *@
+            @if (!string.IsNullOrWhiteSpace(d.DataBefore))
+            {
+                <div class="az-label">Before</div>
+                <pre class="az-json">@d.DataBefore</pre>
+            }
+            @if (!string.IsNullOrWhiteSpace(d.DataAfter))
+            {
+                <div class="az-label mt-2">After</div>
+                <pre class="az-json">@d.DataAfter</pre>
+            }
+        }
+        else if (_rows is null)
+        {
+            <div class="az-muted">No data recorded.</div>
+        }
+        else
+        {
+            @if (HasBoth)
+            {
+                <MudSwitch T="bool" @bind-Value="_changedOnly" Label="Changed fields only" Color="Color.Primary" />
+            }
+
+            <MudSimpleTable Dense="true" Outlined="true" Elevation="0" Square="true">
+                <thead>
+                    <tr>
+                        <th style="width:30%">Field</th>
+                        @if (_hasBefore)
+                        {
+                            <th>Before</th>
+                        }
+                        @if (_hasAfter)
+                        {
+                            <th>After</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in VisibleRows)
+                    {
+                        <tr class="@(row.Changed ? "az-changed" : null)">
+                            <td>@row.Name</td>
+                            @if (_hasBefore)
+                            {
+                                <td class="az-json">@(row.Before ?? "—")</td>
+                            }
+                            @if (_hasAfter)
+                            {
+                                <td class="az-json">@(row.After ?? "—")</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public AuditLogResponse? Details { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<AuditLogResponse> OnShowRecordHistory { get; set; }
+    [Parameter] public EventCallback<AuditLogResponse> OnShowUserActions { get; set; }
+
+    private sealed record FieldRow(string Name, string? Before, string? After, bool Changed);
+
+    private long? _builtFor;
+    private List<FieldRow>? _rows;
+    private bool _hasBefore;
+    private bool _hasAfter;
+    private bool _parseFailed;
+    private bool _changedOnly = true;
+
+    private bool HasBoth => _hasBefore && _hasAfter;
+
+    private IEnumerable<FieldRow> VisibleRows =>
+        HasBoth && _changedOnly ? _rows!.Where(r => r.Changed) : _rows!;
+
+    private static (string Label, string? Value)[] Essentials(AuditLogResponse d) =>
+    [
+        ("When", AuditDisplay.Local(d.OccurredAt)),
+        ("User", d.UserName),
+        ("Entity", d.EntityType.ToString()),
+        ("Record id", d.EntityId.ToString())
+    ];
+
+    protected override void OnParametersSet()
+    {
+        // Rebuild only when a different entry arrives
+        if (Details?.Id == _builtFor) return;
+
+        _builtFor = Details?.Id;
+        _rows = null;
+        _parseFailed = false;
+        _changedOnly = true;
+
+        if (Details is null) return;
+
+        var before = Parse(Details.DataBefore, out var badBefore);
+        var after = Parse(Details.DataAfter, out var badAfter);
+
+        _parseFailed = badBefore || badAfter;
+        _hasBefore = before is not null;
+        _hasAfter = after is not null;
+
+        if (_parseFailed || (!_hasBefore && !_hasAfter)) return;
+
+        var names = (before?.Keys ?? Enumerable.Empty<string>())
+            .Concat(after?.Keys ?? Enumerable.Empty<string>())
+            .Distinct();
+
+        _rows = names.Select(name =>
+        {
+            string? b = null, a = null;
+            before?.TryGetValue(name, out b);
+            after?.TryGetValue(name, out a);
+            return new FieldRow(name, b, a, HasBoth && b != a);
+        }).ToList();
+    }
+
+    private static Dictionary<string, string?>? Parse(string? json, out bool failed)
+    {
+        failed = false;
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                failed = true;
+                return null;
+            }
+
+            var fields = new Dictionary<string, string?>();
+            foreach (var p in doc.RootElement.EnumerateObject())
+                fields[p.Name] = Render(p.Value);
+            return fields;
+        }
+        catch (JsonException)
+        {
+            failed = true;
+            return null;
+        }
+    }
+
+    private static string? Render(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString(),
+        JsonValueKind.Null or JsonValueKind.Undefined => null,
+        _ => value.GetRawText()
+    };
+}

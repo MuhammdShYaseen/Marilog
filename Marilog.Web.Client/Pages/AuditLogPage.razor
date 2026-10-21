@@ -1,0 +1,227 @@
+﻿@page "/audit-log"
+@using System.Globalization
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Requests.AuditDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.AuditLog
+@using Marilog.Shared.UI.Pages.Audit
+@using MudBlazor
+
+@implements IDisposable
+@inject IAuditLogService AuditLogs
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+
+<SharedAuditLogPage Items="_items"
+                    TotalCount="_totalCount"
+                    Page="_page"
+                    PageSize="PageSize"
+                    IsLoading="_isLoading"
+                    OnSearch="SearchAsync"
+                    OnPageChanged="ChangePageAsync"
+                    Details="_details"
+                    IsLoadingDetails="_isLoadingDetails"
+                    @bind-DetailsOpen="_detailsOpen"
+                    OnSettingsClicked="OpenSettingsAsync"
+                    OnPurgeClicked="OpenPurgeAsync"
+                    OnShowDetails="ShowDetailsAsync" />
+
+@code {
+    private const int PageSize = 50;
+
+    private IReadOnlyList<AuditLogListItem> _items = [];
+    private int _totalCount;
+    private int _page = 1;
+    private bool _isLoading;
+    private AuditLogFilter _filter = new();
+
+    private AuditLogResponse? _details;
+    private bool _isLoadingDetails;
+    private bool _detailsOpen;
+
+    private CancellationTokenSource? _listCts;
+    private CancellationTokenSource? _detailsCts;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private Task SearchAsync(AuditLogFilter filter)
+    {
+        _filter = filter;
+        _page = 1;
+        return LoadAsync();
+    }
+
+    private Task ChangePageAsync(int page)
+    {
+        _page = page;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        // A newer request supersedes the old one
+        _listCts?.Cancel();
+        _listCts?.Dispose();
+        _listCts = new CancellationTokenSource();
+        var ct = _listCts.Token;
+
+        _isLoading = true;
+        try
+        {
+            var result = await AuditLogs.GetPagedAsync(
+                new PagedRequest { Page = _page, PageSize = PageSize }, _filter, ct);
+
+            // ⚠ Guessed names: check against PagedResponse<T>
+            _items = [.. result.Items];
+            _totalCount = result.TotalCount;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested) _isLoading = false;
+        }
+    }
+
+    private async Task ShowDetailsAsync(AuditLogListItem item)
+    {
+        _detailsCts?.Cancel();
+        _detailsCts?.Dispose();
+        _detailsCts = new CancellationTokenSource();
+        var ct = _detailsCts.Token;
+
+        _details = null;
+        _detailsOpen = true;
+        _isLoadingDetails = true;
+        try
+        {
+            _details = await AuditLogs.GetByIdAsync(item.Id, ct);
+
+            if (_details is null)
+            {
+                Snackbar.Add("This entry no longer exists.", Severity.Warning);
+                _detailsOpen = false;
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _detailsOpen = false;
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested) _isLoadingDetails = false;
+        }
+    }
+
+
+    private static readonly DialogOptions DialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private async Task OpenSettingsAsync()
+    {
+        AuditSettingsOptions current;
+        try
+        {
+            current = await AuditLogs.GetSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return;
+        }
+
+        var dialog = await Dialogs.ShowAsync<AuditSettingsDialog>("Audit retention",
+            new DialogParameters { [nameof(AuditSettingsDialog.Current)] = current },
+            DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not AuditSettingsOptions updated) return;
+
+        try
+        {
+            await AuditLogs.UpdateSettingsAsync(updated);
+            Snackbar.Add($"Retention set to {updated.RetentionDays} days.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task OpenPurgeAsync()
+    {
+        // The real retention value, never a default
+        AuditSettingsOptions settings;
+        try
+        {
+            settings = await AuditLogs.GetSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return;
+        }
+
+        var dialog = await Dialogs.ShowAsync<PurgeAuditDialog>("Purge audit log",
+            new DialogParameters
+            {
+                [nameof(PurgeAuditDialog.RetentionDays)] = settings.RetentionDays,
+                [nameof(PurgeAuditDialog.CountBeforeAsync)] = (Func<DateOnly, Task<int>>)CountBeforeAsync
+            },
+            DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        DateOnly? before = result.Data is DateOnly date ? date : null;
+
+        try
+        {
+            var purged = await AuditLogs.PurgeAsync(before);
+
+            var cutoff = purged.Cutoff.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            Snackbar.Add($"Deleted {purged.DeletedCount:N0} entries older than {cutoff}.", Severity.Success);
+
+            _page = 1;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    // "Before X" excludes X itself, the filter's To is inclusive
+    private async Task<int> CountBeforeAsync(DateOnly before)
+    {
+        var result = await AuditLogs.GetPagedAsync(
+            new PagedRequest { Page = 1, PageSize = 1 },
+            new AuditLogFilter { To = before.AddDays(-1) });
+
+        return result.TotalCount;
+    }
+
+
+    public void Dispose()
+    {
+        _listCts?.Cancel();
+        _listCts?.Dispose();
+        _detailsCts?.Cancel();
+        _detailsCts?.Dispose();
+    }
+}

@@ -1,0 +1,385 @@
+@using Marilog.Contracts.DTOs.Requests.AuditDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Audit
+
+<div class="az-audit">
+
+    <div class="az-page-title">
+        <MudText Typo="Typo.h6">Audit log</MudText>
+    </div>
+
+    <div class="az-commandbar">
+        <MudSelect T="EntityType?" @bind-Value="_entityType" Label="Entity" Class="az-filter"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Dense="true">
+            @foreach (var type in EntityTypes)
+            {
+                <MudSelectItem T="EntityType?" Value="@((EntityType?)type)">@type</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="AuditOperation?" @bind-Value="_operation" Label="Operation" Class="az-filter"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Dense="true">
+            @foreach (var op in Enum.GetValues<AuditOperation>())
+            {
+                <MudSelectItem T="AuditOperation?" Value="@((AuditOperation?)op)">@op</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudDatePicker @bind-Date="_from" Label="From (UTC)" Class="az-filter" DateFormat="yyyy-MM-dd"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+
+        <MudDatePicker @bind-Date="_to" Label="To (UTC)" Class="az-filter" DateFormat="yyyy-MM-dd"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.FilterAlt"
+                   Disabled="@(IsLoading || !IsRangeValid)"
+                   OnClick="ApplyAsync">
+            Apply
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   Disabled="IsLoading"
+                   OnClick="ResetAsync">
+            Reset
+        </MudButton>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Settings"
+                   OnClick="OnSettingsClicked">
+            Retention
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.DeleteSweep"
+                   OnClick="OnPurgeClicked">
+            Purge
+        </MudButton>
+    </div>
+
+    @if (_entityId.HasValue || _userId.HasValue)
+    {
+        <div class="az-chips">
+            @if (_entityId is { } entityId)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                         title="@entityId.ToString()"
+                         OnClose="@(_ => ClearRecordAsync())">
+                    History of one @(_entityType?.ToString() ?? "record")
+                </MudChip>
+            }
+            @if (_userId.HasValue)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                         OnClose="@(_ => ClearUserAsync())">
+                    User: @(_userName ?? _userId.ToString())
+                </MudChip>
+            }
+        </div>
+    }
+
+    @if (!IsRangeValid)
+    {
+        <div class="az-small mb-2" style="color:var(--mud-palette-error)">"From" is after "To".</div>
+    }
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+
+    <MudDataGrid T="AuditLogListItem"
+                 Items="Items"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="0"
+                 Outlined="true"
+                 Square="true"
+                 Breakpoint="Breakpoint.Sm"
+                 SortMode="SortMode.None"
+                 RowStyle="cursor:pointer"
+                 RowClick="RowClickedAsync">
+        <Columns>
+            <TemplateColumn Title="When">
+                <CellTemplate>@AuditDisplay.Local(context.Item.OccurredAt)</CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Operation">
+                <CellTemplate>
+                    <span class="az-status">
+                        <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                 Color="@AuditDisplay.OperationColor(context.Item.Operation)"
+                                 Style="font-size:10px" />
+                        @context.Item.Operation
+                    </span>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.EntityType" Title="Entity" />
+
+            <TemplateColumn Title="Record id">
+                <CellTemplate><span class="az-mono">@context.Item.EntityId</span></CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="User">
+                <CellTemplate>@(context.Item.UserName ?? "—")</CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <NoRecordsContent>
+            <div class="az-muted pa-4">No audit entries found.</div>
+        </NoRecordsContent>
+    </MudDataGrid>
+
+    <div class="az-footer">
+        <span class="az-muted az-small">@TotalCount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) entries</span>
+        <MudSpacer />
+        @if (PageCount > 1)
+        {
+            <MudPagination Count="PageCount"
+                           Selected="Page"
+                           SelectedChanged="OnPageChanged"
+                           Size="Size.Small"
+                           ShowFirstButton="true"
+                           ShowLastButton="true"
+                           Disabled="IsLoading" />
+        }
+    </div>
+
+    <MudDrawer Open="DetailsOpen"
+               OpenChanged="DetailsOpenChanged"
+               Anchor="Anchor.End"
+               Variant="DrawerVariant.Temporary"
+               Width="min(600px, 100vw)"
+               Elevation="2">
+        <AuditLogDetails Details="Details"
+                         IsLoading="IsLoadingDetails"
+                         OnClose="() => DetailsOpenChanged.InvokeAsync(false)"
+                         OnShowRecordHistory="ShowRecordHistoryAsync"
+                         OnShowUserActions="ShowUserActionsAsync" />
+    </MudDrawer>
+
+</div>
+
+<style>
+    .az-audit .az-page-title {
+        padding-bottom: 8px;
+    }
+
+    .az-audit .az-commandbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-audit .az-filter {
+        flex: 0 1 180px;
+    }
+
+    .az-audit .az-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+
+    .az-audit .az-footer {
+        display: flex;
+        align-items: center;
+        padding-top: 8px;
+    }
+
+    .az-audit .mud-table-head .mud-table-cell,
+    .az-audit .mud-simple-table thead th {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-audit .mud-table-cell,
+    .az-audit .mud-simple-table td {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        vertical-align: top;
+    }
+
+    .az-audit .az-drawer {
+        padding: 12px 16px 16px 16px;
+    }
+
+    .az-audit .az-drawer-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .az-audit .az-essentials {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px 24px;
+    }
+
+    .az-audit .az-label {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-audit .az-value {
+        font-size: .8125rem;
+        color: var(--mud-palette-text-primary);
+        word-break: break-all;
+    }
+
+    .az-audit .az-section-label {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        padding-bottom: 2px;
+    }
+
+    .az-audit .az-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .az-audit .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-audit .az-small {
+        font-size: .75rem;
+    }
+
+    .az-audit .az-mono {
+        font-family: monospace;
+        font-size: .75rem;
+    }
+
+    .az-audit .az-json {
+        font-family: monospace;
+        font-size: .75rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+    }
+
+    .az-audit .az-changed td:first-child {
+        border-left: 3px solid var(--mud-palette-warning);
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    // ── Data ──
+    [Parameter] public IReadOnlyList<AuditLogListItem> Items { get; set; } = [];
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public int Page { get; set; } = 1;
+    [Parameter] public int PageSize { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback<AuditLogFilter> OnSearch { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+    // ── Details drawer ──
+    [Parameter] public AuditLogResponse? Details { get; set; }
+    [Parameter] public bool IsLoadingDetails { get; set; }
+    [Parameter] public bool DetailsOpen { get; set; }
+    [Parameter] public EventCallback<bool> DetailsOpenChanged { get; set; }
+    [Parameter] public EventCallback<AuditLogListItem> OnShowDetails { get; set; }
+    // ── Settings & purge ──
+    [Parameter] public EventCallback OnSettingsClicked { get; set; }
+    [Parameter] public EventCallback OnPurgeClicked { get; set; }
+    private static readonly EntityType[] EntityTypes = Enum.GetValues<EntityType>()
+        .Where(t => t != EntityType.NONE)
+        .OrderBy(t => t.ToString())
+        .ToArray();
+
+    // ── Filter state ──
+    private EntityType? _entityType;
+    private AuditOperation? _operation;
+    private DateTime? _from;
+    private DateTime? _to;
+    private Guid? _entityId;
+    private Guid? _userId;
+    private string? _userName;
+
+    private int PageCount => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+
+    private bool IsRangeValid => !(_from.HasValue && _to.HasValue && _from > _to);
+
+    private Task RowClickedAsync(DataGridRowClickEventArgs<AuditLogListItem> args) =>
+        OnShowDetails.InvokeAsync(args.Item);
+
+    private Task ApplyAsync() => OnSearch.InvokeAsync(new AuditLogFilter
+    {
+        EntityType = _entityType,
+        EntityId = _entityId,
+        UserId = _userId,
+        Operation = _operation,
+        From = _from is { } from ? DateOnly.FromDateTime(from) : null,
+        To = _to is { } to ? DateOnly.FromDateTime(to) : null
+    });
+
+    private Task ResetAsync()
+    {
+        _entityType = null;
+        _operation = null;
+        _from = null;
+        _to = null;
+        _entityId = null;
+        _userId = null;
+        _userName = null;
+        return ApplyAsync();
+    }
+
+    private async Task ShowRecordHistoryAsync(AuditLogResponse entry)
+    {
+        // Full history of one record: drop operation and date limits
+        _entityType = entry.EntityType;
+        _entityId = entry.EntityId;
+        _operation = null;
+        _from = null;
+        _to = null;
+
+        await DetailsOpenChanged.InvokeAsync(false);
+        await ApplyAsync();
+    }
+
+    private async Task ShowUserActionsAsync(AuditLogResponse entry)
+    {
+        _userId = entry.UserId;
+        _userName = entry.UserName;
+
+        await DetailsOpenChanged.InvokeAsync(false);
+        await ApplyAsync();
+    }
+
+    private Task ClearRecordAsync()
+    {
+        _entityId = null;
+        return ApplyAsync();
+    }
+
+    private Task ClearUserAsync()
+    {
+        _userId = null;
+        _userName = null;
+        return ApplyAsync();
+    }
+}

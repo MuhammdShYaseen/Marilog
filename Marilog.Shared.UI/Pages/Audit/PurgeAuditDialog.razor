@@ -1,0 +1,148 @@
+@using System.Globalization
+@using Marilog.Contracts.DTOs.Requests.AuditDTOs
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Audit
+
+<MudDialog>
+    <DialogContent>
+        @if (!_confirming)
+        {
+            <MudRadioGroup T="bool" @bind-Value="_useDate">
+                <MudRadio T="bool" Value="false" Color="Color.Primary">
+                    Older than the retention period (@RetentionDays days)
+                </MudRadio>
+                <MudRadio T="bool" Value="true" Color="Color.Primary">
+                    Before a specific date
+                </MudRadio>
+            </MudRadioGroup>
+
+            @if (_useDate)
+            {
+                <MudDatePicker @bind-Date="_date"
+                               Label="Delete entries before (UTC)"
+                               DateFormat="yyyy-MM-dd"
+                               MaxDate="@MaxBefore.ToDateTime(TimeOnly.MinValue)"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Class="mt-2" />
+                <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary)">
+                    The last @AuditSettingsOptions.MinRetentionDays days can't be purged.
+                </MudText>
+            }
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">
+                This permanently deletes every audit entry before <b>@CutoffText</b> (UTC). It cannot be undone.
+            </MudAlert>
+
+            <div class="mb-3">
+                @if (_counting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <span class="ml-2">Counting entries…</span>
+                }
+                else if (_count is { } count)
+                {
+                    <span>
+                        <b>@(_useDate ? "" : "≈ ")@count.ToString("N0", CultureInfo.InvariantCulture)</b>
+                        entries will be deleted.
+                    </span>
+                }
+                else
+                {
+                    <span style="color:var(--mud-palette-text-secondary)">The number of entries could not be counted.</span>
+                }
+            </div>
+
+            <MudTextField @bind-Value="_typed"
+                          Label="@($"Type {ConfirmWord} to confirm")"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true" />
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (!_confirming)
+        {
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(_useDate && _date is null)"
+                       OnClick="ContinueAsync">
+                Continue
+            </MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="Back">Back</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       Disabled="@(_counting || _typed != ConfirmWord)"
+                       OnClick="Submit">
+                Purge
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int RetentionDays { get; set; }
+    [Parameter] public Func<DateOnly, Task<int>>? CountBeforeAsync { get; set; }
+
+    private const string ConfirmWord = "PURGE";
+
+    private static DateOnly UtcToday => DateOnly.FromDateTime(DateTime.UtcNow);
+
+    // Same floor as the settings: recent history is never purgeable from here
+    private static DateOnly MaxBefore => UtcToday.AddDays(-AuditSettingsOptions.MinRetentionDays);
+
+    private bool _useDate;
+    private DateTime? _date;
+    private bool _confirming;
+    private bool _counting;
+    private int? _count;
+    private string? _typed;
+
+    private DateOnly Cutoff => _useDate && _date is { } date
+        ? DateOnly.FromDateTime(date)
+        : UtcToday.AddDays(-RetentionDays);
+
+    private string CutoffText => Cutoff.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private async Task ContinueAsync()
+    {
+        _confirming = true;
+        _typed = null;
+        _count = null;
+
+        if (CountBeforeAsync is null) return;
+
+        _counting = true;
+        try
+        {
+            _count = await CountBeforeAsync(Cutoff);
+        }
+        catch (Exception)
+        {
+            _count = null;
+        }
+        finally
+        {
+            _counting = false;
+        }
+    }
+
+    private void Back()
+    {
+        _confirming = false;
+        _typed = null;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // Null means "use the retention period"
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok<DateOnly?>(_useDate ? Cutoff : null));
+}
