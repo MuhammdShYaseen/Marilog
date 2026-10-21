@@ -11,10 +11,11 @@ using Marilog.Application.Options;
 using Marilog.Application.Services.ApplicationServices.Encryption;
 using Marilog.Application.Services.ApplicationServices.VesselPositions;
 using Marilog.Contracts.Interfaces.DataManagment;
+using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
+using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Marilog.Contracts.Interfaces.Services.VesselPositions;
-using Marilog.Contracts.Interfaces.UserIdenty;
 using Marilog.Contracts.Options;
 using Marilog.Domain.Events;
 using Marilog.Domain.Interfaces.Repositories;
@@ -27,6 +28,7 @@ using Marilog.Infrastructure.Models.Weather;
 using Marilog.Infrastructure.Persistence;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
+using Marilog.Infrastructure.Services.Audit;
 using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.MapTiles;
@@ -55,8 +57,10 @@ namespace Marilog.Infrastructure
                             .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null))
                     .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
-            // ── Generic Repository — covers all Aggregate Roots ───────────────────
+            // ──Repository — covers all Aggregate Roots ───────────────────
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+
             services.AddScoped<ILogReaderService, LogReaderService>();
 
 
@@ -161,6 +165,7 @@ namespace Marilog.Infrastructure
             services.AddHttpContextAccessor();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddSingleton<IAuditSettingsStore, JsonAuditSettingsStore>();
 
             return services;
 

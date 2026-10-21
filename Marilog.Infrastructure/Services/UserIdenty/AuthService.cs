@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Marilog.Contracts.DTOs.Requests.UserIdenty;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.UserIdenty;
 using Marilog.Infrastructure.Models.Identity;
 using Marilog.Kernel.Enums;
+using Marilog.Contracts.Interfaces.Services.UserIdenty;
 
 namespace Marilog.Infrastructure.Services.UserIdenty
 {

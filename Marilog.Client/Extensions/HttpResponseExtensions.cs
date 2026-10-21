@@ -33,7 +33,7 @@ namespace Marilog.Client.Extensions
                 var root = doc.RootElement;
                 if (root.ValueKind != JsonValueKind.Object) return null;
 
-                var message = GetString(root, "message") ?? GetString(root, "title");
+                var message = GetString(root, "message") ?? GetString(root, "detail") ?? GetString(root, "title");
                 var errors = GetErrors(root);
 
                 if (errors.Count == 0) return message;

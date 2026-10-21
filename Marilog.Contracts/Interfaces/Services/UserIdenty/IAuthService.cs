@@ -2,7 +2,7 @@
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Kernel.Enums;
 
-namespace Marilog.Contracts.Interfaces.UserIdenty
+namespace Marilog.Contracts.Interfaces.Services.UserIdenty
 {
     public interface IAuthService
     {

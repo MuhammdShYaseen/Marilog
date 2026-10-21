@@ -3,6 +3,7 @@ using Marilog.Application.Interfaces.Ai;
 using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Services.ApplicationServices.AiServices;
+using Marilog.Application.Services.ApplicationServices.AuditLog;
 using Marilog.Application.Services.ApplicationServices.FunctionaltyServices;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices;
@@ -12,6 +13,7 @@ using Marilog.Application.Services.MapService;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.MapService;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
+using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -112,6 +114,10 @@ namespace Marilog.Application
 
             //----Map---------------------------------------------------------------
             services.AddSingleton<IMapTileService, MapTileService>();
+
+
+            //-----Audit-----------------------------------------
+            services.AddScoped<IAuditLogService, AuditLogService>();
 
             return services;
         }

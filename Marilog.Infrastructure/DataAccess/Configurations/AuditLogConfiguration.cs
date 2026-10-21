@@ -13,6 +13,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.UserName).HasMaxLength(256);
             builder.HasIndex(x => new { x.EntityType, x.EntityId });
             builder.HasIndex(x => x.OccurredAt);
+            builder.Property(l => l.OccurredAt)
+                   .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         }
     }
 }

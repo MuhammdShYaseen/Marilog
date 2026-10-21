@@ -1,6 +1,6 @@
 ﻿using Marilog.Contracts.DTOs.Requests.UserIdenty;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.Interfaces.UserIdenty;
+using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

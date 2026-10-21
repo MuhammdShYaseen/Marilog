@@ -1,4 +1,5 @@
 ﻿using Marilog.Client.Interfaces;
+using Marilog.Client.Services.Audit;
 using Marilog.Client.Services.DataManagment;
 using Marilog.Client.Services.EmailNotification;
 using Marilog.Client.Services.FunctionaltyServices;
@@ -10,6 +11,7 @@ using Marilog.Client.Services.VesselPosition;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
+using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
@@ -82,6 +84,9 @@ namespace Marilog.Client.Extensions
 
             //===Weather ====================================
             services.AddScoped<IWeatherService, WeatherService>();
+
+            //===Audit=======================================
+            services.AddScoped<IAuditLogService, AuditLogService>();
             return services;
         }
     }
