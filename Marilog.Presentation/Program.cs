@@ -6,6 +6,7 @@ using Marilog.Infrastructure.DataAccess.ContextDb;
 using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Infrastructure.Models.Identity;
 using Marilog.Presentation.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,13 @@ namespace Marilog.Presentation
                     return Task.CompletedTask;
                 };
             });
+
+            builder.Services.AddAuthorizationBuilder()
+                            .AddPolicy(AuthPolicies.SuperAdmin, p => p
+                            .RequireAuthenticatedUser()
+                            .AddRequirements(new SuperAdminRequirement()));
+
+            builder.Services.AddScoped<IAuthorizationHandler, SuperAdminHandler>();
 
             var dataProtection = builder.Services.AddDataProtection()
                     .SetApplicationName("Marilog");

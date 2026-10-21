@@ -2,6 +2,7 @@
 using Marilog.Contracts.DTOs.Requests.AuditDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
+using Marilog.Infrastructure.Helpers.UserIdentity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace Marilog.Presentation.Controllers.AuditLog
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // TODO: admin-only policy once permissions are built
+    [Authorize(Policy = AuthPolicies.SuperAdmin)]
     public class AuditLogController : ControllerBase
     {
         private readonly IAuditLogService _service;

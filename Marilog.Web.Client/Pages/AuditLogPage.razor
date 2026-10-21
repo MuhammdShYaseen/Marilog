@@ -1,10 +1,12 @@
-﻿@page "/audit-log"
+﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
+@page "/audit-log"
 @using System.Globalization
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Requests.AuditDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.AuditLog
 @using Marilog.Shared.UI.Pages.Audit
+@using Marilog.Web.Client.Auth
 @using MudBlazor
 
 @implements IDisposable
