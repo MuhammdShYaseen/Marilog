@@ -1,8 +1,11 @@
 using Marilog.Client.Extensions;
 using Marilog.Contracts.Options;
 using Marilog.Shared.UI.Extensions;
+using Marilog.Web.Client.Auth;
+using Marilog.Web.Client.Http;
 using Marilog.Web.Client.Services.Implementation;
 using Marilog.Web.Client.Services.Interfaces;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 namespace Marilog.Web.Client
@@ -36,10 +39,18 @@ namespace Marilog.Web.Client
                 // Local: استخدم نفس host مع port مختلف
                 apiBase = $"{uri.Scheme}://{uri.Host}:{apiPort}/";
             }
-
-            builder.Services.AddScoped(sp => new HttpClient
+            builder.Services.AddAuthorizationCore();
+            builder.Services.AddCascadingAuthenticationState();
+            builder.Services.AddScoped<AuthSessionEvents>();
+            builder.Services.AddScoped<CookieAuthStateProvider>();
+            builder.Services.AddScoped<AuthenticationStateProvider>(
+                sp => sp.GetRequiredService<CookieAuthStateProvider>());
+            builder.Services.AddScoped<CookieHandler>();
+            builder.Services.AddScoped(sp =>
             {
-                BaseAddress = new Uri(apiBase)
+                var handler = sp.GetRequiredService<CookieHandler>();
+                handler.InnerHandler = new HttpClientHandler();
+                return new HttpClient(handler) { BaseAddress = new Uri(apiBase) };
             });
             //builder.Services.AddMudServices();
             builder.Services.AddMarilogClientService();

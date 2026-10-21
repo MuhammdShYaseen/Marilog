@@ -2,11 +2,14 @@
 @using Marilog.Contracts.Interfaces.FrontendServices
 @using Marilog.Shared.UI.Layout
 @using Marilog.Shared.UI.Services
+@using Marilog.Web.Client.Auth
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
 @inject INavigationService NavService
 @inject IAppThemeService ThemeService
 @inject AppStateService AppState
+@inject CookieAuthStateProvider AuthProvider
 @implements IDisposable
 @inherits LayoutComponentBase
 
@@ -16,6 +19,8 @@
                   Themes="AppState.Themes"
                   OnThemeSelected="OnThemeSelectedAsync"
                   AppTitle="Marilog"
+                  UserDisplayName="@_userDisplayName"
+                  OnLogout="LogoutAsync"
                   AppSubtitle="WKA Ocean Shipping">
 
     @Body
@@ -63,6 +68,22 @@
             return null;
         }
     }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private string? _userDisplayName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthStateTask is null) return;
+
+        var user = (await AuthStateTask).User;
+        _userDisplayName = user.FindFirst(CookieAuthStateProvider.FullNameClaim)?.Value
+                           ?? user.Identity?.Name;
+    }
+
+    private Task LogoutAsync() => AuthProvider.LogoutAsync();
 
     private void HandleStateChanged() => InvokeAsync(StateHasChanged);
 

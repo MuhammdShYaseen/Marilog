@@ -43,7 +43,21 @@
         <MudText Typo="Typo.body2" Class="mr-3">
             @AppSubtitle
         </MudText>
-
+        @if (!string.IsNullOrEmpty(UserDisplayName))
+        {
+            <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
+                     Color="Color.Inherit"
+                     Dense="true"
+                     AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight">
+                <MudText Typo="Typo.body2" Class="px-4 py-2">@UserDisplayName</MudText>
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Logout"
+                             OnClick="@(() => OnLogout.InvokeAsync())">
+                    Logout
+                </MudMenuItem>
+            </MudMenu>
+        }
     </MudAppBar>
 
     <MudDrawer @bind-Open="drawerOpen"
@@ -106,6 +120,12 @@
 
     [Parameter]
     public EventCallback<int> OnThemeSelected { get; set; }
+
+    [Parameter]
+    public string? UserDisplayName { get; set; }
+
+    [Parameter]
+    public EventCallback OnLogout { get; set; }
 
     private MudTheme _mudTheme = new();
     private bool _isDark;

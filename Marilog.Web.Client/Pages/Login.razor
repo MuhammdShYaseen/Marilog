@@ -1,0 +1,102 @@
+﻿@page "/login"
+@layout LoginLayout
+@attribute [AllowAnonymous]
+@using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using Marilog.Web.Client.Auth
+@inject CookieAuthStateProvider AuthProvider
+@inject NavigationManager Nav
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-16">
+    <MudPaper Elevation="2" Class="pa-6">
+        <MudText Typo="Typo.h5">Marilog</MudText>
+        <MudText Typo="Typo.body2" Class="mb-6">WKA Ocean Shipping</MudText>
+
+        <EditForm Model="_model" OnSubmit="SubmitAsync">
+            <MudTextField @bind-Value="_model.UserName"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          AutoFocus="true"
+                          Disabled="_busy"
+                          Class="mb-4" />
+
+            <MudTextField @bind-Value="_model.Password"
+                          Label="Password"
+                          InputType="InputType.Password"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Disabled="_busy"
+                          Class="mb-4" />
+
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+            }
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Disabled="_busy">
+                @(_busy ? "Signing in..." : "Sign in")
+            </MudButton>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    private readonly LoginModel _model = new();
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Nav.NavigateTo(SafeReturnUrl(), replace: true);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_model.UserName) || string.IsNullOrEmpty(_model.Password))
+        {
+            _error = "Enter username and password.";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            await AuthProvider.LoginAsync(new LoginRequest(_model.UserName.Trim(), _model.Password));
+            Nav.NavigateTo(SafeReturnUrl(), replace: true);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            _error = ex.Message;
+            _model.Password = string.Empty;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private string SafeReturnUrl()
+    {
+        if (string.IsNullOrWhiteSpace(ReturnUrl)) return "";
+        if (ReturnUrl.Contains("://") || ReturnUrl.StartsWith('/') || ReturnUrl.StartsWith('\\')) return "";
+        if (ReturnUrl.StartsWith("login", StringComparison.OrdinalIgnoreCase)) return "";
+        return ReturnUrl;
+    }
+
+    private sealed class LoginModel
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

@@ -11,7 +11,7 @@ namespace Marilog.Infrastructure.Services.UserIdenty
 {
     public sealed class AuthService(SignInManager<User> signInManager, UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : IAuthService
     {
-        public async Task<LoginResult> LoginAsync(LoginRequest request)
+        public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
             var user = await userManager.FindByNameAsync(request.UserName.Trim());
             if (user is null || !user.IsActive)
@@ -25,9 +25,9 @@ namespace Marilog.Infrastructure.Services.UserIdenty
             return LoginResult.InvalidCredentials;
         }
 
-        public Task LogoutAsync() => signInManager.SignOutAsync();
+        public Task LogoutAsync(CancellationToken ct = default) => signInManager.SignOutAsync();
 
-        public async Task<CurrentUserResponse?> GetCurrentUserAsync()
+        public async Task<CurrentUserResponse?> GetCurrentUserAsync(CancellationToken ct = default)
         {
             var principal = httpContextAccessor.HttpContext?.User;
             if (principal?.Identity?.IsAuthenticated != true)

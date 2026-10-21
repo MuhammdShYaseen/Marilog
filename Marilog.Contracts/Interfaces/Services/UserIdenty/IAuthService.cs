@@ -6,8 +6,8 @@ namespace Marilog.Contracts.Interfaces.Services.UserIdenty
 {
     public interface IAuthService
     {
-        Task<LoginResult> LoginAsync(LoginRequest request);
-        Task LogoutAsync();
-        Task<CurrentUserResponse?> GetCurrentUserAsync();
+        Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default);
+        Task LogoutAsync(CancellationToken ct = default);
+        Task<CurrentUserResponse?> GetCurrentUserAsync(CancellationToken ct = default);
     }
 }

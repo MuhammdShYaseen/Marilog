@@ -1,10 +1,25 @@
-﻿@inject NavigationManager Nav
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Nav
 
 <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
 
     <Found Context="routeData">
         <PageTitle>@BuildTitle()</PageTitle>
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+    <NotAuthorized>
+        @if (context.User.Identity?.IsAuthenticated == true)
+        {
+            <p>You don't have permission to view this page.</p>
+        }
+        else
+        {
+            <RedirectToLogin />
+        }
+    </NotAuthorized>
+    <Authorizing>
+        <p>Loading...</p>
+    </Authorizing>
+</AuthorizeRouteView>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
 

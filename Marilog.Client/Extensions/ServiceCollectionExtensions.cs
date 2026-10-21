@@ -7,6 +7,7 @@ using Marilog.Client.Services.LaytimeServices;
 using Marilog.Client.Services.Logging;
 using Marilog.Client.Services.SystemServices;
 using Marilog.Client.Services.UiServices;
+using Marilog.Client.Services.UserIdenty;
 using Marilog.Client.Services.VesselPosition;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
@@ -16,6 +17,7 @@ using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Marilog.Contracts.Interfaces.Services.VesselPositions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -87,6 +89,10 @@ namespace Marilog.Client.Extensions
 
             //===Audit=======================================
             services.AddScoped<IAuditLogService, AuditLogService>();
+
+
+            //===Auth========================================
+            services.AddScoped<IAuthService, AuthService>();
             return services;
         }
     }
