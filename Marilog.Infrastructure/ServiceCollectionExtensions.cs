@@ -45,7 +45,6 @@ namespace Marilog.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             // ── DbContext ─────────────────────────────────────────────────────────
-            // ── DbContext ─────────────────────────────────────────────────────────
             services.AddScoped<AuditSaveChangesInterceptor>();
 
             services.AddDbContext<MarilogContext>((sp, options) =>

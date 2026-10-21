@@ -4,7 +4,8 @@
     {
         Create = 1,
         Update = 2,
-        Delete = 3
+        Delete = 3,
+        Purge = 4
     }
     public enum LoginResult
     {
@@ -191,6 +192,7 @@
         StoredFolder = 34,
         Tag = 35,
         User = 36,
+        AuditLog = 37,
         NONE = 0
     }
     public enum JobStatus

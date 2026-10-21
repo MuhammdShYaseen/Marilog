@@ -37,7 +37,7 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
         private readonly ICurrentUserService _currentUser;
         private readonly ILogger<AuditSaveChangesInterceptor> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-
+        private readonly List<AuditLog> _ownLogs = new();
         public AuditSaveChangesInterceptor(
             ICurrentUserService currentUser,
             ILogger<AuditSaveChangesInterceptor> logger,
@@ -71,12 +71,16 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
             if (context is null || _httpContextAccessor.HttpContext is null || !_currentUser.IsAuthenticated) return;
 
             context.ChangeTracker.DetectChanges();
-            foreach (var stale in context.ChangeTracker.Entries<AuditLog>()
-             .Where(e => e.State == EntityState.Added)
-             .ToList())
+
+            // Drop logs this interceptor added for an earlier save that failed.
+            // Logs added by other code (e.g. a purge record) are left alone.
+            foreach (var stale in _ownLogs)
             {
-                stale.State = EntityState.Detached;
+                var staleEntry = context.Entry(stale);
+                if (staleEntry.State == EntityState.Added)
+                    staleEntry.State = EntityState.Detached;
             }
+            _ownLogs.Clear();
 
             var logs = new List<AuditLog>();
 
@@ -95,7 +99,10 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
             }
 
             if (logs.Count > 0)
+            {
                 context.Set<AuditLog>().AddRange(logs);
+                _ownLogs.AddRange(logs);
+            }
         }
 
         private AuditLog? BuildLog(EntityEntry entry, Guid entityId)

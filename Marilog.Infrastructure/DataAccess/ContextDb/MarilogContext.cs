@@ -27,6 +27,29 @@ namespace Marilog.Infrastructure.DataAccess.ContextDb
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
             ApplyGlobalFilters(modelBuilder);
+            //IndexGuidColumns(modelBuilder);
+        }
+
+
+        private static void IndexGuidColumns(ModelBuilder modelBuilder)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToList())
+            {
+                if (entityType.IsOwned() || entityType.HasSharedClrType) continue;
+
+                foreach (var property in entityType.GetDeclaredProperties().ToList())
+                {
+                    var clrType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+                    if (clrType != typeof(Guid)) continue;
+                    if (property.IsPrimaryKey()) continue;
+
+                    var alreadyIndexed = entityType.GetIndexes()
+                        .Any(i => i.Properties[0] == property);
+                    if (alreadyIndexed) continue;
+
+                    modelBuilder.Entity(entityType.ClrType).HasIndex(property.Name);
+                }
+            }
         }
 
         private static void ApplyGlobalFilters(ModelBuilder modelBuilder)
