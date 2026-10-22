@@ -40,7 +40,7 @@ namespace Marilog.Presentation
                 })
                 .AddEntityFrameworkStores<MarilogContext>()
                 .AddSignInManager();
-
+            builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.FromMinutes(10));
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.Name = "Marilog.Auth";

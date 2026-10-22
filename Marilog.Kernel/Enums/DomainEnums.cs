@@ -1,5 +1,15 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+    public enum UserManagementResult
+    {
+        Success,
+        NotFound,
+        UserNameTaken,
+        InvalidPassword,
+        LastSuperAdmin,
+        CannotModifySelf,
+        Failed
+    }
     public enum AuditOperation
     {
         Create = 1,

@@ -1,0 +1,157 @@
+﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
+@page "/admin/users"
+@using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.UserIdenty
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Users
+@using Marilog.Web.Client.Auth
+@using MudBlazor
+
+@implements IDisposable
+@inject IUserManagementService Users
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+
+<SharedUsersPage Items="_items"
+                 IsLoading="_isLoading"
+                 OnAddClicked="OpenCreateAsync"
+                 OnRefreshClicked="LoadAsync"
+                 OnActivate="ActivateAsync"
+                 OnDeactivate="DeactivateAsync"
+                 OnGrantSuperAdmin="GrantSuperAdminAsync"
+                 OnRevokeSuperAdmin="RevokeSuperAdminAsync"
+                 OnResetPassword="OpenResetPasswordAsync" />
+
+@code {
+    private IReadOnlyList<UserResponse> _items = [];
+    private bool _isLoading;
+    private CancellationTokenSource? _listCts;
+
+    private static readonly DialogOptions DialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        // A newer request supersedes the old one
+        _listCts?.Cancel();
+        _listCts?.Dispose();
+        _listCts = new CancellationTokenSource();
+        var ct = _listCts.Token;
+
+        _isLoading = true;
+        try
+        {
+            _items = await Users.GetAllAsync(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested) _isLoading = false;
+        }
+    }
+
+    // ── Create & password ──
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CreateUserDialog>("Add user", DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not CreateUserRequest request) return;
+
+        await RunAsync(() => Users.CreateAsync(request), $"User '{request.UserName}' created.");
+    }
+
+    private async Task OpenResetPasswordAsync(UserResponse user)
+    {
+        var dialog = await Dialogs.ShowAsync<ResetPasswordDialog>("Reset password",
+            new DialogParameters { [nameof(ResetPasswordDialog.UserName)] = user.UserName },
+            DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not ResetPasswordRequest request) return;
+
+        await RunAsync(() => Users.ResetPasswordAsync(user.Id, request), $"Password changed for '{user.UserName}'.");
+    }
+
+    // ── Status & role ──
+
+    private Task ActivateAsync(UserResponse user) =>
+        RunAsync(() => Users.ActivateAsync(user.Id), $"'{user.UserName}' activated.");
+
+    private async Task DeactivateAsync(UserResponse user)
+    {
+        if (!await ConfirmAsync("Deactivate user",
+                $"Deactivate '{user.UserName}'? They will be signed out within a minute.", "Deactivate"))
+            return;
+
+        await RunAsync(() => Users.DeactivateAsync(user.Id), $"'{user.UserName}' deactivated.");
+    }
+
+    private async Task GrantSuperAdminAsync(UserResponse user)
+    {
+        if (!await ConfirmAsync("Grant super admin",
+                $"Give '{user.UserName}' full admin access, including users and the audit log?", "Grant"))
+            return;
+
+        await RunAsync(() => Users.GrantSuperAdminAsync(user.Id), $"'{user.UserName}' is now a super admin.");
+    }
+
+    private async Task RevokeSuperAdminAsync(UserResponse user)
+    {
+        if (!await ConfirmAsync("Revoke super admin",
+                $"Remove admin access from '{user.UserName}'?", "Revoke"))
+            return;
+
+        await RunAsync(() => Users.RevokeSuperAdminAsync(user.Id), $"'{user.UserName}' is no longer a super admin.");
+    }
+
+    // ── Helpers ──
+
+    private async Task<bool> ConfirmAsync(string title, string message, string yesText)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(title, message, yesText: yesText, cancelText: "Cancel");
+        return confirmed == true;
+    }
+
+    // Failures arrive as exceptions carrying the server's message
+    private async Task RunAsync(Func<Task<UserManagementResult>> action, string successMessage)
+    {
+        _isLoading = true;
+        try
+        {
+            await action();
+            Snackbar.Add(successMessage, Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        _listCts?.Cancel();
+        _listCts?.Dispose();
+    }
+}

@@ -1,0 +1,61 @@
+@using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Users
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_userName" Label="Username"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+
+        <MudTextField T="string" @bind-Value="_fullName" Label="Full name" Class="mt-2"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+
+        <MudTextField T="string" @bind-Value="_email" Label="Email (optional)" Class="mt-2"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+
+        <MudTextField T="string" @bind-Value="_password" Label="Password" Class="mt-2"
+                      InputType="InputType.Password"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+
+        <MudTextField T="string" @bind-Value="_confirm" Label="Confirm password" Class="mt-2"
+                      InputType="InputType.Password"
+                      Error="@Mismatch" ErrorText="Passwords don't match."
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!CanSubmit)"
+                   OnClick="Submit">
+            Create
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string? _userName;
+    private string? _fullName;
+    private string? _email;
+    private string? _password;
+    private string? _confirm;
+
+    private bool Mismatch => !string.IsNullOrEmpty(_confirm) && _password != _confirm;
+
+    private bool CanSubmit =>
+        !string.IsNullOrWhiteSpace(_userName)
+        && !string.IsNullOrWhiteSpace(_fullName)
+        && !string.IsNullOrEmpty(_password)
+        && _password == _confirm;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new CreateUserRequest(
+            _userName!.Trim(),
+            _fullName!.Trim(),
+            string.IsNullOrWhiteSpace(_email) ? null : _email.Trim(),
+            _password!)));
+}

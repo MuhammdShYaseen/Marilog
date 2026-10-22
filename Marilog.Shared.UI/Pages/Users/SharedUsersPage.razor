@@ -1,0 +1,168 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Users
+
+<div class="az-users">
+
+    <div class="az-page-title">
+        <MudText Typo="Typo.h6">Users</MudText>
+    </div>
+
+    <div class="az-commandbar">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                   Disabled="IsLoading"
+                   OnClick="OnAddClicked">
+            Add user
+        </MudButton>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="IsLoading"
+                   OnClick="OnRefreshClicked">
+            Refresh
+        </MudButton>
+    </div>
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+
+    <MudDataGrid T="UserResponse"
+                 Items="Items"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="0"
+                 Outlined="true"
+                 Square="true"
+                 Breakpoint="Breakpoint.Sm"
+                 SortMode="SortMode.None">
+        <Columns>
+            <PropertyColumn Property="x => x.UserName" Title="Username" />
+            <PropertyColumn Property="x => x.FullName" Title="Full name" />
+
+            <TemplateColumn Title="Email">
+                <CellTemplate>@(context.Item.Email ?? "—")</CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Status">
+                <CellTemplate>
+                    <span class="az-status">
+                        <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                 Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                 Style="font-size:10px" />
+                        @(context.Item.IsActive ? "Active" : "Disabled")
+                    </span>
+                    @if (context.Item.IsLockedOut)
+                    {
+                        <span class="az-status ml-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Warning" Style="font-size:14px" />
+                            Locked
+                        </span>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Role">
+                <CellTemplate>@(context.Item.IsSuperAdmin ? "Super admin" : "User")</CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="" CellStyle="text-align:right; white-space:nowrap">
+                <CellTemplate>
+                    @if (context.Item.IsActive)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
+                                       title="Deactivate" Disabled="IsLoading"
+                                       OnClick="() => OnDeactivate.InvokeAsync(context.Item)" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
+                                       title="Activate" Disabled="IsLoading"
+                                       OnClick="() => OnActivate.InvokeAsync(context.Item)" />
+                    }
+
+                    @if (context.Item.IsSuperAdmin)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.RemoveModerator" Size="Size.Small"
+                                       title="Revoke super admin" Disabled="IsLoading"
+                                       OnClick="() => OnRevokeSuperAdmin.InvokeAsync(context.Item)" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Small"
+                                       title="Grant super admin" Disabled="IsLoading"
+                                       OnClick="() => OnGrantSuperAdmin.InvokeAsync(context.Item)" />
+                    }
+
+                    <MudIconButton Icon="@Icons.Material.Filled.LockReset" Size="Size.Small"
+                                   title="Reset password" Disabled="IsLoading"
+                                   OnClick="() => OnResetPassword.InvokeAsync(context.Item)" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <NoRecordsContent>
+            <div class="az-muted pa-4">No users found.</div>
+        </NoRecordsContent>
+    </MudDataGrid>
+
+</div>
+
+<style>
+    .az-users .az-page-title {
+        padding-bottom: 8px;
+    }
+
+    .az-users .az-commandbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-users .mud-table-head .mud-table-cell {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-users .mud-table-cell {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .az-users .az-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .az-users .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+</style>
+
+@code {
+    [Parameter] public IReadOnlyList<UserResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+
+    [Parameter] public EventCallback<UserResponse> OnActivate { get; set; }
+    [Parameter] public EventCallback<UserResponse> OnDeactivate { get; set; }
+    [Parameter] public EventCallback<UserResponse> OnGrantSuperAdmin { get; set; }
+    [Parameter] public EventCallback<UserResponse> OnRevokeSuperAdmin { get; set; }
+    [Parameter] public EventCallback<UserResponse> OnResetPassword { get; set; }
+}

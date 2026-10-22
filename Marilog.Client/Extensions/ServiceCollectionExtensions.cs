@@ -93,6 +93,7 @@ namespace Marilog.Client.Extensions
 
             //===Auth========================================
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IUserManagementService, UserManagementService>();
             return services;
         }
     }
