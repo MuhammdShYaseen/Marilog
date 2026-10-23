@@ -203,6 +203,7 @@
         Tag = 35,
         User = 36,
         AuditLog = 37,
+        Role = 38,
         NONE = 0
     }
     public enum JobStatus
