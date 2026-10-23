@@ -1,4 +1,5 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.Frontend
 {
@@ -9,6 +10,8 @@ namespace Marilog.Domain.Entities.Frontend
         public string? Icon { get; private set; }
         public int? ParentId { get; private set; }
         public int Order { get; private set; }
+        public PermissionTargetKind? RequiredTargetKind { get; private set; }
+        public int? RequiredTargetValue { get; private set; }
 
         public List<NavItem> Children { get; private set; } = new(); // EF Core likes this
 
@@ -43,5 +46,15 @@ namespace Marilog.Domain.Entities.Frontend
         public void SetActive(bool isActive) => IsActive = isActive;
 
         public void AddChild(NavItem child) => Children.Add(child);
+        // No required permission means the link is visible to all. Read is implied.
+        public void SetRequiredPermission(PermissionTargetKind? kind, int? value)
+        {
+            if (kind.HasValue != value.HasValue)
+                throw new ArgumentException("Target kind and value must both be set or both be null.");
+
+            RequiredTargetKind = kind;
+            RequiredTargetValue = value;
+            Touch();
+        }
     }
 }

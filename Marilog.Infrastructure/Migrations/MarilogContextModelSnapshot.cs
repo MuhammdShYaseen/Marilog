@@ -332,6 +332,12 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<int?>("ParentId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("RequiredTargetKind")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequiredTargetValue")
+                        .HasColumnType("int");
+
                     b.Property<string>("Route")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -2470,6 +2476,103 @@ namespace Marilog.Infrastructure.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("Roles", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Actions")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetKind")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetValue")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("RoleId", "TargetKind", "TargetValue")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("RolePermissions", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2545,6 +2648,51 @@ namespace Marilog.Infrastructure.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.UserRole", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId", "RoleId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -3748,6 +3896,34 @@ namespace Marilog.Infrastructure.Migrations
                     b.Navigation("Port");
                 });
 
+            modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.RolePermission", b =>
+                {
+                    b.HasOne("Marilog.Infrastructure.Models.Identity.Role", "Role")
+                        .WithMany("Permissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.UserRole", b =>
+                {
+                    b.HasOne("Marilog.Infrastructure.Models.Identity.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Infrastructure.Models.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.HasOne("Marilog.Infrastructure.Models.Identity.User", null)
@@ -3847,6 +4023,11 @@ namespace Marilog.Infrastructure.Migrations
                     b.Navigation("BillsOfLading");
 
                     b.Navigation("Stops");
+                });
+
+            modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.Role", b =>
+                {
+                    b.Navigation("Permissions");
                 });
 #pragma warning restore 612, 618
         }

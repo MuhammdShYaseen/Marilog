@@ -1,5 +1,25 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+
+    public enum AppScreen
+    {
+        FinancialDashboard = 1,
+        OperationalDashboard = 2
+    }
+    public enum PermissionTargetKind
+    {
+        Entity = 1,
+        Screen = 2
+    }
+    [Flags]
+    public enum PermissionAction
+    {
+        None = 0,
+        Read = 1,
+        Create = 2,
+        Update = 4,
+        Delete = 8
+    }
     public enum UserManagementResult
     {
         Success,
@@ -204,6 +224,8 @@
         User = 36,
         AuditLog = 37,
         Role = 38,
+        RolePermission = 39,
+        UserRole = 40,
         NONE = 0
     }
     public enum JobStatus
