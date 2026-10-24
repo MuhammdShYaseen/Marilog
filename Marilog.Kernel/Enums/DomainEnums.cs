@@ -1,6 +1,17 @@
 ﻿namespace Marilog.Kernel.Enums
 {
 
+    public enum RoleManagementResult
+    {
+        Success,
+        NotFound,
+        NameTaken,
+        InvalidName,
+        RoleInUse,
+        InvalidRole,
+        Failed
+    }
+
     public enum AppScreen
     {
         FinancialDashboard = 1,

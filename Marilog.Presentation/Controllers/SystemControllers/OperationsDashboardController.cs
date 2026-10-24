@@ -10,7 +10,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/operations/dashboard")]
-    [RequirePermission(AppScreen.OperationalDashboard)]
+
     public class OperationsDashboardController
          : ControllerBase
     {
@@ -21,6 +21,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             _service = service;
         }
 
+
+        [RequirePermission(AppScreen.OperationalDashboard)]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<OperationsDashboardResponse>>>Get(CancellationToken ct)
         {
@@ -29,6 +31,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<OperationsDashboardResponse>.Ok(data));
         }
 
+
+        [RequirePermission(AppScreen.FinancialDashboard)]
         [HttpGet("financial-summary")]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<FinancialChartPointResponse>>>> GetFinancialSummary(
         [FromQuery] DocumentFilterOptions options, CancellationToken ct)
@@ -37,6 +41,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<IReadOnlyList<FinancialChartPointResponse>>.Ok(data));
         }
 
+
+        [RequirePermission(AppScreen.OperationalDashboard)]
         [HttpGet("voyage-summary")]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<VoyageChartPointResponse>>>> GetVoyageSummary(
             [FromQuery] DateOnly from, [FromQuery] DateOnly to, [FromQuery] int? vesselId, CancellationToken ct)

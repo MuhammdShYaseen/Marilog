@@ -5,19 +5,39 @@ using Marilog.Contracts.DTOs.Requests.UserIdenty;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Marilog.Infrastructure.Models.Identity;
+using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 
 namespace Marilog.Infrastructure.Services.UserIdenty
 {
-    public sealed class UserManagementService(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : IUserManagementService
+    public sealed class UserManagementService(UserManager<User> userManager, IHttpContextAccessor httpContextAccessor, IRepository<UserRole> userRoles) : IUserManagementService
     {
         public async Task<IReadOnlyList<UserResponse>> GetAllAsync(CancellationToken ct = default)
         {
             var now = DateTimeOffset.UtcNow;
 
-            return await userManager.Users
+            var roleIds = (await userRoles.Query()
+                    .AsNoTracking()
+                    .Select(ur => new { ur.UserId, ur.RoleId })
+                    .ToListAsync(ct))
+                .ToLookup(x => x.UserId, x => x.RoleId);
+
+            var users = await userManager.Users
                 .AsNoTracking()
                 .OrderBy(u => u.UserName)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.UserName,
+                    u.FullName,
+                    u.Email,
+                    u.IsActive,
+                    u.IsSuperAdmin,
+                    IsLockedOut = u.LockoutEnd != null && u.LockoutEnd > now
+                })
+                .ToListAsync(ct);
+
+            return users
                 .Select(u => new UserResponse(
                     u.Id,
                     u.UserName!,
@@ -25,8 +45,9 @@ namespace Marilog.Infrastructure.Services.UserIdenty
                     u.Email,
                     u.IsActive,
                     u.IsSuperAdmin,
-                    u.LockoutEnd != null && u.LockoutEnd > now))
-                .ToListAsync(ct);
+                    u.IsLockedOut,
+                    roleIds[u.Id].ToList()))
+                .ToList();
         }
 
         public async Task<UserManagementResult> CreateAsync(CreateUserRequest request, CancellationToken ct = default)

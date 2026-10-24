@@ -8,5 +8,6 @@ namespace Marilog.Contracts.DTOs.Responses
        string? Email,
        bool IsActive,
        bool IsSuperAdmin,
-       bool IsLockedOut);
+       bool IsLockedOut,
+       IReadOnlyList<int> RoleIds);
 }

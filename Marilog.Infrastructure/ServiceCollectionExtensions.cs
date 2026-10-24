@@ -165,6 +165,7 @@ namespace Marilog.Infrastructure
             services.AddHttpContextAccessor();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserManagementService, UserManagementService>();
+            services.AddScoped<IRoleManagementService, RoleManagementService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddSingleton<IAuditSettingsStore, JsonAuditSettingsStore>();
 

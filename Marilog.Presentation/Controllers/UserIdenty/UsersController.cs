@@ -11,7 +11,7 @@ namespace Marilog.Presentation.Controllers.UserIdenty
     [ApiController]
     [Route("api/users")]
     [Authorize(Policy = AuthPolicies.SuperAdmin)]
-    public sealed class UsersController(IUserManagementService userService) : ControllerBase
+    public sealed class UsersController(IUserManagementService userService, IRoleManagementService roleService) : ControllerBase
     {
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetAll(CancellationToken ct)
@@ -40,6 +40,23 @@ namespace Marilog.Presentation.Controllers.UserIdenty
         [HttpPost("{id:guid}/reset-password")]
         public async Task<IActionResult> ResetPassword(Guid id, ResetPasswordRequest request, CancellationToken ct)
             => ToActionResult(await userService.ResetPasswordAsync(id, request, ct));
+
+
+        [HttpPut("{id:guid}/roles")]
+        public async Task<IActionResult> SetRoles(Guid id, [FromBody] IReadOnlyList<int> roleIds, CancellationToken ct)
+        => await roleService.SetUserRolesAsync(id, roleIds, ct) switch
+        {
+            RoleManagementResult.Success => NoContent(),
+            RoleManagementResult.NotFound => Problem(
+                detail: "User not found.",
+                statusCode: StatusCodes.Status404NotFound),
+            RoleManagementResult.InvalidRole => Problem(
+                detail: "One or more roles do not exist.",
+                statusCode: StatusCodes.Status400BadRequest),
+            _ => Problem(
+                detail: "The operation failed.",
+                statusCode: StatusCodes.Status400BadRequest)
+    };
 
         private IActionResult ToActionResult(UserManagementResult result) => result switch
         {
