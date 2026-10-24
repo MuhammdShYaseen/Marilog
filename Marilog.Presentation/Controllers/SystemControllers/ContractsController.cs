@@ -42,6 +42,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<ContractDetailResponse>.Ok(result));
         }
 
+        [RequirePermission(EntityType.AContract, PermissionAction.Read)]
         [HttpPost("paged")]
         public async Task<ActionResult<ApiResponse<PagedResponse<ContractSummary>>>> GetPaged([FromBody] ContractFilter filter, CancellationToken ct)
         {

@@ -3,6 +3,8 @@ using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.FunctionaltyControllers
@@ -16,6 +18,8 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
         {
             _pdfGeneratorService = pdfFileGenerator;
         }
+
+        [RequirePermission(EntityType.Document, PermissionAction.Read)]
         [HttpPost("DocumentReport")]
         public async Task<IActionResult> ExportDocumentReportPdf([FromBody] DocumentReport report,[FromQuery] string? title = null, CancellationToken ct = default)
         {
@@ -25,7 +29,7 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
 
             return File(pdfBytes, "application/pdf", fileName);
         }
-
+        [RequirePermission(EntityType.Payment, PermissionAction.Read)]
         [HttpPost("PaymentReport")]
         public async Task<IActionResult> ExportPaymentReport([FromBody] PaymentsReport report, [FromQuery] string? title = null, CancellationToken ct = default)
         {
@@ -35,7 +39,7 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
 
             return File(pdfBytes, "application/pdf", fileName);
         }
-
+        [RequirePermission(EntityType.BillOfLading, PermissionAction.Read)]
         [HttpGet("BillOfLadingPdf/{id:int}")]
         public async Task<IActionResult> ExportBillOfLadingFile(int id, CancellationToken ct = default)
         {

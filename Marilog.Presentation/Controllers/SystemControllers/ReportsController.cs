@@ -6,6 +6,8 @@ using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Reports.SwiftTransferReports;
 using Marilog.Contracts.DTOs.Reports.VoyageReports;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -35,7 +37,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             _documentService = documentService;
         }
 
-       
+        [RequirePermission(EntityType.SwiftTransfer, PermissionAction.Read)]
         [HttpGet("swift-transfers")]
         [ProducesResponseType(typeof(ApiResponse<SwiftTransferReport>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSwiftTransfersReport([FromQuery] SwiftTransferFilterOptions filterOptions,
@@ -45,7 +47,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<SwiftTransferReport>.Ok(report));
         }
 
-        
+        [RequirePermission(EntityType.Voyage, PermissionAction.Read)]
         [HttpGet("voyages")]
         [ProducesResponseType(typeof(ApiResponse<VoyageReport>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetVoyagesReport([FromQuery] VoyageReportFilterOptions filterOptions,
@@ -55,6 +57,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<VoyageReport>.Ok(report));
         }
 
+        [RequirePermission(EntityType.CrewPayroll, PermissionAction.Read)]
         [HttpGet("crew-payroll")]
         [ProducesResponseType(typeof(ApiResponse<CrewPayrollReport>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCrewPayrollReport([FromQuery] CrewPayrollFilterOptions filterOptions,
@@ -63,7 +66,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var report = await _payrollService.GetCrewPayrollReportAsync(filterOptions, ct);
             return Ok(ApiResponse<CrewPayrollReport>.Ok(report));
         }
-
+        [RequirePermission(EntityType.CrewContract, PermissionAction.Read)]
         [HttpGet("crew-contracts")]
         [ProducesResponseType(typeof(ApiResponse<CrewContractReport>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCrewContractsReport([FromQuery] CrewContractFilterOptions filterOptions,
@@ -73,7 +76,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<CrewContractReport>.Ok(report));
         }
 
-       
+        [RequirePermission(EntityType.Document, PermissionAction.Read)]
         [HttpGet("documents")]
         [ProducesResponseType(typeof(ApiResponse<DocumentReport>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDocumentsReport([FromQuery] DocumentFilterOptions filterOptions,
@@ -82,7 +85,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var report = await _documentService.GetFilteredDocsReportAsync(filterOptions, ct);
             return Ok(ApiResponse<DocumentReport>.Ok(report));
         }
-
+        [RequirePermission(EntityType.Document, PermissionAction.Read)]
         [HttpGet("payments")]
         [ProducesResponseType(typeof(ApiResponse<PaymentsReport>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaymentsReport([FromQuery] FilterPaymentOptionsRequest filterOptions,

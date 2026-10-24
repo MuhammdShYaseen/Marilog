@@ -6,6 +6,8 @@ using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Requests.TagDtos;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -286,6 +288,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         //---------------------------------------------
         // Adjustments
         //---------------------------------------------
+        [RequirePermission(EntityType.DocumentAdjustment, PermissionAction.Create)]
         [HttpPost("adjustments")]
         public async Task<ActionResult<AdjustmentResponse>> AddAdjustment([FromBody] CreateAdjustmentRequest request, CancellationToken ct)
         {
@@ -293,6 +296,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(adjustment);
         }
 
+        [RequirePermission(EntityType.DocumentAdjustment, PermissionAction.Update)]
         [HttpPut("adjustments/{adjustmentId:int}")]
         public async Task<ActionResult<IActionResult>> Updateadjustment(int adjustmentId, [FromBody] UpdateAdjustmentRequest request, CancellationToken ct)
         {
@@ -300,7 +304,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
             return Ok(updatedAdjustment);
         }
-
+        [RequirePermission(EntityType.DocumentAdjustment, PermissionAction.Delete)]
         [HttpDelete("adjustment/{adjustmentId:int}")]
         public async Task<IActionResult> Removeadjustment(int adjustmentId, CancellationToken ct)
         {
@@ -311,14 +315,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // ─────────────────────────────────────────────
         // Payments
         // ─────────────────────────────────────────────
-
+        [RequirePermission(EntityType.Payment, PermissionAction.Create)]
         [HttpPost("{id:int}/payments")]
         public async Task<ActionResult<PaymentResponse>> AddPayment(int id, [FromBody] AddPaymentRequest request, CancellationToken ct)
         {
             var payment = await _service.AddPaymentAsync(id, request, ct);
             return Ok(payment);
         }
-
+        [RequirePermission(EntityType.Payment, PermissionAction.Update)]
         [HttpPut("{id:int}/payments/{paymentId:int}")]
         public async Task<ActionResult<PaymentResponse>> UpdatePayment(int id, int paymentId, [FromBody] UpdatePaymentRequest request, CancellationToken ct)
         {
@@ -331,6 +335,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(payment);
         }
 
+        [RequirePermission(EntityType.Payment, PermissionAction.Delete)]
         [HttpDelete("{id:int}/payment/{paymentId:int}")]
         public async Task<IActionResult> RemovePayment(int id, int paymentId, CancellationToken ct)
         {

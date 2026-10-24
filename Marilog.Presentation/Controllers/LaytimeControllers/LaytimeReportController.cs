@@ -1,11 +1,14 @@
 ﻿using Marilog.Contracts.DTOs.Requests.LayTimeDTOs;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.LaytimeControllers
 {
     [ApiController]
     [Route("api/laytime-reports")]
+    [RequirePermission(EntityType.LaytimeCalculation, PermissionAction.Read)]
     public sealed class LaytimeReportController : ControllerBase
     {
         private readonly ILaytimeReportService _service;

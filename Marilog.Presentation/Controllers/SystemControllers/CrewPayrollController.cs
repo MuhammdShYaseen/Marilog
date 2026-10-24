@@ -1,9 +1,10 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
@@ -131,14 +132,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         // ─────────────────────────────────────────────
         // Disbursements
         // ─────────────────────────────────────────────
-
+        [RequirePermission(EntityType.CrewPayrollDisbursement, PermissionAction.Create)]
         [HttpPost("{payrollId:int}/disbursements")]
         public async Task<ActionResult<ApiResponse<DisbursementResponse>>> Pay(int payrollId, [FromBody] PayCrewPayrollRequest request, CancellationToken ct)
         {
             var disbursement = await _service.PayAsync(payrollId, request, ct);
             return Ok(ApiResponse<DisbursementResponse>.Ok(disbursement));
         }
-
+        [RequirePermission(EntityType.CrewPayrollDisbursement, PermissionAction.Update)]
         [HttpPatch("{payrollId:int}/disbursements/{disbursementId:int}/confirm")]
         public async Task<IActionResult> ConfirmDisbursement(int payrollId, int disbursementId, CancellationToken ct)
         {
@@ -146,6 +147,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+        [RequirePermission(EntityType.CrewPayrollDisbursement, PermissionAction.Update)]
         [HttpPatch("{payrollId:int}/disbursements/{disbursementId:int}/cancel")]
         public async Task<IActionResult> CancelDisbursement(int payrollId, int disbursementId, [FromBody] CancelDisbursementRequest request, CancellationToken ct)
         {

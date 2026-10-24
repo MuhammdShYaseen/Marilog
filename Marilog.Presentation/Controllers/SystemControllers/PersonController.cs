@@ -1,10 +1,12 @@
-﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
+﻿
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.PersonReports;
 using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -60,6 +62,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<ActionResult<IReadOnlyList<PersonResponse>>> GetWithExpiringPassports([FromQuery] int withinDays, CancellationToken ct)
             => Ok(ApiResponse<IReadOnlyList<PersonResponse>>.Ok(await _service.GetWithExpiringPassportsAsync(withinDays, ct)));
 
+
+        [RequirePermission(EntityType.Person, PermissionAction.Read)]
         [HttpPost("filter")]
         public async Task<IActionResult> GetFiltered([FromBody] PersonFilterOptions filter, CancellationToken ct)
             => Ok(await _service.GetFilteredPersonsAsync(filter, ct));
@@ -166,7 +170,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         // ── Certificates ─────────────────────────────────────────────────────────────
-
+        [RequirePermission(EntityType.PersonCertificate, PermissionAction.Create)]
         [HttpPost("{id}/certificates")]
         public async Task<IActionResult> AddCertificate(int id,
             [FromBody] UpsertCertificateRequest request, CancellationToken ct)
@@ -175,6 +179,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+
+        [RequirePermission(EntityType.PersonCertificate, PermissionAction.Update)]
         [HttpPut("{id}/certificates/{index}")]
         public async Task<IActionResult> UpdateCertificate(int id, int index,
             [FromBody] UpsertCertificateRequest request, CancellationToken ct)
@@ -183,6 +189,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+        [RequirePermission(EntityType.PersonCertificate, PermissionAction.Delete)]
         [HttpDelete("{id}/certificates/{index}")]
         public async Task<IActionResult> RemoveCertificate(int id, int index, CancellationToken ct)
         {
