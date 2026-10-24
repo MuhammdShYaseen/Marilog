@@ -2,12 +2,15 @@
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/operations/dashboard")]
+    [RequirePermission(AppScreen.OperationalDashboard)]
     public class OperationsDashboardController
          : ControllerBase
     {

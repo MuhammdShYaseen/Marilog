@@ -1,13 +1,15 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace Marilog.Presentation.Controllers.Weather
 {
     [ApiController]
     [Route("api/weather")]
+    [Authorize]
     public class WeatherController : ControllerBase
     {
         private readonly IWeatherService _service;

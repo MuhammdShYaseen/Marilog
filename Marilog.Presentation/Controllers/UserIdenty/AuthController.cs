@@ -30,6 +30,7 @@ namespace Marilog.Presentation.Controllers.UserIdenty
         }
 
         [HttpPost("logout")]
+        [AllowAnonymous]
         public async Task<IActionResult> Logout()
         {
             await authService.LogoutAsync();

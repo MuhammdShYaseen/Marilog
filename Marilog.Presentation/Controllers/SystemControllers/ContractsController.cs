@@ -3,6 +3,8 @@ using Marilog.Contracts.DTOs.Reports.Contract;
 using Marilog.Contracts.DTOs.Requests.ContractDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Marilog.Kernel.Primitives;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +12,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [PermissionEntity(EntityType.AContract)]
     public class ContractsController : ControllerBase
     {
         private readonly IContractService _service;

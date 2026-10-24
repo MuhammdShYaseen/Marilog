@@ -2,6 +2,8 @@
 using Marilog.Contracts.DTOs.Frontend.NavItem;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.FrontendServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -9,6 +11,7 @@ namespace Marilog.Presentation.Controllers.Frontend
 {
     [ApiController]
     [Route("api/navigation")]
+    [PermissionEntity(EntityType.NavItem)]
     public class NavigationController : ControllerBase
     {
         private readonly INavigationService _service;

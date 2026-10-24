@@ -1,11 +1,13 @@
 ﻿
 using Marilog.Contracts.Interfaces.MapService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.WMap
 {
     [ApiController]
     [Route("api/map-tiles")]
+    [Authorize]
     public sealed class MapTilesController : ControllerBase
     {
         private readonly IMapTileService _mapTileService;

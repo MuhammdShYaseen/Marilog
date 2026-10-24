@@ -62,11 +62,15 @@ namespace Marilog.Presentation
             });
 
             builder.Services.AddAuthorizationBuilder()
-                            .AddPolicy(AuthPolicies.SuperAdmin, p => p
-                            .RequireAuthenticatedUser()
-                            .AddRequirements(new SuperAdminRequirement()));
+                .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build())
+                .AddPolicy(AuthPolicies.SuperAdmin, p => p
+                .RequireAuthenticatedUser()
+                .AddRequirements(new SuperAdminRequirement()));
 
             builder.Services.AddScoped<IAuthorizationHandler, SuperAdminHandler>();
+            builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
             var dataProtection = builder.Services.AddDataProtection()
                     .SetApplicationName("Marilog");
@@ -74,12 +78,7 @@ namespace Marilog.Presentation
             var keysPath = builder.Configuration["DataProtection:KeysPath"];
             if (!string.IsNullOrWhiteSpace(keysPath))
                 dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
-            builder.Services.AddControllers();
-            //builder.Services.AddOpenApi(options =>
-            //{
-                // Specify the OpenAPI version to use
-            //    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
-            //});
+            builder.Services.AddControllers(options => options.Conventions.Add(new PermissionConvention()));
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowClient", policy =>
