@@ -3,7 +3,6 @@
 @using Marilog.Contracts.DTOs.Requests.UserIdenty
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.UserIdenty
-@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.Users
 @using Marilog.Web.Client.Auth
 @using MudBlazor
@@ -12,6 +11,7 @@
 @inject IUserManagementService Users
 @inject ISnackbar Snackbar
 @inject IDialogService Dialogs
+@inject IRoleManagementService Roles
 
 <SharedUsersPage Items="_items"
                  IsLoading="_isLoading"
@@ -21,10 +21,13 @@
                  OnDeactivate="DeactivateAsync"
                  OnGrantSuperAdmin="GrantSuperAdminAsync"
                  OnRevokeSuperAdmin="RevokeSuperAdminAsync"
-                 OnResetPassword="OpenResetPasswordAsync" />
+                 OnResetPassword="OpenResetPasswordAsync"
+                 Roles="_roles"
+                 OnAssignRoles="OpenAssignRolesAsync" />
 
 @code {
     private IReadOnlyList<UserResponse> _items = [];
+    private IReadOnlyList<RoleResponse> _roles = [];
     private bool _isLoading;
     private CancellationTokenSource? _listCts;
 
@@ -48,7 +51,12 @@
         _isLoading = true;
         try
         {
-            _items = await Users.GetAllAsync(ct);
+            var usersTask = Users.GetAllAsync(ct);
+            var rolesTask = Roles.GetAllAsync(ct);
+            await Task.WhenAll(usersTask, rolesTask);
+
+            _items = await usersTask;
+            _roles = await rolesTask;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -120,6 +128,24 @@
         await RunAsync(() => Users.RevokeSuperAdminAsync(user.Id), $"'{user.UserName}' is no longer a super admin.");
     }
 
+    // ── Roles ──
+
+    private async Task OpenAssignRolesAsync(UserResponse user)
+    {
+        var dialog = await Dialogs.ShowAsync<AssignRolesDialog>($"Roles — {user.UserName}",
+            new DialogParameters
+            {
+                [nameof(AssignRolesDialog.Roles)] = _roles,
+                [nameof(AssignRolesDialog.SelectedRoleIds)] = user.RoleIds
+            },
+            DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not List<int> roleIds) return;
+
+        await RunAsync(() => Roles.SetUserRolesAsync(user.Id, roleIds), $"Roles updated for '{user.UserName}'.");
+    }
+
     // ── Helpers ──
 
     private async Task<bool> ConfirmAsync(string title, string message, string yesText)
@@ -129,7 +155,7 @@
     }
 
     // Failures arrive as exceptions carrying the server's message
-    private async Task RunAsync(Func<Task<UserManagementResult>> action, string successMessage)
+    private async Task RunAsync<TResult>(Func<Task<TResult>> action, string successMessage)
     {
         _isLoading = true;
         try
@@ -148,6 +174,8 @@
 
         await LoadAsync();
     }
+
+
 
     public void Dispose()
     {

@@ -1,9 +1,11 @@
-﻿@page "/persons"
+﻿@attribute [RequirePage(EntityType.Person)]
+@page "/persons"
 @using Marilog.Contracts.DTOs.Reports.PersonReports
 @using Marilog.Contracts.DTOs.Requests.Common
 @using Marilog.Contracts.DTOs.Requests.PersonDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Components.SharedDialogs
 @using Marilog.Shared.UI.Pages.Persons
 @using Marilog.Web.Client.Services.Interfaces

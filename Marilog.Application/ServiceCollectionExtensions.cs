@@ -1,4 +1,4 @@
-﻿using Marilog.Application.EventHandlers;
+﻿
 using Marilog.Application.Interfaces.Ai;
 using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;

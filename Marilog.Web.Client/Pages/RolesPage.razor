@@ -1,0 +1,214 @@
+﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
+@page "/admin/roles"
+@using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.UserIdenty
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Roles
+@using Marilog.Web.Client.Auth
+@using MudBlazor
+
+@implements IDisposable
+@inject IRoleManagementService Roles
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+
+<SharedRolesPage Items="_items"
+                 IsLoading="_isLoading"
+                 OnAddClicked="OpenCreateAsync"
+                 OnRefreshClicked="LoadAsync"
+                 OnPermissions="OpenPermissionsAsync"
+                 OnEdit="OpenEditAsync"
+                 OnActivate="ActivateAsync"
+                 OnDeactivate="DeactivateAsync"
+                 OnDelete="DeleteAsync" />
+
+@code {
+    private IReadOnlyList<RoleResponse> _items = [];
+    private bool _isLoading;
+    private CancellationTokenSource? _listCts;
+
+    private static readonly DialogOptions DialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    // The editor guards unsaved changes itself, so Esc and backdrop clicks are off
+    private static readonly DialogOptions PermissionsDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = false,
+        BackdropClick = false
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        // A newer request supersedes the old one
+        _listCts?.Cancel();
+        _listCts?.Dispose();
+        _listCts = new CancellationTokenSource();
+        var ct = _listCts.Token;
+
+        _isLoading = true;
+        try
+        {
+            _items = await Roles.GetAllAsync(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested) _isLoading = false;
+        }
+    }
+
+    // ── Create & edit ──
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<RoleDialog>("Add role", DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not CreateRoleRequest request) return;
+
+        await RunAsync(() => Roles.CreateAsync(request), $"Role '{request.Name}' created.");
+    }
+
+    private async Task OpenEditAsync(RoleResponse role)
+    {
+        var dialog = await Dialogs.ShowAsync<RoleDialog>("Edit role",
+            new DialogParameters
+            {
+                [nameof(RoleDialog.IsEdit)] = true,
+                [nameof(RoleDialog.Name)] = role.Name,
+                [nameof(RoleDialog.Description)] = role.Description
+            },
+            DialogOptions);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not UpdateRoleRequest request) return;
+
+        await RunAsync(() => Roles.UpdateAsync(role.Id, request), $"Role '{request.Name}' updated.");
+    }
+
+    // ── Permissions ──
+
+    private async Task OpenPermissionsAsync(RoleResponse role)
+    {
+        IReadOnlyList<RolePermissionResponse>? permissions;
+
+        _isLoading = true;
+        try
+        {
+            permissions = await Roles.GetPermissionsAsync(role.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+
+        if (permissions is null)
+        {
+            Snackbar.Add("Role not found.", Severity.Error);
+            await LoadAsync();
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(RolePermissionsDialog.Permissions)] = permissions,
+            [nameof(RolePermissionsDialog.OnSave)] =
+                (Func<IReadOnlyList<RolePermissionRequest>, Task<bool>>)(list => SavePermissionsAsync(role, list))
+        };
+
+        var dialog = await Dialogs.ShowAsync<RolePermissionsDialog>($"Permissions — {role.Name}", parameters, PermissionsDialogOptions);
+        await dialog.Result;
+    }
+
+    private async Task<bool> SavePermissionsAsync(RoleResponse role, IReadOnlyList<RolePermissionRequest> permissions)
+    {
+        try
+        {
+            await Roles.SetPermissionsAsync(role.Id, permissions);
+            Snackbar.Add($"Permissions saved for '{role.Name}'.", Severity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+    }
+
+    // ── Status & delete ──
+
+    private Task ActivateAsync(RoleResponse role) =>
+        RunAsync(() => Roles.ActivateAsync(role.Id), $"Role '{role.Name}' activated.");
+
+    private async Task DeactivateAsync(RoleResponse role)
+    {
+        if (!await ConfirmAsync("Deactivate role", $"Deactivate role '{role.Name}'?", "Deactivate"))
+            return;
+
+        await RunAsync(() => Roles.DeactivateAsync(role.Id), $"Role '{role.Name}' deactivated.");
+    }
+
+    private async Task DeleteAsync(RoleResponse role)
+    {
+        if (!await ConfirmAsync("Delete role", $"Delete role '{role.Name}'? This can't be undone.", "Delete"))
+            return;
+
+        await RunAsync(() => Roles.DeleteAsync(role.Id), $"Role '{role.Name}' deleted.");
+    }
+
+    // ── Helpers ──
+
+    private async Task<bool> ConfirmAsync(string title, string message, string yesText)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(title, message, yesText: yesText, cancelText: "Cancel");
+        return confirmed == true;
+    }
+
+    // Failures arrive as exceptions carrying the server's message
+    private async Task RunAsync(Func<Task<RoleManagementResult>> action, string successMessage)
+    {
+        _isLoading = true;
+        try
+        {
+            await action();
+            Snackbar.Add(successMessage, Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        _listCts?.Cancel();
+        _listCts?.Dispose();
+    }
+}

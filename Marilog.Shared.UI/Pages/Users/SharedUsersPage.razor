@@ -66,8 +66,34 @@
                 </CellTemplate>
             </TemplateColumn>
 
-            <TemplateColumn Title="Role">
-                <CellTemplate>@(context.Item.IsSuperAdmin ? "Super admin" : "User")</CellTemplate>
+            <TemplateColumn Title="Roles">
+                <CellTemplate>
+                    @if (context.Item.IsSuperAdmin)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                 Icon="@Icons.Material.Filled.Lock" Text="Super admin" Class="ma-0" />
+                    }
+                    else
+                    {
+                        var roles = RolesOf(context.Item);
+                        if (roles.Count == 0)
+                        {
+                            <span class="az-muted">—</span>
+                        }
+                        else
+                        {
+                            <span class="az-role-chips">
+                                @foreach (var role in roles)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="@(role.IsActive ? Color.Primary : Color.Default)"
+                                             Text="@role.Name" Class="ma-0"
+                                             title="@(role.IsActive ? null : "Inactive role")" />
+                                }
+                            </span>
+                        }
+                    }
+                </CellTemplate>
             </TemplateColumn>
 
             <TemplateColumn Title="" CellStyle="text-align:right; white-space:nowrap">
@@ -84,7 +110,12 @@
                                        title="Activate" Disabled="IsLoading"
                                        OnClick="() => OnActivate.InvokeAsync(context.Item)" />
                     }
-
+                    @if (!context.Item.IsSuperAdmin)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts" Size="Size.Small" Color="Color.Primary"
+                                       title="Assign roles" Disabled="IsLoading"
+                                       OnClick="() => OnAssignRoles.InvokeAsync(context.Item)" />
+                    }
                     @if (context.Item.IsSuperAdmin)
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.RemoveModerator" Size="Size.Small"
@@ -113,6 +144,13 @@
 </div>
 
 <style>
+
+    .az-users .az-role-chips {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
     .az-users .az-page-title {
         padding-bottom: 8px;
     }
@@ -165,4 +203,18 @@
     [Parameter] public EventCallback<UserResponse> OnGrantSuperAdmin { get; set; }
     [Parameter] public EventCallback<UserResponse> OnRevokeSuperAdmin { get; set; }
     [Parameter] public EventCallback<UserResponse> OnResetPassword { get; set; }
+
+    [Parameter] public IReadOnlyList<RoleResponse> Roles { get; set; } = [];
+    [Parameter] public EventCallback<UserResponse> OnAssignRoles { get; set; }
+
+    private Dictionary<int, RoleResponse> _roleLookup = [];
+
+    protected override void OnParametersSet() => _roleLookup = Roles.ToDictionary(r => r.Id);
+
+    private List<RoleResponse> RolesOf(UserResponse user) =>
+        user.RoleIds
+            .Select(id => _roleLookup.GetValueOrDefault(id))
+            .OfType<RoleResponse>()
+            .OrderBy(r => r.Name)
+            .ToList();
 }

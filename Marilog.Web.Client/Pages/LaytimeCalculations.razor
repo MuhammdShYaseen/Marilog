@@ -1,7 +1,10 @@
+
+@attribute [RequirePage(EntityType.LaytimeCalculation)]
 @page "/laytime/calculations"
 
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
 @using MudBlazor
 @inject NavigationManager Nav
 @inject IVoyageService VoyageApiClient
@@ -15,7 +18,7 @@
     </MudText>
 
     <MudStack Row="true" Spacing="2" Style="max-width: 480px; width: 100%">
-        <MudAutocomplete T="VoyageLookupResponse"
+        <MudAutocomplete T="Marilog.Contracts.DTOs.Responses.VoyageLookupResponse"
                          Label="Voyage"
                          Value="_selectedVoyage"
                          ValueChanged="OnVoyageSelected"

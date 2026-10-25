@@ -1,4 +1,5 @@
-﻿@page "/admin/backup"
+﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
+@page "/admin/backup"
 @using Marilog.Contracts.Interfaces.DataManagment
 @using Marilog.Shared.UI.Pages.DataBackup
 @inject IFullBackupService BackupService

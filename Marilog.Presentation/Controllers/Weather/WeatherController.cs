@@ -1,6 +1,8 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -10,6 +12,7 @@ namespace Marilog.Presentation.Controllers.Weather
     [ApiController]
     [Route("api/weather")]
     [Authorize]
+    [PermissionEntity(EntityType.Vessel)]
     public class WeatherController : ControllerBase
     {
         private readonly IWeatherService _service;

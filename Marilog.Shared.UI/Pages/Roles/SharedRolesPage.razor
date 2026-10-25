@@ -1,0 +1,165 @@
+@using System.Globalization
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Roles
+
+<div class="az-roles">
+
+    <div class="az-page-title">
+        <MudText Typo="Typo.h6">Roles</MudText>
+    </div>
+
+    <div class="az-commandbar">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="IsLoading"
+                   OnClick="OnAddClicked">
+            Add role
+        </MudButton>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="IsLoading"
+                   OnClick="OnRefreshClicked">
+            Refresh
+        </MudButton>
+    </div>
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+
+    <MudDataGrid T="RoleResponse"
+                 Items="Items"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="0"
+                 Outlined="true"
+                 Square="true"
+                 Breakpoint="Breakpoint.Sm"
+                 SortMode="SortMode.None">
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Title="Name" />
+
+            <TemplateColumn Title="Description">
+                <CellTemplate>
+                    @if (string.IsNullOrWhiteSpace(context.Item.Description))
+                    {
+                        <span class="az-muted">—</span>
+                    }
+                    else
+                    {
+                        @context.Item.Description
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Users">
+                <CellTemplate>@context.Item.UserCount.ToString("N0", CultureInfo.InvariantCulture)</CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Status">
+                <CellTemplate>
+                    <span class="az-status">
+                        <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                 Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                 Style="font-size:10px" />
+                        @(context.Item.IsActive ? "Active" : "Disabled")
+                    </span>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="" CellStyle="text-align:right; white-space:nowrap">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="Color.Primary"
+                                   title="Permissions" Disabled="IsLoading"
+                                   OnClick="() => OnPermissions.InvokeAsync(context.Item)" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   title="Edit" Disabled="IsLoading"
+                                   OnClick="() => OnEdit.InvokeAsync(context.Item)" />
+
+                    @if (context.Item.IsActive)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
+                                       title="Deactivate" Disabled="IsLoading"
+                                       OnClick="() => OnDeactivate.InvokeAsync(context.Item)" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
+                                       title="Activate" Disabled="IsLoading"
+                                       OnClick="() => OnActivate.InvokeAsync(context.Item)" />
+                    }
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   title="Delete" Disabled="IsLoading"
+                                   OnClick="() => OnDelete.InvokeAsync(context.Item)" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <NoRecordsContent>
+            <div class="az-muted pa-4">No roles yet.</div>
+        </NoRecordsContent>
+    </MudDataGrid>
+
+</div>
+
+<style>
+    .az-roles .az-page-title {
+        padding-bottom: 8px;
+    }
+
+    .az-roles .az-commandbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-roles .mud-table-head .mud-table-cell {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-roles .mud-table-cell {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .az-roles .az-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .az-roles .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+</style>
+
+@code {
+    [Parameter] public IReadOnlyList<RoleResponse> Items { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+
+    [Parameter] public EventCallback<RoleResponse> OnPermissions { get; set; }
+    [Parameter] public EventCallback<RoleResponse> OnEdit { get; set; }
+    [Parameter] public EventCallback<RoleResponse> OnActivate { get; set; }
+    [Parameter] public EventCallback<RoleResponse> OnDeactivate { get; set; }
+    [Parameter] public EventCallback<RoleResponse> OnDelete { get; set; }
+}

@@ -1,4 +1,5 @@
-﻿@page "/admin/logs"
+﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
+@page "/admin/logs"
 @using MudBlazor
 @using Contracts.Models
 @using Marilog.Contracts.DTOs.LogDTOs

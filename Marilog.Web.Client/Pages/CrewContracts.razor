@@ -1,7 +1,9 @@
-﻿@page "/crew-contracts"
+﻿@attribute [RequirePage(EntityType.CrewContract)]
+@page "/crew-contracts"
 @using Marilog.Contracts.DTOs.Requests.CrewDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.CrewContracts
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor

@@ -1,4 +1,5 @@
-﻿@page "/admin/notifications"
+﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
+@page "/admin/notifications"
 @using Marilog.Contracts.DTOs.EmailNotificationDTOs
 @using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig
 @using Marilog.Shared.UI.Pages.EmailNotification

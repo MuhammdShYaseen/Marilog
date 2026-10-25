@@ -1,10 +1,12 @@
+@attribute [RequirePage(EntityType.LaytimeCalculation)]
 @page "/operations/laytime/voyage/{VoyageId:int}"
+@using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
-@using MudBlazor
-@using Marilog.Shared.UI.Pages.Laytime
-@using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Laytime
+@using MudBlazor
 @inject IPortService PortService
 @inject IContractService ContractService
 @inject ICharterTermsService CharterTermsService

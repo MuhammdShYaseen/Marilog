@@ -1,7 +1,9 @@
+@attribute [RequirePage(EntityType.CharterTerms)]
 @page "/operations/laytime/charter-terms/{ContractId:int}"
 @using Marilog.Contracts.DTOs.Requests.LayTimeDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.Laytime
 @using MudBlazor
 @inject ICharterTermsService CharterTermsService

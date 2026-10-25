@@ -1,0 +1,89 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Users
+
+<MudDialog>
+    <DialogContent>
+        <div class="az-assign-roles">
+            @if (Roles.Count == 0)
+            {
+                <div class="az-muted pa-2">No roles yet. Create one on the Roles page first.</div>
+            }
+            else
+            {
+                @foreach (var role in Roles.OrderBy(r => r.Name))
+                {
+                    <div class="az-role-option">
+                        <MudCheckBox T="bool"
+                                     Value="_selected.Contains(role.Id)"
+                                     ValueChanged="v => Toggle(role.Id, v)"
+                                     Size="Size.Small" Dense="true" Color="Color.Primary" />
+                        <div>
+                            <div>
+                                @role.Name
+                                @if (!role.IsActive)
+                                {
+                                    <span class="az-muted az-small ml-1">(inactive)</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(role.Description))
+                            {
+                                <div class="az-muted az-small">@role.Description</div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsChanged)"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .az-assign-roles .az-role-option {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 0;
+        font-size: .875rem;
+    }
+
+    .az-assign-roles .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-assign-roles .az-small {
+        font-size: .75rem;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<RoleResponse> Roles { get; set; } = [];
+    [Parameter] public IReadOnlyList<int> SelectedRoleIds { get; set; } = [];
+
+    private HashSet<int> _selected = [];
+
+    protected override void OnInitialized() => _selected = SelectedRoleIds.ToHashSet();
+
+    private bool IsChanged => !_selected.SetEquals(SelectedRoleIds);
+
+    private void Toggle(int roleId, bool on)
+    {
+        if (on) _selected.Add(roleId);
+        else _selected.Remove(roleId);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_selected.Order().ToList()));
+}

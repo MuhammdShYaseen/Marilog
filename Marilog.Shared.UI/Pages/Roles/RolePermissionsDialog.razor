@@ -1,0 +1,307 @@
+@using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Kernel.Enumerations
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Roles
+
+<MudDialog>
+    <DialogContent>
+        <div class="az-role-perms">
+
+            <div class="az-perm-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entity</th>
+                            @foreach (var action in Columns)
+                            {
+                                <th class="az-perm-col">@action</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (group, entities) in PermissionCatalog.GroupedEntityTargets)
+                        {
+                            <tr class="az-perm-group">
+                                <td colspan="@(Columns.Length + 1)">@group</td>
+                            </tr>
+
+                            @foreach (var entity in entities)
+                            {
+                                var openRead = !PermissionCatalog.AllowedActions(entity).HasFlag(PermissionAction.Read);
+                                <tr class="az-perm-row">
+                                    <td>
+                                        @PermissionCatalog.GetDisplayName(entity)
+                                        @if (openRead)
+                                        {
+                                            <span class="az-muted az-small ml-2">All users can read</span>
+                                        }
+                                    </td>
+                                    @foreach (var action in Columns)
+                                    {
+                                        <td class="az-perm-col">
+                                            <div class="az-perm-cell">
+                                                <MudCheckBox T="bool"
+                                                             Value="IsChecked(entity, action)"
+                                                             ValueChanged="v => Toggle(entity, action, v)"
+                                                             Disabled="IsLocked(entity, action)"
+                                                             Size="Size.Small" Dense="true" Color="Color.Primary" />
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="az-perm-scroll mt-4">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Screen</th>
+                            <th class="az-perm-col">View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var screen in PermissionCatalog.ScreenTargets)
+                        {
+                            <tr class="az-perm-row">
+                                <td>@PermissionCatalog.GetDisplayName(screen)</td>
+                                <td class="az-perm-col">
+                                    <div class="az-perm-cell">
+                                        <MudCheckBox T="bool"
+                                                     Value="_screens.Contains(screen)"
+                                                     ValueChanged="v => ToggleScreen(screen, v)"
+                                                     Disabled="_saving"
+                                                     Size="Size.Small" Dense="true" Color="Color.Primary" />
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (_confirmDiscard)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                    You have unsaved changes.
+                    <MudButton Size="Size.Small" Color="Color.Error" Class="ml-2" OnClick="Discard">Discard</MudButton>
+                    <MudButton Size="Size.Small" OnClick="KeepEditing">Keep editing</MudButton>
+                </MudAlert>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        @if (IsDirty)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Warning" Class="mr-auto ml-2">Unsaved changes</MudText>
+        }
+        <MudButton OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsDirty || _saving)"
+                   OnClick="SaveAsync">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .az-role-perms .az-perm-scroll {
+        max-height: 55vh;
+        overflow: auto;
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-role-perms table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .az-role-perms th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-align: left;
+        padding: 6px 8px;
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-role-perms td {
+        font-size: .8125rem;
+        padding: 0 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-role-perms .az-perm-col {
+        width: 80px;
+        text-align: center;
+    }
+
+    .az-role-perms .az-perm-cell {
+        display: flex;
+        justify-content: center;
+    }
+
+    .az-role-perms .az-perm-group td {
+        padding: 10px 8px 4px;
+        font-size: .75rem;
+        font-weight: 600;
+        color: var(--mud-palette-primary);
+    }
+
+    .az-role-perms .az-perm-row:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    .az-role-perms .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-role-perms .az-small {
+        font-size: .75rem;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<RolePermissionResponse> Permissions { get; set; } = [];
+
+    // Supplied by the host page. Returns true when the server accepted the save.
+    [Parameter] public Func<IReadOnlyList<RolePermissionRequest>, Task<bool>>? OnSave { get; set; }
+
+    private static readonly PermissionAction[] Columns =
+    [
+        PermissionAction.Read,
+        PermissionAction.Create,
+        PermissionAction.Update,
+        PermissionAction.Delete
+    ];
+
+    private readonly Dictionary<EntityType, PermissionAction> _entities = [];
+    private readonly HashSet<AppScreen> _screens = [];
+    private Dictionary<EntityType, PermissionAction> _originalEntities = [];
+    private HashSet<AppScreen> _originalScreens = [];
+
+    private bool _saving;
+    private bool _confirmDiscard;
+
+    protected override void OnInitialized()
+    {
+        foreach (var p in Permissions)
+        {
+            var actions = PermissionCatalog.Normalize(p.Kind, p.Value, p.Actions);
+            if (actions == PermissionAction.None) continue;
+
+            if (p.Kind == PermissionTargetKind.Entity)
+                _entities[(EntityType)p.Value] = actions;
+            else if (p.Kind == PermissionTargetKind.Screen)
+                _screens.Add((AppScreen)p.Value);
+        }
+
+        _originalEntities = new Dictionary<EntityType, PermissionAction>(_entities);
+        _originalScreens = new HashSet<AppScreen>(_screens);
+    }
+
+    private bool IsDirty =>
+        !_screens.SetEquals(_originalScreens)
+        || _entities.Count != _originalEntities.Count
+        || _entities.Any(kv => !_originalEntities.TryGetValue(kv.Key, out var a) || a != kv.Value);
+
+    private PermissionAction Get(EntityType entity)
+        => _entities.TryGetValue(entity, out var actions) ? actions : PermissionAction.None;
+
+    private bool IsChecked(EntityType entity, PermissionAction action)
+    {
+        // Open-read entities: everyone can read, so Read shows ticked
+        if (action == PermissionAction.Read && !PermissionCatalog.AllowedActions(entity).HasFlag(PermissionAction.Read))
+            return true;
+
+        return Get(entity).HasFlag(action);
+    }
+
+    private bool IsLocked(EntityType entity, PermissionAction action)
+    {
+        if (_saving) return true;
+        if (!PermissionCatalog.AllowedActions(entity).HasFlag(action)) return true;
+
+        // Read stays on while any write is granted on the same entity
+        return action == PermissionAction.Read && (Get(entity) & PermissionCatalog.WriteActions) != 0;
+    }
+
+    private void Toggle(EntityType entity, PermissionAction action, bool on)
+    {
+        var current = Get(entity);
+        Set(entity, on ? current | action : current & ~action);
+
+        if (on && action is PermissionAction.Create or PermissionAction.Update)
+        {
+            foreach (var target in PermissionCatalog.GetAutoReadTargets(entity))
+            {
+                if (PermissionCatalog.AllowedActions(target).HasFlag(PermissionAction.Read))
+                    Set(target, Get(target) | PermissionAction.Read);
+            }
+        }
+    }
+
+    private void Set(EntityType entity, PermissionAction actions)
+    {
+        var normalized = PermissionCatalog.Normalize(PermissionTargetKind.Entity, (int)entity, actions);
+        if (normalized == PermissionAction.None)
+            _entities.Remove(entity);
+        else
+            _entities[entity] = normalized;
+    }
+
+    private void ToggleScreen(AppScreen screen, bool on)
+    {
+        if (on) _screens.Add(screen);
+        else _screens.Remove(screen);
+    }
+
+    private void Cancel()
+    {
+        if (IsDirty)
+        {
+            _confirmDiscard = true;
+            return;
+        }
+        MudDialog.Cancel();
+    }
+
+    private void Discard() => MudDialog.Cancel();
+
+    private void KeepEditing() => _confirmDiscard = false;
+
+    private async Task SaveAsync()
+    {
+        if (OnSave is null || !IsDirty) return;
+
+        _saving = true;
+        _confirmDiscard = false;
+        try
+        {
+            var request = _entities
+                .Select(kv => new RolePermissionRequest(PermissionTargetKind.Entity, (int)kv.Key, kv.Value))
+                .Concat(_screens.Select(s => new RolePermissionRequest(PermissionTargetKind.Screen, (int)s, PermissionAction.Read)))
+                .ToList();
+
+            if (await OnSave(request))
+                MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

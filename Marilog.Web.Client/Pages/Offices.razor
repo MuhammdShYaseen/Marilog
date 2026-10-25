@@ -1,8 +1,10 @@
+@attribute [RequirePage(EntityType.Office)]
 @page "/admin/offices"
 @using Marilog.Contracts.DTOs.Requests.OfficeDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Offices
+@using Marilog.Kernel.Enums
 @inject IOfficeService OfficeService
 @inject ICountryService CountryService
 @inject IDialogService DialogService

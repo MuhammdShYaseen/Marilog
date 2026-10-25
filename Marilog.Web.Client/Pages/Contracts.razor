@@ -1,9 +1,11 @@
-﻿@page "/contracts"
+﻿@attribute [RequirePage(EntityType.AContract)]
+@page "/contracts"
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.Contracts
 @using Marilog.Shared.UI.Pages.Contracts.Dialogs
 @using Marilog.Web.Client.Services.Interfaces

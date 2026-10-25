@@ -1,0 +1,58 @@
+@using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Roles
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_name" Label="Name"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+
+        <MudTextField T="string" @bind-Value="_description" Label="Description (optional)" Class="mt-2"
+                      Lines="3"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!CanSubmit)"
+                   OnClick="Submit">
+            @(IsEdit ? "Save" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string? Description { get; set; }
+
+    private string? _name;
+    private string? _description;
+
+    protected override void OnInitialized()
+    {
+        _name = Name;
+        _description = Description;
+    }
+
+    private string TrimmedName => _name?.Trim() ?? string.Empty;
+    private string? TrimmedDescription => string.IsNullOrWhiteSpace(_description) ? null : _description.Trim();
+
+    private bool CanSubmit =>
+        TrimmedName.Length > 0
+        && (!IsEdit || TrimmedName != Name || TrimmedDescription != (string.IsNullOrWhiteSpace(Description) ? null : Description));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        object request = IsEdit
+            ? new UpdateRoleRequest(TrimmedName, TrimmedDescription)
+            : new CreateRoleRequest(TrimmedName, TrimmedDescription);
+
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+}

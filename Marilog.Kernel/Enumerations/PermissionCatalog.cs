@@ -1,9 +1,11 @@
 ﻿using Marilog.Kernel.Enums;
+using System.Text;
 
 namespace Marilog.Kernel.Enumerations
 {
     public static class PermissionCatalog
     {
+
         public const PermissionAction WriteActions =
             PermissionAction.Create | PermissionAction.Update | PermissionAction.Delete;
 
@@ -90,6 +92,118 @@ namespace Marilog.Kernel.Enumerations
 
         public static IReadOnlyList<AppScreen> ScreenTargets { get; } = Enum.GetValues<AppScreen>();
 
+        // ── Display (roles UI only; no effect on permission logic) ──
+        // Declared in this order on purpose: static initializers run top to bottom.
+
+        private const string OtherGroup = "Other";
+
+        private static readonly (string Name, EntityType[] Entities)[] Groups =
+        [
+            ("Finance", new EntityType[]
+            {
+                EntityType.Document,
+                EntityType.DocumentAdjustment,
+                EntityType.Payment,
+                EntityType.SwiftTransfer
+            }),
+            ("Voyage & Laytime", new EntityType[]
+            {
+                EntityType.Voyage,
+                EntityType.AContract,
+                EntityType.BillOfLading,
+                EntityType.CharterTerms,
+                EntityType.LaytimeCalculation,
+                EntityType.LaytimeSegment,
+                EntityType.LaytimeException,
+                EntityType.SofEvent
+            }),
+            ("Crew", new EntityType[]
+            {
+                EntityType.Person,
+                EntityType.PersonCertificate,
+                EntityType.CrewContract,
+                EntityType.CrewPayroll,
+                EntityType.CrewPayrollDisbursement
+            }),
+            ("Fleet", new EntityType[]
+            {
+                EntityType.Vessel,
+                EntityType.VesselCertificate
+            }),
+            ("Master data", new EntityType[]
+            {
+                EntityType.Company,
+                EntityType.Bank,
+                EntityType.Port,
+                EntityType.Country,
+                EntityType.Currency,
+                EntityType.Rank,
+                EntityType.Tag,
+                EntityType.DocumentType,
+                EntityType.AppTheme,
+                EntityType.NavItem
+            })
+        ];
+
+        private static readonly Dictionary<EntityType, string> NameOverrides = new()
+        {
+            [EntityType.AContract] = "Contract",
+            [EntityType.SofEvent] = "SOF Event",
+            [EntityType.BillOfLading] = "Bill of Lading",
+            [EntityType.SwiftTransfer] = "SWIFT Transfer",
+            [EntityType.NavItem] = "Navigation Item",
+            [EntityType.AppTheme] = "Theme",
+            [EntityType.CrewPayrollDisbursement] = "Payroll Disbursement"
+        };
+
+        // EntityTargets in display groups. Anything not listed in Groups lands in "Other",
+        // so a new entity always shows up in the roles UI.
+        public static IReadOnlyList<(string Group, IReadOnlyList<EntityType> Entities)> GroupedEntityTargets { get; } = BuildGroups();
+
+        public static string GetDisplayName(EntityType entity)
+            => NameOverrides.TryGetValue(entity, out var name) ? name : SplitPascalCase(entity.ToString());
+
+        public static string GetDisplayName(AppScreen screen) => SplitPascalCase(screen.ToString());
+
+        private static List<(string Group, IReadOnlyList<EntityType> Entities)> BuildGroups()
+        {
+            var remaining = EntityTargets.ToHashSet();
+            var result = new List<(string Group, IReadOnlyList<EntityType> Entities)>();
+
+            foreach (var (name, entities) in Groups)
+            {
+                var list = new List<EntityType>();
+                foreach (var entity in entities)
+                {
+                    if (remaining.Remove(entity))
+                        list.Add(entity);
+                }
+
+                if (list.Count > 0)
+                    result.Add((name, list));
+            }
+
+            var rest = EntityTargets.Where(remaining.Contains).ToList();
+            if (rest.Count > 0)
+                result.Add((OtherGroup, rest));
+
+            return result;
+        }
+
+        private static string SplitPascalCase(string name)
+        {
+            var sb = new StringBuilder(name.Length + 8);
+            for (var i = 0; i < name.Length; i++)
+            {
+                var c = name[i];
+                var startsWord = i > 0 && char.IsUpper(c)
+                    && (char.IsLower(name[i - 1]) || (i + 1 < name.Length && char.IsLower(name[i + 1])));
+
+                if (startsWord) sb.Append(' ');
+                sb.Append(c);
+            }
+            return sb.ToString();
+        }
         public static PermissionAction AllowedActions(EntityType entity)
             => SuperAdminOnly.Contains(entity) ? PermissionAction.None
              : OpenRead.Contains(entity) ? WriteActions
