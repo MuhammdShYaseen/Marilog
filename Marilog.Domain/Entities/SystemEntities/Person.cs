@@ -20,7 +20,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string? BankName { get; private set; }
         public string? IBAN { get; private set; }
         public string? BankSwiftCode { get; private set; }
-
+        //public CrewSuitabilityRating Rating { get; private set; }
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 

@@ -1,6 +1,7 @@
 ﻿using Marilog.Contracts.DTOs.Requests.UserIdenty;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.UserIdenty;
+using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
@@ -33,7 +34,12 @@ namespace Marilog.Web.Client.Auth
         {
             var result = await _auth.LoginAsync(request);
             if (result != LoginResult.Success)
-                throw new InvalidOperationException("Login failed.");
+                throw new InvalidOperationException(result switch
+                {
+                    LoginResult.LockedOut => "Account temporarily locked after too many failed attempts. Try again later.",
+                    LoginResult.InvalidCredentials => "Invalid username or password.",
+                    _ => "Login failed."
+                });
 
             _cached = LoadAsync();
             NotifyAuthenticationStateChanged(_cached);

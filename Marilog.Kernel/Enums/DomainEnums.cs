@@ -175,6 +175,15 @@
         Supplier,   // المورد
         Guarantor,  // الضامن
     }
+
+    public enum CrewSuitabilityRating
+    {
+        None = 0,
+        Good = 1,
+        Average = 2,
+        Poor = 3,
+        Dangerous = 4
+    }
     public enum CrewContractStatus
     {
         Valied,

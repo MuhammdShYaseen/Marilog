@@ -12,11 +12,13 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ErrorHandlerMiddleware> _logger;
+        private readonly IHostEnvironment _env;
 
-        public ErrorHandlerMiddleware(RequestDelegate next, ILogger<ErrorHandlerMiddleware> logger)
+        public ErrorHandlerMiddleware(RequestDelegate next, ILogger<ErrorHandlerMiddleware> logger, IHostEnvironment env)
         {
             _next = next;
             _logger = logger;
+            _env = env;
         }
 
         public async Task Invoke(HttpContext context)
@@ -24,6 +26,10 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
             try
             {
                 await _next(context);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                Log.Debug("Request cancelled by client | Path: {Path}", context.Request.Path);
             }
             catch (Exception ex)
             {
@@ -59,12 +65,7 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
             Log.Error(ex, "Exception handled | ErrorId: {ErrorId} | Path: {Path} | User: {User} | Summary: {@Summary}",
                                                      errorId,context.Request.Path, context.User?.Identity?.Name ?? "Anonymous", safeErrorDetails);
 
-           #if DEBUG
-            var developerMessage = ex.ToString();
-#else
-            string? developerMessage = null;
-#endif
-
+            var isDevelopment = _env.IsDevelopment();
             var isClientError = (int)statusCode < 500;
 
             var response = new ApiErrorResponse
@@ -72,8 +73,8 @@ namespace Marilog.Presentation.Middlewares.ErrorHandler
                 Success = false,
                 Message = isClientError ? GetUserMessage(ex) : $"An unexpected error occurred. Ref: {errorId}",
                 ErrorCode = statusCode.ToString(),
-                DeveloperMessage = developerMessage,
-                ErrorSummary = safeErrorDetails,
+                DeveloperMessage = isDevelopment ? ex.ToString() : null,
+                ErrorSummary = isDevelopment ? safeErrorDetails : null,
             };
 
             await context.Response.WriteAsync(JsonSerializer.Serialize(response));

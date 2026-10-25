@@ -1,0 +1,39 @@
+@namespace Marilog.Shared.UI.Components.Authorization
+@using Marilog.Kernel.Enumerations
+@using Marilog.Kernel.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+
+@* Shows ChildContent only if the current user has the permission; otherwise Denied (optional).
+   Cosmetic only: the server is the real gate. Same rule as PagePermissionHandler. *@
+
+@if (_allowed)
+{
+    @ChildContent
+}
+else
+{
+    @Denied
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    [Parameter, EditorRequired] public EntityType Entity { get; set; }
+    [Parameter] public PermissionAction Action { get; set; } = PermissionAction.Read;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Denied { get; set; }
+
+    private bool _allowed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthState is null)
+        {
+            _allowed = false;
+            return;
+        }
+
+        var state = await AuthState;
+        _allowed = state.User.GetPermissions().Can(Entity, Action);
+    }
+}

@@ -3,6 +3,8 @@ using Marilog.Kernel.Enums;
 using System.Globalization;
 using System.Security.Claims;
 
+
+namespace Marilog.Kernel.Enumerations;
 public static class PermissionClaims
 {
     public const string ClaimType = "perm";

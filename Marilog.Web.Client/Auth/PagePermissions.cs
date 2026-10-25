@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;

@@ -2,54 +2,147 @@
 @layout LoginLayout
 @attribute [AllowAnonymous]
 @using Marilog.Contracts.DTOs.Requests.UserIdenty
+@using Marilog.Contracts.DTOs.Responses
 @using Marilog.Web.Client.Auth
 @inject CookieAuthStateProvider AuthProvider
 @inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-16">
-    <MudPaper Elevation="2" Class="pa-6">
-        <MudText Typo="Typo.h5">Marilog</MudText>
-        <MudText Typo="Typo.body2" Class="mb-6">WKA Ocean Shipping</MudText>
+<div class="az-login">
+    <div class="az-login-card">
+        <img src="_content/Marilog.Shared.UI/images/marilog-logo.svg" alt="Marilog" class="az-login-logo" />
+
+        @if (!string.IsNullOrWhiteSpace(Company?.Name))
+        {
+            <div class="az-login-company">@Company!.Name</div>
+        }
+
+        <MudText Typo="Typo.h5" Class="az-login-title">Sign in</MudText>
 
         <EditForm Model="_model" OnSubmit="SubmitAsync">
             <MudTextField @bind-Value="_model.UserName"
                           Label="Username"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Immediate="true"
                           AutoFocus="true"
                           Disabled="_busy"
-                          Class="mb-4" />
+                          Class="mb-3" />
 
             <MudTextField @bind-Value="_model.Password"
                           Label="Password"
-                          InputType="InputType.Password"
+                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Immediate="true"
                           Disabled="_busy"
-                          Class="mb-4" />
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@(_showPassword ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)"
+                          OnAdornmentClick="() => _showPassword = !_showPassword"
+                          AdornmentAriaLabel="Show password"
+                          Class="mb-3" />
 
             @if (_error is not null)
             {
-                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
             }
 
-            <MudButton ButtonType="ButtonType.Submit"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       FullWidth="true"
-                       Disabled="_busy">
-                @(_busy ? "Signing in..." : "Sign in")
-            </MudButton>
+            <div class="az-login-actions">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           DropShadow="false"
+                           Disabled="_busy"
+                           Class="az-login-submit">
+                    @(_busy ? "Signing in..." : "Sign in")
+                </MudButton>
+            </div>
         </EditForm>
-    </MudPaper>
-</MudContainer>
+    </div>
+
+    <div class="az-login-footer">Marilog &middot; &copy; @DateTime.Now.Year</div>
+</div>
+
+<style>
+    .az-login {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: var(--mud-palette-background);
+    }
+
+    .az-login-card {
+        width: 100%;
+        max-width: 440px;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-top: 3px solid var(--mud-palette-primary);
+        border-radius: 2px;
+        padding: 40px 44px 32px;
+    }
+
+    .az-login-logo {
+        display: block;
+        height: 64px;
+        width: auto;
+    }
+
+    .az-login input:-webkit-autofill,
+    .az-login input:-webkit-autofill:hover,
+    .az-login input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px var(--mud-palette-surface) inset !important;
+        -webkit-text-fill-color: var(--mud-palette-text-primary) !important;
+        caret-color: var(--mud-palette-text-primary);
+    }
+
+    .az-login-company {
+        margin-top: 4px;
+        font-size: .95rem;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .az-login-title {
+        font-weight: 600 !important;
+        margin: 24px 0 20px !important;
+    }
+
+    .az-login-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+
+    .az-login-submit {
+        min-width: 108px;
+        border-radius: 2px !important;
+        text-transform: none !important;
+    }
+
+    .az-login-footer {
+        margin-top: 16px;
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    @@media (max-width: 480px) {
+        .az-login-card {
+            padding: 28px 24px 24px;
+        }
+    }
+</style>
 
 @code {
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
+    [Parameter]
+    public CompanyResponse? Company { get; set; }
+
     private readonly LoginModel _model = new();
     private bool _busy;
+    private bool _showPassword;
     private string? _error;
 
     protected override async Task OnInitializedAsync()
