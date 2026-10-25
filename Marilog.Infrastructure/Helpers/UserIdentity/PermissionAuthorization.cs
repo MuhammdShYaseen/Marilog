@@ -43,7 +43,10 @@ namespace Marilog.Infrastructure.Helpers.UserIdentity
 
     // Checked against the database on every request. Loads the user's effective permissions once,
     // then evaluates every pending PermissionRequirement of the request.
-    public sealed class PermissionHandler(UserManager<User> userManager, MarilogContext db) : IAuthorizationHandler
+    // Checked against the database on every request. Loads the user's effective permissions once,
+    // then evaluates every pending PermissionRequirement with the shared rule in EffectivePermissions.
+    public sealed class PermissionHandler(UserManager<User> userManager, UserPermissionReader permissionReader)
+        : IAuthorizationHandler
     {
         public async Task HandleAsync(AuthorizationHandlerContext context)
         {
@@ -54,61 +57,14 @@ namespace Marilog.Infrastructure.Helpers.UserIdentity
             var user = await userManager.GetUserAsync(context.User);
             if (user is null || !user.IsActive) return;
 
-            if (user.IsSuperAdmin)
-            {
-                foreach (var requirement in requirements)
-                    context.Succeed(requirement);
-                return;
-            }
-
             var ct = (context.Resource as HttpContext)?.RequestAborted ?? default;
-            var granted = await LoadGrantedAsync(user.Id, ct);
+            var permissions = await permissionReader.GetAsync(user, ct);
 
             foreach (var requirement in requirements)
             {
-                if (IsGranted(requirement, granted))
+                if (permissions.Can(requirement.Kind, requirement.Value, requirement.Action))
                     context.Succeed(requirement);
             }
-        }
-
-        private async Task<Dictionary<(PermissionTargetKind Kind, int Value), PermissionAction>> LoadGrantedAsync(
-            Guid userId, CancellationToken ct)
-        {
-            var rows = await db.Set<UserRole>()
-                .AsNoTracking()
-                .Where(ur => ur.UserId == userId && ur.Role.IsActive)
-                .SelectMany(ur => ur.Role.Permissions)
-                .Select(p => new { p.TargetKind, p.TargetValue, p.Actions })
-                .ToListAsync(ct);
-
-            // Effective permissions are the union of all the user's active roles.
-            var granted = new Dictionary<(PermissionTargetKind Kind, int Value), PermissionAction>();
-            foreach (var row in rows)
-            {
-                var key = (row.TargetKind, row.TargetValue);
-                granted[key] = granted.TryGetValue(key, out var existing) ? existing | row.Actions : row.Actions;
-            }
-
-            return granted;
-        }
-
-        private static bool IsGranted(
-            PermissionRequirement requirement,
-            Dictionary<(PermissionTargetKind Kind, int Value), PermissionAction> granted)
-        {
-            // Read on an open-read entity: every active, authenticated user.
-            if (requirement.Kind == PermissionTargetKind.Entity
-                && requirement.Action == PermissionAction.Read
-                && PermissionCatalog.OpenReadEntities.Contains((EntityType)requirement.Value))
-                return true;
-
-            // Actions the catalog doesn't offer for this target (e.g. super-admin-only entities) are never granted.
-            var allowed = PermissionCatalog.AllowedActions(requirement.Kind, requirement.Value);
-            if ((allowed & requirement.Action) != requirement.Action)
-                return false;
-
-            return granted.TryGetValue((requirement.Kind, requirement.Value), out var actions)
-                && (actions & requirement.Action) == requirement.Action;
         }
     }
 }

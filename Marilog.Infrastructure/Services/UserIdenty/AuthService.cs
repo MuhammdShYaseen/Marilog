@@ -1,15 +1,17 @@
 ﻿
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Marilog.Contracts.DTOs.Requests.UserIdenty;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services.UserIdenty;
+using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Infrastructure.Models.Identity;
 using Marilog.Kernel.Enums;
-using Marilog.Contracts.Interfaces.Services.UserIdenty;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 
 namespace Marilog.Infrastructure.Services.UserIdenty
 {
-    public sealed class AuthService(SignInManager<User> signInManager, UserManager<User> userManager, IHttpContextAccessor httpContextAccessor) : IAuthService
+    public sealed class AuthService(SignInManager<User> signInManager, UserManager<User> userManager,
+                                    IHttpContextAccessor httpContextAccessor, UserPermissionReader permissionReader) : IAuthService
     {
         public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
@@ -37,7 +39,16 @@ namespace Marilog.Infrastructure.Services.UserIdenty
             if (user is null || !user.IsActive)
                 return null;
 
-            return new CurrentUserResponse(user.Id, user.UserName!, user.FullName, user.IsSuperAdmin);
+            var permissions = await permissionReader.GetAsync(user, ct);
+
+            return new CurrentUserResponse(
+                user.Id,
+                user.UserName!,
+                user.FullName,
+                user.IsSuperAdmin,
+                permissions.Grants
+                    .Select(g => new RolePermissionResponse(g.Kind, g.Value, g.Actions))
+                    .ToList());
         }
     }
 }

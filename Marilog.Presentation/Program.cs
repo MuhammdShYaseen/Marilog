@@ -71,7 +71,7 @@ namespace Marilog.Presentation
 
             builder.Services.AddScoped<IAuthorizationHandler, SuperAdminHandler>();
             builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
-
+            builder.Services.AddScoped<UserPermissionReader>();
             var dataProtection = builder.Services.AddDataProtection()
                     .SetApplicationName("Marilog");
 

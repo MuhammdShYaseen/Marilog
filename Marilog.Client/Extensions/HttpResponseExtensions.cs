@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace Marilog.Client.Extensions
@@ -10,8 +11,12 @@ namespace Marilog.Client.Extensions
             if (response.IsSuccessStatusCode) return;
 
             var body = await response.Content.ReadAsStringAsync(ct);
-            var message = ExtractMessage(body)
-                ?? $"Request failed ({(int)response.StatusCode} {response.ReasonPhrase}).";
+            var message = ExtractMessage(body) ?? response.StatusCode switch
+            {
+                HttpStatusCode.Forbidden => "You don't have permission to do this.",
+                HttpStatusCode.Unauthorized => "Your session has expired. Please sign in again.",
+                _ => $"Request failed ({(int)response.StatusCode} {response.ReasonPhrase})."
+            };
 
             throw new HttpRequestException(message, null, response.StatusCode);
         }

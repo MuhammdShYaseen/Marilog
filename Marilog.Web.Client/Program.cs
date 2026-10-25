@@ -5,6 +5,7 @@ using Marilog.Web.Client.Auth;
 using Marilog.Web.Client.Http;
 using Marilog.Web.Client.Services.Implementation;
 using Marilog.Web.Client.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -40,6 +41,8 @@ namespace Marilog.Web.Client
                 apiBase = $"{uri.Scheme}://{uri.Host}:{apiPort}/";
             }
             builder.Services.AddAuthorizationCore();
+            builder.Services.AddSingleton<IAuthorizationPolicyProvider, PagePermissionPolicyProvider>();
+            builder.Services.AddSingleton<IAuthorizationHandler, PagePermissionHandler>();
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<AuthSessionEvents>();
             builder.Services.AddScoped<CookieAuthStateProvider>();

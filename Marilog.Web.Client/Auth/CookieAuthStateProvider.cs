@@ -10,7 +10,7 @@ namespace Marilog.Web.Client.Auth
     public sealed class CookieAuthStateProvider : AuthenticationStateProvider, IDisposable
     {
         public const string FullNameClaim = "full_name";
-        public const string SuperAdminRole = "SuperAdmin";
+        public const string SuperAdminRole = PermissionClaims.SuperAdminRole;
 
         private static readonly AuthenticationState Anonymous =
             new(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -95,7 +95,11 @@ namespace Marilog.Web.Client.Auth
                 claims.Add(new(FullNameClaim, user.FullName));
             if (user.IsSuperAdmin)
                 claims.Add(new(ClaimTypes.Role, SuperAdminRole));
-
+            if (user.Permissions is not null)
+            {
+                foreach (var p in user.Permissions)
+                    claims.Add(new(PermissionClaims.ClaimType, PermissionClaims.ToValue(p.Kind, p.Value, p.Actions)));
+            }
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims, "Cookie")));
         }
 

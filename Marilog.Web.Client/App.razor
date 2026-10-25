@@ -9,7 +9,7 @@
     <NotAuthorized>
         @if (context.User.Identity?.IsAuthenticated == true)
         {
-            <p>You don't have permission to view this page.</p>
+                        <ForbiddenPage />
         }
         else
         {
