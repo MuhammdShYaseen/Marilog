@@ -79,7 +79,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToListAsync(ct);
         }
 
-        public async Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, EntityType? entityType = null, CancellationToken ct = default)
+        public async Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page, int pageSize, List<EntityType>? entityTypes, CancellationToken ct = default)
         {
             var q = _repoStoredFile.Query()
                 .AsNoTracking()
@@ -88,9 +88,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     EF.Functions.Like(f.OriginalFileName, $"%{query}%") ||
                     EF.Functions.Like(f.Content!, $"%{query}%"));
 
-            if (entityType.HasValue && entityType.Value != 0)
+            if (entityTypes is not null)
             {
-                q = q.Where(f => f.EntityType == entityType.Value);
+                q = q.Where(f => entityTypes.Contains(f.EntityType));
             }
 
             var total = await q.CountAsync(ct);
@@ -111,7 +111,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
-        public async Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct = default)
+        public async Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(IReadOnlyList<string> tags, List<EntityType>? entityTypes, CancellationToken ct = default)
         {
             var searchTerms = tags
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -128,6 +128,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Include(f => f.Tags)
                 .AsQueryable();
+            if (entityTypes is not null)
+            {
+                query = query.Where(f => entityTypes.Contains(f.EntityType));
+            }
 
             query = query.Where(file =>
                 file.Tags.Any(tag =>

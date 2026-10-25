@@ -35,20 +35,18 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? Array.Empty<StoredFileResponse>();
         }
 
-        public async Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(
-            string query,
-            int page,
-            int pageSize,
-            EntityType? entityType,
-            CancellationToken ct = default)
+        public async Task<PagedResponse<StoredFileResponse>> FullTextSearchAsync(string query, int page,
+                                                                                int pageSize, List<EntityType>? entityTypes, // decided by the server from the user's permissions; not sent
+                                                                                CancellationToken ct = default)
         {
-            var url = $"{Base}/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}&entityType={(int)entityType.GetValueOrDefault()}";
+            var url = $"{Base}/search?query={Uri.EscapeDataString(query)}&page={page}&pageSize={pageSize}";
             var response = await _http.GetCheckedAsync<ApiResponse<PagedResponse<StoredFileResponse>>>(url, ct);
             return response?.Data ?? new PagedResponse<StoredFileResponse>();
         }
 
         public async Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(
             IReadOnlyList<string> tags,
+            List<EntityType>? entityTypes, // decided by the server from the user's permissions; not sent
             CancellationToken ct = default)
         {
             var query = string.Join("&", tags.Select(t => $"tags={Uri.EscapeDataString(t)}"));

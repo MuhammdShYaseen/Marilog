@@ -1,33 +1,13 @@
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Responses
-@using Marilog.Kernel.Enums
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.StoredFiles
 @inject IDialogService DialogService
 
-@* ────────────────────────────────────────────────────────────────────────────
-   SharedStoredFilePage
-   No unfiltered "browse everything" query exists on IStoredFileService, so
-   the page starts empty and prompts the user to search by text (requires an
-   EntityType — FullTextSearchAsync has no "any type" option) or filter by
-   tag (GetByTagsAsync, cross-entity, no paging support). Owns search/view
-   UI state only; every service call happens through a delegate from the
-   Platform host (rule 2/3).
-
-   Selecting a file opens DisplayFileDetilesDialog full-screen (WhatsApp-Web
-   style) instead of showing an inline detail panel — that panel is retired.
-   IDialogService is injected directly here (allowed per rule 2 — it's a
-   UI-level service, not a data service) to open that viewer; the Upload
-   dialog is still opened by the Platform host (OnUploadClicked bubbles up)
-   since this page has no upload-context (EntityType/EntityId) of its own.
-
-   ── Visual pass only (no logic changes) ──
-   - Header gets a subtitle + toggle group with tooltips instead of bare icons
-   - Search area wrapped in a bordered Paper with tab icons
-   - Empty state redesigned (icon + heading + hint) instead of a plain Alert
-   - Thin loading bar above results instead of relying solely on table's own spinner
-   - Result count line + refined pagination row
-   ──────────────────────────────────────────────────────────────────────── *@
+@* SharedStoredFilePage
+   Starts empty; the user searches by content or filters by tag.
+   Every data call goes through a delegate from the host. Selecting a file opens
+   DisplayFileDetilesDialog full screen; the Upload button bubbles up to the host. *@
 <MudPaper Class="pa-6" Elevation="0">
 
     @* ── Header ─────────────────────────────────────────────────────── *@
@@ -67,22 +47,13 @@
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true"
                  @bind-ActivePanelIndex="_searchTabIndex" PanelClass="pa-3">
             <MudTabPanel Text="Search by content" Icon="@Icons.Material.Filled.Search">
-                <MudGrid AlignItems="Center.Center">
-                    <MudItem xs="12" sm="4">
-                        <MudSelect T="EntityType" @bind-Value="_entityType" Label="Entity Type"
-                                   Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var type in Enum.GetValues<EntityType>())
-                            {
-                                <MudSelectItem Value="@type">@type</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField T="string" 
-                                      @bind-Value="_queryText" 
+                <MudGrid>
+                    <MudItem xs="12" sm="10">
+                        <MudTextField T="string"
+                                      @bind-Value="_queryText"
                                       Label="Search text"
                                       Placeholder="Type a keyword and press Enter…"
-                                      Adornment="Adornment.Start" 
+                                      Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Search"
                                       Immediate="true"
                                       Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -99,7 +70,7 @@
             </MudTabPanel>
 
             <MudTabPanel Text="Filter by tag" Icon="@Icons.Material.Filled.Sell">
-                <MudGrid AlignItems="Center.Center">
+                <MudGrid>
                     <MudItem xs="12" sm="8">
                         <MudTextField T="string" @bind-Value="_tagInput" Label="Tag name"
                                       Placeholder="Type a tag and press Enter to add…"
@@ -208,7 +179,7 @@
     enum ViewMode { List, Grid }
 
     [Parameter, EditorRequired]
-    public Func<string, EntityType, int, int, CancellationToken, Task<PagedResponse<StoredFileResponse>>> SearchByTextFunc { get; set; } = default!;
+    public Func<string, int, int, CancellationToken, Task<PagedResponse<StoredFileResponse>>> SearchByTextFunc { get; set; } = default!;
     [Parameter, EditorRequired]
     public Func<IReadOnlyList<string>, CancellationToken, Task<IReadOnlyList<StoredFileResponse>>> SearchByTagsFunc { get; set; } = default!;
     [Parameter, EditorRequired] public Func<int, CancellationToken, Task> DeleteFileFunc { get; set; } = default!;
@@ -225,7 +196,6 @@
     SearchMode _mode = SearchMode.None;
     ViewMode _viewMode = ViewMode.List;
 
-    EntityType _entityType;
     string _queryText = string.Empty;
     string _tagInput = string.Empty;
     List<string> _tagChips = [];
@@ -254,7 +224,7 @@
         StateHasChanged();
         try
         {
-            _pagedInfo = await SearchByTextFunc(_queryText, _entityType, page, PageSize, CancellationToken.None);
+            _pagedInfo = await SearchByTextFunc(_queryText, page, PageSize, CancellationToken.None);
             _files = _pagedInfo.Items;
         }
         catch (Exception ex)
@@ -291,9 +261,8 @@
         }
     }
 
-    /// <summary>Called by the Platform host (via @ref) after a successful upload, to
-    /// re-run whichever search is active. Also called internally after the file
-    /// viewer dialog closes, since tag/delete edits happen inside it now.</summary>
+    // Called by the host (via @ref) after an upload, and here after the file viewer closes,
+    // to re-run whichever search is active.
     public Task RefreshCurrentSearchAsync() => _mode switch
     {
         SearchMode.Text => SearchByTextAsync(_pagedInfo?.Page ?? 1),
@@ -325,8 +294,7 @@
         var dialog = await DialogService.ShowAsync<DisplayFileDetilesDialog>(file.OriginalFileName, parameters, options);
         await dialog.Result;
 
-        // Tags/delete happen inside the dialog now, so re-sync the list on close
-        // regardless of how it closed (Close button, Delete, Esc, backdrop).
+        // Tags and delete happen inside the dialog, so re-sync the list however it closed.
         await RefreshCurrentSearchAsync();
     }
 }

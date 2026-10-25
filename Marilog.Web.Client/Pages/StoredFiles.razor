@@ -1,4 +1,5 @@
 @page "/storedfiles"
+@attribute [Authorize]
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Requests.StoregFileDTOs
 @using Marilog.Contracts.DTOs.Responses
@@ -10,15 +11,8 @@
 @inject HttpClient Http
 @inject IDialogService DialogService
 
-@* ────────────────────────────────────────────────────────────────────────────
-   Thin Platform host for the general Stored Files browser. Wires every
-   search/mutation delegate to IStoredFileService and the two known stream
-   routes (api/StoredFiles/{id}/stream, api/StoredFiles/{id}/thumbnailStream —
-   confirmed against the existing per-entity ManageStoredFilesDialog wiring;
-   there's no ?inline=true flag on this project's stream endpoint). Only this
-   file opens the Upload dialog (rule 4) and only this file references
-   IStoredFileService (rule 2/3).
-   ──────────────────────────────────────────────────────────────────────── *@
+@* Host for the general Stored Files browser: wires the shared page to IStoredFileService.
+   The server limits search results to the entity types the user can read. *@
 
 <SharedStoredFilePage @ref="_sharedPage"
                       SearchByTextFunc="@SearchByTextAsync"
@@ -34,11 +28,11 @@
 @code {
     SharedStoredFilePage _sharedPage = default!;
 
-    Task<PagedResponse<StoredFileResponse>> SearchByTextAsync(string query, EntityType entityType, int page, int pageSize, CancellationToken ct) =>
-        StoredFileService.FullTextSearchAsync(query, page, pageSize, entityType, ct);
+    Task<PagedResponse<StoredFileResponse>> SearchByTextAsync(string query, int page, int pageSize, CancellationToken ct) =>
+        StoredFileService.FullTextSearchAsync(query, page, pageSize, null, ct);
 
     Task<IReadOnlyList<StoredFileResponse>> SearchByTagsAsync(IReadOnlyList<string> tags, CancellationToken ct) =>
-        StoredFileService.GetByTagsAsync(tags, ct);
+        StoredFileService.GetByTagsAsync(tags, null, ct);
 
     async Task<bool> SaveContentAsync(int id, string content, CancellationToken ct)
     {
