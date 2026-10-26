@@ -1,0 +1,122 @@
+@using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+@* ────────────────────────────────────────────────────────────────────────────
+   SwiftBankFeeDialog
+   One dialog for Add and Edit of a single bank fee. Logic-free: returns a
+   SwiftBankFeeRequest; the Platform host calls the service. The amount is
+   always in the transfer's currency.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Edit fee" : "Add fee") — @Transfer.SwiftReference
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="SwiftFeeStage?" Label="Stage" @bind-Value="_stage"
+                           Required="true" RequiredError="Stage is required">
+                    @foreach (var stage in Enum.GetValues<SwiftFeeStage>())
+                    {
+                        <MudSelectItem T="SwiftFeeStage?" Value="@((SwiftFeeStage?)stage)">@SwiftChargeDisplay.Stage(stage)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?" Label="Bank" @bind-Value="_bankId" Clearable="true" HelperText="Optional">
+                    @foreach (var bank in Banks)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)bank.BankId)">@bank.BankName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" Label="Amount" @bind-Value="_amount"
+                                 Min="0.01m" Format="N2"
+                                 Adornment="Adornment.End" AdornmentText="@Transfer.CurrencyCode"
+                                 HelperText="In the transfer currency" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Fee date" @bind-Date="_feeDate" Editable="true" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSwitch T="bool" @bind-Value="_isDeducted" Color="Color.Primary"
+                           Label="@(_isDeducted ? "Deducted from the transfer amount" : "Charged separately (e.g. on the bank statement)")" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField T="string" Label="Description" @bind-Value="_description" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Back">Back</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(!CanSubmit)" OnClick="Submit">
+            @(IsEditMode ? "Save" : "Add")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public SwiftTransferResponse Transfer { get; set; } = null!;
+    [Parameter] public SwiftBankFeeResponse? Existing { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<BankResponse> Banks { get; set; } = null!;
+
+    bool IsEditMode => Existing is not null;
+
+    SwiftFeeStage? _stage;
+    int? _bankId;
+    decimal _amount;
+    DateTime? _feeDate;
+    bool _isDeducted = true;
+    string? _description;
+
+    bool CanSubmit => _stage is not null && _amount > 0 && _feeDate is not null;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+        {
+            var defaultDate = Transfer.ReceivedDate ?? Transfer.TransactionDate;
+            _feeDate = defaultDate.ToDateTime(TimeOnly.MinValue);
+            return;
+        }
+
+        _stage = Existing.Stage;
+        _bankId = Existing.BankId;
+        _amount = Existing.Amount;
+        _feeDate = Existing.FeeDate.ToDateTime(TimeOnly.MinValue);
+        _isDeducted = Existing.IsDeducted;
+        _description = Existing.Description;
+    }
+
+    void Submit()
+    {
+        var request = new SwiftBankFeeRequest
+        {
+            Stage = _stage!.Value,
+            BankId = _bankId,
+            Amount = _amount,
+            IsDeducted = _isDeducted,
+            FeeDate = DateOnly.FromDateTime(_feeDate!.Value),
+            Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim()
+        };
+
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+
+    void Back() => MudDialog.Cancel();
+}

@@ -43,7 +43,11 @@
                          FilterOptions="@_filter"
                          Companies="@_companies"
                          OnFilterChanged="@HandleFilterChangedAsync"
-                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync" />
+                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
+                         OnEditChargeDetailsClicked="@HandleEditChargeDetailsClickedAsync"
+                         OnAddFeeClicked="@HandleAddFeeClickedAsync"
+                         OnEditFeeClicked="@HandleEditFeeClickedAsync"
+                         OnRemoveFeeClicked="@HandleRemoveFeeClickedAsync" />
 
 @code {
     SharedSwiftTransferPage _sharedPage = null!;
@@ -123,6 +127,100 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Failed to cancel transfer: {ex.Message}", Severity.Error);
+        }
+    }
+
+        // ── Bank charges ─────────────────────────────────────────────────────────
+    static readonly DialogOptions ChargeDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true,
+        Position = DialogPosition.Center
+    };
+
+    async Task HandleEditChargeDetailsClickedAsync(SwiftTransferResponse transfer)
+    {
+        var parameters = new DialogParameters<SwiftChargeDetailsDialog>
+        {
+            { x => x.Transfer, transfer }
+        };
+
+        var dialog = await DialogService.ShowAsync<SwiftChargeDetailsDialog>("Charge details", parameters, ChargeDialogOptions);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: UpdateSwiftChargeDetailsRequest request })
+            return;
+
+        try
+        {
+            await SwiftTransferService.UpdateChargeDetailsAsync(transfer.Id, request);
+            Snackbar.Add("Charge details saved.", Severity.Success);
+            await _sharedPage.RefreshSelectedIfOpenAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save charge details: {ex.Message}", Severity.Error);
+        }
+    }
+
+    Task HandleAddFeeClickedAsync(SwiftTransferResponse transfer) =>
+        ShowFeeDialogAsync(transfer, null);
+
+    Task HandleEditFeeClickedAsync((SwiftTransferResponse Transfer, SwiftBankFeeResponse Fee) args) =>
+        ShowFeeDialogAsync(args.Transfer, args.Fee);
+
+    async Task ShowFeeDialogAsync(SwiftTransferResponse transfer, SwiftBankFeeResponse? existing)
+    {
+        var parameters = new DialogParameters<SwiftBankFeeDialog>
+        {
+            { x => x.Transfer, transfer },
+            { x => x.Existing, existing },
+            { x => x.Banks, _banks }
+        };
+
+        var title = existing is null ? "Add fee" : "Edit fee";
+        var dialog = await DialogService.ShowAsync<SwiftBankFeeDialog>(title, parameters, ChargeDialogOptions);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: SwiftBankFeeRequest request })
+            return;
+
+        try
+        {
+            if (existing is null)
+                await SwiftTransferService.AddFeeAsync(transfer.Id, request);
+            else
+                await SwiftTransferService.UpdateFeeAsync(transfer.Id, existing.Id, request);
+
+            Snackbar.Add(existing is null ? "Fee added." : "Fee updated.", Severity.Success);
+            await _sharedPage.RefreshSelectedIfOpenAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save fee: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task HandleRemoveFeeClickedAsync((SwiftTransferResponse Transfer, SwiftBankFeeResponse Fee) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove fee",
+            $"Remove the {SwiftChargeDisplay.Stage(args.Fee.Stage).ToLowerInvariant()} fee of {args.Fee.Amount:N2} {args.Transfer.CurrencyCode}?",
+            yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await SwiftTransferService.RemoveFeeAsync(args.Transfer.Id, args.Fee.Id);
+            Snackbar.Add("Fee removed.", Severity.Success);
+            await _sharedPage.RefreshSelectedIfOpenAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to remove fee: {ex.Message}", Severity.Error);
         }
     }
 

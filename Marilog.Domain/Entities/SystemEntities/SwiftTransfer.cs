@@ -21,9 +21,15 @@ namespace Marilog.Domain.Entities.SystemEntities
             public string? PaymentReference { get; private set; }
             public string? RawMessage { get; private set; }
 
+        //====Charges================================================================
+        public SwiftChargeBearer ChargeBearer { get; private set; } = SwiftChargeBearer.None;
+        public decimal? InstructedAmount { get; private set; }
+
+        private readonly List<SwiftBankFee> _fees = new();
+        public IReadOnlyCollection<SwiftBankFee> Fees => _fees.AsReadOnly();
 
         //====Status=================================================================
-            public SwiftTransferStatus Status { get; private set; } = SwiftTransferStatus.Pending;
+        public SwiftTransferStatus Status { get; private set; } = SwiftTransferStatus.Pending;
             public DateOnly? ReceivedDate { get; private set; }
             public string? CancellationReason { get; private set; }
         //===========================================================================
@@ -106,9 +112,66 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
+
+        // ── Charges ─────────────────────────────────────────────────────────────
+        public void SetChargeDetails(SwiftChargeBearer chargeBearer, decimal? instructedAmount)
+        {
+            if (!Enum.IsDefined(chargeBearer))
+                throw new ArgumentException("Invalid charge bearer.", nameof(chargeBearer));
+
+            if (instructedAmount.HasValue && instructedAmount.Value <= 0)
+                throw new ArgumentException("Instructed amount must be positive.", nameof(instructedAmount));
+
+            ChargeBearer = chargeBearer;
+            InstructedAmount = instructedAmount;
+            Touch();
+        }
+
+        public SwiftBankFee AddFee(SwiftFeeStage stage, decimal amount, bool isDeducted,
+            DateOnly feeDate, int? bankId = null, string? description = null)
+        {
+            EnsureNotCancelled();
+
+            var fee = SwiftBankFee.Create(stage, amount, isDeducted, feeDate, bankId, description);
+            _fees.Add(fee);
+            Touch();
+            return fee;
+        }
+
+        public void UpdateFee(int feeId, SwiftFeeStage stage, decimal amount, bool isDeducted,
+            DateOnly feeDate, int? bankId, string? description)
+        {
+            EnsureNotCancelled();
+
+            GetFee(feeId).Update(stage, amount, isDeducted, feeDate, bankId, description);
+            Touch();
+        }
+
+        public void RemoveFee(int feeId)
+        {
+            EnsureNotCancelled();
+
+            _fees.Remove(GetFee(feeId));
+            Touch();
+        }
+
+        private SwiftBankFee GetFee(int feeId) =>
+            _fees.FirstOrDefault(f => f.Id == feeId)
+            ?? throw new InvalidOperationException($"Fee {feeId} was not found on this SWIFT transfer.");
+
+        private void EnsureNotCancelled()
+        {
+            if (Status == SwiftTransferStatus.Cancelled)
+                throw new InvalidOperationException("Cannot change fees on a cancelled SWIFT transfer.");
+        }
+
         // ── Computed ────────────────────────────────────────────────────────────
         public decimal AllocatedAmount => _payments.Sum(p => p.PaidAmount);
         public decimal UnallocatedAmount => Amount - AllocatedAmount;
         public bool IsFullyAllocated => UnallocatedAmount <= 0;
+
+        public decimal DeductedFees => _fees.Where(f => f.IsDeducted).Sum(f => f.Amount);
+        public decimal SeparateFees => _fees.Where(f => !f.IsDeducted).Sum(f => f.Amount);
+        public decimal TotalFees => DeductedFees + SeparateFees;
     }
 }

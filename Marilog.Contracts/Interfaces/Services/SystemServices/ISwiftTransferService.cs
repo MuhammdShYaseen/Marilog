@@ -40,5 +40,13 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         //=====Status==============================================================
         Task MarkReceivedAsync(int id, DateOnly receivedDate, CancellationToken ct = default);
         Task CancelAsync(int id, string reason, CancellationToken ct = default);
+
+
+
+        //=====Charges=============================================================
+        Task UpdateChargeDetailsAsync(int id, UpdateSwiftChargeDetailsRequest request, CancellationToken ct = default);
+        Task AddFeeAsync(int id, SwiftBankFeeRequest request, CancellationToken ct = default);
+        Task UpdateFeeAsync(int id, int feeId, SwiftBankFeeRequest request, CancellationToken ct = default);
+        Task RemoveFeeAsync(int id, int feeId, CancellationToken ct = default);
     }
 }

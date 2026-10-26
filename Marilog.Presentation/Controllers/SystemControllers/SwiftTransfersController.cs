@@ -165,5 +165,36 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.CancelAsync(id, request.Reason, ct);
             return NoContent();
         }
+
+
+
+        //=========charges============================================
+        [HttpPut("{id:int}/charge-details")]
+        public async Task<IActionResult> UpdateChargeDetails(int id, [FromBody] UpdateSwiftChargeDetailsRequest request, CancellationToken ct)
+        {
+            await _service.UpdateChargeDetailsAsync(id, request, ct);
+            return NoContent();
+        }
+
+        [HttpPost("{id:int}/fees")]
+        public async Task<IActionResult> AddFee(int id, [FromBody] SwiftBankFeeRequest request, CancellationToken ct)
+        {
+            await _service.AddFeeAsync(id, request, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id:int}/fees/{feeId:int}")]
+        public async Task<IActionResult> UpdateFee(int id, int feeId, [FromBody] SwiftBankFeeRequest request, CancellationToken ct)
+        {
+            await _service.UpdateFeeAsync(id, feeId, request, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}/fees/{feeId:int}")]
+        public async Task<IActionResult> RemoveFee(int id, int feeId, CancellationToken ct)
+        {
+            await _service.RemoveFeeAsync(id, feeId, ct);
+            return NoContent();
+        }
     }
 }

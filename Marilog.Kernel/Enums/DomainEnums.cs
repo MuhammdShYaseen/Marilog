@@ -1,6 +1,26 @@
 ﻿namespace Marilog.Kernel.Enums
 {
 
+    //===Swift===========================================
+
+    public enum SwiftFeeStage
+    {
+        SenderBank = 1,
+        IntermediaryBank = 2,
+        ReceiverBank = 3
+    }
+
+
+    
+    public enum SwiftChargeBearer
+    {
+        None = 0,
+        Our = 1,
+        Sha = 2,
+        Ben = 3
+    }
+
+    //===Permissions=====================================
     public enum RoleManagementResult
     {
         Success,
@@ -246,6 +266,7 @@
         Role = 38,
         RolePermission = 39,
         UserRole = 40,
+        SwiftBankFee = 41,
         NONE = 0
     }
     public enum JobStatus

@@ -38,5 +38,23 @@ namespace Marilog.Contracts.DTOs.Responses
         public SwiftTransferStatus Status { get; set; }
         public DateOnly? ReceivedDate { get; set; }
         public string? CancellationReason { get; set; }
+
+
+
+        //=====charges================================
+        public SwiftChargeBearer ChargeBearer { get; set; }
+        public decimal? InstructedAmount { get; set; }
+        public decimal DeductedFees { get; set; }
+        public decimal SeparateFees { get; set; }
+        public List<SwiftBankFeeResponse> Fees { get; set; } = new();
+
+        public decimal TotalFees => DeductedFees + SeparateFees;
+
+        /// <summary>InstructedAmount − DeductedFees − Amount. Null when InstructedAmount is not set.</summary>
+        public decimal? FeesDifference => InstructedAmount.HasValue
+            ? InstructedAmount.Value - DeductedFees - Amount
+            : null;
+
+        public bool HasFeesMismatch => FeesDifference is { } diff && diff != 0;
     }
 }

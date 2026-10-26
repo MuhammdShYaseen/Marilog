@@ -58,6 +58,10 @@
                                             OnEditClicked="@OnEditClicked"
                                             OnCancelClicked="@OnCancelClicked"
                                             OnManageAttachedFilesClicked="@OnManageAttachedFilesClicked"
+                                            OnEditChargeDetailsClicked="@OnEditChargeDetailsClicked"
+                                            OnAddFeeClicked="@OnAddFeeClicked"
+                                            OnEditFeeClicked="@OnEditFeeClicked"
+                                            OnRemoveFeeClicked="@OnRemoveFeeClicked"
                                             OnClose="@CloseDetail" />
         }
 
@@ -81,6 +85,12 @@
     [Parameter] public EventCallback<SwiftTransferResponse> OnMarkReceivedClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnCancelClicked { get; set; }
 
+
+    
+    [Parameter] public EventCallback<SwiftTransferResponse> OnEditChargeDetailsClicked { get; set; }
+    [Parameter] public EventCallback<SwiftTransferResponse> OnAddFeeClicked { get; set; }
+    [Parameter] public EventCallback<(SwiftTransferResponse Transfer, SwiftBankFeeResponse Fee)> OnEditFeeClicked { get; set; }
+    [Parameter] public EventCallback<(SwiftTransferResponse Transfer, SwiftBankFeeResponse Fee)> OnRemoveFeeClicked { get; set; }
 
     [Parameter, EditorRequired] public SwiftTransferFilterOptions FilterOptions { get; set; } = null!;
     [Parameter, EditorRequired] public IReadOnlyList<CompanyResponse> Companies { get; set; } = null!;

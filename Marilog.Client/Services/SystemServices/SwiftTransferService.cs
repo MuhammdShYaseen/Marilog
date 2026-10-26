@@ -152,5 +152,33 @@ namespace Marilog.Client.Services.SystemServices
 
             await response.EnsureSuccessWithMessageAsync(ct);
         }
+
+        public async Task UpdateChargeDetailsAsync(int id, UpdateSwiftChargeDetailsRequest request, CancellationToken ct = default)
+        {
+            var response = await _http.PutAsJsonAsync($"{Base}/{id}/charge-details", request, ct);
+
+            await response.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task AddFeeAsync(int id, SwiftBankFeeRequest request, CancellationToken ct = default)
+        {
+            var response = await _http.PostAsJsonAsync($"{Base}/{id}/fees", request, ct);
+
+            await response.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task UpdateFeeAsync(int id, int feeId, SwiftBankFeeRequest request, CancellationToken ct = default)
+        {
+            var response = await _http.PutAsJsonAsync($"{Base}/{id}/fees/{feeId}", request, ct);
+
+            await response.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task RemoveFeeAsync(int id, int feeId, CancellationToken ct = default)
+        {
+            var response = await _http.DeleteAsync($"{Base}/{id}/fees/{feeId}", ct);
+
+            await response.EnsureSuccessWithMessageAsync(ct);
+        }
     }
 }

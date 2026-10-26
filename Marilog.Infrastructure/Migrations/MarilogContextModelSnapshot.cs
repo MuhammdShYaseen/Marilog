@@ -2081,6 +2081,67 @@ namespace Marilog.Infrastructure.Migrations
                     b.ToTable("StoredFolders", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.SwiftBankFee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("BankId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateOnly>("FeeDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeducted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SwiftTransferId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankId");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("SwiftTransferId");
+
+                    b.ToTable("swift_bank_fees", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.SwiftTransfer", b =>
                 {
                     b.Property<int>("Id")
@@ -2096,6 +2157,9 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("ChargeBearer")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -2106,6 +2170,9 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("InstructedAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -3788,6 +3855,22 @@ namespace Marilog.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.SwiftBankFee", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Bank", "Bank")
+                        .WithMany()
+                        .HasForeignKey("BankId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.SwiftTransfer", null)
+                        .WithMany("Fees")
+                        .HasForeignKey("SwiftTransferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Bank");
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.SwiftTransfer", b =>
                 {
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Currency", "Currency")
@@ -4014,6 +4097,8 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.SwiftTransfer", b =>
                 {
+                    b.Navigation("Fees");
+
                     b.Navigation("Payments");
                 });
 

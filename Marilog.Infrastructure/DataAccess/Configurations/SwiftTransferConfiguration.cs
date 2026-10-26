@@ -30,6 +30,15 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.CancellationReason).HasMaxLength(500);
             //====================================================
 
+            //===charges========================================
+            builder.Property(x => x.ChargeBearer).IsRequired();
+            builder.Property(x => x.InstructedAmount).HasColumnType("decimal(18,2)");
+
+            builder.HasMany(x => x.Fees)
+                   .WithOne()
+                   .HasForeignKey(x => x.SwiftTransferId)
+                   .OnDelete(DeleteBehavior.Cascade);
+            //====================================================
 
             builder.HasOne(x => x.Currency)
                    .WithMany()

@@ -1,0 +1,74 @@
+@using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+@* ────────────────────────────────────────────────────────────────────────────
+   SwiftChargeDetailsDialog
+   Edits who bears the charges (71A) and the instructed amount (33B).
+   Logic-free: returns an UpdateSwiftChargeDetailsRequest to the host.
+   ──────────────────────────────────────────────────────────────────────── *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Charge details — @Transfer.SwiftReference</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSelect T="SwiftChargeBearer" Label="Charges borne by" @bind-Value="_chargeBearer"
+                           HelperText="Field 71A in the SWIFT message">
+                    @foreach (var bearer in Enum.GetValues<SwiftChargeBearer>())
+                    {
+                        <MudSelectItem T="SwiftChargeBearer" Value="@bearer">@SwiftChargeDisplay.Bearer(bearer)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudNumericField T="decimal?" Label="Instructed amount" @bind-Value="_instructedAmount"
+                                 Min="0.01m" Format="N2"
+                                 Adornment="Adornment.End" AdornmentText="@Transfer.CurrencyCode"
+                                 HelperText="Field 33B — leave empty if unknown" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Back">Back</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(!CanSubmit)" OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public SwiftTransferResponse Transfer { get; set; } = null!;
+
+    SwiftChargeBearer _chargeBearer;
+    decimal? _instructedAmount;
+
+    bool CanSubmit => _instructedAmount is null || _instructedAmount > 0;
+
+    protected override void OnInitialized()
+    {
+        _chargeBearer = Transfer.ChargeBearer;
+        _instructedAmount = Transfer.InstructedAmount;
+    }
+
+    void Submit()
+    {
+        var request = new UpdateSwiftChargeDetailsRequest
+        {
+            ChargeBearer = _chargeBearer,
+            InstructedAmount = _instructedAmount
+        };
+
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+
+    void Back() => MudDialog.Cancel();
+}

@@ -408,12 +408,56 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _repo.Update(transfer);
             await _repo.SaveChangesAsync(ct);
         }
+
+
+        //=======charges====================================
+        public async Task UpdateChargeDetailsAsync(int id, UpdateSwiftChargeDetailsRequest request,
+            CancellationToken ct = default)
+        {
+            var transfer = await GetOrThrowAsync(id, ct);
+            transfer.SetChargeDetails(request.ChargeBearer, request.InstructedAmount);
+            _repo.Update(transfer);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task AddFeeAsync(int id, SwiftBankFeeRequest request, CancellationToken ct = default)
+        {
+            var transfer = await GetWithFeesOrThrowAsync(id, ct);
+            transfer.AddFee(request.Stage, request.Amount, request.IsDeducted,
+                            request.FeeDate, request.BankId, request.Description);
+            _repo.Update(transfer);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateFeeAsync(int id, int feeId, SwiftBankFeeRequest request,
+            CancellationToken ct = default)
+        {
+            var transfer = await GetWithFeesOrThrowAsync(id, ct);
+            transfer.UpdateFee(feeId, request.Stage, request.Amount, request.IsDeducted,
+                               request.FeeDate, request.BankId, request.Description);
+            _repo.Update(transfer);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemoveFeeAsync(int id, int feeId, CancellationToken ct = default)
+        {
+            var transfer = await GetWithFeesOrThrowAsync(id, ct);
+            transfer.RemoveFee(feeId);
+            _repo.Update(transfer);
+            await _repo.SaveChangesAsync(ct);
+        }
+
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<SwiftTransfer> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"SwiftTransfer {id} not found.");
 
+        private async Task<SwiftTransfer> GetWithFeesOrThrowAsync(int id, CancellationToken ct)
+            => await _repo.Query()
+                   .Include(x => x.Fees)
+                   .FirstOrDefaultAsync(x => x.Id == id, ct)
+               ?? throw new KeyNotFoundException($"SwiftTransfer {id} not found.");
         private async Task EnsureUniqueReferenceAsync(string reference,
             int? excludeId, CancellationToken ct)
         {
@@ -424,6 +468,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new InvalidOperationException(
                     $"Swift reference '{reference}' already exists.");
         }
+
+
+
 
         private static readonly Expression<Func<SwiftTransfer, SwiftTransferResponse>> ToResponse =
             x => new SwiftTransferResponse
@@ -451,7 +498,26 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ? x.SenderCompany.CompanyName
                 : null,
 
-            ReceiverCompanyId = x.ReceiverCompanyId,
+                ChargeBearer = x.ChargeBearer,
+                InstructedAmount = x.InstructedAmount,
+                DeductedFees = x.Fees.Where(f => f.IsDeducted).Sum(f => f.Amount),
+                SeparateFees = x.Fees.Where(f => !f.IsDeducted).Sum(f => f.Amount),
+                Fees = x.Fees
+                .OrderBy(f => f.FeeDate)
+                .ThenBy(f => f.Stage)
+                .Select(f => new SwiftBankFeeResponse
+                {
+                    Id = f.Id,
+                    Stage = f.Stage,
+                    BankId = f.BankId,
+                    BankName = f.Bank != null ? f.Bank.Name : null,
+                    BankSwiftBic = f.Bank != null ? f.Bank.SwiftBic : null,
+                    Amount = f.Amount,
+                    IsDeducted = f.IsDeducted,
+                    FeeDate = f.FeeDate,
+                    Description = f.Description
+                }).ToList(),
+                ReceiverCompanyId = x.ReceiverCompanyId,
             ReceiverCompanyName = x.ReceiverCompany != null
                 ? x.ReceiverCompany.CompanyName
                 : null,
