@@ -6,6 +6,7 @@
     using Marilog.Contracts.DTOs.Responses;
     using Marilog.Contracts.Interfaces.Services.SystemServices;
     using Marilog.Kernel.Enums;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
     [ApiController]
@@ -105,6 +106,21 @@
 
             return NoContent();
 
+        }
+
+        [HttpPut("{id:int}/own-company")]
+        public async Task<IActionResult> UpdateOwnCompany(int id, UpdateOwnCompanyRequest request, CancellationToken ct)
+        {
+            await _service.UpdateOwnCompanyAsync(id, request, ct);
+            return NoContent();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("own-company")]
+        public async Task<IActionResult> GetOwnCompanyName(CancellationToken ct)
+        {
+            var result = await _service.GetOwnCompanyNameAsync(ct);
+            return result is null ? NoContent() : Ok(result);
         }
 
         [HttpPatch("{id:int}/activate")]

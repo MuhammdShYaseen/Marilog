@@ -18,6 +18,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         Task<IReadOnlyList<CompanyResponse>> CreateRangeAsync(IEnumerable<CreateCompanyRequest> commands, CancellationToken ct = default);
         Task          UpdateAsync(int id, UpdateCompanyRequest request, CancellationToken ct = default);
+        Task UpdateOwnCompanyAsync(int companyId, UpdateOwnCompanyRequest request, CancellationToken ct = default);
+        Task<OwnCompanyNameResponse?> GetOwnCompanyNameAsync(CancellationToken ct = default);
         Task          ActivateAsync(int id, CancellationToken ct = default);
         Task          DeactivateAsync(int id, CancellationToken ct = default);
         Task          DeleteAsync(int id, CancellationToken ct = default);

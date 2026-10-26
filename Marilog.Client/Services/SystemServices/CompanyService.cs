@@ -1,11 +1,12 @@
-﻿using Marilog.Client.Extensions;
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.CompanyDTOs;
 using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Enums;
+using System.Net;
 using System.Net.Http.Json;
+using static System.Net.WebRequestMethods;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -71,6 +72,22 @@ namespace Marilog.Client.Services.SystemServices
         {
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task UpdateOwnCompanyAsync(int companyId, UpdateOwnCompanyRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync($"{Base}/{companyId}/own-company", request, ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task<OwnCompanyNameResponse?> GetOwnCompanyNameAsync(CancellationToken ct = default)
+        {
+            var http = await _http.GetAsync($"{Base}/own-company", ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+
+            return http.StatusCode == HttpStatusCode.NoContent
+                ? null
+                : await http.Content.ReadFromJsonAsync<OwnCompanyNameResponse>(ct);
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)

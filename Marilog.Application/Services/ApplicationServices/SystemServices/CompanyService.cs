@@ -132,6 +132,36 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+        public async Task UpdateOwnCompanyAsync(int companyId, UpdateOwnCompanyRequest request, CancellationToken ct = default)
+        {
+            var company = await _repo.Query()
+                .FirstOrDefaultAsync(c => c.Id == companyId, ct)
+                ?? throw new KeyNotFoundException($"Company {companyId} not found.");
+
+            if (request.IsOwnCompany)
+            {
+                var others = await _repo.Query()
+                    .Where(c => c.IsOwnCompany && c.Id != companyId)
+                    .ToListAsync(ct);
+
+                foreach (var other in others)
+                {
+                    other.SetOwnCompany(false);
+                    _repo.Update(other);
+                }
+            }
+
+            company.SetOwnCompany(request.IsOwnCompany);
+            _repo.Update(company);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task<OwnCompanyNameResponse?> GetOwnCompanyNameAsync(CancellationToken ct = default) =>
+             await _repo.Query()
+                        .Where(c => c.IsOwnCompany)
+                        .Select(c => new OwnCompanyNameResponse(c.CompanyName))
+                        .FirstOrDefaultAsync(ct);
+
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var company = await GetOrThrowAsync(id, ct);

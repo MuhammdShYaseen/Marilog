@@ -1012,6 +1012,9 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsOwnCompany")
+                        .HasColumnType("bit");
+
                     b.Property<string>("RegistrationNumber")
                         .HasColumnType("nvarchar(max)");
 

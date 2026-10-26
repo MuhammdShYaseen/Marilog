@@ -13,8 +13,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string? Address { get; private set; }
         public string? Website { get; private set; }
         public string? RegistrationNumber { get; private set; }
-
-
+        public bool IsOwnCompany { get; private set; }
         // ── Collections (Owned) ───────────────────────────────────────
         private readonly List<BankAccount> _bankAccounts = new();
         public IReadOnlyCollection<BankAccount> BankAccounts => _bankAccounts.AsReadOnly();
@@ -63,6 +62,12 @@ namespace Marilog.Domain.Entities.SystemEntities
             Address = address;
             RegistrationNumber = registrationNumber;
             Website = webSite;
+            Touch();
+        }
+
+        public void SetOwnCompany(bool isOwnCompany)
+        {
+            IsOwnCompany = isOwnCompany;
             Touch();
         }
 
