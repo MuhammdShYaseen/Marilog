@@ -379,7 +379,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Name = x.CompanyName,
                 CountryId = x.CountryId,
                 WebSite = x.Website,
-
+                IsOwn = x.IsOwnCompany,
                 BankAccounts = x.BankAccounts
                     .AsQueryable()
                     .Select(BankAccountToResponse)

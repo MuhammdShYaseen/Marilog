@@ -1,0 +1,322 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Companies
+
+<div class="d-flex flex-column" style="height:100%;">
+
+    @* ── Title ──────────────────────────────────────────────── *@
+    <div class="d-flex align-start justify-space-between px-4 pt-4">
+        <div>
+            <MudText Typo="Typo.h6">@Company.Name</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Company@(Company.IsOwn ? " · Own company" : "")
+            </MudText>
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                       OnClick="@(() => OnClose.InvokeAsync())" />
+    </div>
+
+    @* ── Command bar ────────────────────────────────────────── *@
+    <div class="d-flex flex-wrap align-center gap-1 px-2 py-1 mt-2"
+         style="border-top:1px solid var(--mud-palette-lines-default); border-bottom:1px solid var(--mud-palette-lines-default);">
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="@(() => OnEditClicked.InvokeAsync(Company))">
+            Edit
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Receipt"
+                   OnClick="@(() => OnManageAttachedFilesClicked.InvokeAsync((Company.Id, EntityType.Company)))">
+            Files
+        </MudButton>
+
+        @if (Company.IsActive)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.PauseCircle"
+                       OnClick="@(() => OnDeactivateClicked.InvokeAsync(Company))">
+                Deactivate
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.PlayCircle"
+                       OnClick="@(() => OnActivateClicked.InvokeAsync(Company))">
+                Activate
+            </MudButton>
+        }
+
+        <MudTooltip Text="The company that runs this Marilog installation (shown on the login page)">
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@(Company.IsOwn ? Icons.Material.Filled.RemoveCircleOutline : Icons.Material.Filled.Verified)"
+                       OnClick="@(() => OnSetOwnClicked.InvokeAsync(Company))">
+                @(Company.IsOwn ? "Unset own" : "Set as own")
+            </MudButton>
+        </MudTooltip>
+
+        <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="@(() => OnDeleteClicked.InvokeAsync(Company))">
+            Delete
+        </MudButton>
+    </div>
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Size="Size.Small" />
+    }
+
+    <div class="pa-4" style="overflow-y:auto; flex:1;">
+        <div class="az-detail">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pt-3" MinimumTabWidth="0px">
+
+                <MudTabPanel Text="Essentials">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">@Field("Registration no.", Company.RegistrationNumber)</MudItem>
+                        <MudItem xs="6">@Field("Contact", Company.ContactName)</MudItem>
+                        <MudItem xs="6">@Field("Website", Company.WebSite)</MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                            <div class="d-flex align-center gap-3">
+                                <span class="d-flex align-center gap-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                             Color="@(Company.IsActive ? Color.Success : Color.Default)"
+                                             Style="font-size:10px" />
+                                    <MudText Typo="Typo.body2">@(Company.IsActive ? "Active" : "Inactive")</MudText>
+                                </span>
+                                @if (Company.IsOwn)
+                                {
+                                    <span class="d-flex align-center gap-1">
+                                        <MudIcon Icon="@Icons.Material.Filled.Verified" Color="Color.Primary" Style="font-size:14px" />
+                                        <MudText Typo="Typo.body2">Own company</MudText>
+                                    </span>
+                                }
+                            </div>
+                        </MudItem>
+                        <MudItem xs="12">@Field("Address", Company.Address)</MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                @* ── Contacts ── *@
+                <MudTabPanel Text="@($"Contacts ({Company.Emails.Count + Company.Phones.Count})")">
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="() => OnAddEmailClicked.InvokeAsync(Company)">
+                            Add email
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="() => OnAddPhoneClicked.InvokeAsync(Company)">
+                            Add phone
+                        </MudButton>
+                    </div>
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Emails</MudText>
+                    @if (Company.Emails.Count == 0)
+                    {
+                        <div class="az-muted mb-4">No emails added.</div>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true" Class="mb-4">
+                            <thead>
+                                <tr>
+                                    <th>Address</th>
+                                    <th>Role</th>
+                                    <th>Label</th>
+                                    <th>Primary</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var email in Company.Emails)
+                                {
+                                    <tr>
+                                        <td>@email.Address</td>
+                                        <td>@email.Role</td>
+                                        <td>@Dash(email.Label)</td>
+                                        <td>@PrimaryMark(email.IsPrimary)</td>
+                                        <td style="white-space:nowrap; text-align:right;">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Size="Size.Small"
+                                                           title="Edit"
+                                                           OnClick="() => OnEditEmailClicked.InvokeAsync((Company, email))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           title="Delete"
+                                                           OnClick="() => OnDeleteEmailClicked.InvokeAsync((Company, email))" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Phones</MudText>
+                    @if (Company.Phones.Count == 0)
+                    {
+                        <div class="az-muted">No phones added.</div>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                            <thead>
+                                <tr>
+                                    <th>Number</th>
+                                    <th>Type</th>
+                                    <th>Label</th>
+                                    <th>Primary</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var phone in Company.Phones)
+                                {
+                                    <tr>
+                                        <td>@phone.Number</td>
+                                        <td>@phone.Type</td>
+                                        <td>@Dash(phone.Label)</td>
+                                        <td>@PrimaryMark(phone.IsPrimary)</td>
+                                        <td style="white-space:nowrap; text-align:right;">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Size="Size.Small"
+                                                           title="Edit"
+                                                           OnClick="() => OnEditPhoneClicked.InvokeAsync((Company, phone))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           title="Delete"
+                                                           OnClick="() => OnDeletePhoneClicked.InvokeAsync((Company, phone))" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudTabPanel>
+
+                @* ── Bank accounts ── *@
+                <MudTabPanel Text="@($"Bank accounts ({Company.BankAccounts.Count})")">
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="() => OnAddBankAccountClicked.InvokeAsync(Company)">
+                            Add bank account
+                        </MudButton>
+                    </div>
+
+                    @if (Company.BankAccounts.Count == 0)
+                    {
+                        <div class="az-muted">No bank accounts added.</div>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                            <thead>
+                                <tr>
+                                    <th>IBAN</th>
+                                    <th>Bank</th>
+                                    <th>SWIFT</th>
+                                    <th>Primary</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var bank in Company.BankAccounts)
+                                {
+                                    <tr>
+                                        <td>@bank.IBAN</td>
+                                        <td>@Dash(bank.BankName)</td>
+                                        <td>@Dash(bank.SwiftCode)</td>
+                                        <td>@PrimaryMark(bank.IsPrimary)</td>
+                                        <td style="white-space:nowrap; text-align:right;">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Size="Size.Small"
+                                                           title="Edit"
+                                                           OnClick="() => OnEditBankAccountClicked.InvokeAsync((Company, bank))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           title="Delete"
+                                                           OnClick="() => OnDeleteBankAccountClicked.InvokeAsync((Company, bank))" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudTabPanel>
+
+                @* ── Vessels ── *@
+                <MudTabPanel Text="@($"Vessels ({Company.Vessels.Count})")">
+                    @if (Company.Vessels.Count == 0)
+                    {
+                        <div class="az-muted">No vessels assigned.</div>
+                    }
+                    else
+                    {
+                        foreach (var vessel in Company.Vessels)
+                        {
+                            <MudChip T="string"
+                                     Icon="@Icons.Material.Filled.DirectionsBoat"
+                                     Color="Color.Primary"
+                                     Size="Size.Small"
+                                     Class="mr-1 mb-1"
+                                     OnClick="() => OnVesselClick.InvokeAsync(vessel.Id)">
+                                @vessel.Name
+                            </MudChip>
+                        }
+                    }
+                </MudTabPanel>
+
+            </MudTabs>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CompanyResponse Company { get; set; } = default!;
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnSetOwnClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<int> OnVesselClick { get; set; }
+
+    [Parameter] public EventCallback<CompanyResponse> OnAddEmailClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, EmailsResponse)> OnEditEmailClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, EmailsResponse)> OnDeleteEmailClicked { get; set; }
+
+    [Parameter] public EventCallback<CompanyResponse> OnAddPhoneClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, PhonesResponse)> OnEditPhoneClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, PhonesResponse)> OnDeletePhoneClicked { get; set; }
+
+    [Parameter] public EventCallback<CompanyResponse> OnAddBankAccountClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, BankAccountResponse)> OnEditBankAccountClicked { get; set; }
+    [Parameter] public EventCallback<(CompanyResponse, BankAccountResponse)> OnDeleteBankAccountClicked { get; set; }
+
+    private static RenderFragment Field(string label, string? value) => @<div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
+        <MudText Typo="Typo.body2">@Dash(value)</MudText>
+    </div>;
+
+    private static string Dash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    private static RenderFragment PrimaryMark(bool isPrimary) => @<span>
+        @if (isPrimary)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Style="font-size:14px" />
+        }
+    </span>;
+}

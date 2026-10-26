@@ -1,0 +1,108 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Companies
+
+<MudDataGrid T="CompanyResponse"
+             Items="Items"
+             Dense="true"
+             Hover="true"
+             Elevation="0"
+             Outlined="true"
+             Square="true"
+             Breakpoint="Breakpoint.Sm"
+             RowClick="HandleRowClick"
+             RowStyleFunc="RowStyle">
+
+    <Columns>
+
+        <TemplateColumn Title="Company name" SortBy="x => x.Name">
+            <CellTemplate>
+                <span class="az-status">
+                    @context.Item.Name
+                    @if (context.Item.IsOwn)
+                    {
+                        <MudTooltip Text="Own company (runs this Marilog installation)">
+                            <MudIcon Icon="@Icons.Material.Filled.Verified"
+                                     Color="Color.Primary"
+                                     Style="font-size:14px" />
+                        </MudTooltip>
+                    }
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <PropertyColumn Property="x => x.RegistrationNumber" Title="Reg. no." />
+        <PropertyColumn Property="x => x.ContactName" Title="Contact" />
+
+        <TemplateColumn Title="Status" SortBy="x => x.IsActive">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                             Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                             Style="font-size:10px" />
+                    @(context.Item.IsActive ? "Active" : "Inactive")
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="" Sortable="false" CellClass="az-actions">
+            <CellTemplate>
+                <span @onclick:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   title="Edit"
+                                   OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                   Size="Size.Small"
+                                   title="Files"
+                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.Company))" />
+
+                    <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                                   Size="Size.Small"
+                                   Color="@(context.Item.IsActive ? Color.Warning : Color.Success)"
+                                   title="@(context.Item.IsActive ? "Deactivate" : "Activate")"
+                                   OnClick="() => ToggleActive(context.Item)" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   title="Delete"
+                                   OnClick="() => OnDeleteClicked.InvokeAsync(context.Item)" />
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+    </Columns>
+
+    <NoRecordsContent>
+        <div class="az-muted pa-4">No companies found.</div>
+    </NoRecordsContent>
+
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<CompanyResponse> Items { get; set; } = [];
+    [Parameter] public int? SelectedId { get; set; }
+
+    [Parameter] public EventCallback<CompanyResponse> OnRowSelected { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<CompanyResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    private Task HandleRowClick(DataGridRowClickEventArgs<CompanyResponse> args) =>
+        OnRowSelected.InvokeAsync(args.Item);
+
+    private string RowStyle(CompanyResponse item, int index) =>
+        item.Id == SelectedId
+            ? "cursor:pointer; background-color:var(--mud-palette-action-default-hover);"
+            : "cursor:pointer;";
+
+    private Task ToggleActive(CompanyResponse company) =>
+        company.IsActive
+            ? OnDeactivateClicked.InvokeAsync(company)
+            : OnActivateClicked.InvokeAsync(company);
+}

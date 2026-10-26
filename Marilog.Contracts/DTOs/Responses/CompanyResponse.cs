@@ -14,5 +14,6 @@
         public int? CountryId { get; set; }
         public List<VesselResponse> Vessels { get; set; } = new List<VesselResponse>();
         public string? WebSite { get; set; }
+        public bool IsOwn { get; set; }
     }
 }

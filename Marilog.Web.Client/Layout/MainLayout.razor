@@ -1,5 +1,6 @@
 ﻿
 @using Marilog.Contracts.Interfaces.FrontendServices
+@using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Layout
 @using Marilog.Shared.UI.Services
 @using Marilog.Web.Client.Auth
@@ -10,6 +11,7 @@
 @inject IAppThemeService ThemeService
 @inject AppStateService AppState
 @inject CookieAuthStateProvider AuthProvider
+@inject ICompanyService CompanyService
 @implements IDisposable
 @inherits LayoutComponentBase
 
@@ -21,7 +23,7 @@
                   AppTitle="Marilog"
                   UserDisplayName="@_userDisplayName"
                   OnLogout="LogoutAsync"
-                  AppSubtitle="WKA Ocean Shipping">
+                  AppSubtitle="@_CompanyName">
 
     @Body
 
@@ -29,12 +31,16 @@
 @code {
     private const string ThemeStorageKey = "marilog.themeId";
 
+    private string _CompanyName = "";
+
+
     protected override async Task OnInitializedAsync()
     {
         AppState.OnChange += HandleStateChanged;
 
         var savedThemeId = await GetSavedThemeIdAsync();
-
+        var getCompany = await CompanyService.GetOwnCompanyNameAsync();
+        _CompanyName = getCompany != null ? getCompany.Name : "";
         await AppState.InitializeAsync(
             loadNav: () => NavService.GetAsync(),
             loadThemes: () => ThemeService.GetActiveAsync(),

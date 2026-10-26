@@ -3,7 +3,9 @@
 @attribute [AllowAnonymous]
 @using Marilog.Contracts.DTOs.Requests.UserIdenty
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Web.Client.Auth
+@inject ICompanyService CompanyService
 @inject CookieAuthStateProvider AuthProvider
 @inject NavigationManager Nav
 
@@ -11,9 +13,9 @@
     <div class="az-login-card">
         <img src="_content/Marilog.Shared.UI/images/marilog-logo.svg" alt="Marilog" class="az-login-logo" />
 
-        @if (!string.IsNullOrWhiteSpace(Company?.Name))
+        @if (!string.IsNullOrWhiteSpace(_companyName))
         {
-            <div class="az-login-company">@Company!.Name</div>
+            <div class="az-login-company">@_companyName</div>
         }
 
         <MudText Typo="Typo.h5" Class="az-login-title">Sign in</MudText>
@@ -137,8 +139,7 @@
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    [Parameter]
-    public CompanyResponse? Company { get; set; }
+    private string? _companyName;
 
     private readonly LoginModel _model = new();
     private bool _busy;
@@ -149,7 +150,19 @@
     {
         var state = await AuthProvider.GetAuthenticationStateAsync();
         if (state.User.Identity?.IsAuthenticated == true)
+        {
             Nav.NavigateTo(SafeReturnUrl(), replace: true);
+            return;
+        }
+
+        try
+        {
+            _companyName = (await CompanyService.GetOwnCompanyNameAsync())?.Name;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            // The company name is cosmetic — never block sign-in over it.
+        }
     }
 
     private async Task SubmitAsync()
