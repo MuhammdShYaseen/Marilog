@@ -20,7 +20,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public string? BankName { get; private set; }
         public string? IBAN { get; private set; }
         public string? BankSwiftCode { get; private set; }
-        //public CrewSuitabilityRating Rating { get; private set; }
+        public CrewSuitabilityRating SuitabilityRating { get; private set; } = CrewSuitabilityRating.None;
         private readonly List<CrewContract> _contracts = new();
         public IReadOnlyCollection<CrewContract> Contracts => _contracts.AsReadOnly();
 
@@ -76,6 +76,15 @@ namespace Marilog.Domain.Entities.SystemEntities
             BankName = bankName;
             IBAN = iban;
             BankSwiftCode = swiftCode;
+            Touch();
+        }
+
+        public void UpsetSuitabilityRating(CrewSuitabilityRating crewSuitability)
+        {
+            if (!Enum.IsDefined(crewSuitability))
+                throw new InvalidOperationException($"Invalid suitability rating: {(int)crewSuitability}.");
+
+            SuitabilityRating = crewSuitability;
             Touch();
         }
         public bool IsPassportExpired() =>

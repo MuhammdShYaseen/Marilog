@@ -40,7 +40,8 @@
                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
                   OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
                   OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
-                  OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" />
+                  OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" 
+                  OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged" />
 
 @code {
     // ── State ─────────────────────────────────────────────────────────────────────
@@ -169,6 +170,20 @@
 
         Snackbar.Add("Person updated.", Severity.Success);
         await LoadAsync();
+    }
+
+    private async Task HandleSuitabilityRatingChanged((PersonResponse person, CrewSuitabilityRating rating) args)
+    {
+        try
+        {
+            await PersonService.UpdateSuitabilityRatingAsync(args.person.Id, new UpdateSuitabilityRatingRequest(args.rating));
+            Snackbar.Add($"{args.person.FullName}: {args.rating}", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private async Task ConfirmDelete(PersonResponse person)

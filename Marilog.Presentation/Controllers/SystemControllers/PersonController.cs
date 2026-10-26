@@ -132,6 +132,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
+        [HttpPut("{id:int}/suitability-rating")]
+        public async Task<IActionResult> UpdateSuitabilityRating(int id, UpdateSuitabilityRatingRequest request, CancellationToken ct)
+        {
+            await _service.UpdateSuitabilityRatingAsync(id, request, ct);
+            return NoContent();
+        }
+
         [HttpPatch("{id}/activate")]
         public async Task<IActionResult> Activate(int id, CancellationToken ct)
         {

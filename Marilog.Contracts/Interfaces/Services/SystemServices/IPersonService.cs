@@ -32,6 +32,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                  string? seamanBookNo = null, DateOnly? dateOfBirth = null,
                                  string? phone = null, string? email = null,
                                  CancellationToken ct = default);
+        Task UpdateSuitabilityRatingAsync(int personId, UpdateSuitabilityRatingRequest request, CancellationToken ct = default);
         Task         ActivateAsync(int id, CancellationToken ct = default);
         Task         DeactivateAsync(int id, CancellationToken ct = default);
         Task         DeleteAsync(int id, CancellationToken ct = default);

@@ -16,7 +16,31 @@
 
         <HierarchyColumn T="PersonResponse" />
 
-        <PropertyColumn Property="x => x.FullName" Title="Full name" />
+        <TemplateColumn Title="Full name" SortBy="x => x.FullName">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudMenu Icon="@Icons.Material.Filled.Circle"
+                             Color="@RatingColor(context.Item.SuitabilityRating)"
+                             Size="Size.Small"
+                             Dense="true"
+                             AnchorOrigin="Origin.BottomLeft"
+                             TransformOrigin="Origin.TopLeft">
+                        @foreach (var rating in Ratings)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.Circle"
+                                         IconColor="@RatingColor(rating)"
+                                         OnClick="() => ChangeRating(context.Item, rating)">
+                                @rating
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                    <MudTooltip Text="@(context.Item.SuitabilityRating == CrewSuitabilityRating.None ? "Not rated" : context.Item.SuitabilityRating.ToString())"
+                                Placement="Placement.Top">
+                        @context.Item.FullName
+                    </MudTooltip>
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
         <PropertyColumn Property="x => x.PassportNo" Title="Passport" />
         <PropertyColumn Property="x => x.SeamanBookNo" Title="Seaman book" />
 
@@ -114,7 +138,10 @@
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
 
+    [Parameter] public EventCallback<(PersonResponse person, CrewSuitabilityRating rating)> OnSuitabilityRatingChanged { get; set; }
+
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+    private static readonly CrewSuitabilityRating[] Ratings = Enum.GetValues<CrewSuitabilityRating>();
 
     private static Color PassportColor(int daysLeft) =>
         daysLeft < 30 ? Color.Error :
@@ -125,4 +152,18 @@
         person.IsActive
             ? OnDeactivateClicked.InvokeAsync(person)
             : OnActivateClicked.InvokeAsync(person);
+
+    private static Color RatingColor(CrewSuitabilityRating rating) => rating switch
+    {
+        CrewSuitabilityRating.Good => Color.Success,
+        CrewSuitabilityRating.Average => Color.Info,
+        CrewSuitabilityRating.Poor => Color.Warning,
+        CrewSuitabilityRating.Dangerous => Color.Error,
+        _ => Color.Default
+    };
+
+    private Task ChangeRating(PersonResponse person, CrewSuitabilityRating rating) =>
+        rating == person.SuitabilityRating
+            ? Task.CompletedTask
+            : OnSuitabilityRatingChanged.InvokeAsync((person, rating));
 }

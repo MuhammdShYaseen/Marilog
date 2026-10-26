@@ -5,6 +5,7 @@ using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using System.Net.Http.Json;
+using static System.Net.WebRequestMethods;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -124,6 +125,12 @@ namespace Marilog.Client.Services.SystemServices
             };
 
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task UpdateSuitabilityRatingAsync(int personId, UpdateSuitabilityRatingRequest request, CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync($"{Base}/{personId}/suitability-rating", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }
 

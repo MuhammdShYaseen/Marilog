@@ -65,6 +65,7 @@
                           OnRemoveCertificateClicked="OnRemoveCertificateClicked"
                           OnAddSeaServiceClicked="OnAddSeaServiceClicked"
                           OnEditSeaServiceClicked="OnEditSeaServiceClicked"
+                          OnSuitabilityRatingChanged="OnSuitabilityRatingChanged"
                           OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
         </MudTabPanel>
 
@@ -206,6 +207,8 @@
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
+
+    [Parameter] public EventCallback<(PersonResponse person, CrewSuitabilityRating rating)> OnSuitabilityRatingChanged { get; set; }
 
     // ── State ─────────────────────────────────────────────────────
     private string _search = string.Empty;

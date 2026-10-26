@@ -1,4 +1,6 @@
-﻿namespace Marilog.Contracts.DTOs.Responses
+﻿using Marilog.Kernel.Enums;
+
+namespace Marilog.Contracts.DTOs.Responses
 {
     public class PersonResponse
     {
@@ -19,5 +21,6 @@
         public bool IsActive { get; set; }
         public IReadOnlyList<CertificateResponse> Certificates { get; set; } = [];
         public IReadOnlyList<PersonSeaServiceResponse> SeaServices { get; set; } = [];
+        public CrewSuitabilityRating SuitabilityRating { get; set; }
     }
 }

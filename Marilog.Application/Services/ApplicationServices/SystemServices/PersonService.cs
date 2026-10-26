@@ -3,12 +3,11 @@ using Marilog.Contracts.DTOs.Requests.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Domain.Entities.Certificates;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Person;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
@@ -329,6 +328,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+        public async Task UpdateSuitabilityRatingAsync(int personId, UpdateSuitabilityRatingRequest request, CancellationToken ct = default)
+        {
+            var person = await _repo.Query()
+                .FirstOrDefaultAsync(p => p.Id == personId, ct)
+                ?? throw new KeyNotFoundException($"Person {personId} not found.");
+
+            person.UpsetSuitabilityRating(request.Rating);
+
+            _repo.Update(person);
+            await _repo.SaveChangesAsync(ct);
+        }
+
         public async Task ActivateAsync(int id, CancellationToken ct = default)
         {
             var person = await GetOrThrowAsync(id, ct);
@@ -565,6 +576,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 IBAN = p.IBAN,
                 BankSwiftCode = p.BankSwiftCode,
                 IsActive = p.IsActive,
+                SuitabilityRating = p.SuitabilityRating,
 
                 // ✅ يُحسب في الميموري — مش في SQL
                 Certificates = p.Certificates
