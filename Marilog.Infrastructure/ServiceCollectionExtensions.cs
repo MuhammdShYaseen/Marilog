@@ -13,6 +13,7 @@ using Marilog.Application.Services.ApplicationServices.VesselPositions;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
+using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
 using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Marilog.Contracts.Interfaces.Services.VesselPositions;
@@ -32,6 +33,7 @@ using Marilog.Infrastructure.Services.Audit;
 using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.MapTiles;
+using Marilog.Infrastructure.Services.Qpdf;
 using Marilog.Infrastructure.Services.UserIdenty;
 using Marilog.Infrastructure.Services.VesselPositions;
 using Marilog.Infrastructure.Services.Weather;
@@ -168,6 +170,10 @@ namespace Marilog.Infrastructure
             services.AddScoped<IRoleManagementService, RoleManagementService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddSingleton<IAuditSettingsStore, JsonAuditSettingsStore>();
+
+
+            //=====Qpdf==============================================================================
+            services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
 
             return services;
 

@@ -3,14 +3,13 @@ using Marilog.Contracts.DTOs.Reports.PaymentReports;
 
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
-
 using Marilog.Kernel.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using Document = QuestPDF.Fluent.Document;
 
-namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
+namespace Marilog.Infrastructure.Services.Qpdf
 {
     // ═══════════════════════════════════════════════════════════════════════
     //  PDF generation — Azure-portal inspired visual language.
@@ -965,7 +964,7 @@ namespace Marilog.Application.Services.ApplicationServices.FunctionaltyServices
         // ── Azure-inspired palette ─────────────────────────────────────────
         private static class Az
         {
-            public const string Font = "Segoe UI";
+            public static readonly string[] Font = PdfFonts.Families;
 
             public const string Primary = "#0F6CBD";
             public const string Success = "#107C10";

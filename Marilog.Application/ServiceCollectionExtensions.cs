@@ -4,7 +4,6 @@ using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Services.ApplicationServices.AuditLog;
-using Marilog.Application.Services.ApplicationServices.FunctionaltyServices;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices;
 using Marilog.Application.Services.ApplicationServices.SystemServices;
@@ -102,7 +101,7 @@ namespace Marilog.Application
             services.AddScoped<IStoredFileService, StoredFileService>();
 
             //---FunctionaltyServices--------------------------------------------
-            services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
+
 
 
             //---Vessel certificate-----------------------------------------------

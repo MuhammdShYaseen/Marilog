@@ -20,6 +20,7 @@
     <PackageReference Include="PDFtoImage" Version="5.4.0" />
     <PackageReference Include="SkiaSharp" Version="4.153.1" />
     <PackageReference Include="PdfPig" Version="0.1.16" />
+    <PackageReference Include="QuestPDF" Version="2026.6.0" />
   </ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />

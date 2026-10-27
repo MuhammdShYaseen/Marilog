@@ -29,4 +29,10 @@
     <ProjectReference Include="..\Marilog.Infrastructure\Marilog.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Resources\Fonts\**\*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
