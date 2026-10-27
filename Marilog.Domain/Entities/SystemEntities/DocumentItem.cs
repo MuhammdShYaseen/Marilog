@@ -16,7 +16,8 @@
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(productName);
             if (quantity <= 0) throw new ArgumentException("Quantity must be positive.");
-            if (unitPrice < 0) throw new ArgumentException("UnitPrice cannot be negative.");
+
+            // UnitPrice may be negative: deduction lines (commission, BOR, hire received).
 
             return new DocumentItem
             {
@@ -25,7 +26,7 @@
                 Quantity = quantity,
                 Unit = unit,
                 UnitPrice = unitPrice,
-                LineTotal = Math.Round(quantity * unitPrice, 2)
+                LineTotal = Math.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero)
             };
         }
 
@@ -34,13 +35,14 @@
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(productName);
             if (quantity <= 0) throw new ArgumentException("Quantity must be positive.");
-            if (unitPrice < 0) throw new ArgumentException("UnitPrice cannot be negative.");
+
+            // UnitPrice may be negative: deduction lines (commission, BOR, hire received).
 
             ProductName = productName;
             Quantity = quantity;
             Unit = unit;
             UnitPrice = unitPrice;
-            LineTotal = Math.Round(quantity * unitPrice, 2);
+            LineTotal = Math.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
         }
     }
 }
