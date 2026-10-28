@@ -61,13 +61,6 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<AdjustmentResponse> UpdateAdjustmentAsync(int adjustmentId, UpdateAdjustmentRequest request, CancellationToken ct = default);
         Task RemoveAdjustmentAsync(int adjustmentId, CancellationToken ct = default);
 
-        // ── Payments ──────────────────────────────────────────────────────────────
-        Task<PaymentResponse> AddPaymentAsync(int documentId,AddPaymentRequest create, CancellationToken ct = default);
-        Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update , CancellationToken ct = default);
-        Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct = default);
-        Task<PaymentsReport> GetPaymentsReportAsync(FilterPaymentOptionsRequest options, CancellationToken ct = default);
-
-        
         //---Reports------------------------------------------------------------------
         Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default);
 

@@ -1,5 +1,4 @@
-﻿
-using Marilog.Application.Interfaces.Ai;
+﻿using Marilog.Application.Interfaces.Ai;
 using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Services.ApplicationServices.AiServices;
@@ -15,7 +14,6 @@ using Marilog.Contracts.Interfaces.MapService;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
-using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +36,7 @@ namespace Marilog.Application
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IBankService, BankService>();
-
+            services.AddScoped<IPaymentService, PaymentService>();
             // ── Core ──────────────────────────────────────────────────────────────
             services.AddScoped<ICompanyService, CompanyService>();
             services.AddScoped<IPersonService, PersonService>();

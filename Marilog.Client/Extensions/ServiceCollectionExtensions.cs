@@ -36,6 +36,7 @@ namespace Marilog.Client.Extensions
             services.AddScoped<ICrewPayrollService, CrewPayrollService>();
             services.AddScoped<ICurrencyService, CurrencyService>();
             services.AddScoped<IDocumentService, DocumentService>();
+            services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IOperationsDashboardService, OperationsDashboardService>();

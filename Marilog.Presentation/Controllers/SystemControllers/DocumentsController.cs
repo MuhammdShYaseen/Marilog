@@ -311,43 +311,5 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             await _service.RemoveAdjustmentAsync(adjustmentId, ct);
             return NoContent();
         }
-
-        // ─────────────────────────────────────────────
-        // Payments
-        // ─────────────────────────────────────────────
-        [RequirePermission(EntityType.Payment, PermissionAction.Create)]
-        [HttpPost("{id:int}/payments")]
-        public async Task<ActionResult<PaymentResponse>> AddPayment(int id, [FromBody] AddPaymentRequest request, CancellationToken ct)
-        {
-            var payment = await _service.AddPaymentAsync(id, request, ct);
-            return Ok(payment);
-        }
-        [RequirePermission(EntityType.Payment, PermissionAction.Update)]
-        [HttpPut("{id:int}/payments/{paymentId:int}")]
-        public async Task<ActionResult<PaymentResponse>> UpdatePayment(int id, int paymentId, [FromBody] UpdatePaymentRequest request, CancellationToken ct)
-        {
-            var payment = await _service.UpdatePaymentAsync(
-                id,
-                paymentId,
-                request,
-                ct);
-
-            return Ok(payment);
-        }
-
-        [RequirePermission(EntityType.Payment, PermissionAction.Delete)]
-        [HttpDelete("{id:int}/payment/{paymentId:int}")]
-        public async Task<IActionResult> RemovePayment(int id, int paymentId, CancellationToken ct)
-        {
-            await _service.RemovePaymentAsync(id, paymentId, ct);
-            return NoContent();
-        }
-
-        // ─────────────────────────────────────────────
-        // Email
-        // ─────────────────────────────────────────────
-
-       
-        
     }
 }

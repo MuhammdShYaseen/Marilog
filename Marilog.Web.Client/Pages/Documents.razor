@@ -15,6 +15,7 @@
 @using MudBlazor
 @inject HttpClient Http
 @inject IDocumentService DocumentService
+@inject IPaymentService PaymentService
 @inject IVoyageService VoyageService
 @inject IVesselService VesselService
 @inject ICompanyService CompanyService
@@ -301,7 +302,7 @@
         if (result is null || result.Canceled || result.Data is null) return;
 
         var (swiftId, amount, date, method, discreption) = ((int?, decimal, DateOnly, PaymentMethod, string?))result.Data;
-        await DocumentService.AddPaymentAsync(doc.Id,
+        await PaymentService.AddPaymentAsync(doc.Id,
             new AddPaymentRequest 
             {
                 SwiftTransferId = swiftId,
@@ -328,7 +329,7 @@
         if (result is null || result.Canceled || result.Data is null) return;
 
         var (swiftId, amount, date, method, discreption) = ((int?, decimal, DateOnly, PaymentMethod, string?))result.Data;
-        await DocumentService.UpdatePaymentAsync(doc.Id, payment.Id,
+        await PaymentService.UpdatePaymentAsync(doc.Id, payment.Id,
             new UpdatePaymentRequest
             {
                 SwiftTransferId = swiftId,
@@ -373,7 +374,7 @@
            yesText: "Remove", cancelText: "Cancel");
 
         if (confirmed != true) return;
-        await DocumentService.RemovePaymentAsync(args.documentId, args.paymentId);
+        await PaymentService.RemovePaymentAsync(args.documentId, args.paymentId);
         Snackbar.Add("Payment removed.", Severity.Success);
         await LoadDetail(args.documentId);
     }
@@ -399,7 +400,7 @@
     }
     private async Task HandlePaymentReportRequestedAsync(Marilog.Contracts.DTOs.Reports.PaymentReports.FilterPaymentOptionsRequest filter)
     {
-        var report = await DocumentService.GetPaymentsReportAsync(filter);
+        var report = await PaymentService.GetPaymentsReportAsync(filter);
         _documentsPage?.SetPaymentReport(report);
     }
 

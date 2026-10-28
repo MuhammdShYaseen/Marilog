@@ -22,19 +22,21 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         private readonly ICrewPayrollService _payrollService;
         private readonly ICrewContractService _contractService;
         private readonly IDocumentService _documentService;
-
+        private readonly IPaymentService _paymentService;
         public ReportsController(
             ISwiftTransferService swiftService,
             IVoyageService voyageService,
             ICrewPayrollService payrollService,
             ICrewContractService contractService,
-            IDocumentService documentService)
+            IDocumentService documentService,
+            IPaymentService paymentService)
         {
             _swiftService = swiftService;
             _voyageService = voyageService;
             _payrollService = payrollService;
             _contractService = contractService;
             _documentService = documentService;
+            _paymentService = paymentService;
         }
 
         [RequirePermission(EntityType.SwiftTransfer, PermissionAction.Read)]
@@ -91,7 +93,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<IActionResult> GetPaymentsReport([FromQuery] FilterPaymentOptionsRequest filterOptions,
                     CancellationToken ct)
         {
-            var report = await _documentService.GetPaymentsReportAsync(filterOptions, ct);
+            var report = await _paymentService.GetPaymentsReportAsync(filterOptions, ct);
             return Ok(ApiResponse<PaymentsReport>.Ok(report));
         }
     }

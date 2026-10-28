@@ -1,14 +1,11 @@
-﻿using Marilog.Client.Extensions;
+﻿
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
-using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Kernel.Enums;
 using System.Net.Http.Json;
-using System.Reflection.Metadata;
 
 namespace Marilog.Client.Services.SystemServices
 {
@@ -265,52 +262,12 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.DeleteAsync($"{Base}/adjustment/{adjustmentId}", ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }
-        // ── Payments ──────────────────────────────────────────────────────────────
 
-        public async Task<PaymentResponse> AddPaymentAsync(int documentId, AddPaymentRequest create, CancellationToken ct = default)
-        {
-            //var request = new AddPaymentRequest { SwiftTransferId = swiftTransferId, PaidAmount = paidAmount, PaymentDate = paymentDate };
-            var http = await _http.PostAsJsonAsync($"{Base}/{documentId}/payments", create, ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-            var response = await http.Content.ReadFromJsonAsync<PaymentResponse>(ct);
-            return response!;
-        }
-
-        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update, CancellationToken ct = default)
-        {
-
-            var http = await _http.PutAsJsonAsync( $"{Base}/{documentId}/payments/{paymentId}", update, ct);
-
-            await http.EnsureSuccessWithMessageAsync(ct);
-
-            var response = await http.Content.ReadFromJsonAsync<PaymentResponse>(ct);
-
-            return response!;
-        }
-
-        public async Task RemovePaymentAsync(int documentId, int paymentId, CancellationToken ct = default)
-        {
-            var http = await _http.DeleteAsync($"{Base}/{documentId}/payment/{paymentId}", ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-        }
-
-        // ── Emails ────────────────────────────────────────────────────────────────
-
-       
-
-
-        //--------Reports--------------------------------------------------------------------------------
+        //--------Report--------------------------------------------------------------------------------
         public async Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default)
         {
             var query = BuildDocumentQueryString(options);
             return await _http.GetApiAsync<DocumentReport>($"api/reports/documents{query}", ct) ?? new DocumentReport();
-        }
-
-        public async Task<PaymentsReport> GetPaymentsReportAsync(FilterPaymentOptionsRequest options, CancellationToken ct = default)
-        {
-            var query = BuildPaymentQueryString(options);
-            var response = await _http.GetApiAsync<PaymentsReport>($"api/reports/payments{query}", ct) ?? new PaymentsReport();
-            return response;
         }
 
         private static string BuildDocumentQueryString(DocumentFilterOptions options)
@@ -352,53 +309,6 @@ namespace Marilog.Client.Services.SystemServices
 
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
-
-        private static string BuildPaymentQueryString(FilterPaymentOptionsRequest options)
-        {
-            var parts = new List<string>();
-
-            if (options.SupplierId.HasValue)
-                parts.Add($"supplierId={options.SupplierId.Value}");
-
-            if (options.BuyerId.HasValue)
-                parts.Add($"buyerId={options.BuyerId.Value}");
-
-            if (options.VesselId.HasValue)
-                parts.Add($"vesselId={options.VesselId.Value}");
-
-            if (options.DocTypeId.HasValue)
-                parts.Add($"docTypeId={options.DocTypeId.Value}");
-
-            if (options.LastDays.HasValue)
-                parts.Add($"lastDays={options.LastDays.Value}");
-
-            if (options.FromDate.HasValue)
-                parts.Add($"fromDate={options.FromDate.Value:yyyy-MM-dd}");
-
-            if (options.ToDate.HasValue)
-                parts.Add($"toDate={options.ToDate.Value:yyyy-MM-dd}");
-
-            if (options.Side.HasValue)
-                parts.Add($"side={options.Side.Value}");
-
-            if (options.PaymentMethod.HasValue)
-                parts.Add($"paymentMethod={options.PaymentMethod.Value}");
-
-            if (options.SwiftOnly.HasValue)
-                parts.Add($"swiftOnly={options.SwiftOnly.Value}");
-
-            if (options.MinAmount.HasValue)
-                parts.Add($"minAmount={options.MinAmount.Value}");
-
-            if (options.MaxAmount.HasValue)
-                parts.Add($"maxAmount={options.MaxAmount.Value}");
-
-            if (options.VoyageId.HasValue)
-                parts.Add($"voyageId={options.VoyageId.Value}");
-
-            return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
-        }
-
        
     }
 }
