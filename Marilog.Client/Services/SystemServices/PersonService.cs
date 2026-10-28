@@ -5,7 +5,6 @@ using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using System.Net.Http.Json;
-using static System.Net.WebRequestMethods;
 
 namespace Marilog.Client.Services.SystemServices
 {

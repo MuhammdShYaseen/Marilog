@@ -1,5 +1,6 @@
 ﻿using Marilog.Contracts.DTOs.LogDTOs;
 using Marilog.Contracts.Interfaces.LogService;
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Web;
 
@@ -47,10 +48,9 @@ namespace Marilog.Client.Services.Logging
             if (q.HttpStatus.HasValue)
                 parts.Add($"httpStatus={q.HttpStatus.Value}");
             if (q.From.HasValue)
-                parts.Add($"from={q.From.Value:yyyy-MM-ddTHH:mm:ss}");
+                parts.Add($"from={q.From.Value.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}");
             if (q.To.HasValue)
-                parts.Add($"to={q.To.Value:yyyy-MM-ddTHH:mm:ss}");
-
+                parts.Add($"to={q.To.Value.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}");
             parts.Add($"page={q.Page}");
             parts.Add($"pageSize={q.PageSize}");
             parts.Add($"sortBy={q.SortBy}");

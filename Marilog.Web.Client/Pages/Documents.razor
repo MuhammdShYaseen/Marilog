@@ -4,7 +4,6 @@
 @using Kernel.Enums
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
-@using Marilog.Contracts.DTOs.Reports.PaymentReports
 @using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
 @using Marilog.Contracts.DTOs.Responses
@@ -76,9 +75,7 @@
                          OnTypeSelected="LoadByType"
                          DocTypes="_docTypes"
                          OnDocumentReportRequested="HandleDocumentReportRequestedAsync"
-                         OnPaymentReportRequested="HandlePaymentReportRequestedAsync"
                          OnExportPdfRequested="HandleExportPdfAsync"
-                         OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
                          OnSearch="HandelSearchAsync"
                          OnLoadLastAdded="HandelGetLastAddAsync"
                          UnpaidPage="_unpaidPage"
@@ -398,23 +395,12 @@
         var report = await DocumentService.GetFilteredDocsReportAsync(filter);
         _documentsPage?.SetDocumentReport(report);
     }
-    private async Task HandlePaymentReportRequestedAsync(Marilog.Contracts.DTOs.Reports.PaymentReports.FilterPaymentOptionsRequest filter)
-    {
-        var report = await PaymentService.GetPaymentsReportAsync(filter);
-        _documentsPage?.SetPaymentReport(report);
-    }
+    
 
 
     private async Task HandleExportPdfAsync((DocumentReport report, string title, string fileName) args)
     {
         var bytes = await PdfService.GenerateDocumentReportPdf(args.report, args.title);
-        var base64 = Convert.ToBase64String(bytes);  // ← حوّل إلى Base64
-        await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", base64);
-    }
-
-    private async Task HandleExportPaymentPdfAsync((PaymentsReport report, string title, string fileName) args)
-    {
-        var bytes = await PdfService.GeneratePaymentReportPdf(args.report, args.title);
         var base64 = Convert.ToBase64String(bytes);  // ← حوّل إلى Base64
         await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", base64);
     }

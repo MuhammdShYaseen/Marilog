@@ -80,9 +80,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
-        public async Task<PaymentResponse> UpdatePaymentAsync(
-            int documentId, int paymentId, UpdatePaymentRequest update,
-            CancellationToken ct = default)
+        public async Task<PaymentResponse> UpdatePaymentAsync(int documentId, int paymentId, UpdatePaymentRequest update, CancellationToken ct = default)
         {
             var document = await _repo.Query()
                 .Include(x => x.Payments)
@@ -97,13 +95,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 var swift = await _swiftRepo.Query()
                     .Include(p => p.Payments)
-                    .Where(x => x.Id == update.SwiftTransferId && x.IsActive)
+                    .Where(x => x.Id == update.SwiftTransferId &&
+                            x.IsActive &&
+                            (x.SenderCompanyId == document.BuyerId || x.ReceiverCompanyId == document.SupplierId))
                     .Select(x => new { x.CurrencyId, x.UnallocatedAmount, x.Status })
                     .FirstOrDefaultAsync(ct);
 
                 if (swift is null)
-                    throw new KeyNotFoundException(
-                        $"SwiftTransfer {update.SwiftTransferId} not found or inactive.");
+                        throw new KeyNotFoundException("SwiftTransfer not found or not allowed for this document.");
 
                 if (swift.Status != SwiftTransferStatus.Received)
                     throw new InvalidOperationException(

@@ -1,0 +1,75 @@
+﻿@attribute [RequirePage(EntityType.Document)]
+@page "/payments"
+<PageTitle>Payments</PageTitle>
+@using Kernel.Enums
+@using Marilog.Contracts.DTOs.Reports.PaymentReports
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.Payments
+@using MudBlazor
+@inject IPaymentService PaymentService
+@inject IVoyageService VoyageService
+@inject IVesselService VesselService
+@inject ICompanyService CompanyService
+@inject IPdfFileGeneratorService PdfService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<SharedPaymentPage Vessels="_vessels"
+                   Voyages="_voyages"
+                   Companies="_companies"
+                   OnPaymentReportRequested="HandlePaymentReportRequestedAsync"
+                   OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
+                   @ref="_paymentPage" />
+
+@code {
+    private IReadOnlyList<VesselLookupResponse> _vessels = [];
+    private IReadOnlyList<VoyageLookupResponse> _voyages = [];
+    private IReadOnlyList<CompanyResponse> _companies = [];
+    private SharedPaymentPage? _paymentPage;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            var t1 = VesselService.GetAllAsLookUpAsync();
+            var t2 = CompanyService.GetActiveAsync();
+            var t3 = VoyageService.GetAllLookupAsync();
+
+            await Task.WhenAll(t1, t2, t3);
+
+            _vessels = t1.Result;
+            _companies = t2.Result;
+            _voyages = t3.Result;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandlePaymentReportRequestedAsync(FilterPaymentOptionsRequest filter)
+    {
+        var report = await PaymentService.GetPaymentsReportAsync(filter);
+        _paymentPage?.SetPaymentReport(report);
+    }
+
+    private async Task HandleExportPaymentPdfAsync((PaymentsReport report, string title, string fileName) args)
+    {
+        var bytes = await PdfService.GeneratePaymentReportPdf(args.report, args.title);
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", base64);
+    }
+}

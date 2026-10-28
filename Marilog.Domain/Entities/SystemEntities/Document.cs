@@ -284,11 +284,14 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (paidAmount <= 0)
                 throw new ArgumentException("PaidAmount must be positive.");
 
+            if (Side == FinancialSide.None)
+                throw new InvalidOperationException("Cann't pay for Document with Financial Side is NONE");
+
             var otherPaymentsTotal = _payments
                 .Where(x => x.Id != paymentId)
                 .Sum(x => x.PaidAmount);
 
-            if (otherPaymentsTotal + paidAmount > TotalAmount)
+            if (otherPaymentsTotal + paidAmount > NetAmount)
                 throw new InvalidOperationException(
                     "PaidAmount exceeds remaining balance.");
 

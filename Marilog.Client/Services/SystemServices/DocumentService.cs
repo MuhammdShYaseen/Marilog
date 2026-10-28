@@ -5,6 +5,7 @@ using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using System.Globalization;
 using System.Net.Http.Json;
 
 namespace Marilog.Client.Services.SystemServices
@@ -299,10 +300,10 @@ namespace Marilog.Client.Services.SystemServices
                 parts.Add($"month={options.Month.Value}");
 
             if (options.FromDate.HasValue)
-                parts.Add($"fromDate={options.FromDate.Value:yyyy-MM-dd}");
+                parts.Add($"fromDate={options.FromDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
 
             if (options.ToDate.HasValue)
-                parts.Add($"toDate={options.ToDate.Value:yyyy-MM-dd}");
+                parts.Add($"toDate={options.ToDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
 
             if (options.Side.HasValue)
                 parts.Add($"side={options.Side.Value}");
