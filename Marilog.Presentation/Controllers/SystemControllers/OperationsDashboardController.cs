@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Kernel.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -50,5 +51,9 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var data = await _service.GetVoyageSummaryAsync(from, to, vesselId, ct);
             return Ok(ApiResponse<IReadOnlyList<VoyageChartPointResponse>>.Ok(data));
         }
+        [Authorize]
+        [HttpGet("currency-ticker")]
+        public async Task<IActionResult> GetCurrencyTicker(CancellationToken ct)
+            => Ok(await _service.GetCurrencyTickerAsync(ct));
     }
 }

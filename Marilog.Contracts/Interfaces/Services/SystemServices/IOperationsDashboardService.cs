@@ -11,5 +11,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         // ── Dashboard Charts ─────────────────────────────────────────────────────
         Task<IReadOnlyList<FinancialChartPointResponse>> GetFinancialSummaryAsync(DocumentFilterOptions options, CancellationToken ct = default);
         Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, int? vesselId = null, CancellationToken ct = default);
+
+        Task<IReadOnlyList<CurrencyTickerItemResponse>> GetCurrencyTickerAsync(CancellationToken ct = default);
     }
 }

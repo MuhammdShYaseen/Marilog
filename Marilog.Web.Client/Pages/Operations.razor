@@ -41,13 +41,14 @@ else
                                    OnFleetVesselSelected="OnFleetVesselSelected"
                                    OnFleetSelectionCleared="OnFleetSelectionCleared"
                                    OnFleetRefresh="LoadFleetAsync"
-                                   />
+                                   TickerItems="_ticker" />
 }
 
 @code {
     private OperationsDashboardResponse? _data;
     private bool _loading = true;
 
+    private IReadOnlyList<CurrencyTickerItemResponse> _ticker = [];
 
     private IReadOnlyList<FleetVessel> _fleet = [];
     private IReadOnlyList<string> _unlocated = [];
@@ -90,12 +91,27 @@ else
         }
 
         StateHasChanged();
-        await LoadFleetAsync();
+        await Task.WhenAll(LoadTickerAsync(), LoadFleetAsync());
     }
 
     private void OnVoyageClicked(int id) => Nav.NavigateTo($"/voyages/{id}");
     private void OnDocumentClicked(int id) => Nav.NavigateTo($"/documents/{id}");
     private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
+
+
+    private async Task LoadTickerAsync()
+    {
+        try
+        {
+            _ticker = await DashboardService.GetCurrencyTickerAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Currency ticker load failed: {ex.Message}");
+        }
+
+        StateHasChanged();
+    }
 
     private async Task OnFilterChanged(DocumentFilterOptions filter)
     {

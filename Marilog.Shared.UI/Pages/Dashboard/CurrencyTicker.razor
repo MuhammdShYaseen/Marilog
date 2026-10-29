@@ -1,0 +1,161 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Dashboard
+
+@if (Items.Count > 0)
+{
+    <div class="fx-ticker mb-4">
+        <div class="fx-ticker-label">
+            <MudIcon Icon="@Icons.Material.Filled.CurrencyExchange" Size="Size.Small" />
+            <span>FX · 24h</span>
+        </div>
+
+        <div class="fx-ticker-viewport">
+            @* The list is rendered 4 times and the track scrolls by half,
+               so the loop is seamless even with only a few currencies. *@
+            <div class="fx-ticker-track" style="animation-duration: @(Items.Count * 8)s">
+                @for (var copy = 0; copy < 4; copy++)
+                {
+                    foreach (var item in Items)
+                    {
+                        <span class="fx-item" title="@Tooltip(item)">
+                            <span class="fx-code">@item.Code</span>
+                            <span class="fx-rate">@FormatValue(item.RateInBase, item)</span>
+
+                            @switch (item.Trend)
+                            {
+                                case RateTrend.Up:
+                                    <span class="fx-change fx-up">▲ @FormatChange(item.ChangePercent)</span>
+                                    break;
+                                case RateTrend.Down:
+                                    <span class="fx-change fx-down">▼ @FormatChange(item.ChangePercent)</span>
+                                    break;
+                                case RateTrend.Flat:
+                                    <span class="fx-change fx-flat">● 0.00%</span>
+                                    break;
+                            }
+                        </span>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<CurrencyTickerItemResponse> Items { get; set; } = [];
+
+    // Weak currencies (e.g. SYP) read better inverted: "13,002.21 per USD"
+    private static string FormatValue(decimal rateInBase, CurrencyTickerItemResponse item)
+    {
+        if (rateInBase <= 0)
+            return "—";
+
+        return rateInBase >= 0.01m
+            ? $"{rateInBase:N4} {item.BaseCurrencyCode}"
+            : $"{1m / rateInBase:N2} per {item.BaseCurrencyCode}";
+    }
+
+    private static string FormatChange(decimal? percent)
+        => $"{Math.Abs(percent ?? 0):N2}%";
+
+    private static string Tooltip(CurrencyTickerItemResponse item)
+        => item.PreviousRateInBase is { } prev
+            ? $"Yesterday: {FormatValue(prev, item)}"
+            : "No rate for yesterday";
+}
+
+<style>
+    .fx-ticker {
+        display: flex;
+        align-items: stretch;
+        background-color: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .fx-ticker-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px;
+        background-color: var(--mud-palette-background-grey);
+        border-right: 1px solid var(--mud-palette-lines-default);
+        font-size: .6875rem;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+    }
+
+    .fx-ticker-viewport {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .fx-ticker-track {
+        display: inline-flex;
+        width: max-content;
+        animation-name: fx-scroll;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    .fx-ticker-viewport:hover .fx-ticker-track {
+        animation-play-state: paused;
+    }
+
+    /* Padding instead of flex gap, so both halves of the track are exactly equal */
+    .fx-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 20px;
+        border-right: 1px solid var(--mud-palette-lines-default);
+        font-size: .8125rem;
+        white-space: nowrap;
+    }
+
+    .fx-code {
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .fx-rate {
+        font-variant-numeric: tabular-nums;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .fx-change {
+        font-size: .75rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .fx-up {
+        color: var(--mud-palette-success);
+    }
+
+    .fx-down {
+        color: var(--mud-palette-error);
+    }
+
+    .fx-flat {
+        color: var(--mud-palette-text-disabled);
+    }
+
+    @@keyframes fx-scroll {
+        from {
+            transform: translateX(0);
+        }
+
+        to {
+            transform: translateX(-50%);
+        }
+    }
+
+   
+</style>

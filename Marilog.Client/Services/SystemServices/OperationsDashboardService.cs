@@ -32,7 +32,12 @@ namespace Marilog.Client.Services.SystemServices
                 $"api/operations/dashboard/voyage-summary{query}", ct);
             return response!.Data!;
         }
-
+        public async Task<IReadOnlyList<CurrencyTickerItemResponse>> GetCurrencyTickerAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<List<CurrencyTickerItemResponse>>(
+                "api/operations/dashboard/currency-ticker", ct);
+            return response ?? [];
+        }
         private static string BuildQuery(DocumentFilterOptions o)
         {
             var parts = new List<string>();
@@ -47,5 +52,7 @@ namespace Marilog.Client.Services.SystemServices
             if (o.VoyageId.HasValue) parts.Add($"VoyageId={o.VoyageId}");
             return parts.Count == 0 ? string.Empty : "?" + string.Join("&", parts);
         }
+
+        
     }
 }

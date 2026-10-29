@@ -1,6 +1,16 @@
 ﻿namespace Marilog.Kernel.Enums
 {
 
+
+    //====Currences=====================================
+    public enum RateTrend
+    {
+         Unknown = 0,
+         Up = 1,
+         Down = 2,
+         Flat = 3
+    }
+
     //===Swift===========================================
 
     public enum SwiftFeeStage

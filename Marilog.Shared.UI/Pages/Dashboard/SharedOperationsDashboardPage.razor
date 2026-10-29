@@ -11,7 +11,8 @@
         <MudText Typo="Typo.body2" Class="az-page-sub">Fleet, voyages, crew and financial overview</MudText>
     </div>
 </div>
-
+@* ── Currency ticker ───────────────────────────────────────── *@
+<CurrencyTicker Items="TickerItems" />
 @* ── Alerts ────────────────────────────────────────────────── *@
 @if (Data?.Alerts.Any() == true)
 {
@@ -508,6 +509,8 @@
     [Parameter] public EventCallback<int> OnFleetVesselSelected { get; set; }
     [Parameter] public EventCallback OnFleetSelectionCleared { get; set; }
     [Parameter] public EventCallback OnFleetRefresh { get; set; }
+
+    [Parameter] public IReadOnlyList<CurrencyTickerItemResponse> TickerItems { get; set; } = [];
 
     private static string FormatSigned(decimal value)
         => value > 0 ? $"+{value:N2}" : value.ToString("N2");
