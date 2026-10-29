@@ -106,5 +106,26 @@ namespace Marilog.Client.Services.SystemServices
         {
             throw new NotImplementedException("Application Service No Endpoint for it");
         }
+
+        public async Task<RefreshRatesResponse> RefreshRatesAsync(CancellationToken ct = default)
+        {
+            var response = await _http.PostAsync($"{Base}/refresh-rates", null, ct);
+            await response.EnsureSuccessWithMessageAsync(ct);
+
+            return await response.Content.ReadFromJsonAsync<RefreshRatesResponse>(cancellationToken: ct)
+                   ?? new RefreshRatesResponse();
+        }
+
+        public async Task<IReadOnlyDictionary<string, decimal>> GetLatestRatesAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<Dictionary<string, decimal>>($"{Base}/latest", ct);
+            return response ?? new Dictionary<string, decimal>();
+        }
+
+        public async Task<IReadOnlyDictionary<string, decimal>> GetHistoricalRatesAsync(DateOnly date, CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<Dictionary<string, decimal>>($"{Base}/historical/{date:yyyy-MM-dd}", ct);
+            return response ?? new Dictionary<string, decimal>();
+        }
     }
 }

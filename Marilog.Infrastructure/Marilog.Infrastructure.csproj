@@ -33,6 +33,9 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Models\ExchangeOnline\" />
+  </ItemGroup>
  
 
 </Project>

@@ -4,6 +4,7 @@ using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Application.Interfaces.MapTiles;
+using Marilog.Application.Interfaces.OnlineCurrencyRate;
 using Marilog.Application.Interfaces.UserIdentity;
 using Marilog.Application.Interfaces.VesselPosition;
 using Marilog.Application.Interfaces.Weather;
@@ -33,6 +34,7 @@ using Marilog.Infrastructure.Services.Audit;
 using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.MapTiles;
+using Marilog.Infrastructure.Services.OnlineCurrencyProvider;
 using Marilog.Infrastructure.Services.Qpdf;
 using Marilog.Infrastructure.Services.UserIdenty;
 using Marilog.Infrastructure.Services.VesselPositions;
@@ -40,6 +42,8 @@ using Marilog.Infrastructure.Services.Weather;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
 
 
 namespace Marilog.Infrastructure
@@ -174,6 +178,22 @@ namespace Marilog.Infrastructure
 
             //=====Qpdf==============================================================================
             services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
+
+
+            //====ExchangeOnlineService==============================================================
+            services.Configure<ExchangeRatesOptions>(configuration.GetSection(ExchangeRatesOptions.SectionName));
+            services.AddHttpClient<IExchangeRateProvider, OpenExchangeRatesProvider>((sp, http) =>
+            {
+                var options = sp.GetRequiredService<IOptions<ExchangeRatesOptions>>().Value;
+
+                if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+                    http.BaseAddress = new Uri(options.BaseUrl);
+
+                if (!string.IsNullOrWhiteSpace(options.AppId))
+                    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", options.AppId);
+
+                http.Timeout = TimeSpan.FromSeconds(30);
+            });
 
             return services;
 

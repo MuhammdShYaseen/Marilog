@@ -1,4 +1,5 @@
-﻿using Marilog.Application.Interfaces.Ai;
+﻿using Marilog.Application.Helpers;
+using Marilog.Application.Interfaces.Ai;
 using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Services.ApplicationServices.AiServices;
@@ -121,6 +122,9 @@ namespace Marilog.Application
             //-----Identy----------------------------------------
             services.AddScoped<IStoredFileOwnerReader, StoredFileOwnerReader>();
 
+
+            //----Exchange Rate Refresh Gate---------------------------
+            services.AddSingleton<ExchangeRateRefreshGate>();
             return services;
         }
     }

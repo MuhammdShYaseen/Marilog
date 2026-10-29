@@ -2,6 +2,8 @@
 using Marilog.Contracts.DTOs.Requests.CurrencyDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -11,7 +13,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     public class CurrenciesController : ControllerBase
     {
         private readonly ICurrencyService _service;
-
+        private static readonly DateOnly MinHistoricalDate = new(1999, 1, 1);
         public CurrenciesController(ICurrencyService service)
         {
             _service = service;
@@ -150,6 +152,36 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             await _service.DeleteAsync(id, ct);
             return NoContent();
+        }
+
+
+        [RequirePermission(EntityType.Currency, PermissionAction.Update)]
+        [HttpPost("refresh-rates")]
+        public async Task<ActionResult<RefreshRatesResponse>> RefreshRates(CancellationToken ct)
+        {
+            var result = await _service.RefreshRatesAsync(ct);
+            return Ok(result);
+        }
+
+
+
+        // GET api/exchange-rates/latest
+        [RequirePermission(EntityType.Currency, PermissionAction.Read)]
+        [HttpGet("latest")]
+        public async Task<ActionResult<IReadOnlyDictionary<string, decimal>>> GetLatest(CancellationToken ct)
+            => Ok(await _service.GetLatestRatesAsync(ct));
+
+        // GET api/exchange-rates/historical/2024-03-15
+        [HttpGet("historical/{date}")]
+        [RequirePermission(EntityType.Currency, PermissionAction.Read)]
+        public async Task<ActionResult<IReadOnlyDictionary<string, decimal>>> GetHistorical(
+            DateOnly date, CancellationToken ct)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (date < MinHistoricalDate || date > today)
+                return BadRequest($"Date must be between {MinHistoricalDate:yyyy-MM-dd} and today.");
+
+            return Ok(await _service.GetHistoricalRatesAsync(date, ct));
         }
     }
 }

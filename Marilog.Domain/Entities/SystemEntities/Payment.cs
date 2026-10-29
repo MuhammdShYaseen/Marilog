@@ -10,7 +10,6 @@ namespace Marilog.Domain.Entities.SystemEntities
         public Document Document { get; private set; } = null!;
         public int? SwiftTransferId { get; private set; }
         public SwiftTransfer SwiftTransfer { get; private set; } = null!;
-        public decimal ExchangeRateToBase { get; private set; }
         public string? Discreption { get; private set; }
 
         #if false

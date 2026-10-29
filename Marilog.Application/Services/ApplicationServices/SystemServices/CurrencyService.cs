@@ -1,3 +1,5 @@
+using Marilog.Application.Helpers;
+using Marilog.Application.Interfaces.OnlineCurrencyRate;
 using Marilog.Contracts.DTOs.Requests.CurrencyDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -11,8 +13,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class CurrencyService : ICurrencyService
     {
         private readonly IRepository<Currency> _repo;
+        private readonly IExchangeRateProvider _rateProvider;
+        private readonly ExchangeRateRefreshGate _refreshGate;
 
-        public CurrencyService(IRepository<Currency> repo) => _repo = repo;
+        public CurrencyService(IRepository<Currency> repo, IExchangeRateProvider rateProvider,
+            ExchangeRateRefreshGate refreshGate)
+        {
+            _repo = repo;
+            _rateProvider = rateProvider;
+            _refreshGate = refreshGate;
+        }
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
@@ -214,6 +224,48 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             await _repo.SaveChangesAsync(ct);
         }
+        public Task<RefreshRatesResponse> RefreshRatesAsync(CancellationToken ct = default)
+        => _refreshGate.RunAsync(() => RefreshRatesCoreAsync(ct), ct);
+        private async Task<RefreshRatesResponse> RefreshRatesCoreAsync(CancellationToken ct)
+        {
+            var currencies = await _repo.Query()
+                .Where(x => x.IsActive && x.CurrencyCode != Currency.PivotCurrencyCode)
+                .ToListAsync(ct);
+
+            var result = new RefreshRatesResponse();
+            if (currencies.Count == 0)
+                return result;
+
+            var rates = await _rateProvider.GetLatestAsync(currencies.Select(c => c.CurrencyCode), ct);
+
+            foreach (var currency in currencies)
+            {
+                if (!rates.TryGetValue(currency.CurrencyCode, out var rate))
+                {
+                    result.NotFoundCodes.Add(currency.CurrencyCode);
+                    continue;
+                }
+
+                if (rate == currency.ExchangeRate)
+                    continue;
+
+                currency.UpdateRate(rate);
+                _repo.Update(currency);
+                result.UpdatedCount++;
+            }
+
+            if (result.UpdatedCount > 0)
+                await _repo.SaveChangesAsync(ct);
+
+            return result;
+        }
+
+        public async Task<IReadOnlyDictionary<string, decimal>> GetLatestRatesAsync(CancellationToken ct = default)
+    => await _rateProvider.GetLatestAsync(await GetActiveRateCodesAsync(ct), ct);
+
+        public async Task<IReadOnlyDictionary<string, decimal>> GetHistoricalRatesAsync(
+            DateOnly date, CancellationToken ct = default)
+            => await _rateProvider.GetHistoricalAsync(date, await GetActiveRateCodesAsync(ct), ct);
 
         // ── Private ───────────────────────────────────────────────────────────────
 
@@ -232,5 +284,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 IsBaseCurrency = x.IsBaseCurrency,
                 IsActive = x.IsActive
             };
+
+        private async Task<List<string>> GetActiveRateCodesAsync(CancellationToken ct)
+        => await _repo.Query()
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.CurrencyCode != Currency.PivotCurrencyCode)
+            .Select(x => x.CurrencyCode)
+            .ToListAsync(ct);
     }
 }
