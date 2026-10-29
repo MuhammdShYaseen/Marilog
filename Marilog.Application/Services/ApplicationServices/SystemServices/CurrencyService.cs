@@ -163,11 +163,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             currency.SetAsBase();
             _repo.Update(currency);
             await _repo.SaveChangesAsync(ct);
-
-
-
-
-
         }
 
         public async Task ActivateAsync(int id, CancellationToken ct = default)
@@ -194,6 +189,29 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (currency.IsBaseCurrency)
                 throw new InvalidOperationException("Cannot delete the base currency.");
             _repo.HardDelete(currency);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+
+        public async Task EnsureBaseCurrencyAsync(CancellationToken ct = default)
+        {
+            if (await _repo.Query().AnyAsync(x => x.IsBaseCurrency, ct))
+                return;
+
+            var usd = await _repo.Query()
+                .FirstOrDefaultAsync(x => x.CurrencyCode == Currency.PivotCurrencyCode, ct);
+
+            if (usd is null)
+            {
+                usd = Currency.Create(Currency.PivotCurrencyCode, "US Dollar", 1m, "$", isBaseCurrency: true);
+                await _repo.AddAsync(usd, ct);
+            }
+            else
+            {
+                usd.SetAsBase();
+                _repo.Update(usd);
+            }
+
             await _repo.SaveChangesAsync(ct);
         }
 

@@ -1,5 +1,6 @@
 
 using Marilog.Application;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Options;
 using Marilog.Infrastructure;
 using Marilog.Infrastructure.DataAccess.ContextDb;
@@ -122,8 +123,11 @@ namespace Marilog.Presentation
                 AuditEntityTypes.ValidateAll(db);
                 db.Database.Migrate();
                 IdentitySeeder.SeedAdminAsync(scope.ServiceProvider, builder.Configuration).GetAwaiter().GetResult();
-
-
+            }
+            using (var scope = app.Services.CreateScope())
+            {
+                var currencyService = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
+                currencyService.EnsureBaseCurrencyAsync().GetAwaiter().GetResult();
             }
             app.UseCors("AllowClient");
             app.UseErrorHandler();

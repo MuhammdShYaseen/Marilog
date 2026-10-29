@@ -101,5 +101,10 @@ namespace Marilog.Client.Services.SystemServices
             var http = await _http.DeleteAsync($"{Base}/{id}", ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }
+
+        public Task EnsureBaseCurrencyAsync(CancellationToken ct = default)
+        {
+            throw new NotImplementedException("Application Service No Endpoint for it");
+        }
     }
 }

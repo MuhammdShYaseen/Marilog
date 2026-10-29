@@ -246,6 +246,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VesselName = x.Document.Vessel != null ? x.Document.Vessel.VesselName : null,
                     VoyageId = x.Document.VoyageId,
                     VoyageNumber = x.Document.Voyage != null ? x.Document.Voyage.VoyageNumber : null,
+                    PaymentDescription = x.Payment.Discreption
                 })
                 .ToListAsync(ct);
 
@@ -274,6 +275,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VesselName = r.VesselName,
                     VoyageId = r.VoyageId,
                     VoyageNumber = r.VoyageNumber,
+                    PaymentDescription = r.PaymentDescription
                 })
                 .ToList();
 

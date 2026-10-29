@@ -10,8 +10,9 @@
         <MudText Typo="Typo.h6">Payments</MudText>
     </MudStack>
 
-    @* ── Filter Bar ──────────────────────────────────────────────── *@
-    <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+    @* ── Filter Bar ──────────────────────────────────────── *@
+    <MudPaper Class="pa-4 mb-4 wa-rpt-panel" Elevation="0">
+        <div class="wa-rpt-section-title">Filters</div>
         <MudGrid Spacing="2">
 
             <MudItem xs="12" sm="6" md="3">
@@ -44,7 +45,8 @@
 
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="int?"
-                           @bind-Value="_paymentFilter.VesselId"
+                           Value="_paymentFilter.VesselId"
+                           ValueChanged="OnVesselChanged"
                            Label="Vessel"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
@@ -63,7 +65,7 @@
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
-                    @foreach (var vo in Voyages)
+                    @foreach (var vo in FilteredVoyages)
                     {
                         <MudSelectItem T="int?" Value="@((int?)vo.Id)">@vo.DisplayText</MudSelectItem>
                     }
@@ -148,82 +150,93 @@
                              Color="Color.Primary" />
             </MudItem>
 
-            <MudItem xs="12" Class="d-flex gap-2">
+            <MudItem xs="12" Class="d-flex gap-2 flex-wrap">
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
+                           DisableElevation="true"
+                           Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Search"
                            OnClick="RunPaymentReportAsync">
                     Run Report
                 </MudButton>
                 <MudButton Variant="Variant.Outlined"
                            Color="Color.Default"
+                           DisableElevation="true"
+                           Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Clear"
                            OnClick="ClearPaymentFilter">
                     Clear
                 </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Secondary"
-                           StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                           Disabled="_paymentReport is null"
-                           OnClick="@(() => OnDownloadPaymentPdf.InvokeAsync((_paymentReport!, "Payment Report","PaymentReport")))">
-                    Download PDF
-                </MudButton>
+                @if (_paymentReport is not null)
+                {
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               DisableElevation="true"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                               OnClick="@(() => OnDownloadPaymentPdf.InvokeAsync((_paymentReport!, "Payment Report", "PaymentReport")))">
+                        Save as PDF
+                    </MudButton>
+                }
             </MudItem>
 
         </MudGrid>
     </MudPaper>
 
-    @* ── Loading ──────────────────────────────────────────────────── *@
+    @* ── Loading ──────────────────────────────────────────── *@
     @if (_loadingPaymentReport)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
 
-    @* ── Report Results ───────────────────────────────────────────── *@
+    @* ── Report Results ───────────────────────────────────── *@
     else if (_paymentReport is not null)
     {
-        @* 1. KPI Cards ────────────────────────────────────────────── *@
+        @* 1. KPI Cards ──────────────────────────────────────── *@
         <MudGrid Spacing="2" Class="mb-4">
             <MudItem xs="6" sm="3">
-                <MudPaper Class="pa-3 text-center" Elevation="1">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total Payments</MudText>
-                    <MudText Typo="Typo.h5">@_paymentReport.Count</MudText>
-                </MudPaper>
+                <div class="wa-rpt-card">
+                    <div class="wa-rpt-card-label">Total Payments</div>
+                    <div class="wa-rpt-card-value">@_paymentReport.Count</div>
+                </div>
             </MudItem>
             <MudItem xs="6" sm="3">
-                <MudPaper Class="pa-3 text-center" Elevation="1">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Cash In</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Success">
-                        @($"{_paymentReport.CashIn:F2} {_paymentReport.BaseCurrencyCode}")
-                    </MudText>
-                </MudPaper>
+                <div class="wa-rpt-card wa-rpt-accent-success">
+                    <div class="wa-rpt-card-label">Cash In</div>
+                    <div class="wa-rpt-card-value wa-rpt-pos">
+                        @($"{_paymentReport.CashIn:N2}")
+                        <span class="wa-rpt-card-unit">@_paymentReport.BaseCurrencyCode</span>
+                    </div>
+                </div>
             </MudItem>
             <MudItem xs="6" sm="3">
-                <MudPaper Class="pa-3 text-center" Elevation="1">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Cash Out</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Error">
-                        @($"{_paymentReport.CashOut:F2} {_paymentReport.BaseCurrencyCode}")
-                    </MudText>
-                </MudPaper>
+                <div class="wa-rpt-card wa-rpt-accent-error">
+                    <div class="wa-rpt-card-label">Cash Out</div>
+                    <div class="wa-rpt-card-value wa-rpt-neg">
+                        @($"{_paymentReport.CashOut:N2}")
+                        <span class="wa-rpt-card-unit">@_paymentReport.BaseCurrencyCode</span>
+                    </div>
+                </div>
             </MudItem>
             <MudItem xs="6" sm="3">
-                <MudPaper Class="pa-3 text-center" Elevation="1">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Net Cash Flow</MudText>
-                    <MudText Typo="Typo.h5"
-                             Color="@(_paymentReport.NetCashFlow >= 0 ? Color.Success : Color.Error)">
-                        @($"{_paymentReport.NetCashFlow:F2} {_paymentReport.BaseCurrencyCode}")
-                    </MudText>
-                </MudPaper>
+                <div class="wa-rpt-card @(_paymentReport.NetCashFlow >= 0 ? "wa-rpt-accent-success" : "wa-rpt-accent-error")">
+                    <div class="wa-rpt-card-label">Net Cash Flow</div>
+                    <div class="wa-rpt-card-value @(_paymentReport.NetCashFlow >= 0 ? "wa-rpt-pos" : "wa-rpt-neg")">
+                        @($"{_paymentReport.NetCashFlow:N2}")
+                        <span class="wa-rpt-card-unit">@_paymentReport.BaseCurrencyCode</span>
+                    </div>
+                    <div class="wa-rpt-card-sub">Cash In &minus; Cash Out</div>
+                </div>
             </MudItem>
         </MudGrid>
 
-        @* 2. By Payment Method ────────────────────────────────────── *@
+        @* 2. By Payment Method ──────────────────────────────── *@
         @if (_paymentReport.MethodSummary?.Any() == true)
         {
-            <MudText Typo="Typo.subtitle1" Class="mb-2">By Payment Method</MudText>
+            <div class="wa-rpt-section-title">By Payment Method</div>
             <MudTable Items="_paymentReport.MethodSummary"
-                      Dense="true" Hover="true" Striped="true"
-                      Elevation="1" Class="mb-4">
+                      Dense="true" Hover="true" Striped="false"
+                      Elevation="0" Class="mb-4 wa-rpt-table">
                 <HeaderContent>
                     <MudTh>Method</MudTh>
                     <MudTh Style="text-align:right">Count</MudTh>
@@ -234,20 +247,20 @@
                 <RowTemplate>
                     <MudTd>@context.Method</MudTd>
                     <MudTd Style="text-align:right">@context.Count</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
-                    <MudTd Style="text-align:right">@($"{context.TotalBase:F2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-pos">@($"{context.CashIn:N2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-neg">@($"{context.CashOut:N2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num">@($"{context.TotalBase:N2}")</MudTd>
                 </RowTemplate>
             </MudTable>
         }
 
-        @* 3. Monthly Breakdown ────────────────────────────────────── *@
+        @* 3. Monthly Breakdown ──────────────────────────────── *@
         @if (_paymentReport.MonthlySummary?.Any() == true)
         {
-            <MudText Typo="Typo.subtitle1" Class="mb-2">Monthly Breakdown</MudText>
+            <div class="wa-rpt-section-title">Monthly Breakdown</div>
             <MudTable Items="_paymentReport.MonthlySummary"
-                      Dense="true" Hover="true" Striped="true"
-                      Elevation="1" Class="mb-4">
+                      Dense="true" Hover="true" Striped="false"
+                      Elevation="0" Class="mb-4 wa-rpt-table">
                 <HeaderContent>
                     <MudTh>Year</MudTh>
                     <MudTh>Month</MudTh>
@@ -258,27 +271,25 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.Year</MudTd>
-                    <MudTd>
-                        @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(context.Month)
-                    </MudTd>
+                    <MudTd>@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(context.Month)</MudTd>
                     <MudTd Style="text-align:right">@context.Count</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-pos">@($"{context.CashIn:N2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-neg">@($"{context.CashOut:N2}")</MudTd>
                     <MudTd Style="text-align:right"
-                           Class="@(context.NetCashFlow >= 0 ? "mud-success-text" : "mud-error-text")">
-                        @($"{context.NetCashFlow:F2}")
+                           Class="@($"wa-num {(context.NetCashFlow >= 0 ? "wa-rpt-pos" : "wa-rpt-neg")}")">
+                        @($"{context.NetCashFlow:N2}")
                     </MudTd>
                 </RowTemplate>
             </MudTable>
         }
 
-        @* 4. By Supplier ──────────────────────────────────────────── *@
+        @* 4. By Supplier ────────────────────────────────────── *@
         @if (_paymentReport.SupplierSummary?.Any() == true)
         {
-            <MudText Typo="Typo.subtitle1" Class="mb-2">By Supplier</MudText>
+            <div class="wa-rpt-section-title">By Supplier</div>
             <MudTable Items="_paymentReport.SupplierSummary"
-                      Dense="true" Hover="true" Striped="true"
-                      Elevation="1" Class="mb-4">
+                      Dense="true" Hover="true" Striped="false"
+                      Elevation="0" Class="mb-4 wa-rpt-table">
                 <HeaderContent>
                     <MudTh>Supplier</MudTh>
                     <MudTh Style="text-align:right">Count</MudTh>
@@ -287,20 +298,18 @@
                 <RowTemplate>
                     <MudTd>@context.SupplierName</MudTd>
                     <MudTd Style="text-align:right">@context.Count</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-error-text">
-                        @($"{context.TotalPaidBase:F2}")
-                    </MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-neg">@($"{context.TotalPaidBase:N2}")</MudTd>
                 </RowTemplate>
             </MudTable>
         }
 
-        @* 5. By Buyer ─────────────────────────────────────────────── *@
+        @* 5. By Buyer ───────────────────────────────────────── *@
         @if (_paymentReport.BuyerSummary?.Any() == true)
         {
-            <MudText Typo="Typo.subtitle1" Class="mb-2">By Buyer</MudText>
+            <div class="wa-rpt-section-title">By Buyer</div>
             <MudTable Items="_paymentReport.BuyerSummary"
-                      Dense="true" Hover="true" Striped="true"
-                      Elevation="1" Class="mb-4">
+                      Dense="true" Hover="true" Striped="false"
+                      Elevation="0" Class="mb-4 wa-rpt-table">
                 <HeaderContent>
                     <MudTh>Buyer</MudTh>
                     <MudTh Style="text-align:right">Count</MudTh>
@@ -309,20 +318,18 @@
                 <RowTemplate>
                     <MudTd>@context.BuyerName</MudTd>
                     <MudTd Style="text-align:right">@context.Count</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-success-text">
-                        @($"{context.TotalReceivedBase:F2}")
-                    </MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-pos">@($"{context.TotalReceivedBase:N2}")</MudTd>
                 </RowTemplate>
             </MudTable>
         }
 
-        @* 6. By Vessel ────────────────────────────────────────────── *@
+        @* 6. By Vessel ──────────────────────────────────────── *@
         @if (_paymentReport.VesselSummary?.Any() == true)
         {
-            <MudText Typo="Typo.subtitle1" Class="mb-2">By Vessel</MudText>
+            <div class="wa-rpt-section-title">By Vessel</div>
             <MudTable Items="_paymentReport.VesselSummary"
-                      Dense="true" Hover="true" Striped="true"
-                      Elevation="1" Class="mb-4">
+                      Dense="true" Hover="true" Striped="false"
+                      Elevation="0" Class="mb-4 wa-rpt-table">
                 <HeaderContent>
                     <MudTh>Vessel</MudTh>
                     <MudTh Style="text-align:right">Count</MudTh>
@@ -333,23 +340,23 @@
                 <RowTemplate>
                     <MudTd>@context.VesselName</MudTd>
                     <MudTd Style="text-align:right">@context.Count</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-pos">@($"{context.CashIn:N2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-neg">@($"{context.CashOut:N2}")</MudTd>
                     <MudTd Style="text-align:right"
-                           Class="@(context.NetCashFlow >= 0 ? "mud-success-text" : "mud-error-text")">
-                        @($"{context.NetCashFlow:F2}")
+                           Class="@($"wa-num {(context.NetCashFlow >= 0 ? "wa-rpt-pos" : "wa-rpt-neg")}")">
+                        @($"{context.NetCashFlow:N2}")
                     </MudTd>
                 </RowTemplate>
             </MudTable>
         }
 
-        @* 7. By Voyage ────────────────────────────────────────────── *@
+        @* 7. By Voyage ──────────────────────────────────────── *@
         @if (_paymentReport.VoyageSummary?.Any() == true)
         {
-            <MudText Typo="Typo.subtitle1" Class="mb-2">By Voyage</MudText>
+            <div class="wa-rpt-section-title">By Voyage</div>
             <MudTable Items="_paymentReport.VoyageSummary"
-                      Dense="true" Hover="true" Striped="true"
-                      Elevation="1" Class="mb-4">
+                      Dense="true" Hover="true" Striped="false"
+                      Elevation="0" Class="mb-4 wa-rpt-table">
                 <HeaderContent>
                     <MudTh>Voyage</MudTh>
                     <MudTh Style="text-align:right">Count</MudTh>
@@ -360,23 +367,21 @@
                 <RowTemplate>
                     <MudTd>@context.VoyageNumber</MudTd>
                     <MudTd Style="text-align:right">@context.Count</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-success-text">@($"{context.CashIn:F2}")</MudTd>
-                    <MudTd Style="text-align:right" Class="mud-error-text">@($"{context.CashOut:F2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-pos">@($"{context.CashIn:N2}")</MudTd>
+                    <MudTd Style="text-align:right" Class="wa-num wa-rpt-neg">@($"{context.CashOut:N2}")</MudTd>
                     <MudTd Style="text-align:right"
-                           Class="@(context.NetCashFlow >= 0 ? "mud-success-text" : "mud-error-text")">
-                        @($"{context.NetCashFlow:F2}")
+                           Class="@($"wa-num {(context.NetCashFlow >= 0 ? "wa-rpt-pos" : "wa-rpt-neg")}")">
+                        @($"{context.NetCashFlow:N2}")
                     </MudTd>
                 </RowTemplate>
             </MudTable>
         }
 
-        @* 8. Payment Rows ─────────────────────────────────────────── *@
-        <MudText Typo="Typo.subtitle1" Class="mb-2">
-            Payments (@_paymentReport.Count)
-        </MudText>
+        @* 8. Payments ───────────────────────────────────────── *@
+        <div class="wa-rpt-section-title">Payments (@_paymentReport.Count)</div>
         <MudTable Items="_paymentReport.Payments"
-                  Dense="true" Hover="true" Striped="true"
-                  Elevation="1" Class="mb-4">
+                  Dense="true" Hover="true" Striped="false"
+                  Elevation="0" Class="mb-4 wa-rpt-table">
             <HeaderContent>
                 <MudTh>Payment Date</MudTh>
                 <MudTh>Document</MudTh>
@@ -405,9 +410,10 @@
                         <MudText Typo="Typo.body2">@context.BuyerName</MudText>
                     }
                 </MudTd>
-                <MudTd>@(context.VesselName ?? "-")</MudTd>
+                <MudTd>@(context.VesselName ?? "—")</MudTd>
                 <MudTd>
                     <MudChip T="string"
+                             Variant="Variant.Text"
                              Size="Size.Small"
                              Color="@(context.SwiftTransferId.HasValue ? Color.Info : Color.Default)">
                         @context.PaymentMethod.ToString()
@@ -415,17 +421,18 @@
                 </MudTd>
                 <MudTd>
                     <MudChip T="string"
+                             Variant="Variant.Text"
                              Size="Size.Small"
                              Color="@(context.Side == FinancialSide.Revenue ? Color.Success : Color.Error)">
                         @context.Side.ToString()
                     </MudChip>
                 </MudTd>
-                <MudTd Style="text-align:right">
-                    @($"{context.PaidAmount:F2} {context.CurrencyCode}")
+                <MudTd Style="text-align:right" Class="wa-num">
+                    @($"{context.PaidAmount:N2} {context.CurrencyCode}")
                 </MudTd>
                 <MudTd Style="text-align:right"
-                       Class="@(context.Side == FinancialSide.Revenue ? "mud-success-text" : "mud-error-text")">
-                    @($"{context.PaidAmountBase:F2}")
+                       Class="@($"wa-num {(context.Side == FinancialSide.Revenue ? "wa-rpt-pos" : "wa-rpt-neg")}")">
+                    @($"{context.PaidAmountBase:N2}")
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -445,6 +452,17 @@
     private bool _loadingPaymentReport;
     private DateTime? _paymentFromDateTime;
     private DateTime? _paymentToDateTime;
+
+    private void OnVesselChanged(int? vesselId)
+    {
+        _paymentFilter.VesselId = vesselId;
+        _paymentFilter.VoyageId = null;
+    }
+
+    private IEnumerable<VoyageLookupResponse> FilteredVoyages =>
+        _paymentFilter.VesselId is null
+            ? Voyages
+            : Voyages.Where(v => v.VesselId == _paymentFilter.VesselId);
 
     private async Task RunPaymentReportAsync()
     {
@@ -469,3 +487,100 @@
         _paymentReport = null;
     }
 }
+
+<style>
+    .wa-rpt-panel {
+        border: 1px solid var(--mud-palette-lines-default);
+        background-color: var(--mud-palette-surface);
+        border-radius: 4px;
+    }
+
+    .wa-rpt-section-title {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 8px;
+        margin-top: 4px;
+    }
+
+    .wa-rpt-card {
+        border: 1px solid var(--mud-palette-lines-default);
+        border-left: 3px solid var(--mud-palette-lines-default);
+        background-color: var(--mud-palette-surface);
+        border-radius: 4px;
+        padding: 12px 14px;
+        height: 100%;
+    }
+
+    .wa-rpt-accent-success {
+        border-left-color: var(--mud-palette-success);
+    }
+
+    .wa-rpt-accent-error {
+        border-left-color: var(--mud-palette-error);
+    }
+
+    .wa-rpt-card-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 4px;
+    }
+
+    .wa-rpt-card-value {
+        font-size: 1.35rem;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--mud-palette-text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .wa-rpt-card-unit {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--mud-palette-text-secondary);
+        margin-left: 3px;
+    }
+
+    .wa-rpt-card-sub {
+        font-size: 0.7rem;
+        color: var(--mud-palette-text-secondary);
+        margin-top: 4px;
+    }
+
+    .wa-rpt-pos {
+        color: var(--mud-palette-success) !important;
+    }
+
+    .wa-rpt-neg {
+        color: var(--mud-palette-error) !important;
+    }
+
+    .wa-rpt-table {
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 4px;
+    }
+
+        .wa-rpt-table th {
+            font-size: 0.6875rem !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--mud-palette-text-secondary) !important;
+            background-color: var(--mud-palette-background-grey);
+            border-bottom: 1px solid var(--mud-palette-lines-default) !important;
+        }
+
+        .wa-rpt-table td {
+            font-size: 0.8125rem;
+            border-bottom: 1px solid var(--mud-palette-lines-default) !important;
+        }
+
+    .wa-num {
+        font-variant-numeric: tabular-nums;
+    }
+</style>

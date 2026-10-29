@@ -626,6 +626,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private static readonly Expression<Func<Voyage, VoyageLookupResponse>> ToLookupResponse = x => new VoyageLookupResponse
         {
             Id = x.Id,
+            VesselId = x.VesselID,
             DisplayText = x.Vessel.VesselName + " | " + x.VoyageNumber
             + " - " + x.VoyageMonth.Year
             + " (" + (x.DeparturePort != null ? x.DeparturePort.PortName : "?")
