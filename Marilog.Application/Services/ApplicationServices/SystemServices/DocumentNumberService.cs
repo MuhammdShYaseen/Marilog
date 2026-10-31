@@ -1,63 +1,111 @@
-using Microsoft.EntityFrameworkCore;
-using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Application.Interfaces.Services.Domain;
+using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class DocumentNumberService : IDocumentNumberService
     {
-        private readonly IRepository<Document> _documentRepo;
+        private const int MaxAttempts = 3;
 
-        // ── Prefix map: DocType.Code → prefix ────────────────────────────────────
-        private static readonly Dictionary<string, string> _prefixMap = new()
+        private readonly IRepository<IssuedNumber> _repo;
+
+        public DocumentNumberService(IRepository<IssuedNumber> repo)
         {
-            { "QUOTATION",     "QT"  },
-            { "DELIVERY_NOTE", "DN"  },
-            { "TAX_INVOICE",   "INV" },
-        };
+            _repo = repo;
+        }
 
-        private const string DefaultPrefix = "DOC";
+        public async Task<string> GenerateAsync(EntityType entityType, Guid entityId, string code, string? description, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                throw new InvalidOperationException("Code is required.");
 
-        public DocumentNumberService(IRepository<Document> documentRepo)
-            => _documentRepo = documentRepo;
+            var prefix = Normalize(code);
+            var year = DateTime.UtcNow.Year;
+            
 
-        /// <summary>
-        /// Generates the next sequential document number for the given type.
-        /// Format: {PREFIX}-{YEAR}-{SEQUENCE:D4}
-        /// Example: INV-2025-0042
-        ///
-        /// Sequence resets each year per document type.
-        /// </summary>
-        public async Task<string> GenerateAsync(DocumentType docType,
+            for (var attempt = 1; ; attempt++)
+            {
+                var max = await _repo.Query()
+                    .Where(x => x.Code == prefix && x.Year == year)
+                    .MaxAsync(x => (int?)x.Sequence, ct);
+
+                var sequence = (max ?? 0) + 1;
+                var number = Format(prefix, sequence, year);
+
+                var record = IssuedNumber.Create(entityType, entityId, prefix, year,
+                    sequence, number, description);
+
+                await _repo.AddAsync(record, ct);
+
+                try
+                {
+                    await _repo.SaveChangesAsync(ct);
+                    return number;
+                }
+                catch (DbUpdateException) when (attempt < MaxAttempts)
+                {
+                    // Same number taken concurrently — drop it and try the next one
+                    _repo.HardDelete(record);
+                }
+            }
+        }
+
+        public async Task<string> CreateStartAsync(EntityType entityType, Guid entityId, string code, int year, int start, string? description, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                throw new InvalidOperationException("Code is required.");
+
+            if (start <= 0)
+                throw new InvalidOperationException("Start must be greater than zero.");
+
+            var prefix = Normalize(code);
+
+            var started = await _repo.Query()
+                .AnyAsync(x => x.Code == prefix && x.Year == year, ct);
+
+            if (started)
+                throw new InvalidOperationException($"Numbering for {prefix} in {year} has already started.");
+
+            var number = Format(prefix, start, year);
+
+            await _repo.AddAsync(IssuedNumber.Create(entityType, entityId, prefix, year,
+                start, number, description), ct);
+            await _repo.SaveChangesAsync(ct);
+
+            return number;
+        }
+
+        public async Task<string> UpdateStartAsync(Guid id, int start, string? description,
             CancellationToken ct = default)
         {
-            if (docType is null) throw new ArgumentNullException(nameof(docType));
+            if (start <= 0)
+                throw new InvalidOperationException("Start must be greater than zero.");
 
-            var prefix  = _prefixMap.TryGetValue(docType.Code, out var mapped)
-                              ? mapped
-                              : DefaultPrefix;
-            var year    = DateTime.UtcNow.Year;
-            var pattern = $"{prefix}-{year}-";
+            var record = await _repo.Query().FirstOrDefaultAsync(x => x.Guid == id, ct)
+                ?? throw new InvalidOperationException($"Issued number {id} not found.");
 
-            // Find last used sequence for this prefix + year
-            var lastNumber = await _documentRepo.Query()
-                .Where(x => x.DocNumber.StartsWith(pattern))
-                .Select(x => x.DocNumber)
-                .OrderByDescending(x => x)
-                .FirstOrDefaultAsync(ct);
+            var count = await _repo.Query()
+                .CountAsync(x => x.Code == record.Code && x.Year == record.Year, ct);
 
-            var nextSequence = 1;
+            if (count > 1)
+                throw new InvalidOperationException(
+                    $"Start of {record.Code} in {record.Year} is locked — numbers have already been issued after it.");
 
-            if (lastNumber is not null)
-            {
-                // Extract sequence from e.g. "INV-2025-0042" → 42
-                var parts = lastNumber.Split('-');
-                if (parts.Length == 3 && int.TryParse(parts[2], out var last))
-                    nextSequence = last + 1;
-            }
+            var number = Format(record.Code, start, record.Year);
 
-            return $"{pattern}{nextSequence:D4}";
+            record.ChangeSequence(start, number, description);
+            _repo.Update(record);
+            await _repo.SaveChangesAsync(ct);
+
+            return number;
         }
+
+        private static string Normalize(string code) => code.Trim().ToUpperInvariant();
+
+        private static string Format(string prefix, int sequence, int year)
+            => $"{prefix}-{sequence:D4}-{year}";
     }
 }

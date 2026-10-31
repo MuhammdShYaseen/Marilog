@@ -35,6 +35,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\ExchangeOnline\" />
+    <Folder Include="Models\Numbering\" />
+    <Folder Include="Services\Numbering\" />
   </ItemGroup>
  
 

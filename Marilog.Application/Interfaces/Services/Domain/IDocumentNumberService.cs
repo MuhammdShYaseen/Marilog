@@ -1,14 +1,13 @@
-﻿using Marilog.Domain.Entities.SystemEntities;
-using Marilog.Domain.Interfaces.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
+
+using Marilog.Kernel.Enums;
 
 namespace Marilog.Application.Interfaces.Services.Domain
 {
     public interface IDocumentNumberService
     {
-        Task<string> GenerateAsync(DocumentType docType,
-              CancellationToken ct = default);
+        Task<string> GenerateAsync(EntityType entityType, Guid entityId, string code, string? description, CancellationToken ct = default);
+        Task<string> CreateStartAsync(EntityType entityType, Guid entityId, string code,int year, int start, string? description, CancellationToken ct = default);
+        Task<string> UpdateStartAsync(Guid id, int start, string? description,CancellationToken ct = default);
     }
 }
