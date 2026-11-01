@@ -1,6 +1,13 @@
 ﻿namespace Marilog.Kernel.Enums
 {
-
+    public enum InboxSource
+    {
+        Email = 1,
+        WhatsApp = 2,
+        Phone = 3,
+        Paper = 4,
+        Other = 5
+    }
 
     //====Currences=====================================
     public enum RateTrend
@@ -277,6 +284,7 @@
         RolePermission = 39,
         UserRole = 40,
         SwiftBankFee = 41,
+        InboxEntry = 42,
         NONE = 0
     }
     public enum JobStatus
