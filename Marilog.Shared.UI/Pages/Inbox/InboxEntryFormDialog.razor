@@ -1,0 +1,89 @@
+@using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Inbox
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
+            The number can't be changed. If it's wrong, delete the entry and register it again.
+        </MudText>
+        <MudGrid>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_date" Label="Received"
+                               DateFormat="dd/MM/yyyy"
+                               MinDate="new DateTime(Entry.Year, 1, 1)"
+                               MaxDate="new DateTime(Entry.Year, 12, 31)"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudSelect T="InboxSource" @bind-Value="_source" Label="Source"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var source in Enum.GetValues<InboxSource>())
+                    {
+                        <MudSelectItem T="InboxSource" Value="source">@source</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_vesselIds"
+                           ToStringFunc="VesselName" Label="Vessels"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var vessel in VesselNames.OrderBy(v => v.Value))
+                    {
+                        <MudSelectItem T="int" Value="vessel.Key">@vessel.Value</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_description" Label="Description"
+                              MaxLength="500" Lines="2"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(_date is null || string.IsNullOrWhiteSpace(_description))">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter, EditorRequired] public InboxEntryResponse Entry { get; set; } = default!;
+    [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
+
+    private DateTime? _date;
+    private InboxSource _source;
+    private IReadOnlyCollection<int> _vesselIds = [];
+    private string? _description;
+
+    protected override void OnParametersSet()
+    {
+        _date = Entry.ReceivedDate.ToDateTime(TimeOnly.MinValue);
+        _source = Entry.Source;
+        _vesselIds = new HashSet<int>(Entry.VesselIds);
+        _description = Entry.Description;
+    }
+
+    private string VesselName(int id) =>
+        VesselNames.TryGetValue(id, out var name) ? name : $"#{id}";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new UpdateInboxEntryRequest(
+            DateOnly.FromDateTime(_date!.Value),
+            _source,
+            _vesselIds.ToList(),
+            _description!.Trim())));
+    }
+}

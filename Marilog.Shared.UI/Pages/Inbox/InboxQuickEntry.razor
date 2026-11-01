@@ -1,0 +1,117 @@
+@using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
+@using Marilog.Kernel.Enums
+@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Inbox
+
+<div class="pa-3" style="border:1px solid var(--mud-palette-lines-default);">
+    <MudText Typo="Typo.subtitle2" Class="mb-2">Quick entry</MudText>
+
+    <MudGrid Spacing="2">
+        <MudItem xs="6" md="2">
+            <MudDatePicker @bind-Date="_date" Label="Received"
+                           DateFormat="dd/MM/yyyy"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="2">
+            <MudSelect T="InboxSource" @bind-Value="_source" Label="Source"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var source in Enum.GetValues<InboxSource>())
+                {
+                    <MudSelectItem T="InboxSource" Value="source">@source</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_vesselIds"
+                       ToStringFunc="VesselName" Label="Vessels"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var vessel in VesselNames.OrderBy(v => v.Value))
+                {
+                    <MudSelectItem T="int" Value="vessel.Key">@vessel.Value</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudTextField @ref="_descriptionField" @bind-Value="_description"
+                          Label="Description" MaxLength="500"
+                          Immediate="true" OnKeyDown="OnDescriptionKeyDown"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="1">
+            <MudNumericField T="int?" @bind-Value="_sequence" Label="No."
+                             Min="1" HideSpinButtons="true"
+                             HelperText="Optional"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" md="1" Class="d-flex align-start pt-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       Style="text-transform:none"
+                       Disabled="!CanSave"
+                       OnClick="SaveAsync">
+                Register
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_lastNumber is not null)
+    {
+        <div class="d-flex align-center gap-2 mt-2">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Style="font-size:16px" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Last registered</MudText>
+            <MudText Typo="Typo.h6" Color="Color.Primary">@_lastNumber</MudText>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
+    [Parameter, EditorRequired] public Func<CreateInboxEntryRequest, Task<string?>> OnCreate { get; set; } = default!;
+
+    private MudTextField<string> _descriptionField = default!;
+    private DateTime? _date = DateTime.Today;
+    private InboxSource _source = InboxSource.WhatsApp;
+    private IReadOnlyCollection<int> _vesselIds = [];
+    private string? _description;
+    private int? _sequence;
+    private string? _lastNumber;
+    private bool _saving;
+
+    private bool CanSave => !_saving && _date is not null && !string.IsNullOrWhiteSpace(_description);
+
+    private string VesselName(int id) =>
+        VesselNames.TryGetValue(id, out var name) ? name : $"#{id}";
+
+    private async Task OnDescriptionKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave) return;
+        _saving = true;
+        try
+        {
+            var number = await OnCreate(new CreateInboxEntryRequest(
+                DateOnly.FromDateTime(_date!.Value),
+                _source,
+                _vesselIds.ToList(),
+                _description!.Trim(),
+                _sequence));
+
+            if (number is null) return;
+
+            // Date and source stay for the next entry; the rest is cleared.
+            _lastNumber = number;
+            _vesselIds = new HashSet<int>();
+            _description = null;
+            _sequence = null;
+            await _descriptionField.FocusAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

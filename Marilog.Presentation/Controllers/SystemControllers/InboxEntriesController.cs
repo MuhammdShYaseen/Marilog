@@ -80,5 +80,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             => Ok(await _inbox.GetFilteredAsync(filter, ct));
 
 
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetbyId(int id, CancellationToken ct)
+            => await _inbox.GetByIdAsync(id, ct) is { } entry ? Ok(entry) : NotFound();
+
+
     }
 }

@@ -1,0 +1,110 @@
+@using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Inbox
+
+<MudDataGrid T="InboxEntryResponse"
+             Items="Items"
+             Dense="true"
+             Hover="true"
+             Elevation="0"
+             Outlined="true"
+             Square="true"
+             Breakpoint="Breakpoint.Sm"
+             SortMode="SortMode.None"
+             RowClick="HandleRowClick"
+             RowStyleFunc="RowStyle">
+
+    <Columns>
+
+        <TemplateColumn Title="No.">
+            <CellTemplate>
+                <span style="font-weight:600; white-space:nowrap;">@context.Item.Number</span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <PropertyColumn Property="x => x.ReceivedDate" Title="Received" Format="dd/MM/yyyy" />
+
+        <TemplateColumn Title="Source">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudIcon Icon="@SourceIcon(context.Item.Source)" Style="font-size:14px" />
+                    @context.Item.Source
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Vessels">
+            <CellTemplate>@VesselText(context.Item)</CellTemplate>
+        </TemplateColumn>
+
+        <PropertyColumn Property="x => x.Description" Title="Description" />
+
+        <TemplateColumn Title="Links">
+            <CellTemplate>@(context.Item.Links.Count == 0 ? "—" : context.Item.Links.Count.ToString())</CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Status">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                             Color="@StatusColor(context.Item)"
+                             Style="font-size:10px" />
+                    @StatusText(context.Item)
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="" CellClass="az-actions">
+            <CellTemplate>
+                <span @onclick:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   title="Edit"
+                                   OnClick="() => OnEditClicked.InvokeAsync(context.Item)" />
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+    </Columns>
+
+    <NoRecordsContent>
+        <div class="az-muted pa-4">No entries found.</div>
+    </NoRecordsContent>
+
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<InboxEntryResponse> Items { get; set; } = [];
+    [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
+    [Parameter] public EventCallback<InboxEntryResponse> OnEditClicked { get; set; }
+    [Parameter] public int? SelectedId { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnRowSelected { get; set; }
+
+    private Task HandleRowClick(DataGridRowClickEventArgs<InboxEntryResponse> args) =>
+        OnRowSelected.InvokeAsync(args.Item);
+    private string VesselText(InboxEntryResponse item) =>
+        item.VesselIds.Count == 0
+            ? "—"
+            : string.Join(", ", item.VesselIds.Select(id => VesselNames.TryGetValue(id, out var name) ? name : $"#{id}"));
+
+    private static string StatusText(InboxEntryResponse item) =>
+        item.IsCancelled ? "Cancelled" : item.IsProcessed ? "Processed" : "Pending";
+
+    private static Color StatusColor(InboxEntryResponse item) =>
+        item.IsCancelled ? Color.Default : item.IsProcessed ? Color.Success : Color.Warning;
+
+    private static string SourceIcon(InboxSource source) => source switch
+    {
+        InboxSource.Email => Icons.Material.Filled.Email,
+        InboxSource.WhatsApp => Icons.Material.Filled.Chat,
+        InboxSource.Phone => Icons.Material.Filled.Phone,
+        InboxSource.Paper => Icons.Material.Filled.Description,
+        _ => Icons.Material.Filled.MoreHoriz
+    };
+
+    private string RowStyle(InboxEntryResponse item, int index) =>
+     "cursor:pointer;"
+     + (item.Id == SelectedId ? " background-color:var(--mud-palette-action-default-hover);" : "")
+     + (item.IsCancelled ? " opacity:0.6;" : "");
+}

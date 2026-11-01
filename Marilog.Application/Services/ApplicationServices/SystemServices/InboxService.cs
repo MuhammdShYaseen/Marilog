@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Presentation;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.InboxEntryReport;
 using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs;
@@ -275,6 +276,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         //==== Quares ==========================================================================================
+
+        public async Task <InboxEntryResponse?> GetByIdAsync (int id, CancellationToken ct)
+        {
+            return await _entries.Query()
+                                 .AsNoTracking()
+                                 .Where(i => i.Id == id)
+                                 .Select(ToResponse)
+                                 .FirstOrDefaultAsync(ct);
+        }
         public async Task<PagedResponse<InboxEntryResponse>> GetFilteredAsync(InboxEntryFilter filter, CancellationToken ct = default)
         {
             var query = ApplySearch(_entries.Query(), filter.SearchTerm);

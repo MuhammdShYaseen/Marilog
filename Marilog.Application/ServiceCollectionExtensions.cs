@@ -125,6 +125,10 @@ namespace Marilog.Application
 
             //----Exchange Rate Refresh Gate---------------------------
             services.AddSingleton<ExchangeRateRefreshGate>();
+
+
+            //---Inbox Entry----------------------------------
+            services.AddScoped<IInboxService, InboxService>();
             return services;
         }
     }

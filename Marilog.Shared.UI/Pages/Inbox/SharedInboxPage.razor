@@ -1,0 +1,206 @@
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Inbox
+
+<div class="d-flex flex-column">
+
+    @* ── Title ──────────────────────────────────────────────── *@
+    <div class="px-4 pt-4">
+        <MudText Typo="Typo.h6">Inbox</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Incoming register · everything received, from any source
+        </MudText>
+    </div>
+
+    @* ── Command bar ────────────────────────────────────────── *@
+    <div class="d-flex flex-wrap align-center gap-1 px-2 py-1 mt-2"
+         style="border-top:1px solid var(--mud-palette-lines-default); border-bottom:1px solid var(--mud-palette-lines-default);">
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="ReloadAsync">
+            Refresh
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@(_pendingOnly ? Icons.Material.Filled.FilterAltOff : Icons.Material.Filled.PendingActions)"
+                   OnClick="TogglePendingAsync">
+            @(_pendingOnly ? "Show all" : "Pending")
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.ClearAll"
+                   OnClick="ClearFiltersAsync">
+            Clear filters
+        </MudButton>
+    </div>
+
+    <div class="pa-4">
+
+        <InboxQuickEntry VesselNames="VesselNames" OnCreate="OnCreate" />
+
+        @* ── Filters ── *@
+        <MudGrid Spacing="2" Class="my-2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField T="string" Value="_searchTerm" ValueChanged="OnSearchChanged"
+                              Label="Search number or description"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Immediate="true" DebounceInterval="400"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudSelect T="InboxSource?" Value="_source" ValueChanged="OnSourceChanged"
+                           Label="Source" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="InboxSource?" Value="null">All sources</MudSelectItem>
+                    @foreach (var source in Enum.GetValues<InboxSource>())
+                    {
+                        <MudSelectItem T="InboxSource?" Value="@((InboxSource?)source)">@source</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudSelect T="int?" Value="_vesselId" ValueChanged="OnVesselChanged"
+                           Label="Vessel" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">All vessels</MudSelectItem>
+                    @foreach (var vessel in VesselNames.OrderBy(v => v.Value))
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)vessel.Key)">@vessel.Value</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudDatePicker Date="_from" DateChanged="OnFromChanged" Label="From"
+                               DateFormat="dd/MM/yyyy" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudDatePicker Date="_to" DateChanged="OnToChanged" Label="To"
+                               DateFormat="dd/MM/yyyy" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+
+        <InboxTable Items="Result.Items"
+                    VesselNames="VesselNames"
+                    SelectedId="_selected?.Id"
+                    OnRowSelected="Select"
+                    OnEditClicked="OnEditClicked" />
+
+        @if (Result.TotalCount > 0)
+        {
+            <div class="d-flex flex-wrap align-center justify-space-between mt-2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @Result.TotalCount entries@(_pendingOnly ? " pending" : "")
+                </MudText>
+                @if (Result.TotalPages > 1)
+                {
+                    <MudPagination Count="Result.TotalPages"
+                                   Selected="Result.Page"
+                                   SelectedChanged="GoToPageAsync"
+                                   Size="Size.Small" />
+                }
+            </div>
+        }
+    </div>
+</div>
+<MudDrawer @bind-Open="_drawerOpen"
+           Anchor="Anchor.End"
+           Variant="@DrawerVariant.Temporary"
+           Width="560px"
+           Elevation="0">
+    @if (_selected is not null)
+    {
+        <InboxEntryDetails Entry="_selected"
+                           VesselNames="VesselNames"
+                           OnClose="Close"
+                           OnEditClicked="OnEditClicked"
+                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                           OnProcessedClicked="OnProcessedClicked"
+                           OnCancelClicked="OnCancelClicked"
+                           OnDeleteClicked="OnDeleteClicked"
+                           OnAddLinkClicked="OnAddLinkClicked"
+                           OnUnlinkClicked="OnUnlinkClicked"
+                           OnOpenEntryClicked="OnOpenEntryClicked" />
+    }
+</MudDrawer>
+@code {
+    [Parameter] public PagedResponse<InboxEntryResponse> Result { get; set; } = new();
+    [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
+
+    [Parameter] public EventCallback<InboxEntryFilter> OnLoadRequested { get; set; }
+    [Parameter, EditorRequired] public Func<CreateInboxEntryRequest, Task<string?>> OnCreate { get; set; } = default!;
+    [Parameter] public EventCallback<InboxEntryResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnProcessedClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnCancelClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnAddLinkClicked { get; set; }
+    [Parameter] public EventCallback<(InboxEntryResponse, InboxEntryLinkResponse)> OnUnlinkClicked { get; set; }
+    [Parameter] public EventCallback<int> OnOpenEntryClicked { get; set; }
+
+    private InboxEntryResponse? _selected;
+    private bool _drawerOpen;
+
+    private void Select(InboxEntryResponse entry)
+    {
+        _selected = entry;
+        _drawerOpen = true;
+    }
+
+    private void Close()
+    {
+        _drawerOpen = false;
+        _selected = null;
+    }
+
+    // Called by the host page after any action; null closes the drawer.
+    public void UpdateSelected(InboxEntryResponse? entry)
+    {
+        if (entry is null) Close();
+        else Select(entry);
+        StateHasChanged();
+    }
+    private string? _searchTerm;
+    private InboxSource? _source;
+    private int? _vesselId;
+    private DateTime? _from;
+    private DateTime? _to;
+    private bool _pendingOnly;
+
+    private InboxEntryFilter BuildFilter(int page) => new()
+    {
+        Page = page,
+        SearchTerm = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm.Trim(),
+        Source = _source,
+        VesselId = _vesselId,
+        From = _from is { } from ? DateOnly.FromDateTime(from) : null,
+        To = _to is { } to ? DateOnly.FromDateTime(to) : null,
+        IsProcessed = _pendingOnly ? false : null,
+        IsCancelled = _pendingOnly ? false : null
+    };
+
+    private Task ApplyAsync() => OnLoadRequested.InvokeAsync(BuildFilter(1));
+    private Task GoToPageAsync(int page) => OnLoadRequested.InvokeAsync(BuildFilter(page));
+    private Task ReloadAsync() => GoToPageAsync(Result.TotalCount > 0 ? Result.Page : 1);
+
+    private Task OnSearchChanged(string? value) { _searchTerm = value; return ApplyAsync(); }
+    private Task OnSourceChanged(InboxSource? value) { _source = value; return ApplyAsync(); }
+    private Task OnVesselChanged(int? value) { _vesselId = value; return ApplyAsync(); }
+    private Task OnFromChanged(DateTime? value) { _from = value; return ApplyAsync(); }
+    private Task OnToChanged(DateTime? value) { _to = value; return ApplyAsync(); }
+    private Task TogglePendingAsync() { _pendingOnly = !_pendingOnly; return ApplyAsync(); }
+
+    private Task ClearFiltersAsync()
+    {
+        _searchTerm = null;
+        _source = null;
+        _vesselId = null;
+        _from = null;
+        _to = null;
+        _pendingOnly = false;
+        return ApplyAsync();
+    }
+}

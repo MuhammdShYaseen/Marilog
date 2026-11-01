@@ -16,7 +16,11 @@ namespace Marilog.Client.Services.SystemServices
         public InboxService(HttpClient http) => _http = http;
 
         // ── Queries ───────────────────────────────────────────────────────────────
-
+        public async Task<InboxEntryResponse?> GetByIdAsync(int id, CancellationToken ct)
+        {
+            var http = await _http.GetCheckedAsync<InboxEntryResponse>($"{Base}/{id}", ct);
+            return http;
+        }
         public async Task<PagedResponse<InboxEntryResponse>> GetFilteredAsync(InboxEntryFilter filter,
             CancellationToken ct = default)
         {
@@ -133,5 +137,7 @@ namespace Marilog.Client.Services.SystemServices
 
         private static PagedResponse<InboxEntryResponse> Empty(int page, int pageSize)
             => new() { Page = page, PageSize = pageSize };
+
+       
     }
 }

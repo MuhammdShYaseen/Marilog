@@ -1,0 +1,191 @@
+@using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Inbox
+
+<div class="d-flex flex-column" style="height:100%;">
+
+    @* ── Title ──────────────────────────────────────────────── *@
+    <div class="d-flex align-start justify-space-between px-4 pt-4">
+        <div>
+            <MudText Typo="Typo.h6">@Entry.Number</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Inbox entry · @Entry.ReceivedDate.ToString("dd/MM/yyyy") · @Entry.Source
+            </MudText>
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                       OnClick="@(() => OnClose.InvokeAsync())" />
+    </div>
+
+    @* ── Command bar ────────────────────────────────────────── *@
+    <div class="d-flex flex-wrap align-center gap-1 px-2 py-1 mt-2"
+         style="border-top:1px solid var(--mud-palette-lines-default); border-bottom:1px solid var(--mud-palette-lines-default);">
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="@(() => OnEditClicked.InvokeAsync(Entry))">
+            Edit
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Receipt"
+                   OnClick="@(() => OnManageAttachedFilesClicked.InvokeAsync((Entry.Id, EntityType.InboxEntry)))">
+            Files
+        </MudButton>
+
+        @if (!Entry.IsProcessed && !Entry.IsCancelled)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.TaskAlt"
+                       OnClick="@(() => OnProcessedClicked.InvokeAsync(Entry))">
+                Mark processed
+            </MudButton>
+        }
+
+        @if (!Entry.IsCancelled)
+        {
+            <MudTooltip Text="The number stays reserved">
+                <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" Style="text-transform:none"
+                           StartIcon="@Icons.Material.Filled.Block"
+                           OnClick="@(() => OnCancelClicked.InvokeAsync(Entry))">
+                    Cancel entry
+                </MudButton>
+            </MudTooltip>
+        }
+
+        <MudTooltip Text="For input mistakes — the number becomes free again">
+            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@(() => OnDeleteClicked.InvokeAsync(Entry))">
+                Delete
+            </MudButton>
+        </MudTooltip>
+    </div>
+
+    <div class="pa-4" style="overflow-y:auto; flex:1;">
+        <div class="az-detail">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pt-3" MinimumTabWidth="0px">
+
+                <MudTabPanel Text="Essentials">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">@Field("Received", Entry.ReceivedDate.ToString("dd/MM/yyyy"))</MudItem>
+                        <MudItem xs="6">@Field("Source", Entry.Source.ToString())</MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                            <span class="d-flex align-center gap-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                         Color="@StatusColor"
+                                         Style="font-size:10px" />
+                                <MudText Typo="Typo.body2">@StatusText</MudText>
+                            </span>
+                        </MudItem>
+                        <MudItem xs="6">@Field("Number", Entry.Number)</MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Vessels</MudText>
+                            @if (Entry.VesselIds.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">—</MudText>
+                            }
+                            else
+                            {
+                                <div>
+                                    @foreach (var id in Entry.VesselIds)
+                                    {
+                                        <MudChip T="string"
+                                                 Icon="@Icons.Material.Filled.DirectionsBoat"
+                                                 Color="Color.Primary"
+                                                 Size="Size.Small"
+                                                 Class="mr-1 mb-1">
+                                            @VesselName(id)
+                                        </MudChip>
+                                    }
+                                </div>
+                            }
+                        </MudItem>
+                        <MudItem xs="12">@Field("Description", Entry.Description)</MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@($"Links ({Entry.Links.Count})")">
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="() => OnAddLinkClicked.InvokeAsync(Entry)">
+                            Link to inbox entry
+                        </MudButton>
+                    </div>
+
+                    @if (Entry.Links.Count == 0)
+                    {
+                        <div class="az-muted">No links.</div>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Id</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var link in Entry.Links)
+                                {
+                                    <tr>
+                                        <td>@link.EntityType</td>
+                                        <td>@link.EntityId</td>
+                                        <td style="white-space:nowrap; text-align:right;">
+                                            @if (link.EntityType == EntityType.InboxEntry)
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                                               Size="Size.Small"
+                                                               title="Open"
+                                                               OnClick="() => OnOpenEntryClicked.InvokeAsync(link.EntityId)" />
+                                            }
+                                            <MudIconButton Icon="@Icons.Material.Filled.LinkOff"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           title="Unlink"
+                                                           OnClick="() => OnUnlinkClicked.InvokeAsync((Entry, link))" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudTabPanel>
+
+            </MudTabs>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public InboxEntryResponse Entry { get; set; } = default!;
+    [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
+
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnProcessedClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnCancelClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<InboxEntryResponse> OnAddLinkClicked { get; set; }
+    [Parameter] public EventCallback<(InboxEntryResponse, InboxEntryLinkResponse)> OnUnlinkClicked { get; set; }
+    [Parameter] public EventCallback<int> OnOpenEntryClicked { get; set; }
+
+    private string StatusText =>
+        Entry.IsCancelled ? "Cancelled" : Entry.IsProcessed ? "Processed" : "Pending";
+
+    private Color StatusColor =>
+        Entry.IsCancelled ? Color.Default : Entry.IsProcessed ? Color.Success : Color.Warning;
+
+    private string VesselName(int id) =>
+        VesselNames.TryGetValue(id, out var name) ? name : $"#{id}";
+
+    private static RenderFragment Field(string label, string? value) => @<div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
+        <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(value) ? "—" : value)</MudText>
+    </div>;
+}

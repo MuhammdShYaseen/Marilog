@@ -285,6 +285,7 @@
         UserRole = 40,
         SwiftBankFee = 41,
         InboxEntry = 42,
+        InboxEntryLink = 43,
         NONE = 0
     }
     public enum JobStatus

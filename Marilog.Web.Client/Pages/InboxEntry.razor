@@ -1,0 +1,189 @@
+﻿@attribute [RequirePage(EntityType.InboxEntry)]
+@page "/inbox-entry"
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Inbox
+@using Marilog.Web.Client.Services.Interfaces
+@using MudBlazor
+
+@inject IInboxService InboxService
+@inject IVesselService VesselService
+@inject IDialogService DialogService
+@inject IManageStoredFiles ManageStoredFiles
+@inject ISnackbar Snackbar
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<SharedInboxPage @ref="_sharedPage"
+                 Result="_result"
+                 VesselNames="_vesselNames"
+                 OnLoadRequested="LoadAsync"
+                 OnCreate="CreateAsync"
+                 OnEditClicked="OpenEditDialog"
+                 OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))"
+                 OnProcessedClicked="MarkProcessed"
+                 OnCancelClicked="ConfirmCancel"
+                 OnDeleteClicked="ConfirmDelete"
+                 OnAddLinkClicked="OpenLinkDialog"
+                 OnUnlinkClicked="ConfirmUnlink"
+                 OnOpenEntryClicked="OpenEntry" />
+@code {
+    private PagedResponse<InboxEntryResponse> _result = new();
+    private IReadOnlyDictionary<int, string> _vesselNames = new Dictionary<int, string>();
+    private InboxEntryFilter _filter = new();
+    private bool _loading = true;
+    private SharedInboxPage _sharedPage = default!;
+    private string? _selectedNumber;
+    string? XLabel(int id) => _result.Items.FirstOrDefault(x => x.Id == id) is { } x ? $"Inbox : {x.Number}" : null;
+
+    private async Task RefreshAsync(int id)
+    {
+        await LoadAsync(_filter);
+        var fresh = await InboxService.GetByIdAsync(id, default);
+        _selectedNumber = fresh?.Number;
+        _sharedPage.UpdateSelected(fresh);
+    }
+
+    private async Task OpenEntry(int id)
+    {
+        var entry = await InboxService.GetByIdAsync(id, default);
+        if (entry is null)
+        {
+            Snackbar.Add("Entry not found.", Severity.Warning);
+            return;
+        }
+        _selectedNumber = entry.Number;
+        _sharedPage.UpdateSelected(entry);
+    }
+
+    private async Task MarkProcessed(InboxEntryResponse entry)
+    {
+        await InboxService.MarkProcessedAsync(entry.Id);
+        Snackbar.Add($"{entry.Number} marked as processed.", Severity.Success);
+        await RefreshAsync(entry.Id);
+    }
+
+    private async Task ConfirmCancel(InboxEntryResponse entry)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Cancel Entry",
+            $"Cancel '{entry.Number}'? The number stays reserved and won't be reused.",
+            yesText: "Cancel entry",
+            cancelText: "Back");
+        if (confirmed != true) return;
+
+        await InboxService.CancelAsync(entry.Id);
+        Snackbar.Add($"{entry.Number} cancelled.", Severity.Warning);
+        await RefreshAsync(entry.Id);
+    }
+
+    private async Task ConfirmDelete(InboxEntryResponse entry)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Entry",
+            $"Delete '{entry.Number}' permanently? The number becomes free and can be used again. " +
+            "If this number was already written anywhere, use Cancel instead.",
+            yesText: "Delete",
+            cancelText: "Back");
+        if (confirmed != true) return;
+
+        await InboxService.DeleteAsync(entry.Id);
+        Snackbar.Add($"{entry.Number} deleted.", Severity.Success);
+        _sharedPage.UpdateSelected(null);
+        await LoadAsync(_filter);
+    }
+
+    private async Task OpenLinkDialog(InboxEntryResponse entry)
+    {
+        var parameters = new DialogParameters { ["Year"] = entry.Year };
+        var dialog = await DialogService.ShowAsync<LinkInboxEntryDialog>($"Link {entry.Number} to", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var (year, sequence) = ((int, int))result.Data!;
+        var matches = await InboxService.GetFilteredAsync(new InboxEntryFilter
+        {
+            Year = year,
+            SearchTerm = sequence.ToString(),
+            PageSize = 100
+        });
+        var target = matches.Items.FirstOrDefault(x => x.Sequence == sequence);
+
+        if (target is null)
+        {
+            Snackbar.Add($"No entry {sequence} in {year}.", Severity.Warning);
+            return;
+        }
+        if (target.Id == entry.Id)
+        {
+            Snackbar.Add("An entry can't be linked to itself.", Severity.Warning);
+            return;
+        }
+
+        await InboxService.LinkAsync(entry.Id, EntityType.InboxEntry, target.Id);
+        Snackbar.Add($"{entry.Number} linked to {target.Number}.", Severity.Success);
+        await RefreshAsync(entry.Id);
+    }
+
+    private async Task ConfirmUnlink((InboxEntryResponse entry, InboxEntryLinkResponse link) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Unlink",
+            $"Remove the link to {args.link.EntityType} #{args.link.EntityId}?",
+            yesText: "Unlink",
+            cancelText: "Back");
+        if (confirmed != true) return;
+
+        await InboxService.UnlinkAsync(args.link.Id);
+        Snackbar.Add("Link removed.", Severity.Success);
+        await RefreshAsync(args.entry.Id);
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        var vessels = await VesselService.GetAllAsLookUpAsync(); // ← replace with your light vessel list method
+        _vesselNames = vessels.ToDictionary(v => v.Id, v => v.Name);
+        await LoadAsync(_filter);
+    }
+
+    private async Task LoadAsync(InboxEntryFilter filter)
+    {
+        _loading = true;
+        _filter = filter;
+        _result = await InboxService.GetFilteredAsync(filter);
+        _loading = false;
+    }
+
+    private async Task<string?> CreateAsync(CreateInboxEntryRequest request)
+    {
+        var number = await InboxService.CreateAsync(
+            request.ReceivedDate, request.Source, request.VesselIds ?? [], request.Description, request.StartSequence);
+
+        Snackbar.Add($"{number} registered.", Severity.Success);
+        await LoadAsync(_filter);
+        return number;
+    }
+
+    private async Task OpenEditDialog(InboxEntryResponse entry)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entry"] = entry,
+            ["VesselNames"] = _vesselNames
+        };
+        var dialog = await DialogService.ShowAsync<InboxEntryFormDialog>($"Edit {entry.Number}", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var request = (UpdateInboxEntryRequest)result.Data!;
+        await InboxService.UpdateAsync(entry.Id, request.ReceivedDate, request.Source, request.VesselIds ?? [], request.Description);
+
+        Snackbar.Add($"{entry.Number} updated.", Severity.Success);
+        await LoadAsync(_filter);
+    }
+}
