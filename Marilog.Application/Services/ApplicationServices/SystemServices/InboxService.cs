@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Presentation;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.InboxEntryReport;
 using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs;
@@ -185,25 +184,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             _entries.Update(entry);
             await _entries.SaveChangesAsync(ct);
         }
-        public async Task<string> ChangeStartAsync(int id, int sequence, CancellationToken ct = default)
-        {
-            if (sequence <= 0)
-                throw new InvalidOperationException("Start must be greater than zero.");
-
-            var entry = await GetAsync(id, ct);
-
-            var count = await _entries.Query().CountAsync(x => x.Year == entry.Year, ct);
-            if (count > 1)
-                throw new InvalidOperationException(
-                    $"Start of {entry.Year} is locked — entries have already been added after it.");
-
-            var number = Format(sequence, entry.Year);
-            entry.ChangeSequence(sequence, number);
-            _entries.Update(entry);
-            await _entries.SaveChangesAsync(ct);
-
-            return number;
-        }
+       
         public async Task LinkAsync(int id, EntityType entityType, int entityId,
             CancellationToken ct = default)
         {

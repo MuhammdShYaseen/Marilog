@@ -73,14 +73,6 @@ namespace Marilog.Client.Services.SystemServices
             await http.EnsureSuccessWithMessageAsync(ct);
         }
 
-        public async Task<string> ChangeStartAsync(int id, int sequence, CancellationToken ct = default)
-        {
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}/start",
-                new ChangeInboxStartRequest(sequence), ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-            return (await http.Content.ReadFromJsonAsync<string>(ct))!;
-        }
-
         public async Task LinkAsync(int id, EntityType entityType, int entityId,
             CancellationToken ct = default)
         {

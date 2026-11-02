@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.InboxEntryReport;
 using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -32,10 +31,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.VesselIds ?? [], request.Description, ct);
             return NoContent();
         }
-
-        [HttpPut("{id:int}/start")]
-        public async Task<IActionResult> ChangeStart(int id, ChangeInboxStartRequest request, CancellationToken ct)
-            => Ok(await _inbox.ChangeStartAsync(id, request.Sequence, ct));
 
         [HttpPost("{id:int}/links")]
         public async Task<IActionResult> Link(int id, LinkInboxEntryRequest request, CancellationToken ct)
