@@ -60,7 +60,7 @@ namespace Marilog.Application
             // ── Domain Services ───────────────────────────────────────────────────
             services.AddScoped<IPayrollCalculatorService, PayrollCalculatorService>();
             services.AddScoped<IInboxService, InboxService>();
-
+            services.AddScoped<InboxLinkResolver>();
             //---Contracts-----------------------
             services.AddScoped<IContractService, ContractService>();
 

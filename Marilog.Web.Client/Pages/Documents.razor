@@ -26,6 +26,7 @@
 @inject ISwiftTransferService SwiftTransferService
 @inject IPdfFileGeneratorService PdfService
 @inject IStoredFileService StoredFileService
+@inject IRecordCreator RecordCreator
 @inject IManageStoredFiles ManageStoredFiles
 
 @if (_loading)
@@ -199,27 +200,8 @@
 
     private async Task OpenAddDialog()
     {
-        var parameters = new DialogParameters
-        {
-            ["DocTypes"] = _docTypes,
-            ["Companies"] = _companies,
-            ["Currencies"] = _currencies,
-            ["Vessels"] = _vessels,
-            ["Ports"] = _ports,
-            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId),
-            ["GetVoyagesByVessel"] = async (int vesselId) => await VoyageService.GetByVesselAsync(vesselId),
-            ["GetDocByNumber"] = async (string docNumber) => await DocumentService.GetByNumberAsync(docNumber)
-        };
-
-        var dialog = await DialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
-        var result = await dialog.Result;
-        if (result is null || result.Canceled || result.Data is null) return;
-
-        var model = (CreateDocumentRequest)result.Data;
-        await DocumentService.CreateAsync
-        (
-            model
-        );
+        var id = await RecordCreator.CreateDocumentAsync();
+        if (id is null) return;
 
         Snackbar.Add("Document created.", Severity.Success);
         await LoadAsync();

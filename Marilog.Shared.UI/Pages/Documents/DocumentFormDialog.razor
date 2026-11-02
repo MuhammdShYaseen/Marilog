@@ -284,6 +284,9 @@
 
     [Parameter] public Func<string, Task<DocumentResponse>>? GetDocByNumber { get; set; }
 
+
+    [Parameter] public CreateDocumentRequest? Prefill { get; set; }
+
     private IReadOnlyList<DocumentResponse> AllDocs { get; set; } = [];
     private IReadOnlyList<VoyageResponse> AllVoyages { get; set; } = [];
 
@@ -381,6 +384,18 @@
 
         if (Document.VesselId.HasValue && GetVoyagesByVessel is not null)
             AllVoyages = await GetVoyagesByVessel(Document.VesselId.Value);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Document is not null || Prefill is null)
+            return;
+
+        _docDate = Prefill.DocDate;
+        _Reference = Prefill.Reference;
+
+        if (Prefill.VesselId.HasValue)
+            await OnVesselChanged(Prefill.VesselId);
     }
 
     private void Cancel()

@@ -2,6 +2,7 @@
 using Marilog.Contracts.DTOs.Reports.InboxEntryReport;
 using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
@@ -78,6 +79,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetbyId(int id, CancellationToken ct)
             => await _inbox.GetByIdAsync(id, ct) is { } entry ? Ok(entry) : NotFound();
+
+        [HttpGet("link-candidates")]
+        public async Task<IActionResult> SearchLinkCandidates([FromQuery] EntityType type, [FromQuery] string? search, CancellationToken ct)
+            => Ok(await _inbox.SearchLinkCandidatesAsync(type, search, ct));
 
 
     }

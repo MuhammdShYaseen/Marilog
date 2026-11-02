@@ -44,6 +44,10 @@ namespace Marilog.Client.Services.SystemServices
             return response ?? Empty(request.Page, request.PageSize);
         }
 
+        public async Task<List<LinkCandidateResponse>> SearchLinkCandidatesAsync(EntityType type, string? term, CancellationToken ct = default)
+            => await _http.GetCheckedAsync<List<LinkCandidateResponse>>(
+                $"{Base}/link-candidates?type={type}&search={Uri.EscapeDataString(term ?? string.Empty)}", ct) ?? [];
+
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<string> CreateAsync(DateOnly receivedDate, InboxSource source,

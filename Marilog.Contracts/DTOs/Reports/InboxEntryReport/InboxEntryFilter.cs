@@ -53,5 +53,10 @@ public string? SearchTerm { get; init; }
         public List<InboxEntryLinkResponse> Links { get; init; } = [];
     }
 
-    public record InboxEntryLinkResponse(int Id, EntityType EntityType, int EntityId);
+    public record InboxEntryLinkResponse(int Id, EntityType EntityType, int EntityId)
+    {
+        public string? Label { get; init; }
+    }
+
+    public record LinkCandidateResponse(int Id, string Label);
 }

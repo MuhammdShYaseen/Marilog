@@ -17,10 +17,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<InboxEntry> _entries;
         private readonly IRepository<InboxEntryLink> _links;
 
-        public InboxService(IRepository<InboxEntry> entries, IRepository<InboxEntryLink> links)
+        private readonly InboxLinkResolver _resolver;
+
+        public InboxService(IRepository<InboxEntry> entries, IRepository<InboxEntryLink> links, InboxLinkResolver resolver)
         {
             _entries = entries;
             _links = links;
+            _resolver = resolver;
         }
 
         //==== Commands ==========================================================================================
@@ -190,6 +193,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var entry = await GetAsync(id, ct);
 
+            if (entityType == EntityType.InboxEntry && entityId == id)
+                throw new InvalidOperationException("An entry can't be linked to itself.");
+
+            if (!await _resolver.ExistsAsync(entityType, entityId, ct))
+                throw new InvalidOperationException($"{entityType} {entityId} not found or can't be linked to an inbox entry.");
+
             var exists = await _links.Query().AnyAsync(x => x.InboxEntryId == id
                 && x.EntityType == entityType && x.EntityId == entityId, ct);
 
@@ -258,13 +267,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         //==== Quares ==========================================================================================
 
-        public async Task <InboxEntryResponse?> GetByIdAsync (int id, CancellationToken ct)
+        public async Task<InboxEntryResponse?> GetByIdAsync(int id, CancellationToken ct = default)
         {
-            return await _entries.Query()
-                                 .AsNoTracking()
-                                 .Where(i => i.Id == id)
-                                 .Select(ToResponse)
-                                 .FirstOrDefaultAsync(ct);
+            var item = await _entries.Query()
+                                     .AsNoTracking()
+                                     .Where(i => i.Id == id)
+                                     .Select(ToResponse)
+                                     .FirstOrDefaultAsync(ct);
+
+            if (item is null) return null;
+            return (await AttachLinksAsync([item], ct))[0];
         }
         public async Task<PagedResponse<InboxEntryResponse>> GetFilteredAsync(InboxEntryFilter filter, CancellationToken ct = default)
         {
@@ -347,6 +359,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
+        public Task<List<LinkCandidateResponse>> SearchLinkCandidatesAsync(EntityType type, string? term, CancellationToken ct = default)
+            => _resolver.SearchAsync(type, term, ct);
+
 
         //==== Privates ==========================================================================================
         private static readonly Expression<Func<InboxEntry, InboxEntryResponse>> ToResponse =
@@ -376,7 +391,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToListAsync(ct);
 
-            var byEntry = links.ToLookup(x => x.InboxEntryId, x => x.Link);
+            var labels = new Dictionary<(EntityType, int), string>();
+            foreach (var group in links.GroupBy(x => x.Link.EntityType))
+            {
+                ids = group.Select(x => x.Link.EntityId).Distinct().ToList();
+                foreach (var (entityId, label) in await _resolver.GetLabelsAsync(group.Key, ids, ct))
+                    labels[(group.Key, entityId)] = label;
+            }
+
+            var byEntry = links.ToLookup(x => x.InboxEntryId,
+                x => x.Link with { Label = labels.GetValueOrDefault((x.Link.EntityType, x.Link.EntityId)) });
 
             return items.Select(x => x with { Links = byEntry[x.Id].ToList() }).ToList();
         }

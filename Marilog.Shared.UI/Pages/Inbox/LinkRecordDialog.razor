@@ -1,0 +1,68 @@
+@using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Kernel.Enumerations
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Inbox
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="EntityType" Value="_type" ValueChanged="OnTypeChanged"
+                           Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var type in InboxLinkTargets.All)
+                    {
+                        <MudSelectItem T="EntityType" Value="type">@InboxTypeNames.Of(type)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                @* @key resets the search box when the type changes *@
+                <MudAutocomplete @key="_type"
+                                 T="LinkCandidateResponse"
+                                 @bind-Value="_selected"
+                                 SearchFunc="SearchAsync"
+                                 ToStringFunc="@(x => x?.Label)"
+                                 Label="Search"
+                                 DebounceInterval="300"
+                                 ResetValueOnEmptyText="true"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="_selected is null">
+            Link
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<EntityType, string?, Task<List<LinkCandidateResponse>>> Search { get; set; } = default!;
+
+    private EntityType _type = EntityType.Document;
+    private LinkCandidateResponse? _selected;
+
+    private void OnTypeChanged(EntityType type)
+    {
+        _type = type;
+        _selected = null;
+    }
+
+    private async Task<IEnumerable<LinkCandidateResponse>> SearchAsync(string? value, CancellationToken token)
+        => await Search(_type, value);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok((_type, _selected!.Id)));
+}

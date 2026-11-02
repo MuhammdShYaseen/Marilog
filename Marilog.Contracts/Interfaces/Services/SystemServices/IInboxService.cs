@@ -18,5 +18,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<InboxEntryResponse?> GetByIdAsync(int id, CancellationToken ct);
         Task<PagedResponse<InboxEntryResponse>> GetFilteredAsync(InboxEntryFilter filter, CancellationToken ct = default);
         Task<PagedResponse<InboxEntryResponse>> GetPagedAsync(PagedRequest request, CancellationToken ct = default);
+
+        Task<List<LinkCandidateResponse>> SearchLinkCandidatesAsync(EntityType type, string? term, CancellationToken ct = default);
     }
 }

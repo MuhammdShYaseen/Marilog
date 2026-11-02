@@ -2,6 +2,7 @@
 @page "/inbox-entry"
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.InboxEntryReport
+@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
 @using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Kernel.Enums
@@ -14,7 +15,7 @@
 @inject IDialogService DialogService
 @inject IManageStoredFiles ManageStoredFiles
 @inject ISnackbar Snackbar
-
+@inject IRecordCreator RecordCreator
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -30,6 +31,7 @@
                  OnProcessedClicked="MarkProcessed"
                  OnCancelClicked="ConfirmCancel"
                  OnDeleteClicked="ConfirmDelete"
+                 OnCreateFromClicked="CreateFrom"
                  OnAddLinkClicked="OpenLinkDialog"
                  OnUnlinkClicked="ConfirmUnlink"
                  OnOpenEntryClicked="OpenEntry" />
@@ -101,33 +103,21 @@
 
     private async Task OpenLinkDialog(InboxEntryResponse entry)
     {
-        var parameters = new DialogParameters { ["Year"] = entry.Year };
-        var dialog = await DialogService.ShowAsync<LinkInboxEntryDialog>($"Link {entry.Number} to", parameters);
+        // The entry itself is excluded from inbox results.
+        Func<EntityType, string?, Task<List<LinkCandidateResponse>>> search = async (type, term) =>
+            (await InboxService.SearchLinkCandidatesAsync(type, term))
+                .Where(x => !(type == EntityType.InboxEntry && x.Id == entry.Id))
+                .ToList();
+
+        var parameters = new DialogParameters { ["Search"] = search };
+        var dialog = await DialogService.ShowAsync<LinkRecordDialog>($"Link {entry.Number} to", parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
-        var (year, sequence) = ((int, int))result.Data!;
-        var matches = await InboxService.GetFilteredAsync(new InboxEntryFilter
-        {
-            Year = year,
-            SearchTerm = sequence.ToString(),
-            PageSize = 100
-        });
-        var target = matches.Items.FirstOrDefault(x => x.Sequence == sequence);
+        var (type, entityId) = ((EntityType, int))result.Data!;
+        await InboxService.LinkAsync(entry.Id, type, entityId);
 
-        if (target is null)
-        {
-            Snackbar.Add($"No entry {sequence} in {year}.", Severity.Warning);
-            return;
-        }
-        if (target.Id == entry.Id)
-        {
-            Snackbar.Add("An entry can't be linked to itself.", Severity.Warning);
-            return;
-        }
-
-        await InboxService.LinkAsync(entry.Id, EntityType.InboxEntry, target.Id);
-        Snackbar.Add($"{entry.Number} linked to {target.Number}.", Severity.Success);
+        Snackbar.Add($"{entry.Number} linked.", Severity.Success);
         await RefreshAsync(entry.Id);
     }
 
@@ -135,7 +125,7 @@
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Unlink",
-            $"Remove the link to {args.link.EntityType} #{args.link.EntityId}?",
+            $"Remove the link to {args.link.Label ?? $"{args.link.EntityType} #{args.link.EntityId}"}?",
             yesText: "Unlink",
             cancelText: "Back");
         if (confirmed != true) return;
@@ -185,5 +175,45 @@
 
         Snackbar.Add($"{entry.Number} updated.", Severity.Success);
         await LoadAsync(_filter);
+    }
+
+    private async Task CreateFrom((InboxEntryResponse entry, EntityType type) args)
+    {
+        switch (args.type)
+        {
+            case EntityType.Document:
+                await CreateDocumentFrom(args.entry);
+                break;
+        }
+    }
+
+    private async Task CreateDocumentFrom(InboxEntryResponse entry)
+    {
+        var prefill = new CreateDocumentRequest
+        {
+            DocDate = entry.ReceivedDate,
+            Reference = entry.Number,
+            VesselId = entry.VesselIds is { Count: 1 } ? entry.VesselIds[0] : (int?)null
+        };
+
+        var id = await RecordCreator.CreateDocumentAsync(prefill);
+        if (id is null) return;
+
+        await LinkCreated(entry, EntityType.Document, id.Value);
+    }
+
+    private async Task LinkCreated(InboxEntryResponse entry, EntityType type, int entityId)
+    {
+        try
+        {
+            await InboxService.LinkAsync(entry.Id, type, entityId);
+            Snackbar.Add($"{InboxTypeNames.Of(type)} created and linked to {entry.Number}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{InboxTypeNames.Of(type)} created, but linking to {entry.Number} failed: {ex.Message}", Severity.Warning);
+        }
+
+        await RefreshAsync(entry.Id);
     }
 }

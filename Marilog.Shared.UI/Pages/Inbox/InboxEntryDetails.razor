@@ -44,6 +44,15 @@
 
         @if (!Entry.IsCancelled)
         {
+            @foreach (var type in CreatableTypes)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => OnCreateFromClicked.InvokeAsync((Entry, type)))">
+                    New @InboxTypeNames.Of(type)
+                </MudButton>
+            }
+
             <MudTooltip Text="The number stays reserved">
                 <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" Style="text-transform:none"
                            StartIcon="@Icons.Material.Filled.Block"
@@ -109,9 +118,9 @@
                 <MudTabPanel Text="@($"Links ({Entry.Links.Count})")">
                     <div class="d-flex flex-wrap gap-1 mb-3">
                         <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Add"
+                                   StartIcon="@Icons.Material.Filled.AddLink"
                                    OnClick="() => OnAddLinkClicked.InvokeAsync(Entry)">
-                            Link to inbox entry
+                            Link existing
                         </MudButton>
                     </div>
 
@@ -125,7 +134,7 @@
                             <thead>
                                 <tr>
                                     <th>Type</th>
-                                    <th>Id</th>
+                                    <th>Record</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -133,8 +142,17 @@
                                 @foreach (var link in Entry.Links)
                                 {
                                     <tr>
-                                        <td>@link.EntityType</td>
-                                        <td>@link.EntityId</td>
+                                        <td>@InboxTypeNames.Of(link.EntityType)</td>
+                                        <td>
+                                            @if (link.Label is null)
+                                            {
+                                                <span class="az-muted">(deleted #@link.EntityId)</span>
+                                            }
+                                            else
+                                            {
+                                                @link.Label
+                                            }
+                                        </td>
                                         <td style="white-space:nowrap; text-align:right;">
                                             @if (link.EntityType == EntityType.InboxEntry)
                                             {
@@ -175,6 +193,10 @@
     [Parameter] public EventCallback<(InboxEntryResponse, InboxEntryLinkResponse)> OnUnlinkClicked { get; set; }
     [Parameter] public EventCallback<int> OnOpenEntryClicked { get; set; }
 
+
+    [Parameter] public EventCallback<(InboxEntryResponse, EntityType)> OnCreateFromClicked { get; set; }
+
+    private static readonly EntityType[] CreatableTypes = [EntityType.Document];
     private string StatusText =>
         Entry.IsCancelled ? "Cancelled" : Entry.IsProcessed ? "Processed" : "Pending";
 

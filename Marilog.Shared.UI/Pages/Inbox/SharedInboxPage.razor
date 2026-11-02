@@ -93,7 +93,7 @@
         {
             <div class="d-flex flex-wrap align-center justify-space-between mt-2">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @Result.TotalCount entries@(_pendingOnly ? " pending" : "")
+                    @Result.TotalCount @(Result.TotalCount == 1 ? "entry" : "entries")@(_pendingOnly ? " pending" : "")
                 </MudText>
                 @if (Result.TotalPages > 1)
                 {
@@ -121,6 +121,7 @@
                            OnProcessedClicked="OnProcessedClicked"
                            OnCancelClicked="OnCancelClicked"
                            OnDeleteClicked="OnDeleteClicked"
+                           OnCreateFromClicked="OnCreateFromClicked"
                            OnAddLinkClicked="OnAddLinkClicked"
                            OnUnlinkClicked="OnUnlinkClicked"
                            OnOpenEntryClicked="OnOpenEntryClicked" />
@@ -140,6 +141,7 @@
     [Parameter] public EventCallback<InboxEntryResponse> OnAddLinkClicked { get; set; }
     [Parameter] public EventCallback<(InboxEntryResponse, InboxEntryLinkResponse)> OnUnlinkClicked { get; set; }
     [Parameter] public EventCallback<int> OnOpenEntryClicked { get; set; }
+    [Parameter] public EventCallback<(InboxEntryResponse, EntityType)> OnCreateFromClicked { get; set; }
 
     private InboxEntryResponse? _selected;
     private bool _drawerOpen;
