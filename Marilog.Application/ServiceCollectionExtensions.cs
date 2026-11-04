@@ -4,6 +4,7 @@ using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Services.ApplicationServices.AuditLog;
+using Marilog.Application.Services.ApplicationServices.DocumentExtraction;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices;
 using Marilog.Application.Services.ApplicationServices.SystemServices;
@@ -15,6 +16,7 @@ using Marilog.Contracts.Interfaces.MapService;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
+using Marilog.Contracts.Interfaces.Services.DocumentExtraction;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,6 +131,9 @@ namespace Marilog.Application
 
             //---Inbox Entry----------------------------------
             services.AddScoped<IInboxService, InboxService>();
+
+            //----DocumentExtraction--------------------------
+            services.AddScoped<IDocumentExtractionService, DocumentExtractionService>();
             return services;
         }
     }

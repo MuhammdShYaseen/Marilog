@@ -1,5 +1,6 @@
 ﻿using Marilog.Application.EventHandlers;
 using Marilog.Application.Interfaces.DataManagment;
+using Marilog.Application.Interfaces.DocumentExtraction;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.LogService;
@@ -32,6 +33,7 @@ using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
 using Marilog.Infrastructure.Services.Audit;
 using Marilog.Infrastructure.Services.DataBackup;
+using Marilog.Infrastructure.Services.DocumentExtraction;
 using Marilog.Infrastructure.Services.EmailNotification;
 using Marilog.Infrastructure.Services.MapTiles;
 using Marilog.Infrastructure.Services.OnlineCurrencyProvider;
@@ -194,6 +196,10 @@ namespace Marilog.Infrastructure
 
                 http.Timeout = TimeSpan.FromSeconds(30);
             });
+
+
+            //====Document Extraction=============================================================
+            services.AddSingleton<IPdfWordReader, PdfPigWordReader>();
 
             return services;
 

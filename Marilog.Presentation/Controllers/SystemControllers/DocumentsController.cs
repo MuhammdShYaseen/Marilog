@@ -1,10 +1,8 @@
-﻿using Azure.Core;
-using Marilog.Application.Services.ApplicationServices.SystemServices;
-using Marilog.Contracts.Common;
+﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
-using Marilog.Contracts.DTOs.Requests.TagDtos;
 using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services.DocumentExtraction;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Kernel.Enums;
@@ -20,10 +18,11 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     public class DocumentsController : ControllerBase
     {
         private readonly IDocumentService _service;
-
-        public DocumentsController(IDocumentService service)
+        private readonly IDocumentExtractionService _extraction;
+        public DocumentsController(IDocumentService service, IDocumentExtractionService extraction)
         {
             _service = service;
+            _extraction = extraction;
         }
 
         // ─────────────────────────────────────────────
@@ -310,6 +309,33 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             await _service.RemoveAdjustmentAsync(adjustmentId, ct);
             return NoContent();
+        }
+
+        [RequirePermission(EntityType.Document, PermissionAction.Create)]
+
+        [HttpPost("extract/debug")]
+        public async Task<IActionResult> ExtractDebug(IFormFile file, CancellationToken ct)
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms, ct);
+            return Ok(await _extraction.DebugAsync(ms.ToArray(), ct));
+        }
+
+        [RequirePermission(EntityType.Document, PermissionAction.Create)]
+        [HttpPost("extract")]
+        [RequestSizeLimit(100 * 1024 * 1024)]
+        public async Task<IActionResult> Extract([FromForm] List<IFormFile> files, CancellationToken ct)
+        {
+            var input = new List<ExtractionFile>();
+
+            foreach (var file in files)
+            {
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms, ct);
+                input.Add(new ExtractionFile(file.FileName, ms.ToArray()));
+            }
+
+            return Ok(await _extraction.ExtractAsync(input, ct));
         }
     }
 }
