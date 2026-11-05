@@ -32,8 +32,8 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
 
         // Who is being billed.
         private static readonly Regex[] AddresseeLabels = SideLabels(
-            @"INVOICE\s*TO", @"BILL\s*TO", @"BUYER", @"CUSTOMER(?:\s*NAME)?", @"CHARTERERS?",
-            @"COMPANY\s*NAME", @"NAME\s*OF\s*THE\s*COMPANY", @"MESS(?:RS|ES)", @"M/S", @"TO");
+     @"INVOICE\s*TO", @"BILL(?:ED)?\s*TO", @"BUYER", @"CUSTOMER(?:\s*NAME)?", @"CHARTERERS?",
+     @"COMPANY\s*NAME", @"NAME\s*OF\s*THE\s*COMPANY", @"MESS(?:RS|ES)", @"M/S", @"TO");
 
         public DocumentExtractionService(
             IPdfWordReader reader,
@@ -59,6 +59,9 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             var notes = new List<string>();
             var extracted = new List<(string FileName, ExtractedDocument Doc)>();
 
+            // Loaded first: the header extractor needs the currency codes and symbols.
+            var lookups = await LoadLookupsAsync(ct);
+
             foreach (var file in files)
             {
                 IReadOnlyList<PdfPageWords> pdfPages;
@@ -75,6 +78,10 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
 
                 var pages = new List<(int, IReadOnlyList<TextLine>, ExtractedHeader)>();
 
+                // A payment advice, and the SWIFT message pages printed after it, is not a document to post;
+                // its debtor account (ours) would also flip the side detection of the invoice it is attached to.
+                var inAdvice = false;
+
                 foreach (var page in pdfPages)
                 {
                     if (!page.HasTextLayer)
@@ -84,22 +91,29 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                     }
 
                     var lines = LineGrouper.Group(page.Words);
-                    var header = HeaderExtractor.Extract(lines);
+                    var header = HeaderExtractor.Extract(lines, lookups.CurrencyCatalog);
 
-                    if (string.Equals(header.Title, "STATEMENT OF ACCOUNT", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(header.Title, "PAYMENT ADVICE", StringComparison.OrdinalIgnoreCase))
                     {
-                        notes.Add($"{file.FileName} — page {page.Number}: statement of account — skipped.");
+                        inAdvice = true;
+                        notes.Add($"{file.FileName} — page {page.Number}: payment advice — skipped.");
                         continue;
                     }
 
+                    // Pages after the advice belong to it until a page starts a new document.
+                    if (inAdvice && header.DocNumber is null && header.TotalAmount is null)
+                    {
+                        notes.Add($"{file.FileName} — page {page.Number}: part of the payment advice — skipped.");
+                        continue;
+                    }
+
+                    inAdvice = false;
                     pages.Add((page.Number, lines, header));
                 }
 
                 foreach (var doc in DocumentGrouper.Group(pages))
                     extracted.Add((file.FileName, doc));
             }
-
-            var lookups = await LoadLookupsAsync(ct);
 
             if (extracted.Count == 0)
                 return new ExtractionResponse([], notes, ToDto(lookups));
@@ -144,6 +158,9 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             warnings.Add(sideReasons.Count > 0
                 ? $"Side: {(isRevenue ? "Revenue" : "Expense")} — {string.Join("; ", sideReasons)}"
                 : "Side: Expense (default — no side signal found on the document)");
+
+            if (string.Equals(h.Title, "STATEMENT OF ACCOUNT", StringComparison.OrdinalIgnoreCase))
+                warnings.Add("Statement of account — post it only when its detailed invoices are not recorded separately; otherwise remove this row");
 
             // Counterparty: known IBAN, then exact email, then company name.
             var counterparties = lk.Suppliers.Where(s => s.Ids.Any(normalized.Contains)).ToList();
@@ -304,8 +321,9 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 }
             }
 
-            // D. Issuer: the first lines of the document.
-            var top = ExtractionParsers.NormalizeId(string.Join(' ', lines.Take(3).Select(l => l.Text)));
+            // D. Issuer: the letterhead, i.e. the first line only.
+            // Lines 2–3 often hold the addressee ("WKA OCEAN SHIPPING - SOA"), so they say nothing about who issued it.
+            var top = lines.Count > 0 ? ExtractionParsers.NormalizeId(lines[0].Text) : "";
             if (NameIn(lk.Owns, top) is { } ownTop)
             {
                 score += 1;
@@ -400,6 +418,7 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             public List<NamedRef> Currencies { get; init; } = [];
             public List<NamedRef> Ports { get; init; } = [];
             public List<DocTypeRef> DocTypes { get; init; } = [];
+            public CurrencyCatalog CurrencyCatalog { get; init; } = default!;
         }
 
         private async Task<Lookups> LoadLookupsAsync(CancellationToken ct)
@@ -430,6 +449,8 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 .Select(d => new { d.Id, d.Code, d.Name })
                 .ToListAsync(ct);
 
+            var (currencyRefs, currencyCatalog) = await LoadCurrenciesAsync(ct);
+
             return new Lookups
             {
                 OwnCompanyId = own.Count == 1 ? own[0] : null,
@@ -447,8 +468,10 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 Companies = companies.Select(c => new NamedRef(c.Id, c.CompanyName)).ToList(),
 
                 Vessels = await _vessels.Query().Select(v => new VesselRef(v.Id, v.VesselName, v.IMONumber)).ToListAsync(ct),
-                Currencies = await _currencies.Query().Select(c => new NamedRef(c.Id, c.CurrencyCode)).ToListAsync(ct),
                 Ports = await _ports.Query().Select(p => new NamedRef(p.Id, p.PortName)).ToListAsync(ct),
+
+                Currencies = currencyRefs,
+                CurrencyCatalog = currencyCatalog,
 
                 DocTypes = docTypes
                     .Select(d => new DocTypeRef(
@@ -461,6 +484,17 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                             .ToList()))
                     .ToList()
             };
+        }
+
+        // Currency codes for resolution, plus codes and symbols for reading the page.
+        private async Task<(List<NamedRef> Refs, CurrencyCatalog Catalog)> LoadCurrenciesAsync(CancellationToken ct)
+        {
+            var rows = await _currencies.Query()
+                .Select(c => new { c.Id, c.CurrencyCode, c.Symbol })
+                .ToListAsync(ct);
+
+            return (rows.Select(c => new NamedRef(c.Id, c.CurrencyCode)).ToList(),
+                    new CurrencyCatalog(rows.Select(c => (c.CurrencyCode, c.Symbol))));
         }
 
         private static ExtractionLookups ToDto(Lookups lk)
@@ -476,9 +510,11 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
         }
 
         // ── Debug ────────────────────────────────────────────────────────
-        public Task<IReadOnlyList<ExtractionDebugPage>> DebugAsync(byte[] pdf, CancellationToken ct = default)
+        public async Task<IReadOnlyList<ExtractionDebugPage>> DebugAsync(byte[] pdf, CancellationToken ct = default)
         {
-            IReadOnlyList<ExtractionDebugPage> pages = _reader.Read(pdf)
+            var (_, currencies) = await LoadCurrenciesAsync(ct);
+
+            return _reader.Read(pdf)
                 .Select(page =>
                 {
                     if (!page.HasTextLayer)
@@ -490,11 +526,9 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                         page.Number,
                         true,
                         lines.Select(l => string.Join("  |  ", l.Segments())).ToList(),
-                        HeaderExtractor.Extract(lines));
+                        HeaderExtractor.Extract(lines, currencies));
                 })
                 .ToList();
-
-            return Task.FromResult(pages);
         }
     }
 }

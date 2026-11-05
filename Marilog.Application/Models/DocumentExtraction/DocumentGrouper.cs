@@ -12,10 +12,13 @@ namespace Marilog.Application.Models.DocumentExtraction
 
             foreach (var (page, lines, header) in pages)
             {
+                // New document: a different number, or a page with its own total AND its own number or date.
+                // A page with a total but no number and no date continues the current document (page 2 of a hire statement).
                 var startsNew = current is null
                     || (header.DocNumber is not null && current.Header.DocNumber is not null &&
                         !string.Equals(header.DocNumber, current.Header.DocNumber, StringComparison.OrdinalIgnoreCase))
-                    || (header.TotalAmount is not null && current.Header.TotalAmount is not null);
+                    || (header.TotalAmount is not null && current.Header.TotalAmount is not null &&
+                        (header.DocNumber is not null || header.DocDate is not null));
 
                 if (startsNew)
                 {
@@ -39,9 +42,9 @@ namespace Marilog.Application.Models.DocumentExtraction
             DocNumber = a.DocNumber ?? b.DocNumber,
             DocDate = a.DocDate ?? b.DocDate,
             DocDue = a.DocDue ?? b.DocDue,
-            TotalAmount = a.TotalAmount ?? b.TotalAmount,
-            // When the total comes from the later page, its currency comes with it.
-            Currency = a.TotalAmount is null && b.TotalAmount is not null
+            TotalAmount = b.TotalAmount ?? a.TotalAmount,
+            // The later page's total is the document's total; its currency comes with it.
+            Currency = b.TotalAmount is not null
                 ? b.Currency ?? a.Currency
                 : a.Currency ?? b.Currency,
             Imo = a.Imo ?? b.Imo,

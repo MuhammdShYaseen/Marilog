@@ -95,8 +95,9 @@ namespace Marilog.Application.Models.DocumentExtraction
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         // Numeric, day first: "02/11/2026"  "07.09.2026"  "07-10-2026"  "DATE:07.09.2026"
+        // Numeric, day first: "02/11/2026"  "07.09.2026"  "07-10-2026"  "DATE:07.09.2026"  "18 / 7 /2026"
         private static readonly Regex NumericDate = new(
-            @"(?<![0-9])(?<d>[0-9]{1,2})[./-](?<m>[0-9]{1,2})[./-](?<y>[0-9]{4}|[0-9]{2})(?![0-9])",
+            @"(?<![0-9])(?<d>[0-9]{1,2})\s*[./-]\s*(?<m>[0-9]{1,2})\s*[./-]\s*(?<y>[0-9]{4}|[0-9]{2})(?![0-9])",
             RegexOptions.Compiled);
 
         private static readonly string[] Months =
