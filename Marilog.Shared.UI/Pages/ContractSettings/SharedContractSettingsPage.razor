@@ -1,0 +1,92 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ContractSettings
+
+@* Contract types and party roles — both are simple user-managed lookups,
+   so they share one table component and one edit dialog. *@
+<div class="az-contract-settings">
+<MudPaper Class="pa-4" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-2">Contract types &amp; roles</MudText>
+
+    <MudTabs Elevation="0" Rounded="false" PanelClass="pt-2">
+        <MudTabPanel Text="@($"Contract types ({Types.Count})")">
+            <ContractLookupTable Items="@Types"
+                                 ItemLabel="type"
+                                 IsLoading="@IsLoading"
+                                 OnAddClicked="@(() => OnAddClicked.InvokeAsync(LookupKind.Type))"
+                                 OnEditClicked="@(i => OnEditClicked.InvokeAsync((LookupKind.Type, i)))"
+                                 OnToggleActiveClicked="@(i => OnToggleActiveClicked.InvokeAsync((LookupKind.Type, i)))"
+                                 OnDeleteClicked="@(i => OnDeleteClicked.InvokeAsync((LookupKind.Type, i)))" />
+        </MudTabPanel>
+
+        <MudTabPanel Text="@($"Party roles ({Roles.Count})")">
+            <ContractLookupTable Items="@Roles"
+                                 ItemLabel="role"
+                                 IsLoading="@IsLoading"
+                                 OnAddClicked="@(() => OnAddClicked.InvokeAsync(LookupKind.Role))"
+                                 OnEditClicked="@(i => OnEditClicked.InvokeAsync((LookupKind.Role, i)))"
+                                 OnToggleActiveClicked="@(i => OnToggleActiveClicked.InvokeAsync((LookupKind.Role, i)))"
+                                 OnDeleteClicked="@(i => OnDeleteClicked.InvokeAsync((LookupKind.Role, i)))" />
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+</div>
+
+<style>
+    .az-contract-settings .az-commandbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-contract-settings .mud-tab {
+        text-transform: none;
+        min-width: 0;
+    }
+
+    .az-contract-settings .mud-table-head .mud-table-cell {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-contract-settings .mud-table-cell {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .az-contract-settings .az-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .az-contract-settings .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-contract-settings .az-actions {
+        width: 1%;
+        white-space: nowrap;
+    }
+</style>
+
+@code {
+    public enum LookupKind { Type, Role }
+
+    [Parameter] public IReadOnlyList<ContractLookupResponse> Types { get; set; } = [];
+    [Parameter] public IReadOnlyList<ContractLookupResponse> Roles { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback<LookupKind> OnAddClicked { get; set; }
+    [Parameter] public EventCallback<(LookupKind Kind, ContractLookupResponse Item)> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<(LookupKind Kind, ContractLookupResponse Item)> OnToggleActiveClicked { get; set; }
+    [Parameter] public EventCallback<(LookupKind Kind, ContractLookupResponse Item)> OnDeleteClicked { get; set; }
+}

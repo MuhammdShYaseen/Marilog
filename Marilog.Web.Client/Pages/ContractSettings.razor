@@ -1,0 +1,117 @@
+@page "/admin/contract-settings"
+@using Marilog.Contracts.DTOs.Requests.ContractLookupDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.ContractSettings
+@using MudBlazor
+@inject IContractTypeService ContractTypeService
+@inject IContractRoleService ContractRoleService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Thin host for contract types + party roles. Only this file touches the two services. *@
+<SharedContractSettingsPage Types="@_types"
+                            Roles="@_roles"
+                            IsLoading="@_loading"
+                            OnAddClicked="@AddAsync"
+                            OnEditClicked="@EditAsync"
+                            OnToggleActiveClicked="@ToggleActiveAsync"
+                            OnDeleteClicked="@DeleteAsync" />
+
+@code {
+    private IReadOnlyList<ContractLookupResponse> _types = [];
+    private IReadOnlyList<ContractLookupResponse> _roles = [];
+    private bool _loading;
+
+    private static readonly DialogOptions Options = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        await TryAsync(async () =>
+        {
+            _types = await ContractTypeService.GetAllAsync();
+            _roles = await ContractRoleService.GetAllAsync();
+        }, null);
+        _loading = false;
+    }
+
+    private static string Label(SharedContractSettingsPage.LookupKind kind) =>
+        kind == SharedContractSettingsPage.LookupKind.Type ? "contract type" : "role";
+
+    private async Task AddAsync(SharedContractSettingsPage.LookupKind kind)
+    {
+        var dialog = await DialogService.ShowAsync<ContractLookupEditDialog>($"New {Label(kind)}", Options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: CreateContractLookupRequest r }) return;
+
+        await TryAsync(() => kind == SharedContractSettingsPage.LookupKind.Type
+                ? ContractTypeService.CreateAsync(r.Code, r.Name, r.SortOrder)
+                : ContractRoleService.CreateAsync(r.Code, r.Name, r.SortOrder),
+            $"{Label(kind)} created.");
+    }
+
+    private async Task EditAsync((SharedContractSettingsPage.LookupKind Kind, ContractLookupResponse Item) arg)
+    {
+        var parameters = new DialogParameters<ContractLookupEditDialog> { { x => x.Existing, arg.Item } };
+        var dialog = await DialogService.ShowAsync<ContractLookupEditDialog>($"Edit {Label(arg.Kind)} — {arg.Item.Code}", parameters, Options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: UpdateContractLookupRequest r }) return;
+
+        await TryAsync(() => arg.Kind == SharedContractSettingsPage.LookupKind.Type
+                ? ContractTypeService.UpdateAsync(arg.Item.Id, r.Name, r.SortOrder)
+                : ContractRoleService.UpdateAsync(arg.Item.Id, r.Name, r.SortOrder),
+            $"{Label(arg.Kind)} updated.");
+    }
+
+    private Task ToggleActiveAsync((SharedContractSettingsPage.LookupKind Kind, ContractLookupResponse Item) arg)
+    {
+        var id = arg.Item.Id;
+        var isType = arg.Kind == SharedContractSettingsPage.LookupKind.Type;
+
+        Func<Task> action = arg.Item.IsActive
+            ? (isType ? () => ContractTypeService.DeactivateAsync(id) : () => ContractRoleService.DeactivateAsync(id))
+            : (isType ? () => ContractTypeService.ActivateAsync(id) : () => ContractRoleService.ActivateAsync(id));
+
+        return TryAsync(action, $"{Label(arg.Kind)} {(arg.Item.IsActive ? "deactivated" : "activated")}.");
+    }
+
+    private async Task DeleteAsync((SharedContractSettingsPage.LookupKind Kind, ContractLookupResponse Item) arg)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            $"Delete {Label(arg.Kind)}",
+            $"Delete '{arg.Item.Name}'? If it's already used in contracts it can't be deleted — deactivate it instead.",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await TryAsync(() => arg.Kind == SharedContractSettingsPage.LookupKind.Type
+                ? ContractTypeService.DeleteAsync(arg.Item.Id)
+                : ContractRoleService.DeleteAsync(arg.Item.Id),
+            $"{Label(arg.Kind)} deleted.");
+    }
+
+    /// <summary>Runs the call; on success shows the message and reloads; on failure shows the server's message.</summary>
+    private async Task TryAsync(Func<Task> action, string? successMessage)
+    {
+        try
+        {
+            await action();
+            if (successMessage is null) return;
+
+            Snackbar.Add(char.ToUpper(successMessage[0]) + successMessage[1..], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

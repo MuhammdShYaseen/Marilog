@@ -1,68 +1,67 @@
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
-@using Marilog.Kernel.Enumerations
+@using Marilog.Contracts.DTOs.Responses
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Contracts
 
+@* One dialog for Create and Edit. Expiry is editable here only while Draft —
+   after that it changes through "Change expiry" (recorded as an amendment). *@
 <MudDialog>
     <DialogContent>
-        <MudGrid>
+        <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_contractNumber"
-                              Label="Contract Number"
+                <MudTextField T="string" @bind-Value="_contractNumber"
+                              Label="Contract number"
                               Required="true"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudSelect T="ContractType"
-                           @bind-Value="_type"
+                <MudSelect T="int" @bind-Value="_contractTypeId"
                            Label="Type"
                            Required="true"
                            Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-
-                    <MudSelectItem Value="ContractType.CharterParty">
-                        Charter Party
-                    </MudSelectItem>
-
-                    <MudSelectItem Value="ContractType.Supplier">
-                        Supplier
-                    </MudSelectItem>
-
-                    <MudSelectItem Value="ContractType.Agency">
-                        Agency
-                    </MudSelectItem>
-
+                           Margin="Margin.Dense"
+                           HelperText="@(SelectableTypes.Any() ? null : "No contract types yet — add them under Types & roles")">
+                    @foreach (var t in SelectableTypes)
+                    {
+                        <MudSelectItem Value="@t.Id">@t.Name</MudSelectItem>
+                    }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="_effectiveDate"
-                               Label="Effective Date"
+                               Label="Effective date"
                                Required="true"
+                               DateFormat="dd MMM yyyy"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="_expiryDate"
-                               Label="Expiry Date"
+                               Label="Expiry date"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true"
+                               Disabled="@_expiryLocked"
+                               HelperText="@(_expiryLocked ? "Use 'Change expiry' in the Amendments tab" : null)"
+                               Error="@_expiryInvalid"
+                               ErrorText="Expiry must be after the effective date"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_notes"
+                <MudTextField T="string" @bind-Value="_notes"
                               Label="Notes"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
-                              Lines="3" />
+                              Lines="4" />
             </MudItem>
         </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="Submit"
-                   Disabled="@(string.IsNullOrWhiteSpace(_contractNumber) || _type == null || _effectiveDate is null)">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(!_isValid)"
+                   OnClick="Submit">
             Save
         </MudButton>
     </DialogActions>
@@ -70,23 +69,48 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public int? ContractId { get; set; }
+
+    [Parameter] public IReadOnlyList<ContractLookupResponse> ContractTypes { get; set; } = [];
+
+    /// <summary>Null => Create. Non-null => Edit.</summary>
+    [Parameter] public ContractDetailResponse? Existing { get; set; }
 
     private string _contractNumber = string.Empty;
-    private ContractType _type = ContractType.CharterParty;
-    private DateTime? _effectiveDate;
+    private int _contractTypeId;
+    private DateTime? _effectiveDate = DateTime.Today;
     private DateTime? _expiryDate;
     private string? _notes;
+    private bool _expiryLocked;
+
+    // Active types + the contract's current type (even if it was deactivated later).
+    private IEnumerable<ContractLookupResponse> SelectableTypes =>
+        ContractTypes.Where(t => t.IsActive || t.Id == Existing?.ContractTypeId);
+
+    private bool _expiryInvalid =>
+        _expiryDate.HasValue && _effectiveDate.HasValue && _expiryDate.Value.Date <= _effectiveDate.Value.Date;
+
+    private bool _isValid =>
+        !string.IsNullOrWhiteSpace(_contractNumber) && _contractTypeId > 0 && _effectiveDate.HasValue && !_expiryInvalid;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+            return;
+
+        _contractNumber = Existing.ContractNumber;
+        _contractTypeId = Existing.ContractTypeId;
+        _effectiveDate = Existing.EffectiveDate.ToDateTime(TimeOnly.MinValue);
+        _expiryDate = Existing.ExpiryDate?.ToDateTime(TimeOnly.MinValue);
+        _notes = Existing.Notes;
+        _expiryLocked = Existing.Status != "Draft";
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new 
-        CreateContractRequest
-        (
-            _contractNumber,
-            _type.Name,
-            DateOnly.FromDateTime(_effectiveDate!.Value),
-            _expiryDate.HasValue ? DateOnly.FromDateTime(_expiryDate.Value) : null,
-            _notes
-        )));
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateContractRequest(
+        _contractNumber.Trim(),
+        _contractTypeId,
+        DateOnly.FromDateTime(_effectiveDate!.Value),
+        _expiryDate.HasValue ? DateOnly.FromDateTime(_expiryDate.Value) : null,
+        string.IsNullOrWhiteSpace(_notes) ? null : _notes)));
 }

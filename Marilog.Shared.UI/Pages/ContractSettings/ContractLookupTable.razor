@@ -1,0 +1,65 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ContractSettings
+
+<div class="az-commandbar">
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => OnAddClicked.InvokeAsync())">
+        New @ItemLabel
+    </MudButton>
+</div>
+
+<MudDataGrid T="ContractLookupResponse"
+             Items="@Items.OrderBy(x => x.SortOrder).ThenBy(x => x.Name)"
+             Loading="@IsLoading"
+             Dense="true"
+             Hover="true"
+             Elevation="0"
+             Outlined="true"
+             Square="true"
+             SortMode="SortMode.None"
+             Breakpoint="Breakpoint.Sm">
+    <Columns>
+        <PropertyColumn Property="x => x.Code" Title="Code" />
+        <PropertyColumn Property="x => x.Name" Title="Name" />
+        <PropertyColumn Property="x => x.SortOrder" Title="Order" />
+        <TemplateColumn Title="Status">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                             Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                             Style="font-size:10px" />
+                    @(context.Item.IsActive ? "Active" : "Inactive")
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="" CellClass="az-actions">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                               OnClick="@(() => OnEditClicked.InvokeAsync(context.Item))" />
+                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                               Size="Size.Small"
+                               Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                               title="@(context.Item.IsActive ? "Deactivate" : "Activate")"
+                               OnClick="@(() => OnToggleActiveClicked.InvokeAsync(context.Item))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="Delete"
+                               OnClick="@(() => OnDeleteClicked.InvokeAsync(context.Item))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <div class="az-muted pa-4">Nothing added yet.</div>
+    </NoRecordsContent>
+</MudDataGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<ContractLookupResponse> Items { get; set; } = [];
+    [Parameter] public string ItemLabel { get; set; } = "item";
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback<ContractLookupResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<ContractLookupResponse> OnToggleActiveClicked { get; set; }
+    [Parameter] public EventCallback<ContractLookupResponse> OnDeleteClicked { get; set; }
+}

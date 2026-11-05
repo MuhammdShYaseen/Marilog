@@ -1,54 +1,42 @@
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using Marilog.Contracts.DTOs.Responses
-@using Marilog.Kernel.Enums
 @using MudBlazor
-@namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
+@namespace Marilog.Shared.UI.Pages.Contracts
 
 <MudDialog>
     <DialogContent>
-        <MudGrid>
+        <MudGrid Spacing="2">
             <MudItem xs="12">
-                <MudSelect T="int"
-                           @bind-Value="_companyId"
-                           Label="Company"
-                           Required="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-
-                    @foreach (var company in Companies)
-                    {
-                        <MudSelectItem Value="@company.Id">
-                            @company.Name
-                        </MudSelectItem>
-                    }
-
-                </MudSelect>
+                <MudAutocomplete T="CompanyResponse" @bind-Value="_company"
+                                 Label="Company"
+                                 Required="true"
+                                 SearchFunc="SearchCompanies"
+                                 ToStringFunc="@(c => c?.Name)"
+                                 ResetValueOnEmptyText="true"
+                                 MaxItems="50"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12">
-                <MudSelect T="ContractRole"
-                           @bind-Value="_role"
+                <MudSelect T="int" @bind-Value="_roleId"
                            Label="Role"
                            Required="true"
                            Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-
-                    @foreach (ContractRole role in Enum.GetValues(typeof(ContractRole)))
+                           Margin="Margin.Dense"
+                           HelperText="@(Roles.Any() ? null : "No roles yet — add them under Types & roles")">
+                    @foreach (var role in Roles.Where(r => r.IsActive))
                     {
-                        <MudSelectItem Value="@role">
-                            @role.ToString()
-                        </MudSelectItem>
+                        <MudSelectItem Value="@role.Id">@role.Name</MudSelectItem>
                     }
-
                 </MudSelect>
             </MudItem>
         </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="Submit"
-                   Disabled="@(_companyId <= 0 || string.IsNullOrWhiteSpace(_role.ToString()))">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_company is null || _roleId <= 0)"
+                   OnClick="Submit">
             Add
         </MudButton>
     </DialogActions>
@@ -57,11 +45,20 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
-    private int _companyId;
-    private ContractRole _role = ContractRole.Owner;
+    [Parameter] public IReadOnlyList<ContractLookupResponse> Roles { get; set; } = [];
+
+    private CompanyResponse? _company;
+    private int _roleId;
+
+    private Task<IEnumerable<CompanyResponse>> SearchCompanies(string? text, CancellationToken token)
+    {
+        IEnumerable<CompanyResponse> result = string.IsNullOrWhiteSpace(text)
+            ? Companies
+            : Companies.Where(c => c.Name.Contains(text, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(result);
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new PartyRequest(_companyId, _role.ToString())));
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new PartyRequest(_company!.Id, _roleId)));
 }

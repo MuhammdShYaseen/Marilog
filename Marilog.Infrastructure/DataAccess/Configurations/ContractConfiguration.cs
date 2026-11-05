@@ -1,5 +1,4 @@
 ﻿// Infrastructure/Persistence/Configurations/ContractConfiguration.cs
-using Marilog.Domain.Entities.LaytimeEntities;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.ValueObjects.Contract;
 using Marilog.Kernel.Enumerations;
@@ -22,12 +21,15 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                 .IsRequired()
                 .HasMaxLength(50);
 
-            builder.Property(c => c.Type)
+            // Column name kept as "TypeId" so existing rows keep their type.
+            builder.Property(c => c.ContractTypeId)
                 .IsRequired()
-                .HasConversion(
-                    v => v.Id,
-                    v => ContractType.FromId(v))
                 .HasColumnName("TypeId");
+
+            builder.HasOne(c => c.ContractType)
+                .WithMany()
+                .HasForeignKey(c => c.ContractTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(c => c.Status)
                 .IsRequired()
@@ -46,25 +48,20 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(c => c.Notes)
                 .HasMaxLength(2000);
 
-            builder.Property(c => c.ContractFileUrl)
-                .HasMaxLength(500);
-
-            builder.Property(c => c.ContractFileName)
-                .HasMaxLength(200);
-
             // ─── Parties ──────────────────────────────────────────────────────
             builder.OwnsMany(c => c.Parties, b =>
             {
                 b.WithOwner().HasForeignKey("ContractId");
                 b.ToTable("ContractParties");
-                b.HasKey("ContractId", nameof(ContractParty.CompanyId), nameof(ContractParty.Role));
+                b.HasKey("ContractId", nameof(ContractParty.CompanyId), nameof(ContractParty.RoleId));
 
                 b.Property(p => p.CompanyId).IsRequired();
+                b.Property(p => p.RoleId).IsRequired();
 
-                b.Property(p => p.Role)
-                    .IsRequired()
-                    .HasConversion<string>()    // ✅ "Owner" في DB
-                    .HasMaxLength(30);
+                b.HasOne<ContractRole>()
+                    .WithMany()
+                    .HasForeignKey(p => p.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Navigation(c => c.Parties)
@@ -101,14 +98,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Navigation(c => c.Amendments)
                 .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-            //-- CharterTerms----------------------------------------------------
-            builder.HasOne(x => x.CharterTerms)
-                   .WithOne()
-                   .HasForeignKey<CharterTerms>(x => x.ContractId)
-                   .OnDelete(DeleteBehavior.Cascade);
-            builder.Navigation(x => x.CharterTerms)
-                   .UsePropertyAccessMode(
-                       PropertyAccessMode.Field);
+            // CharterTerms (1:1) is configured in CharterTermsConfiguration.
 
             // ─── Indexes ──────────────────────────────────────────────────────
             builder.HasIndex(c => c.ContractNumber).IsUnique();

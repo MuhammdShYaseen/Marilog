@@ -1,0 +1,39 @@
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts
+
+@* Used for Suspend and Terminate. The reason is saved in the contract notes. *@
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@Message</MudText>
+        }
+        <MudTextField T="string" @bind-Value="_reason"
+                      Label="Reason"
+                      Required="true"
+                      Immediate="true"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Lines="3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="@ButtonColor"
+                   Disabled="@string.IsNullOrWhiteSpace(_reason)"
+                   OnClick="Submit">
+            @ButtonText
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string ButtonText { get; set; } = "Confirm";
+    [Parameter] public Color ButtonColor { get; set; } = Color.Primary;
+
+    private string _reason = string.Empty;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_reason.Trim()));
+}

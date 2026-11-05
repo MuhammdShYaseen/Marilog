@@ -1,0 +1,259 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts
+
+<div class="d-flex flex-column" style="height:100%;">
+
+    @* ── Title ── *@
+    <div class="d-flex align-start justify-space-between px-4 pt-4">
+        <div>
+            <MudText Typo="Typo.h6">@Contract.ContractNumber</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@Contract.Type · @Contract.Status</MudText>
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                       OnClick="@(() => OnClose.InvokeAsync())" />
+    </div>
+
+    @* ── Command bar ── *@
+    <div class="d-flex flex-wrap align-center gap-1 px-2 py-1 mt-2"
+         style="border-top:1px solid var(--mud-palette-lines-default); border-bottom:1px solid var(--mud-palette-lines-default);">
+
+        @if (!_closed)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => OnEditClicked.InvokeAsync(Contract.Id))">
+                Edit
+            </MudButton>
+        }
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Receipt"
+                   OnClick="@(() => OnManageAttachedFilesClicked.InvokeAsync((Contract.Id, EntityType.AContract)))">
+            Files
+        </MudButton>
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Filled.Timer"
+                   OnClick="@(() => OnCharterTermsClicked.InvokeAsync(Contract.Id))">
+            @(Contract.HasCharterTerms ? "Charter terms" : "Set up charter terms")
+        </MudButton>
+
+        @if (ContractUi.CanActivate(Contract.Status))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.PlayCircle"
+                       OnClick="@(() => OnActivateClicked.InvokeAsync(Contract.Id))">
+                @(Contract.Status == "Suspended" ? "Resume" : "Activate")
+            </MudButton>
+        }
+        @if (ContractUi.CanSuspend(Contract.Status))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.PauseCircle"
+                       OnClick="@(() => OnSuspendClicked.InvokeAsync(Contract.Id))">
+                Suspend
+            </MudButton>
+        }
+        @if (ContractUi.CanTerminate(Contract.Status))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       OnClick="@(() => OnTerminateClicked.InvokeAsync(Contract.Id))">
+                Terminate
+            </MudButton>
+        }
+        @if (ContractUi.CanMarkExpired(Contract.Status, Contract.ExpiryDate))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.EventBusy"
+                       OnClick="@(() => OnMarkExpiredClicked.InvokeAsync(Contract.Id))">
+                Mark expired
+            </MudButton>
+        }
+        @if (ContractUi.CanDelete(Contract.Status))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Style="text-transform:none"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@(() => OnDeleteClicked.InvokeAsync(Contract.Id))">
+                Delete
+            </MudButton>
+        }
+    </div>
+
+    @if (IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Size="Size.Small" />
+    }
+
+    <div class="pa-4" style="overflow-y:auto; flex:1;">
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pt-3" MinimumTabWidth="0px">
+
+            @* ── Essentials ── *@
+            <MudTabPanel Text="Essentials">
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">@Field("Contract no.", Contract.ContractNumber)</MudItem>
+                    <MudItem xs="6">@Field("Type", Contract.Type)</MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <span class="az-status">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                     Color="@ContractUi.StatusColor(Contract.Status)"
+                                     Style="font-size:10px" />
+                            <MudText Typo="Typo.body2">@Contract.Status</MudText>
+                        </span>
+                    </MudItem>
+                    <MudItem xs="6">@Field("Charter terms", Contract.HasCharterTerms ? "Set up" : "Not set up")</MudItem>
+                    <MudItem xs="6">@Field("Effective date", Contract.EffectiveDate.ToString("dd MMM yyyy"))</MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Expiry date</MudText>
+                        <MudText Typo="Typo.body2" Color="@ContractUi.ExpiryColor(Contract.Status, Contract.ExpiryDate)">
+                            @(Contract.ExpiryDate?.ToString("dd MMM yyyy") ?? "—")
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+                        <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@Dash(Contract.Notes)</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            @* ── Parties ── *@
+            <MudTabPanel Text="@($"Parties ({Contract.Parties.Count})")">
+                @if (!_closed)
+                {
+                    <div class="d-flex align-center gap-1 mb-3">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="@(() => OnAddPartyClicked.InvokeAsync(Contract.Id))">
+                            Add party
+                        </MudButton>
+                        @if (Contract.Status != "Draft")
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Changes on a non-draft contract are recorded as amendments.
+                            </MudText>
+                        }
+                    </div>
+                }
+
+                @if (Contract.Parties.Count == 0)
+                {
+                    <div class="az-muted">No parties. A contract needs at least one party to be activated.</div>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Role</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var party in Contract.Parties)
+                            {
+                                <tr>
+                                    <td>@party.CompanyName</td>
+                                    <td>@party.Role</td>
+                                    <td class="az-actions">
+                                        @if (!_closed)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           title="Remove"
+                                                           OnClick="@(() => OnRemovePartyClicked.InvokeAsync((Contract.Id, party)))" />
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudTabPanel>
+
+            @* ── Amendments ── *@
+            <MudTabPanel Text="@($"Amendments ({Contract.Amendments.Count})")">
+                @if (!_closed)
+                {
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="@(() => OnRecordAmendmentClicked.InvokeAsync(Contract.Id))">
+                            Record amendment
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.DateRange"
+                                   OnClick="@(() => OnChangeExpiryClicked.InvokeAsync(Contract))">
+                            Change expiry
+                        </MudButton>
+                    </div>
+                }
+
+                @if (Contract.Amendments.Count == 0)
+                {
+                    <div class="az-muted">No amendments.</div>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Effective</th>
+                                <th>Description</th>
+                                <th>By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Contract.Amendments.Count; i++)
+                            {
+                                var a = Contract.Amendments[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td style="white-space:nowrap">@a.EffectiveDate.ToString("dd MMM yyyy")</td>
+                                    <td>@a.Description</td>
+                                    <td class="az-muted" title="@($"{a.RecordedAtUtc:dd MMM yyyy HH:mm} UTC")">@a.ChangedBy</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudTabPanel>
+
+        </MudTabs>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ContractDetailResponse Contract { get; set; } = default!;
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<int> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<int> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<int> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<int> OnSuspendClicked { get; set; }
+    [Parameter] public EventCallback<int> OnTerminateClicked { get; set; }
+    [Parameter] public EventCallback<int> OnMarkExpiredClicked { get; set; }
+    [Parameter] public EventCallback<int> OnCharterTermsClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    [Parameter] public EventCallback<int> OnAddPartyClicked { get; set; }
+    [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
+    [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }
+    [Parameter] public EventCallback<ContractDetailResponse> OnChangeExpiryClicked { get; set; }
+
+    private bool _closed => ContractUi.IsClosed(Contract.Status);
+
+    private static RenderFragment Field(string label, string? value) => @<div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
+        <MudText Typo="Typo.body2">@Dash(value)</MudText>
+    </div>;
+
+    private static string Dash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value;
+}

@@ -4,6 +4,7 @@
     {
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
-        public string Role {  get; set; } = string.Empty;
+        public int RoleId { get; set; }
+        public string Role { get; set; } = string.Empty;   // role name
     }
 }

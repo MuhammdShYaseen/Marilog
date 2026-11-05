@@ -286,6 +286,8 @@
         SwiftBankFee = 41,
         InboxEntry = 42,
         InboxEntryLink = 43,
+        ContractType = 44,
+        ContractRole = 45,
         NONE = 0
     }
     public enum JobStatus

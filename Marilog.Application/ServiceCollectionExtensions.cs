@@ -37,6 +37,8 @@ namespace Marilog.Application
             services.AddScoped<IPortService, PortService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+            services.AddScoped<IContractTypeService, ContractTypeService>();
+            services.AddScoped<IContractRoleService, ContractRoleService>();
             services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IBankService, BankService>();
             services.AddScoped<IPaymentService, PaymentService>();

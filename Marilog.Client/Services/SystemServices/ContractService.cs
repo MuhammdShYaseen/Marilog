@@ -51,12 +51,12 @@ namespace Marilog.Client.Services.SystemServices
 
         // ─── Write ────────────────────────────────────────────────────────
 
-        public async Task<Result> CreateAsync(string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default)
+        public async Task<Result> CreateAsync(string contractNumber, int contractTypeId, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default)
         {
             var request = new CreateContractRequest
             (
                 contractNumber,
-                type,
+                contractTypeId,
                 effectiveDate,
                 expiryDate,
                 notes
@@ -68,22 +68,30 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<Result> UpdateAsync(int id, string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default)
+        public async Task<Result> UpdateAsync(int id, string contractNumber, int contractTypeId, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default)
         {
             var request = new UpdateContractRequest
             (
                 id,
                 contractNumber,
-                type,
+                contractTypeId,
                 effectiveDate,
                 expiryDate,
                 notes
             );
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}/update",request, ct);
+            var http = await _http.PutAsJsonAsync($"{Base}/{id}/update", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
+        public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{id}", ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+            var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
+            return response!.Data!;
+        }
+
         public async Task<Result> ActivateAsync(int id, CancellationToken ct = default)
         {
             var http = await _http.PostAsync($"{Base}/{id}/activate", null, ct);
@@ -116,18 +124,18 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<Result> AddPartyAsync(int id, int companyId, string role, CancellationToken ct = default)
+        public async Task<Result> AddPartyAsync(int id, int companyId, int roleId, CancellationToken ct = default)
         {
-            var request = new PartyRequest (companyId, role );
+            var request = new PartyRequest(companyId, roleId);
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/party", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
 
-        public async Task<Result> RemovePartyAsync(int id, int companyId, string role, CancellationToken ct = default)
+        public async Task<Result> RemovePartyAsync(int id, int companyId, int roleId, CancellationToken ct = default)
         {
-            var request = new PartyRequest (companyId, role );
+            var request = new PartyRequest(companyId, roleId);
             var http = await _http.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"{Base}/{id}/party")
             {
                 Content = JsonContent.Create(request)
@@ -137,43 +145,24 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<Result> RemovePartyViaAmendmentAsync(int id, int companyId, string role, int amendmentNumber, CancellationToken ct = default)
-        {
-            var request = new RemovePartyAmendmentRequest (companyId, role, amendmentNumber);
-            var http = await _http.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"{Base}/{id}/party/amendment")
-            {
-                Content = JsonContent.Create(request)
-            }, ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
-            return response!.Data!;
-        }
 
-        public async Task<Result> RecordAmendmentAsync(int id, string description, DateOnly effectiveDate, string changedBy, CancellationToken ct = default)
+        public async Task<Result> RecordAmendmentAsync(int id, string description, DateOnly effectiveDate, CancellationToken ct = default)
         {
-            var request = new AmendmentRequest (description,  effectiveDate, changedBy );
+            var request = new AmendmentRequest(description, effectiveDate);
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/amendment", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
 
-        public async Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, string changeBy, CancellationToken ct = default)
+        public async Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, CancellationToken ct = default)
         {
-            var request = new ChangeExpiryRequest(newExpiryDate, changeBy);
+            var request = new ChangeExpiryRequest(newExpiryDate);
             var http = await _http.PostAsJsonAsync($"{Base}/{id}/change-expiry", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
             return response!.Data!;
         }
 
-        public async Task<Result> AttachFileAsync(int id, string fileUrl, string fileName, CancellationToken ct = default)
-        {
-            var request = new AttachFileRequest (fileUrl, fileName);
-            var http = await _http.PostAsJsonAsync($"{Base}/{id}/attach-file", request, ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-            var response = await http.Content.ReadFromJsonAsync<ApiResponse<Result>>(ct);
-            return response!.Data!;
-        }
     }
 }

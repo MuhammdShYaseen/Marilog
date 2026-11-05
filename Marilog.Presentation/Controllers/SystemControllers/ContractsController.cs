@@ -58,7 +58,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _service.GetExpiringAsync(withinDays, ct);
             if (result == null)
                 throw new KeyNotFoundException("contract not found");
-            return Ok(ApiResponse<List<ContractSummary >>.Ok (result));
+            return Ok(ApiResponse<List<ContractSummary>>.Ok(result));
         }
 
         [HttpGet("report")]
@@ -75,10 +75,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<Result>>> Create([FromBody] CreateContractRequest request, CancellationToken ct)
         {
-            var result = await _service.CreateAsync(request.ContractNumber, request.Type, request.EffectiveDate, request.ExpiryDate, request.Notes, ct);
+            var result = await _service.CreateAsync(request.ContractNumber, request.ContractTypeId, request.EffectiveDate, request.ExpiryDate, request.Notes, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -96,26 +96,36 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _service.UpdateAsync(
                 request.Id,
                 request.ContractNumber,
-                request.Type,
+                request.ContractTypeId,
                 request.EffectiveDate,
                 request.ExpiryDate,
                 request.Notes,
                 ct);
 
-            return Ok(new ApiResponse<Result>
-            {
-                Success = true,
-                Data = result,
-                Message = "Contract updated successfully."
-            });
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(result.Error);
+
+            return Ok(ApiResponse<Result>.Ok(result));
         }
+
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult<ApiResponse<Result>>> Delete(int id, CancellationToken ct)
+        {
+            var result = await _service.DeleteAsync(id, ct);
+
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(result.Error);
+
+            return Ok(ApiResponse<Result>.Ok(result));
+        }
+
         [HttpPost("{id}/activate")]
         public async Task<ActionResult<ApiResponse<Result>>> Activate(int id, CancellationToken ct)
         {
             var result = await _service.ActivateAsync(id, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -126,7 +136,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _service.SuspendAsync(id, reason, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -137,7 +147,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _service.TerminateAsync(id, reason, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -148,7 +158,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _service.MarkExpiredAsync(id, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -156,10 +166,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPost("{id}/party")]
         public async Task<ActionResult<ApiResponse<Result>>> AddParty(int id, [FromBody] PartyRequest request, CancellationToken ct)
         {
-            var result = await _service.AddPartyAsync(id, request.CompanyId, request.Role, ct);
+            var result = await _service.AddPartyAsync(id, request.CompanyId, request.RoleId, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -167,32 +177,22 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpDelete("{id}/party")]
         public async Task<ActionResult<ApiResponse<Result>>> RemoveParty(int id, [FromBody] PartyRequest request, CancellationToken ct)
         {
-            var result = await _service.RemovePartyAsync(id, request.CompanyId, request.Role, ct);
+            var result = await _service.RemovePartyAsync(id, request.CompanyId, request.RoleId, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
 
-        [HttpDelete("{id}/party/amendment")]
-        public async Task<ActionResult<ApiResponse<Result>>> RemovePartyViaAmendment(int id, [FromBody] RemovePartyAmendmentRequest request, CancellationToken ct)
-        {
-            var result = await _service.RemovePartyViaAmendmentAsync(id, request.CompanyId, request.Role, request.AmendmentNumber, ct);
-
-            if (!result.IsSuccess)
-                throw new Exception(result.Error);
-
-            return Ok(ApiResponse<Result>.Ok(result));
-        }
 
         [HttpPost("{id}/amendment")]
         public async Task<ActionResult<ApiResponse<Result>>> RecordAmendment(int id, [FromBody] AmendmentRequest request, CancellationToken ct)
         {
-            var result = await _service.RecordAmendmentAsync(id, request.Description, request.EffectiveDate, request.ChangedBy, ct);
+            var result = await _service.RecordAmendmentAsync(id, request.Description, request.EffectiveDate, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
@@ -200,23 +200,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPost("{id}/change-expiry")]
         public async Task<ActionResult<ApiResponse<Result>>> ChangeExpiry(int id, [FromBody] ChangeExpiryRequest request, CancellationToken ct)
         {
-            var result = await _service.ChangeExpiryAsync(id, request.NewExpiryDate, request.ChangedBy, ct);
+            var result = await _service.ChangeExpiryAsync(id, request.NewExpiryDate, ct);
 
             if (!result.IsSuccess)
-                throw new Exception(result.Error);
+                throw new InvalidOperationException(result.Error);
 
             return Ok(ApiResponse<Result>.Ok(result));
         }
 
-        [HttpPost("{id}/attach-file")]
-        public async Task<ActionResult<ApiResponse<Result>>> AttachFile(int id, [FromBody] AttachFileRequest request, CancellationToken ct)
-        {
-            var result = await _service.AttachFileAsync(id, request.FileUrl, request.FileName, ct);
-
-            if (!result.IsSuccess)
-                throw new Exception(result.Error);
-
-            return Ok(ApiResponse<Result>.Ok(result));
-        }
     }
 }

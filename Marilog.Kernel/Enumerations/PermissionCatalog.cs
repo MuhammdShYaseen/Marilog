@@ -34,6 +34,8 @@ namespace Marilog.Kernel.Enumerations
             EntityType.Rank,
             EntityType.Tag,
             EntityType.DocumentType,
+            EntityType.ContractType,
+            EntityType.ContractRole,
             EntityType.AppTheme,
             EntityType.NavItem,
             EntityType.Company,
@@ -140,6 +142,8 @@ namespace Marilog.Kernel.Enumerations
                 EntityType.Rank,
                 EntityType.Tag,
                 EntityType.DocumentType,
+                EntityType.ContractType,
+                EntityType.ContractRole,
                 EntityType.AppTheme,
                 EntityType.NavItem
             })

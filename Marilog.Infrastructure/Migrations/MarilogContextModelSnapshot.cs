@@ -660,18 +660,14 @@ namespace Marilog.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ContractFileName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ContractFileUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<string>("ContractNumber")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("ContractTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("TypeId");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -698,10 +694,6 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("int")
-                        .HasColumnName("TypeId");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -709,6 +701,8 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.HasIndex("ContractNumber")
                         .IsUnique();
+
+                    b.HasIndex("ContractTypeId");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -1032,6 +1026,112 @@ namespace Marilog.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Companies", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.ContractRole", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("ContractRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.ContractType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("ContractTypes", (string)null);
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Country", b =>
@@ -3349,6 +3449,12 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.AContract", b =>
                 {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.ContractType", "ContractType")
+                        .WithMany()
+                        .HasForeignKey("ContractTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("Marilog.Domain.ValueObjects.Contract.ContractAmendment", "Amendments", b1 =>
                         {
                             b1.Property<int>("ContractId")
@@ -3394,19 +3500,28 @@ namespace Marilog.Infrastructure.Migrations
                             b1.Property<int>("CompanyId")
                                 .HasColumnType("int");
 
-                            b1.Property<string>("Role")
-                                .HasMaxLength(30)
-                                .HasColumnType("nvarchar(30)");
+                            b1.Property<int>("RoleId")
+                                .HasColumnType("int");
 
-                            b1.HasKey("ContractId", "CompanyId", "Role");
+                            b1.HasKey("ContractId", "CompanyId", "RoleId");
+
+                            b1.HasIndex("RoleId");
 
                             b1.ToTable("ContractParties", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("ContractId");
+
+                            b1.HasOne("Marilog.Domain.Entities.SystemEntities.ContractRole", null)
+                                .WithMany()
+                                .HasForeignKey("RoleId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
                         });
 
                     b.Navigation("Amendments");
+
+                    b.Navigation("ContractType");
 
                     b.Navigation("Parties");
                 });

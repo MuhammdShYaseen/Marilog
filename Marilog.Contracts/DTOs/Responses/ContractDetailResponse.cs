@@ -17,5 +17,7 @@ namespace Marilog.Contracts.DTOs.Responses
 
         public List<ContractPartyResponse> Parties { get; set; } = [];
         public List<ContractAmendmentResponse> Amendments { get; set; } = [];
+        public int ContractTypeId { get; set; }
+        public bool HasCharterTerms { get; set; }
     }
 }

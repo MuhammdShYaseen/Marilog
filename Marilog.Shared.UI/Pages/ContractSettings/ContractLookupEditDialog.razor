@@ -1,0 +1,75 @@
+@using Marilog.Contracts.DTOs.Requests.ContractLookupDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ContractSettings
+
+@* Create → returns CreateContractLookupRequest. Edit → returns UpdateContractLookupRequest (Code is fixed). *@
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="5">
+                <MudTextField T="string" Value="@_code"
+                              ValueChanged="@((string v) => _code = v?.ToUpperInvariant() ?? string.Empty)"
+                              Label="Code"
+                              Required="true"
+                              Disabled="@(Existing is not null)"
+                              HelperText="@(Existing is not null ? "Not editable after creation" : "Short unique code, e.g. CP")"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="7">
+                <MudTextField T="string" @bind-Value="_name"
+                              Label="Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="5">
+                <MudNumericField T="int" @bind-Value="_sortOrder"
+                                 Label="Order"
+                                 HelperText="Lower appears first"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name))"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Null => Create. Non-null => Edit.</summary>
+    [Parameter] public ContractLookupResponse? Existing { get; set; }
+
+    private string _code = string.Empty;
+    private string _name = string.Empty;
+    private int _sortOrder;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+            return;
+
+        _code = Existing.Code;
+        _name = Existing.Name;
+        _sortOrder = Existing.SortOrder;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (Existing is null)
+            MudDialog.Close(DialogResult.Ok(new CreateContractLookupRequest { Code = _code.Trim(), Name = _name.Trim(), SortOrder = _sortOrder }));
+        else
+            MudDialog.Close(DialogResult.Ok(new UpdateContractLookupRequest { Name = _name.Trim(), SortOrder = _sortOrder }));
+    }
+}

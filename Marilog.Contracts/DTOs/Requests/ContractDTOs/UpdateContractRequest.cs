@@ -1,7 +1,4 @@
-﻿
-
-namespace Marilog.Contracts.DTOs.Requests.ContractDTOs
+﻿namespace Marilog.Contracts.DTOs.Requests.ContractDTOs
 {
-    public record UpdateContractRequest(int Id, string ContractNumber, string Type, DateOnly EffectiveDate, DateOnly? ExpiryDate, string? Notes);
+    public record UpdateContractRequest(int Id, string ContractNumber, int ContractTypeId, DateOnly EffectiveDate, DateOnly? ExpiryDate, string? Notes);
 }
-

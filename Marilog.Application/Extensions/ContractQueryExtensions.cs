@@ -13,14 +13,16 @@ namespace Marilog.Application.Extensions
             ContractFilter filter)
         {
             if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
-                query = query.Where(x =>
-                    x.ContractNumber.Contains(filter.SearchTerm) ||
-                    (x.Notes != null && x.Notes.Contains(filter.SearchTerm)));
-
-            if (!string.IsNullOrWhiteSpace(filter.Type) && ContractType.TryFromName(filter.Type, out var parsed) && parsed is not null)
             {
-                query = query.Where(x => x.Type.Id == parsed.Id);
+                var term = filter.SearchTerm.Trim();
+                query = query.Where(x =>
+                    x.ContractNumber.Contains(term) ||
+                    x.ContractType.Name.Contains(term) ||
+                    (x.Notes != null && x.Notes.Contains(term)));
             }
+
+            if (filter.ContractTypeId.HasValue)
+                query = query.Where(x => x.ContractTypeId == filter.ContractTypeId.Value);
 
             if (!string.IsNullOrWhiteSpace(filter.Status) &&
                 ContractStatus.TryFromName(filter.Status, out var status))
@@ -46,12 +48,6 @@ namespace Marilog.Application.Extensions
                     ? query.Where(x => x.Amendments.Any())
                     : query.Where(x => !x.Amendments.Any());
 
-            if (filter.ExpiringWithinDays.HasValue)
-            {
-                // لا نستخدم IDateTimeProvider هنا — Extension لا تعرف عن Services
-                // الـ threshold يُحسب في Service ويُمرَّر كـ ExpiryDateTo
-            }
-
             return query;
         }
 
@@ -66,9 +62,13 @@ namespace Marilog.Application.Extensions
                 ("effectivedate", false) => query.OrderByDescending(x => x.EffectiveDate),
                 ("expirydate", true) => query.OrderBy(x => x.ExpiryDate),
                 ("expirydate", false) => query.OrderByDescending(x => x.ExpiryDate),
-                ("status", true) => query.OrderBy(x => x.Status.Id),
-                ("status", false) => query.OrderByDescending(x => x.Status.Id),
-                _ => query.OrderBy(x => x.ContractNumber)
+                ("type", true) => query.OrderBy(x => x.ContractType.Name),
+                ("type", false) => query.OrderByDescending(x => x.ContractType.Name),
+                ("status", true) => query.OrderBy(x => x.Status),
+                ("status", false) => query.OrderByDescending(x => x.Status),
+                ("amendmentscount", true) => query.OrderBy(x => x.Amendments.Count),
+                ("amendmentscount", false) => query.OrderByDescending(x => x.Amendments.Count),
+                _ => query.OrderByDescending(x => x.EffectiveDate)
             };
     }
 }

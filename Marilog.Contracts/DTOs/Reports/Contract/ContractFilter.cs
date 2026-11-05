@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 
 namespace Marilog.Contracts.DTOs.Reports.Contract
 {
     public sealed class ContractFilter
     {
         public string? SearchTerm { get; init; }
-        public string? Type { get; init; }
+        public int? ContractTypeId { get; init; }
         public string? Status { get; init; }
         public int? CompanyId { get; init; }
         public DateOnly? EffectiveDateFrom { get; init; }
@@ -15,7 +13,6 @@ namespace Marilog.Contracts.DTOs.Reports.Contract
         public DateOnly? ExpiryDateFrom { get; init; }
         public DateOnly? ExpiryDateTo { get; init; }
         public bool? HasAmendments { get; init; }
-        public int? ExpiringWithinDays { get; init; }
 
         public int Page { get; init; } = 1;
         public int PageSize { get; init; } = 20;

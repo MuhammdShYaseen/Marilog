@@ -1,25 +1,16 @@
-﻿
-
-using Marilog.Kernel.Enums;
-
-namespace Marilog.Domain.ValueObjects.Contract
+﻿namespace Marilog.Domain.ValueObjects.Contract
 {
-    
     public sealed class ContractParty
     {
         public int CompanyId { get; }
-        public ContractRole Role { get; }
+        public int RoleId { get; }     // FK → ContractRoles
 
         private ContractParty() { }   // EF Core
 
-        internal ContractParty(int companyId, ContractRole role)
+        internal ContractParty(int companyId, int roleId)
         {
             CompanyId = companyId;
-            Role = role;
-        }
-        public override string ToString()
-        {
-            return Role.ToString();
+            RoleId = roleId;
         }
     }
 }

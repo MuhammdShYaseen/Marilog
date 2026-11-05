@@ -32,6 +32,8 @@ namespace Marilog.Client.Extensions
             //===system============================================================
             services.AddScoped<ICompanyService, CompanyService>();
             services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<IContractTypeService, ContractTypeService>();
+            services.AddScoped<IContractRoleService, ContractRoleService>();
             services.AddScoped<ICountryService, CountryService>();
             services.AddScoped<ICrewContractService, CrewContractService>();
             services.AddScoped<ICrewPayrollService, CrewPayrollService>();

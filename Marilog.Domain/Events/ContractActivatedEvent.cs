@@ -1,5 +1,4 @@
 ﻿using Marilog.Domain.Common;
-using Marilog.Kernel.Enumerations;
 
 
 namespace Marilog.Domain.Events
@@ -8,13 +7,13 @@ namespace Marilog.Domain.Events
     {
         public int ID { get; }
         public string ContractNumber { get; }
-        public ContractType Type { get; }
-        public ContractActivatedEvent(int id, string contractNumber, ContractType type)
+        public int ContractTypeId { get; }
+        public ContractActivatedEvent(int id, string contractNumber, int contractTypeId)
         {
             ID = id;
             ContractNumber = contractNumber;
-            Type = type;
-            
+            ContractTypeId = contractTypeId;
+
         }
     }
 }

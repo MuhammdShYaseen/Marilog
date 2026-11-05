@@ -15,17 +15,16 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<ContractReport> GetReportAsync(CancellationToken ct = default);
 
         // ─── Write ────────────────────────────────────────────────────────
-        Task<Result> CreateAsync(string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default);
-        Task<Result> UpdateAsync(int id, string contractNumber, string type, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default);
+        Task<Result> CreateAsync(string contractNumber, int contractTypeId, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default);
+        Task<Result> UpdateAsync(int id, string contractNumber, int contractTypeId, DateOnly effectiveDate, DateOnly? expiryDate, string? notes, CancellationToken ct = default);
+        Task<Result> DeleteAsync(int id, CancellationToken ct = default);
         Task<Result> ActivateAsync(int id, CancellationToken ct = default);
         Task<Result> SuspendAsync(int id, string reason, CancellationToken ct = default);
         Task<Result> TerminateAsync(int id, string reason, CancellationToken ct = default);
         Task<Result> MarkExpiredAsync(int id, CancellationToken ct = default);
-        Task<Result> AddPartyAsync(int id, int companyId, string role, CancellationToken ct = default);
-        Task<Result> RemovePartyAsync(int id, int companyId, string role, CancellationToken ct = default);
-        Task<Result> RemovePartyViaAmendmentAsync(int id, int companyId, string role, int amendmentNumber, CancellationToken ct = default);
-        Task<Result> RecordAmendmentAsync(int id, string description, DateOnly effectiveDate, string changedBy, CancellationToken ct = default);
-        Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, string changeBy, CancellationToken ct = default);
-        Task<Result> AttachFileAsync(int id, string fileUrl, string fileName, CancellationToken ct = default);
+        Task<Result> AddPartyAsync(int id, int companyId, int roleId, CancellationToken ct = default);
+        Task<Result> RemovePartyAsync(int id, int companyId, int roleId, CancellationToken ct = default);
+        Task<Result> RecordAmendmentAsync(int id, string description, DateOnly effectiveDate, CancellationToken ct = default);
+        Task<Result> ChangeExpiryAsync(int id, DateOnly newExpiryDate, CancellationToken ct = default);
     }
 }

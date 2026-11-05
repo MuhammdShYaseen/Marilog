@@ -1,0 +1,96 @@
+@using Marilog.Contracts.DTOs.Reports.Contract
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Contracts
+
+<MudDataGrid T="ContractSummary"
+             Items="Items"
+             Dense="true"
+             Hover="true"
+             Elevation="0"
+             Outlined="true"
+             Square="true"
+             SortMode="SortMode.None"
+             Breakpoint="Breakpoint.Sm"
+             RowClick="HandleRowClick"
+             RowStyleFunc="RowStyle">
+
+    <Columns>
+        <PropertyColumn Property="x => x.ContractNumber" Title="Contract no." />
+        <PropertyColumn Property="x => x.Type" Title="Type" />
+
+        <TemplateColumn Title="Parties">
+            <CellTemplate>
+                @if (context.Item.Parties.Count == 0)
+                {
+                    <span class="az-muted">—</span>
+                }
+                else
+                {
+                    @string.Join(" · ", context.Item.Parties.Select(p => $"{p.CompanyName} ({p.Role})"))
+                }
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Effective">
+            <CellTemplate>@context.Item.EffectiveDate.ToString("dd MMM yyyy")</CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Expiry">
+            <CellTemplate>
+                <MudText Typo="Typo.body2" Color="@ContractUi.ExpiryColor(context.Item.Status, context.Item.ExpiryDate)">
+                    @(context.Item.ExpiryDate?.ToString("dd MMM yyyy") ?? "—")
+                </MudText>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="Status">
+            <CellTemplate>
+                <span class="az-status">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                             Color="@ContractUi.StatusColor(context.Item.Status)"
+                             Style="font-size:10px" />
+                    @context.Item.Status
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn Title="" CellClass="az-actions">
+            <CellTemplate>
+                <span @onclick:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   title="Edit"
+                                   Disabled="@ContractUi.IsClosed(context.Item.Status)"
+                                   OnClick="() => OnEditClicked.InvokeAsync(context.Item.Id)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                   Size="Size.Small"
+                                   title="Files"
+                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Id, EntityType.AContract))" />
+                </span>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+
+    <NoRecordsContent>
+        <div class="az-muted pa-4">No contracts found.</div>
+    </NoRecordsContent>
+
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<ContractSummary> Items { get; set; } = [];
+    [Parameter] public int? SelectedId { get; set; }
+
+    [Parameter] public EventCallback<ContractSummary> OnRowSelected { get; set; }
+    [Parameter] public EventCallback<int> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    private Task HandleRowClick(DataGridRowClickEventArgs<ContractSummary> args) =>
+        OnRowSelected.InvokeAsync(args.Item);
+
+    private string RowStyle(ContractSummary item, int index) =>
+        item.Id == SelectedId
+            ? "cursor:pointer; background-color:var(--mud-palette-action-default-hover);"
+            : "cursor:pointer;";
+}

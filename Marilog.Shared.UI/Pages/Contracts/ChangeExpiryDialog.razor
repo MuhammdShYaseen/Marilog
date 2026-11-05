@@ -1,35 +1,27 @@
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
 @using MudBlazor
-@namespace Marilog.Shared.UI.Pages.Contracts.Dialogs
+@namespace Marilog.Shared.UI.Pages.Contracts
 
+@* Recorded as an amendment on the server ("Extended / Reduced / Set expiry date"). *@
 <MudDialog>
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="12">
-                <MudDatePicker @bind-Date="_ExpiryDate"
-                               Label="New Expiry Date"
-                               Required="true"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense" />
-            </MudItem>
-
-            <MudItem xs="12">
-                <MudTextField @bind-Value="_changeBy"
-                              Label="Change By:"
-                              Required="true"
-                              RequiredError="This field is required"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-               </MudItem>
-
-        </MudGrid>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Current expiry: <b>@(CurrentExpiry?.ToString("dd MMM yyyy") ?? "none")</b>
+        </MudText>
+        <MudDatePicker @bind-Date="_newExpiry"
+                       Label="New expiry date"
+                       Required="true"
+                       DateFormat="dd MMM yyyy"
+                       Error="@_invalid"
+                       ErrorText="Must be after the effective date"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="Submit"
-                   Disabled="@(_ExpiryDate is null || string.IsNullOrWhiteSpace(_changeBy))">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_newExpiry is null || _invalid)"
+                   OnClick="Submit">
             Change
         </MudButton>
     </DialogActions>
@@ -37,11 +29,19 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DateOnly? CurrentExpiry { get; set; }
+    [Parameter] public DateOnly EffectiveDate { get; set; }
 
-    [Parameter] public DateTime? _ExpiryDate { get; set; }
-    private string? _changeBy;
+    private DateTime? _newExpiry;
+
+    private bool _invalid =>
+        _newExpiry.HasValue && DateOnly.FromDateTime(_newExpiry.Value) <= EffectiveDate;
+
+    protected override void OnInitialized() =>
+        _newExpiry = CurrentExpiry?.ToDateTime(TimeOnly.MinValue);
+
     private void Cancel() => MudDialog.Cancel();
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new ChangeExpiryRequest(DateOnly.FromDateTime(_ExpiryDate!.Value), _changeBy ?? "")));
+        new ChangeExpiryRequest(DateOnly.FromDateTime(_newExpiry!.Value))));
 }
