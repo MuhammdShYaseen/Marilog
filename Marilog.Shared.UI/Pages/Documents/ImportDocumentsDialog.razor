@@ -1,0 +1,428 @@
+@namespace Marilog.Shared.UI.Pages.Documents
+@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+
+<style>
+    .import-grid .mud-table-head .mud-table-cell {
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+    }
+
+    .import-grid .mud-table-body .mud-table-cell {
+        padding: 4px 6px;
+    }
+</style>
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h6">Import documents from PDF</MudText>
+            <MudText Typo="Typo.caption">Review and correct the extracted documents, then post them.</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        @* ── Command bar ─────────────────────────────────────────────── *@
+        <MudToolBar Dense="true" Gutters="false" Class="mb-2">
+            <MudButton HtmlTag="label" for="extract-pdf-input" Variant="Variant.Text" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.UploadFile" Disabled="_busy">
+                Add PDF files
+            </MudButton>
+            <InputFile @key="_inputKey" id="extract-pdf-input" hidden multiple accept=".pdf"
+                       disabled="@_busy" OnChange="OnFilesSelectedAsync" />
+
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.DeleteSweep"
+                       Disabled="@(_busy || _rows.Count == 0)" OnClick="ClearAll">
+                Clear all
+            </MudButton>
+
+            @if (_busy)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ml-2" />
+            }
+
+            <MudSpacer />
+
+            <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body2">@_rows.Count document(s)</MudText>
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                    <MudText Typo="Typo.body2">@ReadyCount ready</MudText>
+                </MudStack>
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" />
+                    <MudText Typo="Typo.body2">@(_rows.Count - ReadyCount) need attention</MudText>
+                </MudStack>
+            </MudStack>
+        </MudToolBar>
+
+        @* ── Notes (skipped pages / files) ───────────────────────────── *@
+        @if (_notes.Count > 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                      ShowCloseIcon="true" CloseIconClicked="@(() => _notes.Clear())">
+                @foreach (var note in _notes)
+                {
+                    <div>@note</div>
+                }
+            </MudAlert>
+        }
+
+        @* ── Grid ────────────────────────────────────────────────────── *@
+        <MudDataGrid T="Row" Items="_rows" Class="import-grid"
+                     Dense="true" Bordered="true" Hover="true" Outlined="true" Elevation="0"
+                     Filterable="false" SortMode="SortMode.None" Groupable="false"
+                     ColumnResizeMode="ResizeMode.Column" HorizontalScrollbar="true"
+                     FixedHeader="true" Height="calc(100vh - 340px)">
+            <Columns>
+                <TemplateColumn Title="" Resizable="false" HeaderStyle="width: 40px;" CellStyle="text-align: center;">
+                    <CellTemplate>
+                        @{
+                            var row = context.Item;
+                            var errors = Errors(row);
+                        }
+                        <MudTooltip>
+                            <ChildContent>
+                                @if (errors.Count > 0)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" />
+                                }
+                                else if (row.Source.Warnings.Count > 0)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                }
+                            </ChildContent>
+                            <TooltipContent>
+                                @foreach (var e in errors)
+                                {
+                                    <div>• @e</div>
+                                }
+                                @foreach (var w in row.Source.Warnings)
+                                {
+                                    <div>• @w</div>
+                                }
+                                @foreach (var u in row.Source.Unresolved)
+                                {
+                                    <div>• At extraction: @u</div>
+                                }
+                                @if (errors.Count == 0 && row.Source.Warnings.Count == 0 && row.Source.Unresolved.Count == 0)
+                                {
+                                    <div>Ready</div>
+                                }
+                            </TooltipContent>
+                        </MudTooltip>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="File" HeaderStyle="width: 200px;">
+                    <CellTemplate>
+                        <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                             title="@context.Item.Source.FileName">
+                            <MudText Typo="Typo.body2" Inline="true">@context.Item.Source.FileName</MudText>
+                        </div>
+                        <MudText Typo="Typo.caption">Page @string.Join(", ", context.Item.Source.Pages)</MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Side" HeaderStyle="width: 130px;">
+                    <CellTemplate>
+                        <MudSelect T="FinancialSide" @bind-Value="context.Item.Side"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            <MudSelectItem T="FinancialSide" Value="FinancialSide.Expense">Expense</MudSelectItem>
+                            <MudSelectItem T="FinancialSide" Value="FinancialSide.Revenue">Revenue</MudSelectItem>
+                        </MudSelect>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Type" HeaderStyle="width: 210px;">
+                    <CellTemplate>
+                        <MudSelect T="int" @bind-Value="context.Item.Payload.DocTypeId"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            <MudSelectItem T="int" Value="0">—</MudSelectItem>
+                            @foreach (var t in _lookups.DocTypes)
+                            {
+                                <MudSelectItem T="int" Value="t.Id">@t.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Number" HeaderStyle="width: 170px;">
+                    <CellTemplate>
+                        <MudTextField @bind-Value="context.Item.Payload.DocNumber" Immediate="true"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Reference" HeaderStyle="width: 160px;">
+                    <CellTemplate>
+                        <MudTextField @bind-Value="context.Item.Payload.Reference"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Date" HeaderStyle="width: 160px;">
+                    <CellTemplate>
+                        <MudDatePicker @bind-Date="context.Item.DocDate" DateFormat="dd/MM/yyyy"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Due" HeaderStyle="width: 160px;">
+                    <CellTemplate>
+                        <MudDatePicker @bind-Date="context.Item.DocDue" DateFormat="dd/MM/yyyy" Clearable="true"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Currency" HeaderStyle="width: 110px;">
+                    <CellTemplate>
+                        <MudSelect T="int" @bind-Value="context.Item.Payload.CurrencyId"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            <MudSelectItem T="int" Value="0">—</MudSelectItem>
+                            @foreach (var c in _lookups.Currencies)
+                            {
+                                <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Total" HeaderStyle="width: 140px;">
+                    <CellTemplate>
+                        <MudNumericField T="decimal" @bind-Value="context.Item.Payload.TotalAmount"
+                                         HideSpinButtons="true" Format="N2"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Supplier" HeaderStyle="width: 240px;">
+                    <CellTemplate>
+                        <MudAutocomplete T="LookupItem"
+                                         Value="@Find(_lookups.Companies, context.Item.Payload.SupplierId)"
+                                         ValueChanged="@((LookupItem v) => context.Item.Payload.SupplierId = v?.Id)"
+                                         SearchFunc="@((text, ct) => Search(_lookups.Companies, text))"
+                                         ToStringFunc="@(x => x?.Name)"
+                                         ResetValueOnEmptyText="true" Clearable="true"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Buyer" HeaderStyle="width: 240px;">
+                    <CellTemplate>
+                        <MudAutocomplete T="LookupItem"
+                                         Value="@Find(_lookups.Companies, context.Item.Payload.BuyerId)"
+                                         ValueChanged="@((LookupItem v) => context.Item.Payload.BuyerId = v?.Id)"
+                                         SearchFunc="@((text, ct) => Search(_lookups.Companies, text))"
+                                         ToStringFunc="@(x => x?.Name)"
+                                         ResetValueOnEmptyText="true" Clearable="true"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Vessel" HeaderStyle="width: 150px;">
+                    <CellTemplate>
+                        <MudSelect T="int?" @bind-Value="context.Item.Payload.VesselId"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            <MudSelectItem T="int?" Value="@((int?)null)">—</MudSelectItem>
+                            @foreach (var v in _lookups.Vessels)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="Port" HeaderStyle="width: 190px;">
+                    <CellTemplate>
+                        <MudAutocomplete T="LookupItem"
+                                         Value="@Find(_lookups.Ports, context.Item.Payload.PortId)"
+                                         ValueChanged="@((LookupItem v) => context.Item.Payload.PortId = v?.Id)"
+                                         SearchFunc="@((text, ct) => Search(_lookups.Ports, text))"
+                                         ToStringFunc="@(x => x?.Name)"
+                                         ResetValueOnEmptyText="true" Clearable="true"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <TemplateColumn Title="" Resizable="false" HeaderStyle="width: 48px;" CellStyle="text-align: center;">
+                    <CellTemplate>
+                        <MudTooltip Text="Remove this document">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small"
+                                           Color="Color.Error" Disabled="_busy"
+                                           OnClick="@(() => _rows.Remove(context.Item))" />
+                        </MudTooltip>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="pa-6">Add one or more PDF files to start.</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="@(() => MudDialog.Cancel())" Disabled="_busy">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PostAsync"
+                   Disabled="@(_busy || _rows.Count == 0 || ReadyCount < _rows.Count)">
+            Post @_rows.Count document(s)
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Host extracts the files; returns null on failure (host reports the error).</summary>
+    [Parameter, EditorRequired] public Func<IReadOnlyList<ExtractionFile>, Task<ExtractionResponse?>> Extract { get; set; } = default!;
+
+    /// <summary>Host posts the payloads; returns true when saved, false keeps the dialog open.</summary>
+    [Parameter, EditorRequired] public Func<IReadOnlyList<CreateDocumentRequest>, Task<bool>> Post { get; set; } = default!;
+
+    private const long MaxFileSize = 20 * 1024 * 1024;
+    private const int MaxFiles = 50;
+
+    private readonly List<Row> _rows = [];
+    private readonly List<string> _notes = [];
+    private ExtractionLookups _lookups = new([], [], [], [], []);
+    private bool _busy;
+
+    // Changing the key recreates the InputFile, so the same file can be picked again.
+    private int _inputKey;
+
+    private int ReadyCount => _rows.Count(r => Errors(r).Count == 0);
+
+    private sealed class Row
+    {
+        public required ExtractionResult Source { get; init; }
+        public required CreateDocumentRequest Payload { get; init; }
+
+        // Switching the side swaps supplier and buyer, so the own company moves with it.
+        public FinancialSide Side
+        {
+            get => Payload.Side;
+            set
+            {
+                if (value == Payload.Side) return;
+                (Payload.SupplierId, Payload.BuyerId) = (Payload.BuyerId, Payload.SupplierId);
+                Payload.Side = value;
+            }
+        }
+
+        // MudDatePicker works with DateTime?, the payload with DateOnly.
+        public DateTime? DocDate
+        {
+            get => Payload.DocDate == default ? null : Payload.DocDate.ToDateTime(TimeOnly.MinValue);
+            set => Payload.DocDate = value is null ? default : DateOnly.FromDateTime(value.Value);
+        }
+
+        public DateTime? DocDue
+        {
+            get => Payload.DocDue?.ToDateTime(TimeOnly.MinValue);
+            set => Payload.DocDue = value is null ? null : DateOnly.FromDateTime(value.Value);
+        }
+    }
+
+    private async Task OnFilesSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _busy = true;
+        try
+        {
+            var files = new List<ExtractionFile>();
+            foreach (var file in e.GetMultipleFiles(MaxFiles))
+            {
+                if (file.Size > MaxFileSize)
+                {
+                    _notes.Add($"{file.Name}: larger than {MaxFileSize / 1024 / 1024} MB — skipped.");
+                    continue;
+                }
+
+                using var ms = new MemoryStream();
+                await file.OpenReadStream(MaxFileSize).CopyToAsync(ms);
+                files.Add(new ExtractionFile(file.Name, ms.ToArray()));
+            }
+
+            if (files.Count > 0)
+            {
+                var response = await Extract(files);
+                if (response is not null)
+                {
+                    _lookups = response.Lookups;
+                    _notes.AddRange(response.Notes);
+                    _rows.AddRange(response.Documents.Select(d => new Row { Source = d, Payload = d.Payload }));
+                }
+            }
+        }
+        finally
+        {
+            _busy = false;
+            _inputKey++;
+        }
+    }
+
+    private void ClearAll()
+    {
+        _rows.Clear();
+        _notes.Clear();
+    }
+
+    private List<string> Errors(Row row)
+    {
+        var p = row.Payload;
+        var errors = new List<string>();
+        var number = (p.DocNumber ?? "").Trim();
+
+        if (number.Length == 0)
+            errors.Add("Number is required");
+        else if (_rows.Count(r => string.Equals((r.Payload.DocNumber ?? "").Trim(), number, StringComparison.OrdinalIgnoreCase)) > 1)
+            errors.Add("Number is repeated in this list");
+
+        if (p.Side == FinancialSide.None) errors.Add("Side is required");
+        if (p.DocTypeId == 0) errors.Add("Type is required");
+        if (p.DocDate == default) errors.Add("Date is required");
+        if (p.CurrencyId == 0) errors.Add("Currency is required");
+        if (p.TotalAmount == 0) errors.Add("Total is required");
+        if (p.SupplierId is null) errors.Add("Supplier is required");
+        if (p.BuyerId is null) errors.Add("Buyer is required");
+        if (p.SupplierId is not null && p.SupplierId == p.BuyerId) errors.Add("Supplier and buyer are the same company");
+
+        return errors;
+    }
+
+    private async Task PostAsync()
+    {
+        _busy = true;
+        bool saved;
+        try
+        {
+            saved = await Post(_rows.Select(r => r.Payload).ToList());
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        // On failure the dialog stays open so nothing typed is lost.
+        if (saved)
+            MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private static LookupItem? Find(IReadOnlyList<LookupItem> items, int? id) =>
+        id is null ? null : items.FirstOrDefault(i => i.Id == id);
+
+    private static Task<IEnumerable<LookupItem>> Search(IReadOnlyList<LookupItem> items, string? text) =>
+        Task.FromResult(string.IsNullOrWhiteSpace(text)
+            ? items.Take(50)
+            : items.Where(i => i.Name.Contains(text, StringComparison.OrdinalIgnoreCase)).Take(50));
+}

@@ -14,6 +14,7 @@ using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
+using Marilog.Contracts.Interfaces.Services.DocumentExtraction;
 using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -99,6 +100,9 @@ namespace Marilog.Client.Extensions
 
             //---Inbox Entry----------------------------------
             services.AddScoped<IInboxService, InboxService>();
+
+            //====Doc Extaction===============================
+            services.AddScoped<IDocumentExtractionService,  DocumentExtractionService>();
 
 
             return services;

@@ -2,6 +2,7 @@
 using Marilog.Contracts.DTOs.Reports.InboxEntryReport;
 using Marilog.Contracts.DTOs.Requests.InboxEntryDTOs;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/inbox-entries")]
+    [RequireAnyPermission(PermissionAction.Create, PermissionAction.Update)]
     public class InboxEntriesController : ControllerBase
     {
         private readonly IInboxService _inbox;

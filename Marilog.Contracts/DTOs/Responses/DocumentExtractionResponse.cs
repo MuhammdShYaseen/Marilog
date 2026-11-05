@@ -31,11 +31,11 @@ namespace Marilog.Contracts.DTOs.Responses
     public sealed record LookupItem(int Id, string Name);
 
     public sealed record ExtractionLookups(
-        IReadOnlyList<LookupItem> DocTypes,
-        IReadOnlyList<LookupItem> Currencies,
-        IReadOnlyList<LookupItem> Suppliers,
-        IReadOnlyList<LookupItem> Vessels,
-        IReadOnlyList<LookupItem> Ports);
+    IReadOnlyList<LookupItem> DocTypes,
+    IReadOnlyList<LookupItem> Currencies,
+    IReadOnlyList<LookupItem> Companies,
+    IReadOnlyList<LookupItem> Vessels,
+    IReadOnlyList<LookupItem> Ports);
 
     public sealed record ExtractionResponse(
         IReadOnlyList<ExtractionResult> Documents,

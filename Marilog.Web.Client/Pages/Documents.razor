@@ -7,6 +7,7 @@
 @using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.DocumentExtraction
 @using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Documents
@@ -28,61 +29,63 @@
 @inject IStoredFileService StoredFileService
 @inject IRecordCreator RecordCreator
 @inject IManageStoredFiles ManageStoredFiles
+@inject IDocumentExtractionService ExtractionService
 
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 
-    <MudDrawer @bind-Open="_isDetailDrawerOpen"
-               Anchor="Anchor.End"
-               Variant="DrawerVariant.Temporary"
-               Elevation="8"
-               Width="70%">
+<MudDrawer @bind-Open="_isDetailDrawerOpen"
+           Anchor="Anchor.End"
+           Variant="DrawerVariant.Temporary"
+           Elevation="8"
+           Width="70%">
 
-        @if (_detail is not null)
-        {
-            <SharedDocumentDetailPage Document="_detail"
-                                      OnBackClicked="CloseDetail"
-                                      OnEditClicked="OpenEditDialog"
-                                      OnDeleteClicked="ConfirmDelete"
-                                      OnAddPaymentClicked="OpenAddPaymentDialog"
-                                      OnAddItemClicked="OpenAddItemDialog"
-                                      OnEditItemClicked="OpenEditItemDialog"
-                                      OnRemoveItemClicked="ConfirmRemoveItem"
-                                      OnRemovePaymentClicked="ConfirmRemovePayment"
-                                      OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))"
-                                      OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
-                                      OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
-                                      OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
-                                      OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))"/>
-        }
+    @if (_detail is not null)
+    {
+        <SharedDocumentDetailPage Document="_detail"
+                                  OnBackClicked="CloseDetail"
+                                  OnEditClicked="OpenEditDialog"
+                                  OnDeleteClicked="ConfirmDelete"
+                                  OnAddPaymentClicked="OpenAddPaymentDialog"
+                                  OnAddItemClicked="OpenAddItemDialog"
+                                  OnEditItemClicked="OpenEditItemDialog"
+                                  OnRemoveItemClicked="ConfirmRemoveItem"
+                                  OnRemovePaymentClicked="ConfirmRemovePayment"
+                                  OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))"
+                                  OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
+                                  OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
+                                  OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
+                                  OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))" />
+    }
 
-    </MudDrawer>
+</MudDrawer>
 
-    <SharedDocumentsPage Unpaid="_unpaid"
-                         ByVessel="_byVessel"
-                         BySupplier="_bySupplier"
-                         ByType="_byType"
-                         Vessels="_vessels"
-                         Companies="_companies"
-                         OnAddClicked="OpenAddDialog"
-                         OnEditClicked="OpenEditDialog"
-                         OnDeleteClicked="ConfirmDelete"
-                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))"
-                         OnDocumentSelected="LoadDetail"
-                         OnVesselSelected="LoadByVessel"
-                         OnSupplierSelected="LoadBySupplier"
-                         OnTypeSelected="LoadByType"
-                         DocTypes="_docTypes"
-                         OnDocumentReportRequested="HandleDocumentReportRequestedAsync"
-                         OnExportPdfRequested="HandleExportPdfAsync"
-                         OnSearch="HandelSearchAsync"
-                         OnLoadLastAdded="HandelGetLastAddAsync"
-                         UnpaidPage="_unpaidPage"
-                         UnpaidTotalPages="_unpaidTotalPages"
-                         OnUnpaidPageChanged="LoadUnpaidPageAsync"
-                         @ref="_documentsPage" />
+<SharedDocumentsPage Unpaid="_unpaid"
+                     ByVessel="_byVessel"
+                     BySupplier="_bySupplier"
+                     ByType="_byType"
+                     Vessels="_vessels"
+                     Companies="_companies"
+                     OnAddClicked="OpenAddDialog"
+                     OnImportFromPdf="OpenImportDialogAsync"
+                     OnEditClicked="OpenEditDialog"
+                     OnDeleteClicked="ConfirmDelete"
+                     OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))"
+                     OnDocumentSelected="LoadDetail"
+                     OnVesselSelected="LoadByVessel"
+                     OnSupplierSelected="LoadBySupplier"
+                     OnTypeSelected="LoadByType"
+                     DocTypes="_docTypes"
+                     OnDocumentReportRequested="HandleDocumentReportRequestedAsync"
+                     OnExportPdfRequested="HandleExportPdfAsync"
+                     OnSearch="HandelSearchAsync"
+                     OnLoadLastAdded="HandelGetLastAddAsync"
+                     UnpaidPage="_unpaidPage"
+                     UnpaidTotalPages="_unpaidTotalPages"
+                     OnUnpaidPageChanged="LoadUnpaidPageAsync"
+                     @ref="_documentsPage" />
 
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -196,7 +199,7 @@
         _detail = null;
         _isDetailDrawerOpen = false;
     }
-    
+
 
     private async Task OpenAddDialog()
     {
@@ -246,7 +249,7 @@
         (
             "Delete Document",
             $"Delete document '{doc.DocNumber}'?",
-            yesText: "Delete", 
+            yesText: "Delete",
             cancelText: "Cancel"
         );
 
@@ -271,8 +274,8 @@
     private async Task OpenAddPaymentDialog(DocumentResponse doc)
     {
         var swifts = await SwiftTransferService.GetBySenderAndReceverAsync(doc.BuyerId!.Value, doc.SupplierId!.Value);
-        var parameters = new DialogParameters 
-        { 
+        var parameters = new DialogParameters
+        {
             ["Document"] = doc,
             ["SwiftTransfers"] = swifts
         };
@@ -282,7 +285,7 @@
 
         var (swiftId, amount, date, method, discreption) = ((int?, decimal, DateOnly, PaymentMethod, string?))result.Data;
         await PaymentService.AddPaymentAsync(doc.Id,
-            new AddPaymentRequest 
+            new AddPaymentRequest
             {
                 SwiftTransferId = swiftId,
                 PaidAmount = amount,
@@ -377,7 +380,7 @@
         var report = await DocumentService.GetFilteredDocsReportAsync(filter);
         _documentsPage?.SetDocumentReport(report);
     }
-    
+
 
 
     private async Task HandleExportPdfAsync((DocumentReport report, string title, string fileName) args)
@@ -537,7 +540,53 @@
 
         return string.IsNullOrWhiteSpace(details) ? title : $"{title}\n{details}";
     }
-    
+
+
+    private async Task OpenImportDialogAsync()
+    {
+        var parameters = new DialogParameters<ImportDocumentsDialog>
+    {
+        { x => x.Extract, ExtractDocumentsAsync },
+        { x => x.Post, PostDocumentsAsync }
+    };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraExtraLarge, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<ImportDocumentsDialog>("Import documents from PDF", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadAsync();   // your existing list refresh
+    }
+
+    private async Task<ExtractionResponse?> ExtractDocumentsAsync(IReadOnlyList<ExtractionFile> files)
+    {
+        try
+        {
+            return await ExtractionService.ExtractAsync(files);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return null;
+        }
+    }
+
+    private async Task<bool> PostDocumentsAsync(IReadOnlyList<CreateDocumentRequest> payloads)
+    {
+        try
+        {
+            var created = await DocumentService.CreateRangeAsync(payloads);
+            Snackbar.Add($"{created.Count} document(s) created.", Severity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+    }
+
 }
 <style>
     body.drawer-scroll-lock {

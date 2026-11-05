@@ -22,9 +22,18 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
         private readonly IRepository<DocumentType> _docTypes;
         private readonly IRepository<Document> _documents;
 
-        // Document type + the phrases (its Name and Code) searched for on the page.
-        private sealed record DocTypeRef(int Id, string Name, List<string> Keywords);
-        
+        // ── Side detection labels ────────────────────────────────────────
+        private static Regex[] SideLabels(params string[] patterns) =>
+            patterns.Select(p => new Regex($@"^(?:{p})(?![A-Z0-9])", RegexOptions.Compiled | RegexOptions.IgnoreCase)).ToArray();
+
+        // Who receives the money.
+        private static readonly Regex[] PayeeLabels = SideLabels(
+            @"ACCOUNT\s*(?:NAME|TITLE)", @"A/C\s*NAME", @"BENEFICIARY(?:\s*NAME)?", @"IN\s*FAVOU?R\s*OF", @"PAYABLE\s*TO");
+
+        // Who is being billed.
+        private static readonly Regex[] AddresseeLabels = SideLabels(
+            @"INVOICE\s*TO", @"BILL\s*TO", @"BUYER", @"CUSTOMER(?:\s*NAME)?", @"CHARTERERS?",
+            @"COMPANY\s*NAME", @"NAME\s*OF\s*THE\s*COMPANY", @"MESS(?:RS|ES)", @"M/S", @"TO");
 
         public DocumentExtractionService(
             IPdfWordReader reader,
@@ -44,6 +53,7 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             _documents = documents;
         }
 
+        // ── Extraction ───────────────────────────────────────────────────
         public async Task<ExtractionResponse> ExtractAsync(IReadOnlyList<ExtractionFile> files, CancellationToken ct = default)
         {
             var notes = new List<string>();
@@ -90,10 +100,9 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             }
 
             var lookups = await LoadLookupsAsync(ct);
+
             if (extracted.Count == 0)
                 return new ExtractionResponse([], notes, ToDto(lookups));
-
-
 
             var results = new List<ExtractionResult>();
             foreach (var (fileName, doc) in extracted)
@@ -128,23 +137,31 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             var normalized = ExtractionParsers.NormalizeId(raw);
             var lower = raw.ToLowerInvariant();
 
-            // Supplier: known IBAN inside the page, then exact email address, then company name.
-            var suppliers = lk.Suppliers.Where(s => s.Ids.Any(normalized.Contains)).ToList();
+            // Side: who is asking whom for money (bank account, payee, addressee, issuer).
+            var (isRevenue, ownId, sideReasons) = DetectSide(doc.Lines, normalized, lk);
+            var role = isRevenue ? "Buyer" : "Supplier";
 
-            if (suppliers.Count == 0)
-                suppliers = lk.Suppliers.Where(s => s.Emails.Any(lower.Contains)).ToList();
+            warnings.Add(sideReasons.Count > 0
+                ? $"Side: {(isRevenue ? "Revenue" : "Expense")} — {string.Join("; ", sideReasons)}"
+                : "Side: Expense (default — no side signal found on the document)");
 
-            if (suppliers.Count == 0)
+            // Counterparty: known IBAN, then exact email, then company name.
+            var counterparties = lk.Suppliers.Where(s => s.Ids.Any(normalized.Contains)).ToList();
+
+            if (counterparties.Count == 0)
+                counterparties = lk.Suppliers.Where(s => s.Emails.Any(lower.Contains)).ToList();
+
+            if (counterparties.Count == 0)
             {
-                suppliers = lk.Suppliers
+                counterparties = lk.Suppliers
                     .Where(s => s.NameKey.Length >= 8 && normalized.Contains(s.NameKey))
                     .ToList();
 
-                if (suppliers.Count == 1)
-                    warnings.Add($"Supplier: matched by name only ({suppliers[0].Name}) — verify, and add its bank account to make it exact");
+                if (counterparties.Count == 1)
+                    warnings.Add($"{role}: matched by name only ({counterparties[0].Name}) — verify, and add its bank account to make it exact");
             }
 
-            var supplierId = PickOne(suppliers, s => s.Id, s => s.Name, "Supplier",
+            var counterpartyId = PickOne(counterparties, s => s.Id, s => s.Name, role,
                 "no known IBAN, email or company name found — create the company or add its bank account first",
                 unresolved);
 
@@ -161,23 +178,33 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 lk.Currencies.Where(c => string.Equals(c.Name, h.Currency, StringComparison.OrdinalIgnoreCase)).ToList(),
                 c => c.Id, c => c.Name, "Currency", $"'{h.Currency ?? "none"}' not found in currencies", unresolved);
 
-            // DocType from the page title
-            // DocType: the keyword appearing first on the page wins; on the same position, the longer one.
+            // DocType: the earliest Name/Code on the page wins,
+            // but a more specific phrase anywhere beats a generic one it contains ("Hire Invoice" over "Invoice").
             var hits = lk.DocTypes
-                .SelectMany(d => d.Keywords.Select(k => (Type: d, Index: IndexOfWord(raw, k), k.Length)))
+                .SelectMany(d => d.Keywords.Select(k => (Type: d, Keyword: k, Index: IndexOfWord(raw, k))))
                 .Where(x => x.Index >= 0)
                 .OrderBy(x => x.Index)
-                .ThenByDescending(x => x.Length)
+                .ThenByDescending(x => x.Keyword.Length)
                 .ToList();
 
+            var winner = hits.FirstOrDefault();
+            if (hits.Count > 0)
+            {
+                var specific = hits.FirstOrDefault(x =>
+                    x.Keyword.Length > winner.Keyword.Length &&
+                    x.Keyword.Contains(winner.Keyword, StringComparison.OrdinalIgnoreCase));
+
+                if (specific.Type is not null) winner = specific;
+            }
+
             var bestTypes = hits
-                .Where(x => x.Index == hits[0].Index && x.Length == hits[0].Length)
+                .Where(x => x.Index == winner.Index && x.Keyword.Length == winner.Keyword.Length)
                 .Select(x => x.Type)
                 .DistinctBy(t => t.Id)
                 .ToList();
 
             var docTypeId = PickOne(bestTypes, d => d.Id, d => d.Name, "DocType",
-                "no document type keyword found on the page — add keywords to the document type", unresolved);
+                "no document type Name or Code found on the page", unresolved);
 
             // Port (optional): longest port name contained in the port text, compared without spaces.
             int? portId = null;
@@ -200,7 +227,7 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
 
             if (h.DocDate is null) unresolved.Add("DocDate: not found in the document");
             if (h.TotalAmount is null) unresolved.Add("TotalAmount: not found in the document");
-            if (lk.OwnCompanyId is null) warnings.Add("Buyer: no single company marked as own company");
+            if (ownId is null) warnings.Add("Own company: none matched on the document and more than one is marked as own");
 
             var payload = new CreateDocumentRequest
             {
@@ -209,17 +236,124 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 DocDate = h.DocDate ?? default,
                 CurrencyId = currencyId ?? 0,
                 TotalAmount = h.TotalAmount ?? 0,
-                SupplierId = supplierId,
-                BuyerId = lk.OwnCompanyId,
+                SupplierId = isRevenue ? ownId : counterpartyId,
+                BuyerId = isRevenue ? counterpartyId : ownId,
+                Side = isRevenue ? FinancialSide.Revenue : FinancialSide.Expense,
                 VesselId = vesselId,
                 PortId = portId,
-                Side = FinancialSide.Expense,
                 DocDue = h.DocDue
             };
 
             return new ExtractionResult(fileName, doc.Pages, payload, unresolved, warnings);
         }
 
+        // ── Side detection ───────────────────────────────────────────────
+        // Score > 0 → revenue (we ask for the money), otherwise expense.
+        private static (bool IsRevenue, int? OwnId, List<string> Reasons) DetectSide(
+            IReadOnlyList<TextLine> lines, string normalized, Lookups lk)
+        {
+            var score = 0;
+            int? ownId = null;
+            var reasons = new List<string>();
+
+            // A. Bank account on the document = where the money goes = the issuer.
+            var ownBank = lk.Owns.FirstOrDefault(o => o.Ids.Any(normalized.Contains));
+            if (ownBank is not null)
+            {
+                score += 3;
+                ownId ??= ownBank.Id;
+                reasons.Add($"own bank account ({ownBank.Name})");
+            }
+
+            var otherBank = lk.Suppliers.FirstOrDefault(s => s.Ids.Any(normalized.Contains));
+            if (otherBank is not null)
+            {
+                score -= 3;
+                reasons.Add($"bank account of {otherBank.Name}");
+            }
+
+            // B. Payee name.
+            foreach (var text in LabeledTexts(lines, PayeeLabels, linesBelow: 0))
+            {
+                if (NameIn(lk.Owns, text) is { } own)
+                {
+                    score += 2;
+                    ownId ??= own.Id;
+                    reasons.Add($"payee is {own.Name}");
+                }
+                else if (NameIn(lk.Suppliers, text) is { } other)
+                {
+                    score -= 2;
+                    reasons.Add($"payee is {other.Name}");
+                }
+            }
+
+            // C. Addressee: billing someone else = revenue, being billed = expense.
+            foreach (var text in LabeledTexts(lines, AddresseeLabels, linesBelow: 2))
+            {
+                if (NameIn(lk.Owns, text) is { } own)
+                {
+                    score -= 2;
+                    ownId ??= own.Id;
+                    reasons.Add($"addressed to {own.Name}");
+                }
+                else if (NameIn(lk.Suppliers, text) is { } other)
+                {
+                    score += 2;
+                    reasons.Add($"addressed to {other.Name}");
+                }
+            }
+
+            // D. Issuer: the first lines of the document.
+            var top = ExtractionParsers.NormalizeId(string.Join(' ', lines.Take(3).Select(l => l.Text)));
+            if (NameIn(lk.Owns, top) is { } ownTop)
+            {
+                score += 1;
+                ownId ??= ownTop.Id;
+                reasons.Add($"issued by {ownTop.Name}");
+            }
+            else if (NameIn(lk.Suppliers, top) is { } otherTop)
+            {
+                score -= 1;
+                reasons.Add($"issued by {otherTop.Name}");
+            }
+
+            return (score > 0, ownId ?? lk.OwnCompanyId, reasons);
+        }
+
+        // Text after a label: rest of its segment, the next segment, and up to N lines below in the same column.
+        private static IEnumerable<string> LabeledTexts(IReadOnlyList<TextLine> lines, Regex[] labels, int linesBelow)
+        {
+            for (var li = 0; li < lines.Count; li++)
+            {
+                var segments = lines[li].SegmentSpans();
+
+                for (var i = 0; i < segments.Count; i++)
+                {
+                    var m = labels.Select(l => l.Match(segments[i].Text)).FirstOrDefault(x => x.Success);
+                    if (m is null) continue;
+
+                    var parts = new List<string> { segments[i].Text[m.Length..] };
+                    if (i + 1 < segments.Count) parts.Add(segments[i + 1].Text);
+
+                    for (var n = li + 1; n <= li + linesBelow && n < lines.Count; n++)
+                    {
+                        var aligned = lines[n].SegmentSpans().FirstOrDefault(s => Math.Abs(s.Left - segments[i].Left) < 40);
+                        if (aligned is not null) parts.Add(aligned.Text);
+                    }
+
+                    yield return ExtractionParsers.NormalizeId(string.Join(' ', parts));
+                }
+            }
+        }
+
+        // Longest company name contained in an already-normalized text.
+        private static SupplierRef? NameIn(List<SupplierRef> refs, string normalizedText) =>
+            refs.Where(r => r.NameKey.Length >= 6 && normalizedText.Contains(r.NameKey))
+                .OrderByDescending(r => r.NameKey.Length)
+                .FirstOrDefault();
+
+        // ── Helpers ──────────────────────────────────────────────────────
         // Exactly one match → its id. Zero or several → null + a reason.
         private static int? PickOne<T>(List<T> matches, Func<T, int> id, Func<T, string> name,
             string field, string notFound, List<string> sink)
@@ -236,20 +370,32 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
             !string.IsNullOrWhiteSpace(word) &&
             Regex.IsMatch(text, $@"(?<![A-Z0-9]){Regex.Escape(word.Trim())}(?![A-Z0-9])", RegexOptions.IgnoreCase);
 
+        private static int IndexOfWord(string text, string phrase)
+        {
+            var pattern = Regex.Escape(phrase).Replace(@"\ ", @"\s+");
+            var m = Regex.Match(text, $@"(?<![A-Z0-9]){pattern}(?![A-Z0-9])", RegexOptions.IgnoreCase);
+            return m.Success ? m.Index : -1;
+        }
+
         private static string StripVesselPrefix(string? name) =>
             name is null
                 ? ""
                 : Regex.Replace(name.Trim(), @"^(?:M\.?\s?V\.?|M/V)\s+", "", RegexOptions.IgnoreCase);
 
-        // ── Lookups (loaded once per file) ───────────────────────────────
+        // ── Lookups (loaded once per request) ────────────────────────────
         private sealed record SupplierRef(int Id, string Name, string NameKey, List<string> Ids, List<string> Emails);
         private sealed record VesselRef(int Id, string Name, string? Imo);
         private sealed record NamedRef(int Id, string Name);
 
+        // Document type + the phrases (its Name and Code) searched for on the page.
+        private sealed record DocTypeRef(int Id, string Name, List<string> Keywords);
+
         private sealed class Lookups
         {
             public int? OwnCompanyId { get; init; }
+            public List<SupplierRef> Owns { get; init; } = [];
             public List<SupplierRef> Suppliers { get; init; } = [];
+            public List<NamedRef> Companies { get; init; } = [];
             public List<VesselRef> Vessels { get; init; } = [];
             public List<NamedRef> Currencies { get; init; } = [];
             public List<NamedRef> Ports { get; init; } = [];
@@ -270,48 +416,66 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 })
                 .ToListAsync(ct);
 
+            // Short ids would match by accident inside other numbers, so ids under 8 characters are dropped.
+            static SupplierRef ToRef(int id, string name, IEnumerable<string?> ibans, IEnumerable<string?> emails) => new(
+                id,
+                name,
+                ExtractionParsers.NormalizeId(ExtractionParsers.StripLegalSuffix(name)),
+                ibans.Select(ExtractionParsers.NormalizeId).Where(x => x.Length >= 8).Distinct().ToList(),
+                emails.Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e!.Trim().ToLowerInvariant()).ToList());
+
             var own = companies.Where(c => c.IsOwnCompany).Select(c => c.Id).ToList();
+
+            var docTypes = await _docTypes.Query()
+                .Select(d => new { d.Id, d.Code, d.Name })
+                .ToListAsync(ct);
 
             return new Lookups
             {
                 OwnCompanyId = own.Count == 1 ? own[0] : null,
 
+                Owns = companies
+                    .Where(c => c.IsOwnCompany)
+                    .Select(c => ToRef(c.Id, c.CompanyName, c.Ibans, c.Emails))
+                    .ToList(),
+
                 Suppliers = companies
                     .Where(c => !c.IsOwnCompany)
-                    .Select(c => new SupplierRef(
-                        c.Id,
-                        c.CompanyName,
-                        ExtractionParsers.NormalizeId(c.CompanyName),
-                        // Short ids would match by accident inside other numbers.
-                        c.Ibans
-                            .Select(ExtractionParsers.NormalizeId)
-                            .Where(x => x.Length >= 8)
-                            .Distinct()
-                            .ToList(),
-                        c.Emails
-                            .Where(e => !string.IsNullOrWhiteSpace(e))
-                            .Select(e => e.Trim().ToLowerInvariant())
-                            .ToList()))
+                    .Select(c => ToRef(c.Id, c.CompanyName, c.Ibans, c.Emails))
                     .ToList(),
+
+                Companies = companies.Select(c => new NamedRef(c.Id, c.CompanyName)).ToList(),
 
                 Vessels = await _vessels.Query().Select(v => new VesselRef(v.Id, v.VesselName, v.IMONumber)).ToListAsync(ct),
                 Currencies = await _currencies.Query().Select(c => new NamedRef(c.Id, c.CurrencyCode)).ToListAsync(ct),
                 Ports = await _ports.Query().Select(p => new NamedRef(p.Id, p.PortName)).ToListAsync(ct),
-                DocTypes = (await _docTypes.Query()
-        .Select(d => new { d.Id, d.Code, d.Name })
-        .ToListAsync(ct))
-    .Select(d => new DocTypeRef(
-        d.Id,
-        d.Name,
-        new[] { d.Name, d.Code.Replace('_', ' ') }
-            .Where(k => !string.IsNullOrWhiteSpace(k) && k.Trim().Length >= 3)
-            .Select(k => k.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList()))
-    .ToList()
+
+                DocTypes = docTypes
+                    .Select(d => new DocTypeRef(
+                        d.Id,
+                        d.Name,
+                        new[] { d.Name, d.Code.Replace('_', ' ') }
+                            .Where(k => !string.IsNullOrWhiteSpace(k) && k.Trim().Length >= 3)
+                            .Select(k => k.Trim())
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList()))
+                    .ToList()
             };
         }
 
+        private static ExtractionLookups ToDto(Lookups lk)
+        {
+            static List<LookupItem> Sorted(IEnumerable<LookupItem> items) => items.OrderBy(i => i.Name).ToList();
+
+            return new ExtractionLookups(
+                Sorted(lk.DocTypes.Select(d => new LookupItem(d.Id, d.Name))),
+                Sorted(lk.Currencies.Select(c => new LookupItem(c.Id, c.Name))),
+                Sorted(lk.Companies.Select(c => new LookupItem(c.Id, c.Name))),
+                Sorted(lk.Vessels.Select(v => new LookupItem(v.Id, v.Name))),
+                Sorted(lk.Ports.Select(p => new LookupItem(p.Id, p.Name))));
+        }
+
+        // ── Debug ────────────────────────────────────────────────────────
         public Task<IReadOnlyList<ExtractionDebugPage>> DebugAsync(byte[] pdf, CancellationToken ct = default)
         {
             IReadOnlyList<ExtractionDebugPage> pages = _reader.Read(pdf)
@@ -331,24 +495,6 @@ namespace Marilog.Application.Services.ApplicationServices.DocumentExtraction
                 .ToList();
 
             return Task.FromResult(pages);
-        }
-        private static int IndexOfWord(string text, string phrase)
-        {
-            var pattern = Regex.Escape(phrase).Replace(@"\ ", @"\s+");
-            var m = Regex.Match(text, $@"(?<![A-Z0-9]){pattern}(?![A-Z0-9])", RegexOptions.IgnoreCase);
-            return m.Success ? m.Index : -1;
-        }
-
-        private static ExtractionLookups ToDto(Lookups lk)
-        {
-            static List<LookupItem> Sorted(IEnumerable<LookupItem> items) => items.OrderBy(i => i.Name).ToList();
-
-            return new ExtractionLookups(
-                Sorted(lk.DocTypes.Select(d => new LookupItem(d.Id, d.Name))),
-                Sorted(lk.Currencies.Select(c => new LookupItem(c.Id, c.Name))),
-                Sorted(lk.Suppliers.Select(s => new LookupItem(s.Id, s.Name))),
-                Sorted(lk.Vessels.Select(v => new LookupItem(v.Id, v.Name))),
-                Sorted(lk.Ports.Select(p => new LookupItem(p.Id, p.Name))));
         }
     }
 }

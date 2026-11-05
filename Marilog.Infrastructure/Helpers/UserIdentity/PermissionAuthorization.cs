@@ -45,13 +45,16 @@ namespace Marilog.Infrastructure.Helpers.UserIdentity
     // then evaluates every pending PermissionRequirement of the request.
     // Checked against the database on every request. Loads the user's effective permissions once,
     // then evaluates every pending PermissionRequirement with the shared rule in EffectivePermissions.
-    public sealed class PermissionHandler(UserManager<User> userManager, UserPermissionReader permissionReader)
-        : IAuthorizationHandler
+    // Checked against the database on every request. Loads the user's effective permissions once,
+    // then evaluates every pending PermissionRequirement / AnyPermissionRequirement with the shared rule in EffectivePermissions.
+    public sealed class PermissionHandler(UserManager<User> userManager, UserPermissionReader permissionReader) : IAuthorizationHandler
     {
         public async Task HandleAsync(AuthorizationHandlerContext context)
         {
             var requirements = context.PendingRequirements.OfType<PermissionRequirement>().ToList();
-            if (requirements.Count == 0) return;
+            var anyRequirements = context.PendingRequirements.OfType<AnyPermissionRequirement>().ToList();
+
+            if (requirements.Count == 0 && anyRequirements.Count == 0) return;
             if (context.User.Identity?.IsAuthenticated != true) return;
 
             var user = await userManager.GetUserAsync(context.User);
@@ -65,6 +68,34 @@ namespace Marilog.Infrastructure.Helpers.UserIdentity
                 if (permissions.Can(requirement.Kind, requirement.Value, requirement.Action))
                     context.Succeed(requirement);
             }
+
+            foreach (var requirement in anyRequirements)
+            {
+                var granted = Enum.GetValues<EntityType>()
+                    .Where(e => e != EntityType.NONE)
+                    .Any(e => requirement.Actions.Any(a => permissions.Can(PermissionTargetKind.Entity, (int)e, a)));
+
+                if (granted)
+                    context.Succeed(requirement);
+            }
+        }
+    }
+
+    public sealed record AnyPermissionRequirement(PermissionAction[] Actions) : IAuthorizationRequirement;
+
+    // Usage: [RequireAnyPermission(PermissionAction.Create, PermissionAction.Update)]
+    // Passes when the user holds any of the given actions on any entity.
+    // For entry points that can turn into any record (Inbox, document extraction).
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    public sealed class RequireAnyPermissionAttribute : AuthorizeAttribute, IAuthorizationRequirementData
+    {
+        public PermissionAction[] Actions { get; }
+
+        public RequireAnyPermissionAttribute(params PermissionAction[] actions) => Actions = actions;
+
+        public IEnumerable<IAuthorizationRequirement> GetRequirements()
+        {
+            yield return new AnyPermissionRequirement(Actions);
         }
     }
 }

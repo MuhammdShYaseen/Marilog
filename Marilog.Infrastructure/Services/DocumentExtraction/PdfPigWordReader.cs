@@ -18,11 +18,11 @@ namespace Marilog.Infrastructure.Services.DocumentExtraction
                     page.GetWords()
                         .Where(w => !string.IsNullOrWhiteSpace(w.Text))
                         .Select(w => new PdfWord(
-                            w.Text,
-                            w.BoundingBox.Left,
-                            w.BoundingBox.Right,
-                            w.BoundingBox.Top,
-                            w.BoundingBox.Bottom))
+                                ExtractionParsers.NormalizeDigits(w.Text),
+                                w.BoundingBox.Left,
+                                w.BoundingBox.Right,
+                                w.BoundingBox.Top,
+                                w.BoundingBox.Bottom))
                         .ToList()))
                 .ToList();
         }
