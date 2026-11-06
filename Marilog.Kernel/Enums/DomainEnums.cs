@@ -1,5 +1,27 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+
+    //Voyage after Refactor Enums
+    /// <summary>Fixed on purpose — code behaviour (UI fields, cargo extensions) depends on it.</summary>
+    public enum CargoCategory
+    {
+        DryBulk = 1,
+        LiquidBulk = 2,
+        GeneralCargo = 3,
+        Livestock = 4,
+        RoRo = 5,
+        Container = 6
+    }
+
+    /// <summary>Fixed on purpose — reports must know the unit to total correctly.</summary>
+    public enum CargoUnit
+    {
+        MT = 1,
+        CBM = 2,
+        Units = 3,
+        Heads = 4,
+        TEU = 5
+    }
     public enum InboxSource
     {
         Email = 1,
@@ -288,6 +310,7 @@
         InboxEntryLink = 43,
         ContractType = 44,
         ContractRole = 45,
+        CargoType = 46,
         NONE = 0
     }
     public enum JobStatus
