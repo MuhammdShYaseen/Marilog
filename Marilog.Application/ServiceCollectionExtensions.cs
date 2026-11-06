@@ -43,6 +43,7 @@ namespace Marilog.Application
             services.AddScoped<IBankService, BankService>();
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<ICargoTypeService, CargoTypeService>();
+            services.AddScoped<IVesselTypeService, VesselTypeService>();
             // ── Core ──────────────────────────────────────────────────────────────
             services.AddScoped<ICompanyService, CompanyService>();
             services.AddScoped<IPersonService, PersonService>();

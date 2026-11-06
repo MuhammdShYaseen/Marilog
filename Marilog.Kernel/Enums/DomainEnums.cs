@@ -311,6 +311,7 @@
         ContractType = 44,
         ContractRole = 45,
         CargoType = 46,
+        VesselType = 47,
         NONE = 0
     }
     public enum JobStatus

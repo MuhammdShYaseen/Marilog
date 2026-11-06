@@ -16,6 +16,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public Country? FlagCountry { get; private set; }
         public string? Notes { get; private set; }
 
+        public int? VesselTypeId { get; private set; }
+        public VesselType? VesselType { get; private set; }
 
         private readonly List<VesselCertificate> _certificates = new();
         public IReadOnlyCollection<VesselCertificate> Certificates => _certificates.AsReadOnly();
@@ -27,7 +29,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         private Vessel() { }
         public static Vessel Create(int companyId, string vesselName,
             string? imoNumber = null, decimal? grossTonnage = null,
-            int? flagCountryId = null, string? notes = null)
+            int? flagCountryId = null, string? notes = null,int ? vesselTypeId = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(vesselName);
             if (companyId <= 0) throw new ArgumentException("Invalid CompanyID.");
@@ -39,12 +41,16 @@ namespace Marilog.Domain.Entities.SystemEntities
                 IMONumber = imoNumber,
                 GrossTonnage = grossTonnage,
                 FlagCountryID = flagCountryId,
-                Notes = notes
+                Notes = notes,
+                VesselTypeId = vesselTypeId
+
             };
         }
 
         public void Update(string vesselName, string? imoNumber = null,
-            decimal? grossTonnage = null, int? flagCountryId = null, string? notes = null)
+                           decimal? grossTonnage = null,
+                           int? flagCountryId = null,
+                           string? notes = null, int? vesselTypeId = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(vesselName);
 
@@ -53,6 +59,7 @@ namespace Marilog.Domain.Entities.SystemEntities
             GrossTonnage = grossTonnage;
             FlagCountryID = flagCountryId;
             Notes = notes;
+            VesselTypeId = vesselTypeId;
             Touch();
         }
 

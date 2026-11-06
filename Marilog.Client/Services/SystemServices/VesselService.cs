@@ -62,9 +62,10 @@ namespace Marilog.Client.Services.SystemServices
         public async Task<VesselResponse> CreateAsync(int companyId, string vesselName,
             string? imoNumber = null, decimal? grossTonnage = null,
             int? flagCountryId = null, string? notes = null,
+            int? vesselTypeId = null,
             CancellationToken ct = default)
         {
-            var request = new CreateVesselRequest(companyId, vesselName, imoNumber, grossTonnage, flagCountryId, notes);
+            var request = new CreateVesselRequest(companyId, vesselName, imoNumber, grossTonnage, flagCountryId, notes, vesselTypeId);
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<VesselResponse>>(ct);
@@ -82,9 +83,10 @@ namespace Marilog.Client.Services.SystemServices
         public async Task UpdateAsync(int id, string vesselName,
             string? imoNumber = null, decimal? grossTonnage = null,
             int? flagCountryId = null, string? notes = null,
+            int? vesselTypeId = null,
             CancellationToken ct = default)
         {
-            var request = new UpdateVesselRequest(vesselName, imoNumber, grossTonnage, flagCountryId, notes);
+            var request = new UpdateVesselRequest(vesselName, imoNumber, grossTonnage, flagCountryId, notes, vesselTypeId);
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }

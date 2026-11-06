@@ -30,6 +30,11 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasForeignKey(x => x.FlagCountryID)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.VesselType)
+                   .WithMany()
+                   .HasForeignKey(x => x.VesselTypeId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(x => x.CrewContracts)
                    .WithOne(x => x.Vessel)
                    .HasForeignKey(x => x.VesselID)

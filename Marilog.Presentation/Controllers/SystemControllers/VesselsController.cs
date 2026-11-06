@@ -74,6 +74,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.GrossTonnage,
                 request.FlagCountryId,
                 request.Notes,
+                request.VesselTypeId,
                 ct
             );
 
@@ -90,7 +91,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 r.ImoNumber,
                 r.GrossTonnage,
                 r.FlagCountryId,
-                r.Notes
+                r.Notes,
+                r.VesselTypeId
             ));
 
             var result = await _service.CreateRangeAsync(commands, ct);
@@ -107,6 +109,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.GrossTonnage,
                 request.FlagCountryId,
                 request.Notes,
+                request.VesselTypeId,
                 ct
             );
 

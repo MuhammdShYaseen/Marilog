@@ -54,6 +54,7 @@ namespace Marilog.Client.Extensions
             services.AddScoped<IBillOfLadingService, BillOfLadingService>();
             services.AddScoped<IBankService, BankService>();
             services.AddScoped<ICargoTypeService, CargoTypeService>();
+            services.AddScoped<IVesselTypeService, VesselTypeService>();
             //=====frontend================================================================
             services.AddScoped<INavigationService, NavigationService>();
             services.AddScoped<IAppThemeService, AppThemeService>();

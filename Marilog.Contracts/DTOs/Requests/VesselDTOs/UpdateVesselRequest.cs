@@ -5,6 +5,7 @@
     string? ImoNumber = null,
     decimal? GrossTonnage = null,
     int? FlagCountryId = null,
-    string? Notes = null
+    string? Notes = null,
+    int? VesselTypeId = null
 );
 }

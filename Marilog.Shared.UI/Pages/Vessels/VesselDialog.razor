@@ -78,6 +78,21 @@
                 </MudSelect>
             </MudItem>
 
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?"
+                           @bind-Value="_vesselTypeId"
+                           Label="Vessel Type"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var t in VesselTypes.Where(t => t.IsActive || t.Id == Vessel?.VesselTypeId))
+                    {
+                        <MudSelectItem T="int?" Value="(int?)t.Id">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
             <MudItem xs="12">
                 <MudTextField @bind-Value="_notes"
                               Label="Notes"
@@ -107,7 +122,8 @@
     [Parameter] public VesselResponse? Vessel { get; set; }
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public IReadOnlyList<CountryResponse> Countries { get; set; } = [];
-
+    [Parameter] public IReadOnlyList<VesselTypeResponse> VesselTypes { get; set; } = [];
+    private int? _vesselTypeId;
     private int _companyId;
     private string _vesselName = string.Empty;
     private string? _imoNumber;
@@ -126,6 +142,7 @@
         _grossTonnage = Vessel.GrossTonnage;
         _flagCountryId = Vessel.FlagCountryId;
         _notes = Vessel.Notes;
+        _vesselTypeId = Vessel.VesselTypeId;
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -140,7 +157,8 @@
                 _imoNumber,
                 _grossTonnage,
                 _flagCountryId,
-                _notes)));
+                _notes,
+                _vesselTypeId)));
         }
         else
         {

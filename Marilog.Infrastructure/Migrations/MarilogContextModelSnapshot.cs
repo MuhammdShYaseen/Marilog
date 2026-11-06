@@ -2622,6 +2622,9 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int?>("VesselTypeId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyID");
@@ -2635,7 +2638,62 @@ namespace Marilog.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[IMONumber] IS NOT NULL");
 
+                    b.HasIndex("VesselTypeId");
+
                     b.ToTable("Vessels", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.VesselType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("VesselTypes", (string)null);
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Voyage", b =>
@@ -4237,9 +4295,16 @@ namespace Marilog.Infrastructure.Migrations
                         .HasForeignKey("FlagCountryID")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.VesselType", "VesselType")
+                        .WithMany()
+                        .HasForeignKey("VesselTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Company");
 
                     b.Navigation("FlagCountry");
+
+                    b.Navigation("VesselType");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Voyage", b =>

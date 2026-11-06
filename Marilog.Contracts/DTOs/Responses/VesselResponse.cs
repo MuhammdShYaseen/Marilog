@@ -15,5 +15,7 @@
         public int CertificatesCount { get; set; }
         public int ExpiredCertificates { get; set; }
         public int ExpiringCertificates { get; set; }
+        public int? VesselTypeId { get; set; }
+        public string? VesselTypeName { get; set; }
     }
 }

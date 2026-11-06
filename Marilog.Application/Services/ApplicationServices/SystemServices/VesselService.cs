@@ -12,15 +12,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class VesselService : IVesselService
     {
-        private readonly IRepository<Vessel>  _repo;
+        private readonly IRepository<Vessel> _repo;
         private readonly IRepository<Company> _companyRepo;
+        private readonly IRepository<VesselType> _vesselTypeRepo;
 
         public VesselService(
-            IRepository<Vessel>  repo,
-            IRepository<Company> companyRepo)
+            IRepository<Vessel> repo,
+            IRepository<Company> companyRepo,
+            IRepository<VesselType> vesselTypeRepo)
         {
-            _repo        = repo;
+            _repo = repo;
             _companyRepo = companyRepo;
+            _vesselTypeRepo = vesselTypeRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -86,7 +89,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<VesselResponse> CreateAsync(int companyId, string vesselName,
      string? imoNumber = null, decimal? grossTonnage = null,
-     int? flagCountryId = null, string? notes = null,
+     int? flagCountryId = null, string? notes = null, int? vesselTypeId = null,
      CancellationToken ct = default)
         {
             imoNumber = NormalizeImo(imoNumber);
@@ -97,9 +100,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new KeyNotFoundException($"Company {companyId} not found or inactive.");
 
             await EnsureUniqueImoAsync(imoNumber, excludeId: null, ct);
+            await EnsureVesselTypeAsync(vesselTypeId, currentTypeId: null, ct);
 
             var vessel = Vessel.Create(companyId, vesselName, imoNumber, grossTonnage,
-                                       flagCountryId, notes);
+                                       flagCountryId, notes, vesselTypeId);
             await _repo.AddAsync(vessel, ct);
             await _repo.SaveChangesAsync(ct);
 
@@ -151,6 +155,26 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                         $"IMO number(s) already exist: {string.Join(", ", existingImos)}");
             }
 
+            // --- تحقق من أنواع السفن بـ query واحدة ---
+            var typeIds = commandList
+                .Where(c => c.VesselTypeId.HasValue)
+                .Select(c => c.VesselTypeId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (typeIds.Count > 0)
+            {
+                var activeTypeIds = await _vesselTypeRepo.Query()
+                    .Where(x => typeIds.Contains(x.Id) && x.IsActive)
+                    .Select(x => x.Id)
+                    .ToListAsync(ct);
+
+                var missingTypeIds = typeIds.Except(activeTypeIds).ToList();
+                if (missingTypeIds.Any())
+                    throw new KeyNotFoundException(
+                        $"Vessel type Id(s) not found or inactive: {string.Join(", ", missingTypeIds)}");
+            }
+
             // --- إنشاء دفعة واحدة ---
             var vessels = commandList
                 .Select(c => Vessel.Create(
@@ -159,8 +183,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     NormalizeImo(c.ImoNumber),
                     c.GrossTonnage,
                     c.FlagCountryId,
-                    c.Notes))
-                .ToList();
+                    c.Notes,
+                    c.VesselTypeId))
+                 .ToList();
 
             await _repo.AddRangeAsync(vessels, ct);
             await _repo.SaveChangesAsync(ct);
@@ -174,6 +199,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     IMONumber = vessel.IMONumber,
                     GrossTonnage = vessel.GrossTonnage,
                     FlagCountryId = vessel.FlagCountryID,
+                    VesselTypeId = vessel.VesselTypeId,
                     IsActive = vessel.IsActive
                 })
                 .ToList();
@@ -182,13 +208,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task UpdateAsync(int id, string vesselName,
             string? imoNumber = null, decimal? grossTonnage = null,
             int? flagCountryId = null, string? notes = null,
+            int? vesselTypeId = null,
             CancellationToken ct = default)
         {
             imoNumber = NormalizeImo(imoNumber);
             var vessel = await GetOrThrowAsync(id, ct);
             await EnsureUniqueImoAsync(imoNumber, excludeId: id, ct);
+            await EnsureVesselTypeAsync(vesselTypeId, currentTypeId: vessel.VesselTypeId, ct);
 
-            vessel.Update(vesselName, imoNumber, grossTonnage, flagCountryId, notes);
+            vessel.Update(vesselName, imoNumber, grossTonnage, flagCountryId, notes, vesselTypeId);
             _repo.Update(vessel);
             await _repo.SaveChangesAsync(ct);
         }
@@ -348,7 +376,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             IMONumber = x.IMONumber,
             CompanyName = x.Company != null ? x.Company.CompanyName  : null,
         };
+        // An inactive type is accepted only if the vessel already has it.
+        private async Task EnsureVesselTypeAsync(int? vesselTypeId, int? currentTypeId, CancellationToken ct)
+        {
+            if (vesselTypeId is null || vesselTypeId == currentTypeId)
+                return;
 
+            var exists = await _vesselTypeRepo.Query()
+                .AnyAsync(x => x.Id == vesselTypeId && x.IsActive, ct);
+
+            if (!exists)
+                throw new KeyNotFoundException($"Vessel type {vesselTypeId} not found or inactive.");
+        }
         private static Expression<Func<Vessel, VesselResponse>> ToResponse(DateOnly today)
         {
             var soon = today.AddDays(CertificateRules.ExpiringSoonDays);
@@ -366,6 +405,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
                 FlagCountryId = x.FlagCountryID,
                 FlagCountryName = x.FlagCountry != null ? x.FlagCountry.CountryName : null,
+
+
+                VesselTypeId = x.VesselTypeId,
+                VesselTypeName = x.VesselType != null ? x.VesselType.Name : null,
 
                 IsActive = x.IsActive,
 

@@ -16,15 +16,17 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<VesselResponse> CreateAsync(int companyId, string vesselName,
-                                 string? imoNumber = null, decimal? grossTonnage = null,
-                                 int? flagCountryId = null, string? notes = null,
-                                 CancellationToken ct = default);
+                         string? imoNumber = null, decimal? grossTonnage = null,
+                         int? flagCountryId = null, string? notes = null,
+                         int? vesselTypeId = null,
+                         CancellationToken ct = default);
 
         Task<IReadOnlyList<VesselResponse>> CreateRangeAsync(IEnumerable<CreateVesselRequest> commands, CancellationToken ct = default);
-        Task         UpdateAsync(int id, string vesselName,
-                                 string? imoNumber = null, decimal? grossTonnage = null,
-                                 int? flagCountryId = null, string? notes = null,
-                                 CancellationToken ct = default);
+        Task UpdateAsync(int id, string vesselName,
+                         string? imoNumber = null, decimal? grossTonnage = null,
+                         int? flagCountryId = null, string? notes = null,
+                         int? vesselTypeId = null,
+                         CancellationToken ct = default);
         Task         ActivateAsync(int id, CancellationToken ct = default);
         Task         DeactivateAsync(int id, CancellationToken ct = default);
         Task         DeleteAsync(int id, CancellationToken ct = default);

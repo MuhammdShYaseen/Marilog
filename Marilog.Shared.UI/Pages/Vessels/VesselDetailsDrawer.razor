@@ -68,6 +68,10 @@
                 <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Info">
                     <MudGrid Spacing="2" Class="mt-1">
                         <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Vessel Type</MudText>
+                            <MudText Typo="Typo.body2">@(Vessel.VesselTypeName ?? "—")</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">IMO Number</MudText>
                             <MudText Typo="Typo.body2">@(Vessel.IMONumber ?? "—")</MudText>
                         </MudItem>
