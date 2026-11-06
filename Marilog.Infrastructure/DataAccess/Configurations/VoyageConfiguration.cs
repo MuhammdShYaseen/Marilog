@@ -52,6 +52,20 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasForeignKey(x => x.VoyageID)
                    .OnDelete(DeleteBehavior.Cascade);
 
+
+            builder.OwnsMany(x => x.Contracts, b =>
+            {
+                b.ToTable("VoyageContracts");
+                b.WithOwner().HasForeignKey("VoyageID");
+                b.HasKey("VoyageID", nameof(VoyageContract.ContractID));
+                b.Property(p => p.ContractID).IsRequired().ValueGeneratedNever();
+
+                b.HasOne<AContract>()
+                 .WithMany()
+                 .HasForeignKey(p => p.ContractID)
+                 .OnDelete(DeleteBehavior.Restrict);
+            });
+
             builder.HasIndex(x => x.VesselID);
             builder.HasIndex(x => x.VoyageMonth);
             builder.HasIndex(x => x.Status);

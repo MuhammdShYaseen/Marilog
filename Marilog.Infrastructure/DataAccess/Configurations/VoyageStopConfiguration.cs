@@ -25,7 +25,10 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
             // ── Matching query filter to avoid global filter warning ─────────
             builder.HasQueryFilter(x => !x.Port!.IsDeleted);
-
+            builder.HasMany(x => x.Cargo)
+                .WithOne()
+                .HasForeignKey(x => x.StopID)
+                .OnDelete(DeleteBehavior.Cascade);
             builder.HasIndex(x => x.PortID);
         }
     }

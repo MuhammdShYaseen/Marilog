@@ -2805,6 +2805,54 @@ namespace Marilog.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.VoyageCargo", b =>
+                {
+                    b.Property<int>("VoyageCargoID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoyageCargoID"));
+
+                    b.Property<int>("CargoTypeID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ContractID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(14,3)");
+
+                    b.Property<int>("StopID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal?>("WeightMt")
+                        .HasColumnType("decimal(14,3)");
+
+                    b.HasKey("VoyageCargoID");
+
+                    b.HasIndex("CargoTypeID");
+
+                    b.HasIndex("ContractID");
+
+                    b.HasIndex("StopID");
+
+                    b.ToTable("VoyageCargo", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.VoyageStop", b =>
                 {
                     b.Property<int>("StopID")
@@ -4330,13 +4378,107 @@ namespace Marilog.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsMany("Marilog.Domain.Entities.SystemEntities.VoyageContract", "Contracts", b1 =>
+                        {
+                            b1.Property<int>("VoyageID")
+                                .HasColumnType("int");
+
+                            b1.Property<int>("ContractID")
+                                .HasColumnType("int");
+
+                            b1.HasKey("VoyageID", "ContractID");
+
+                            b1.HasIndex("ContractID");
+
+                            b1.ToTable("VoyageContracts", (string)null);
+
+                            b1.HasOne("Marilog.Domain.Entities.SystemEntities.AContract", null)
+                                .WithMany()
+                                .HasForeignKey("ContractID")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+
+                            b1.WithOwner()
+                                .HasForeignKey("VoyageID");
+                        });
+
                     b.Navigation("ArrivalPort");
+
+                    b.Navigation("Contracts");
 
                     b.Navigation("DeparturePort");
 
                     b.Navigation("MasterContract");
 
                     b.Navigation("Vessel");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.VoyageCargo", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.CargoType", "CargoType")
+                        .WithMany()
+                        .HasForeignKey("CargoTypeID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.AContract", null)
+                        .WithMany()
+                        .HasForeignKey("ContractID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.VoyageStop", null)
+                        .WithMany("Cargo")
+                        .HasForeignKey("StopID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Marilog.Domain.ValueObjects.Cargo.BulkCargoDetail", "Bulk", b1 =>
+                        {
+                            b1.Property<int>("VoyageCargoID")
+                                .HasColumnType("int");
+
+                            b1.Property<decimal?>("DraftSurveyMt")
+                                .HasColumnType("decimal(14,3)");
+
+                            b1.Property<decimal?>("ShoreFigureMt")
+                                .HasColumnType("decimal(14,3)");
+
+                            b1.HasKey("VoyageCargoID");
+
+                            b1.ToTable("VoyageCargoBulk", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("VoyageCargoID");
+                        });
+
+                    b.OwnsOne("Marilog.Domain.ValueObjects.Cargo.GeneralCargoDetail", "General", b1 =>
+                        {
+                            b1.Property<int>("VoyageCargoID")
+                                .HasColumnType("int");
+
+                            b1.Property<int?>("PackageCount")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("PackageType")
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)");
+
+                            b1.Property<decimal?>("VolumeCbm")
+                                .HasColumnType("decimal(14,3)");
+
+                            b1.HasKey("VoyageCargoID");
+
+                            b1.ToTable("VoyageCargoGeneral", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("VoyageCargoID");
+                        });
+
+                    b.Navigation("Bulk");
+
+                    b.Navigation("CargoType");
+
+                    b.Navigation("General");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.VoyageStop", b =>
@@ -4484,6 +4626,11 @@ namespace Marilog.Infrastructure.Migrations
                     b.Navigation("BillsOfLading");
 
                     b.Navigation("Stops");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.VoyageStop", b =>
+                {
+                    b.Navigation("Cargo");
                 });
 
             modelBuilder.Entity("Marilog.Infrastructure.Models.Identity.Role", b =>

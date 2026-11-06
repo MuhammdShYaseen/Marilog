@@ -22,6 +22,12 @@
         Heads = 4,
         TEU = 5
     }
+
+    public enum CargoOperation
+    {
+        Load = 1,
+        Discharge = 2
+    }
     public enum InboxSource
     {
         Email = 1,

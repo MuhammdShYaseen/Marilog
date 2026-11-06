@@ -15,7 +15,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public DateTime? DepartureDate { get; private set; }
         public string? PurposeOfCall { get; private set; }
         public string? Notes { get; private set; }
-
+        private readonly List<VoyageCargo> _cargo = new();
+        public IReadOnlyCollection<VoyageCargo> Cargo => _cargo.AsReadOnly();
         private VoyageStop() { }
         internal static VoyageStop Create(int voyageId, int portId, int stopOrder,
             DateTime? arrivalDate = null, DateTime? departureDate = null,
@@ -46,5 +47,10 @@ namespace Marilog.Domain.Entities.SystemEntities
             PurposeOfCall = purposeOfCall;
             Notes = notes;
         }
+
+
+        internal void AddCargo(VoyageCargo line) => _cargo.Add(line);
+
+        internal void RemoveCargo(VoyageCargo line) => _cargo.Remove(line);
     }
 }
