@@ -23,6 +23,7 @@
     <Folder Include="DTOs\OCR\" />
     <Folder Include="Interfaces\EmailNotificationConfig\" />
     <Folder Include="Interfaces\NumberingStart\" />
+    <Folder Include="Mapping\" />
     <Folder Include="Services\ApplicationServices\FunctionaltyServices\" />
   </ItemGroup>
 
