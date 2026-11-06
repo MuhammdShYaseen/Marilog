@@ -50,5 +50,16 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
                                          DateTime? departureDate, string? purposeOfCall,
                                          string? notes, CancellationToken ct = default);
         Task             RemoveStopAsync(int voyageId, int stopOrder, CancellationToken ct = default);
+
+
+
+        // ── Contracts ─────────────────────────────────────────────────────────────
+        Task LinkContractAsync(int voyageId, int contractId, CancellationToken ct = default);
+        Task UnlinkContractAsync(int voyageId, int contractId, CancellationToken ct = default);
+
+        // ── Cargo lines ───────────────────────────────────────────────────────────
+        Task AddCargoAsync(int voyageId, int stopOrder, SaveVoyageCargoRequest request, CancellationToken ct = default);
+        Task UpdateCargoAsync(int voyageId, int voyageCargoId, SaveVoyageCargoRequest request, CancellationToken ct = default);
+        Task RemoveCargoAsync(int voyageId, int voyageCargoId, CancellationToken ct = default);
     }
 }

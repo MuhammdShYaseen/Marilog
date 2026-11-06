@@ -27,5 +27,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? Notes { get; set; }
 
         public IReadOnlyList<VoyageStopResponse> Stops { get; set; } = new List<VoyageStopResponse>();
+
+        public IReadOnlyList<VoyageContractResponse> Contracts { get; set; } = new List<VoyageContractResponse>();
     }
 }

@@ -200,6 +200,41 @@ namespace Marilog.Client.Services.SystemServices
             await http.EnsureSuccessWithMessageAsync(ct);
         }
 
-       
+        // ── Contracts ─────────────────────────────────────────────────────────────
+
+        public async Task LinkContractAsync(int voyageId, int contractId, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync($"{Base}/{voyageId}/contracts",
+                new LinkVoyageContractRequest(contractId), ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task UnlinkContractAsync(int voyageId, int contractId, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{voyageId}/contracts/{contractId}", ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        // ── Cargo lines ───────────────────────────────────────────────────────────
+
+        public async Task AddCargoAsync(int voyageId, int stopOrder, SaveVoyageCargoRequest request,
+            CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync($"{Base}/{voyageId}/stops/{stopOrder}/cargo", request, ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task UpdateCargoAsync(int voyageId, int voyageCargoId, SaveVoyageCargoRequest request,
+            CancellationToken ct = default)
+        {
+            var http = await _http.PutAsJsonAsync($"{Base}/{voyageId}/cargo/{voyageCargoId}", request, ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task RemoveCargoAsync(int voyageId, int voyageCargoId, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/{voyageId}/cargo/{voyageCargoId}", ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
     }
 }

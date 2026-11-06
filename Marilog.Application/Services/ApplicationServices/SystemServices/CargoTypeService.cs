@@ -11,8 +11,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class CargoTypeService : ICargoTypeService
     {
         private readonly IRepository<CargoType> _repo;
+        private readonly IRepository<Voyage> _voyageRepo;
 
-        public CargoTypeService(IRepository<CargoType> repo) => _repo = repo;
+        public CargoTypeService(IRepository<CargoType> repo, IRepository<Voyage> voyageRepo)
+        {
+            _repo = repo;
+            _voyageRepo = voyageRepo;
+        }
 
         // ── Queries ───────────────────────────────────────────────────────────────
 
@@ -91,7 +96,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var cargoType = await GetOrThrowAsync(id, ct);
 
-            // Step 4 adds the "used in voyage cargo" check here, once VoyageCargo exists.
+            var inUse = await _voyageRepo.Query()
+                    .IgnoreQueryFilters()
+                    .SelectMany(v => v.Stops)
+                    .SelectMany(s => s.Cargo)
+                    .AnyAsync(c => c.CargoTypeID == id, ct);
+
+            if (inUse)
+                throw new InvalidOperationException(
+                    "This cargo type is used on voyage cargo lines. Deactivate it instead.");
 
             _repo.HardDelete(cargoType);
             await _repo.SaveChangesAsync(ct);

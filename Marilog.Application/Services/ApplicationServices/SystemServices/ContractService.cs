@@ -20,18 +20,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<ContractRole> _contractRoles;
         private readonly IRepository<Company> _companies;
         private readonly ICurrentUserService _currentUser;
-
+        private readonly IRepository<Voyage> _voyages;
         public ContractService(
             IRepository<AContract> repository,
-            IRepository<Domain.Entities.SystemEntities.ContractType> contractTypes,
+            IRepository<ContractType> contractTypes,
             IRepository<ContractRole> contractRoles,
             IRepository<Company> companies,
+            IRepository<Voyage> voyages,
             ICurrentUserService currentUser)
         {
             _repository = repository;
             _contractTypes = contractTypes;
             _contractRoles = contractRoles;
             _companies = companies;
+            _voyages = voyages;
             _currentUser = currentUser;
         }
 
@@ -221,6 +223,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             if (hasCharterTerms)
                 return Result.Fail("This contract has charter terms (laytime). It cannot be deleted.");
+
+            var linkedToVoyage = await _voyages.Query()
+                .IgnoreQueryFilters()
+                .AnyAsync(v => v.Contracts.Any(c => c.ContractID == id), ct);
+
+            if (linkedToVoyage)
+                return Result.Fail("This contract is linked to a voyage. Unlink it first.");
+
 
             _repository.HardDelete(contract);
             await _repository.SaveChangesAsync(ct);

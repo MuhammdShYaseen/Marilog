@@ -4,6 +4,7 @@ using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Domain.ValueObjects.Cargo;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -15,15 +16,21 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<Voyage> _repo;
         private readonly IRepository<Vessel> _vesselRepo;
         private readonly IRepository<CrewContract> _contractRepo;
+        private readonly IRepository<AContract> _aContractRepo;
+        private readonly IRepository<CargoType> _cargoTypeRepo;
 
         public VoyageService(
             IRepository<Voyage> repo,
             IRepository<Vessel> vesselRepo,
-            IRepository<CrewContract> contractRepo)
+            IRepository<CrewContract> contractRepo,
+            IRepository<AContract> aContractRepo,
+            IRepository<CargoType> cargoTypeRepo)
         {
             _repo = repo;
             _vesselRepo = vesselRepo;
             _contractRepo = contractRepo;
+            _aContractRepo = aContractRepo;
+            _cargoTypeRepo = cargoTypeRepo;
         }
 
         // ── Queries ───────────────────────────────────────────────────────────────
@@ -39,11 +46,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<VoyageResponse?> GetWithStopsAsync(int id, CancellationToken ct = default)
         {
-            return await _repo.Query()
+            var result = await _repo.Query()
                 .AsNoTracking()
                 .Where(x => x.Id == id)
                 .Select(ToResponseWithStops)
                 .FirstOrDefaultAsync(ct);
+
+            if (result is not null)
+                await FillContractNumbersAsync(result, ct);
+
+            return result;
         }
         // ==== الميثود ====
         public async Task<IReadOnlyList<VoyageLookupResponse>> GetAllLookupAsync(CancellationToken ct = default)
@@ -481,6 +493,73 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             await _repo.SaveChangesAsync(ct);
         }
 
+
+
+        // ── Contracts ─────────────────────────────────────────────────────────────
+
+        public async Task LinkContractAsync(int voyageId, int contractId, CancellationToken ct = default)
+        {
+            var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
+
+            if (!await _aContractRepo.Query().AnyAsync(c => c.Id == contractId, ct))
+                throw new KeyNotFoundException($"Contract {contractId} not found.");
+
+            voyage.LinkContract(contractId);
+            _repo.Update(voyage);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UnlinkContractAsync(int voyageId, int contractId, CancellationToken ct = default)
+        {
+            var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
+            voyage.UnlinkContract(contractId);
+            _repo.Update(voyage);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        // ── Cargo lines ───────────────────────────────────────────────────────────
+
+        public async Task AddCargoAsync(int voyageId, int stopOrder, SaveVoyageCargoRequest request,
+            CancellationToken ct = default)
+        {
+            var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
+            var category = await GetCargoCategoryAsync(request.CargoTypeId, requireActive: true, ct);
+
+            voyage.AddCargo(stopOrder, request.CargoTypeId, category,
+                request.Operation, request.Quantity, request.Unit,
+                request.WeightMt, request.ContractId, request.Notes,
+                BulkCargoDetail.Create(request.DraftSurveyMt, request.ShoreFigureMt),
+                GeneralCargoDetail.Create(request.PackageCount, request.PackageType, request.VolumeCbm));
+
+            _repo.Update(voyage);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task UpdateCargoAsync(int voyageId, int voyageCargoId, SaveVoyageCargoRequest request,
+            CancellationToken ct = default)
+        {
+            var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
+            var category = await GetCargoCategoryAsync(request.CargoTypeId, requireActive: false, ct);
+
+            voyage.UpdateCargo(voyageCargoId, request.CargoTypeId, category,
+                request.Operation, request.Quantity, request.Unit,
+                request.WeightMt, request.ContractId, request.Notes,
+                BulkCargoDetail.Create(request.DraftSurveyMt, request.ShoreFigureMt),
+                GeneralCargoDetail.Create(request.PackageCount, request.PackageType, request.VolumeCbm));
+
+            _repo.Update(voyage);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        public async Task RemoveCargoAsync(int voyageId, int voyageCargoId, CancellationToken ct = default)
+        {
+            var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
+            voyage.RemoveCargo(voyageCargoId);
+            _repo.Update(voyage);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+
         // ── Private ───────────────────────────────────────────────────────────────
 
         private async Task<Voyage> GetOrThrowAsync(int id, CancellationToken ct)
@@ -488,10 +567,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                ?? throw new KeyNotFoundException($"Voyage {id} not found.");
 
         private async Task<Voyage> GetWithStopsOrThrowAsync(int id, CancellationToken ct)
-            => await _repo.Query()
-                          .Include(x => x.Stops)
-                          .FirstOrDefaultAsync(x => x.Id == id, ct)
-               ?? throw new KeyNotFoundException($"Voyage {id} not found.");
+    => await _repo.Query()
+                  .Include(x => x.Stops)
+                      .ThenInclude(s => s.Cargo)
+                  .FirstOrDefaultAsync(x => x.Id == id, ct)
+       ?? throw new KeyNotFoundException($"Voyage {id} not found.");
 
         private async Task EnsureVesselActiveAsync(int vesselId, CancellationToken ct)
         {
@@ -521,7 +601,40 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     $"Voyage number '{voyageNumber}' already exists.");
         }
 
-        
+        private async Task<CargoCategory> GetCargoCategoryAsync(int cargoTypeId, bool requireActive,
+    CancellationToken ct)
+        {
+            var type = await _cargoTypeRepo.Query()
+                .AsNoTracking()
+                .Where(x => x.Id == cargoTypeId)
+                .Select(x => new { x.Category, x.IsActive })
+                .FirstOrDefaultAsync(ct)
+                ?? throw new KeyNotFoundException($"Cargo type {cargoTypeId} not found.");
+
+            if (requireActive && !type.IsActive)
+                throw new InvalidOperationException("This cargo type is inactive.");
+
+            return type.Category;
+        }
+
+        // VoyageContract has no navigation to AContract — numbers are filled in one extra query.
+        private async Task FillContractNumbersAsync(VoyageResponse voyage, CancellationToken ct)
+        {
+            var ids = voyage.Contracts.Select(c => c.ContractId).ToList();
+            if (ids.Count == 0) return;
+
+            var numbers = await _aContractRepo.Query()
+                .AsNoTracking()
+                .Where(c => ids.Contains(c.Id))
+                .Select(c => new { c.Id, c.ContractNumber })
+                .ToDictionaryAsync(c => c.Id, c => c.ContractNumber, ct);
+
+            foreach (var c in voyage.Contracts)
+                c.ContractNumber = numbers.GetValueOrDefault(c.ContractId) ?? $"#{c.ContractId}";
+
+            foreach (var line in voyage.Stops.SelectMany(s => s.Cargo).Where(l => l.ContractId.HasValue))
+                line.ContractNumber = numbers.GetValueOrDefault(line.ContractId!.Value) ?? $"#{line.ContractId}";
+        }
 
         private static readonly Expression<Func<Voyage, VoyageResponse>> ToResponse =
         x => new VoyageResponse
@@ -619,8 +732,32 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Notes = s.Notes,
                 PortId = s.PortID,
                 PortName = s.Port.PortName,
-                PurposeOfCall = s.PurposeOfCall
+                PurposeOfCall = s.PurposeOfCall,
+                Cargo = s.Cargo
+                    .OrderBy(c => c.VoyageCargoID)
+                    .Select(c => new VoyageCargoResponse
+                    {
+                        VoyageCargoId = c.VoyageCargoID,
+                        CargoTypeId = c.CargoTypeID,
+                        CargoTypeName = c.CargoType.Name,
+                        Category = c.CargoType.Category,
+                        Operation = c.Operation,
+                        Quantity = c.Quantity,
+                        Unit = c.Unit,
+                        WeightMt = c.WeightMt,
+                        ContractId = c.ContractID,
+                        Notes = c.Notes,
+                        DraftSurveyMt = c.Bulk!.DraftSurveyMt,
+                        ShoreFigureMt = c.Bulk!.ShoreFigureMt,
+                        PackageCount = c.General!.PackageCount,
+                        PackageType = c.General!.PackageType,
+                        VolumeCbm = c.General!.VolumeCbm
+                    }).ToList()
             }).ToList(),
+
+            Contracts = x.Contracts
+                .Select(c => new VoyageContractResponse { ContractId = c.ContractID })
+                .ToList()
         };
 
         private static readonly Expression<Func<Voyage, VoyageLookupResponse>> ToLookupResponse = x => new VoyageLookupResponse

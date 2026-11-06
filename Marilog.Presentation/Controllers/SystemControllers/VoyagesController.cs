@@ -92,8 +92,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
         [HttpPost("batch")]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<VoyageResponse>>>> CreateRange(
-    [FromBody] IEnumerable<CreateVoyageRequest> requests,
-    CancellationToken ct)
+            [FromBody] IEnumerable<CreateVoyageRequest> requests,
+            CancellationToken ct)
         {
             var commands = requests.Select(r => new CreateVoyageRequest(
                 r.VesselId,
@@ -219,6 +219,46 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<IActionResult> RemoveStop(int voyageId, int stopOrder, CancellationToken ct)
         {
             await _service.RemoveStopAsync(voyageId, stopOrder, ct);
+            return NoContent();
+        }
+
+
+        // ── Contracts ───────────────────────────────────────────
+
+        [HttpPost("{voyageId:int}/contracts")]
+        public async Task<IActionResult> LinkContract(int voyageId, LinkVoyageContractRequest request, CancellationToken ct)
+        {
+            await _service.LinkContractAsync(voyageId, request.ContractId, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{voyageId:int}/contracts/{contractId:int}")]
+        public async Task<IActionResult> UnlinkContract(int voyageId, int contractId, CancellationToken ct)
+        {
+            await _service.UnlinkContractAsync(voyageId, contractId, ct);
+            return NoContent();
+        }
+
+        // ── Cargo lines ─────────────────────────────────────────
+
+        [HttpPost("{voyageId:int}/stops/{stopOrder:int}/cargo")]
+        public async Task<IActionResult> AddCargo(int voyageId, int stopOrder, SaveVoyageCargoRequest request, CancellationToken ct)
+        {
+            await _service.AddCargoAsync(voyageId, stopOrder, request, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{voyageId:int}/cargo/{voyageCargoId:int}")]
+        public async Task<IActionResult> UpdateCargo(int voyageId, int voyageCargoId, SaveVoyageCargoRequest request, CancellationToken ct)
+        {
+            await _service.UpdateCargoAsync(voyageId, voyageCargoId, request, ct);
+            return NoContent();
+        }
+
+        [HttpDelete("{voyageId:int}/cargo/{voyageCargoId:int}")]
+        public async Task<IActionResult> RemoveCargo(int voyageId, int voyageCargoId, CancellationToken ct)
+        {
+            await _service.RemoveCargoAsync(voyageId, voyageCargoId, ct);
             return NoContent();
         }
 

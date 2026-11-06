@@ -9,5 +9,6 @@
         public DateTime? DepartureDate { get; set; }
         public string? PurposeOfCall { get; set; }
         public string? Notes { get; set; }
+        public IReadOnlyList<VoyageCargoResponse> Cargo { get; set; } = new List<VoyageCargoResponse>();
     }
 }
