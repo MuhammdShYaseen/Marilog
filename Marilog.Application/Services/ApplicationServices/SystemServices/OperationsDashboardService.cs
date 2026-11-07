@@ -134,7 +134,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ct);
 
             return report.Voyages
-                .Where(v => v.DepartureDate.HasValue)
                 .GroupBy(v => new { v.VoyageMonth.Year, v.VoyageMonth.Month })
                 .Select(g =>
                 {

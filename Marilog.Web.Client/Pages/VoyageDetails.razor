@@ -16,6 +16,7 @@
 @inject IBillOfLadingService BillOfLadingService
 @inject IDocumentService DocumentService
 @inject IPortService PortService
+@inject ICargoTypeService CargoTypeService
 @inject ICompanyService CompanyService
 @inject IPdfFileGeneratorService PdfService
 @inject IDialogService DialogService
@@ -33,6 +34,9 @@
                    OnAddStopClicked="OpenAddStopDialog"
                    OnEditStopClicked="OpenEditStopDialog"
                    OnRemoveStopClicked="ConfirmRemoveStop"
+                   OnAddCargoClicked="OpenAddCargoDialog"
+                   OnEditCargoClicked="OpenEditCargoDialog"
+                   OnRemoveCargoClicked="ConfirmRemoveCargo"
                    OnSectionChanged="ChangeSection"
                    OnBackClicked="BackToList"
                    OnRefreshClicked="LoadAsync"
@@ -84,6 +88,7 @@
     private IReadOnlyList<DocumentResponse> _docs = [];
     private IReadOnlyList<PortResponse>? _ports;
     private IReadOnlyList<CompanyResponse>? _companies;
+    private IReadOnlyList<CargoTypeResponse>? _cargoTypes;
     private bool _loading;
     private bool _busy;
     private int _loadedVoyageId;
@@ -126,6 +131,10 @@
 
     private async Task<bool> EnsureCompaniesAsync()
         => _companies is not null || await TryAsync(async () => _companies = await CompanyService.GetActiveAsync());
+
+    // All types (not only active) so lines that use a deactivated type can still be edited.
+    private async Task<bool> EnsureCargoTypesAsync()
+        => _cargoTypes is not null || await TryAsync(async () => _cargoTypes = await CargoTypeService.GetAllAsync());
 
     // ── Navigation ────────────────────────────────────────────────────────────
     private void ChangeSection(VoyageSection section)
@@ -403,6 +412,56 @@
         await RunCommandAsync(() => VoyageService.RemoveStopAsync(VoyageId, stop.StopOrder), "Stop removed");
     }
 
+
+    // ── Cargo lines ───────────────────────────────────────────────────────────
+    private async Task OpenAddCargoDialog(VoyageStopResponse stop)
+    {
+        if (_voyage is null || !await EnsureCargoTypesAsync()) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageCargoDialog.StopLabel)] = $"Stop {stop.StopOrder} · {stop.PortName}",
+            [nameof(VoyageCargoDialog.CargoTypes)] = _cargoTypes,
+            [nameof(VoyageCargoDialog.Contracts)] = _voyage.Contracts,
+            [nameof(VoyageCargoDialog.OnSave)] = new Func<SaveVoyageCargoRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.AddCargoAsync(VoyageId, stop.StopOrder, r), "Cargo added"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageCargoDialog>("Add cargo", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    private async Task OpenEditCargoDialog(VoyageCargoResponse line)
+    {
+        if (_voyage is null || !await EnsureCargoTypesAsync()) return;
+
+        var stop = _voyage.Stops.First(s => s.Cargo.Any(c => c.VoyageCargoId == line.VoyageCargoId));
+
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageCargoDialog.Line)] = line,
+            [nameof(VoyageCargoDialog.StopLabel)] = $"Stop {stop.StopOrder} · {stop.PortName}",
+            [nameof(VoyageCargoDialog.CargoTypes)] = _cargoTypes,
+            [nameof(VoyageCargoDialog.Contracts)] = _voyage.Contracts,
+            [nameof(VoyageCargoDialog.OnSave)] = new Func<SaveVoyageCargoRequest, Task<bool>>(r =>
+                TryAsync(() => VoyageService.UpdateCargoAsync(VoyageId, line.VoyageCargoId, r), "Cargo updated"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageCargoDialog>("Edit cargo", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    private async Task ConfirmRemoveCargo(VoyageCargoResponse line)
+    {
+        if (!await ConfirmAsync("Remove cargo",
+                $"Remove {line.Operation.ToString().ToLower()} of {line.CargoTypeName} ({line.Quantity:N3} {line.Unit})?",
+                "Remove"))
+            return;
+
+        await RunCommandAsync(() => VoyageService.RemoveCargoAsync(VoyageId, line.VoyageCargoId), "Cargo removed");
+    }
 
     // ── Master & financials ───────────────────────────────────────────────────
     private async Task OpenAssignMasterDialog()

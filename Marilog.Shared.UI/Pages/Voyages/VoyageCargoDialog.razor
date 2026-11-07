@@ -1,0 +1,277 @@
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using global::Marilog.Contracts.DTOs.Responses
+@using global::Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">@(IsEdit ? "Edit cargo" : "Add cargo") · @StopLabel</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+
+            <MudItem xs="12" sm="8">
+                <MudSelect T="int"
+                           Value="_cargoTypeId"
+                           ValueChanged="OnCargoTypeChanged"
+                           Label="Cargo type"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var t in SelectableTypes)
+                    {
+                        <MudSelectItem T="int" Value="t.Id">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="CargoOperation"
+                           @bind-Value="_operation"
+                           Label="Operation"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="CargoOperation" Value="CargoOperation.Load">Load</MudSelectItem>
+                    <MudSelectItem T="CargoOperation" Value="CargoOperation.Discharge">Discharge</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal?"
+                                 @bind-Value="_quantity"
+                                 Label="Quantity"
+                                 Required="true"
+                                 Min="0"
+                                 Format="N3"
+                                 HideSpinButtons="true"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="CargoUnit"
+                           @bind-Value="_unit"
+                           Label="Unit"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var u in Enum.GetValues<CargoUnit>())
+                    {
+                        <MudSelectItem T="CargoUnit" Value="u">@u</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            @if (_unit != CargoUnit.MT)
+            {
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_weightMt"
+                                     Label="Weight (MT)"
+                                     Min="0"
+                                     Format="N3"
+                                     HideSpinButtons="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            @if (Category == CargoCategory.DryBulk)
+            {
+                <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Bulk figures</MudText></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_draftSurveyMt"
+                                     Label="Draft survey (MT)"
+                                     Min="0"
+                                     Format="N3"
+                                     HideSpinButtons="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_shoreFigureMt"
+                                     Label="Shore figure (MT)"
+                                     Min="0"
+                                     Format="N3"
+                                     HideSpinButtons="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            @if (Category == CargoCategory.GeneralCargo)
+            {
+                <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Packaging</MudText></MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int?"
+                                     @bind-Value="_packageCount"
+                                     Label="Packages"
+                                     Min="0"
+                                     HideSpinButtons="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_packageType"
+                                  Label="Package type"
+                                  Placeholder="bags, pallets, coils…"
+                                  MaxLength="50"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_volumeCbm"
+                                     Label="Volume (CBM)"
+                                     Min="0"
+                                     Format="N3"
+                                     HideSpinButtons="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            <MudItem xs="12">
+                <MudSelect T="int?"
+                           @bind-Value="_contractId"
+                           Label="Contract"
+                           Clearable="true"
+                           Disabled="@(Contracts.Count == 0)"
+                           HelperText="@(Contracts.Count == 0 ? "Link a contract to the voyage first." : null)"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var c in Contracts)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)c.ContractId)">@c.ContractNumber</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes"
+                              Label="Notes"
+                              Lines="2"
+                              MaxLength="500"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!IsValid || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Saving…" : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public VoyageCargoResponse? Line { get; set; }
+    [Parameter] public string StopLabel { get; set; } = string.Empty;
+    [Parameter] public IReadOnlyList<CargoTypeResponse> CargoTypes { get; set; } = [];
+    [Parameter] public IReadOnlyList<VoyageContractResponse> Contracts { get; set; } = [];
+
+    /// <summary>Host performs the add/update; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<SaveVoyageCargoRequest, Task<bool>>? OnSave { get; set; }
+
+    private const string SectionStyle =
+        "font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
+        "color:var(--mud-palette-text-secondary);";
+
+    private int _cargoTypeId;
+    private CargoOperation _operation = CargoOperation.Load;
+    private decimal? _quantity;
+    private CargoUnit _unit = CargoUnit.MT;
+    private decimal? _weightMt;
+    private int? _contractId;
+    private string? _notes;
+    private decimal? _draftSurveyMt;
+    private decimal? _shoreFigureMt;
+    private int? _packageCount;
+    private string? _packageType;
+    private decimal? _volumeCbm;
+    private bool _saving;
+
+    private bool IsEdit => Line is not null;
+
+    // Inactive types stay selectable only for the line that already uses them.
+    private IEnumerable<CargoTypeResponse> SelectableTypes =>
+        CargoTypes.Where(t => t.IsActive || t.Id == Line?.CargoTypeId)
+                  .OrderBy(t => t.SortOrder)
+                  .ThenBy(t => t.Name);
+
+    private CargoCategory? Category =>
+        CargoTypes.FirstOrDefault(t => t.Id == _cargoTypeId)?.Category;
+
+    private bool IsValid => _cargoTypeId > 0 && _quantity > 0;
+
+    protected override void OnInitialized()
+    {
+        if (Line is null) return;
+
+        _cargoTypeId = Line.CargoTypeId;
+        _operation = Line.Operation;
+        _quantity = Line.Quantity;
+        _unit = Line.Unit;
+        _weightMt = Line.Unit == CargoUnit.MT ? null : Line.WeightMt;
+        _contractId = Line.ContractId;
+        _notes = Line.Notes;
+        _draftSurveyMt = Line.DraftSurveyMt;
+        _shoreFigureMt = Line.ShoreFigureMt;
+        _packageCount = Line.PackageCount;
+        _packageType = Line.PackageType;
+        _volumeCbm = Line.VolumeCbm;
+    }
+
+    // Picking a cargo type sets the unit to that type's default.
+    private void OnCargoTypeChanged(int id)
+    {
+        _cargoTypeId = id;
+        var type = CargoTypes.FirstOrDefault(t => t.Id == id);
+        if (type is not null) _unit = type.DefaultUnit;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (!IsValid || _saving) return;
+
+        // Only send the extension that matches the selected category.
+        var isBulk = Category == CargoCategory.DryBulk;
+        var isGeneral = Category == CargoCategory.GeneralCargo;
+
+        var request = new SaveVoyageCargoRequest(
+            CargoTypeId: _cargoTypeId,
+            Operation: _operation,
+            Quantity: _quantity!.Value,
+            Unit: _unit,
+            WeightMt: _unit == CargoUnit.MT ? null : _weightMt,
+            ContractId: _contractId,
+            Notes: NullIfEmpty(_notes),
+            DraftSurveyMt: isBulk ? _draftSurveyMt : null,
+            ShoreFigureMt: isBulk ? _shoreFigureMt : null,
+            PackageCount: isGeneral ? _packageCount : null,
+            PackageType: isGeneral ? NullIfEmpty(_packageType) : null,
+            VolumeCbm: isGeneral ? _volumeCbm : null);
+
+        _saving = true;
+        var task = OnSave?.Invoke(request);
+        var ok = task is not null && await task;
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}

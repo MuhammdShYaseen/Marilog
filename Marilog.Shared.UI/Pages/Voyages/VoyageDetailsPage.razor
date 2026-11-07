@@ -135,7 +135,10 @@ else
                                         IsBusy="IsBusy"
                                         OnAddClicked="OnAddStopClicked"
                                         OnEditClicked="OnEditStopClicked"
-                                        OnRemoveClicked="OnRemoveStopClicked" />
+                                        OnRemoveClicked="OnRemoveStopClicked"
+                                        OnAddCargoClicked="OnAddCargoClicked"
+                                        OnEditCargoClicked="OnEditCargoClicked"
+                                        OnRemoveCargoClicked="OnRemoveCargoClicked" />
                     break;
                 case VoyageSection.BillsOfLading:
                     <VoyageBillsSection Voyage="Voyage"
@@ -199,6 +202,10 @@ else
     [Parameter] public EventCallback<VoyageStopResponse> OnEditStopClicked { get; set; }
     [Parameter] public EventCallback<VoyageStopResponse> OnRemoveStopClicked { get; set; }
 
+    //---Cargo--------------------------------------------------------------------
+    [Parameter] public EventCallback<VoyageStopResponse> OnAddCargoClicked { get; set; }
+    [Parameter] public EventCallback<VoyageCargoResponse> OnEditCargoClicked { get; set; }
+    [Parameter] public EventCallback<VoyageCargoResponse> OnRemoveCargoClicked { get; set; }
 
     //------Overview--------------------------------------------------------------
     [Parameter] public EventCallback OnAssignMasterClicked { get; set; }

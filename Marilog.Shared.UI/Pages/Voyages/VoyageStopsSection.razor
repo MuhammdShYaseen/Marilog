@@ -39,23 +39,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @* ── Origin (from voyage) ── *@
-                    <tr style="@RouteRowStyle">
-                        <td><MudIcon Icon="@Icons.Material.Outlined.TripOrigin" Size="Size.Small" Color="Color.Secondary" /></td>
-                        <td>@(Voyage.DeparturePortName ?? "Not set")</td>
-                        <td>—</td>
-                        <td>@Fmt(Voyage.DepartureDate)</td>
-                        <td>—</td>
-                        <td style="@MutedStyle">Voyage departure</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
+                   
 
                     @* ── Intermediate stops ── *@
                     @if (Voyage.Stops.Count == 0)
                     {
                         <tr>
-                            <td colspan="8" style="@MutedStyle">No intermediate stops.</td>
+                            <td colspan="8" style="@MutedStyle">No stops yet.</td>
                         </tr>
                     }
                     else
@@ -91,6 +81,12 @@
                                              Disabled="@(IsReadOnly || IsBusy)"
                                              AnchorOrigin="Origin.BottomRight"
                                              TransformOrigin="Origin.TopRight">
+
+                                        <MudMenuItem Icon="@Icons.Material.Outlined.Inventory2"
+                                                     OnClick="@(() => OnAddCargoClicked.InvokeAsync(current))">
+                                            Add cargo
+                                        </MudMenuItem>
+
                                         <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
                                                      OnClick="@(() => OnEditClicked.InvokeAsync(current))">
                                             Edit
@@ -102,21 +98,52 @@
                                     </MudMenu>
                                 </td>
                             </tr>
+                            if (current.Cargo.Count > 0)
+                            {
+                                <tr>
+                                    <td></td>
+                                    <td colspan="7" style="padding-top:0">
+                                        @foreach (var line in current.Cargo)
+                                        {
+                                            var cargo = line;
+                                            <div class="d-flex align-center gap-2" style="@CargoLineStyle" title="@cargo.Notes">
+                                                <MudIcon Icon="@(cargo.Operation == CargoOperation.Load ? Icons.Material.Outlined.Upload : Icons.Material.Outlined.Download)"
+                                                         Color="@(cargo.Operation == CargoOperation.Load ? Color.Success : Color.Info)"
+                                                         Size="Size.Small" />
+                                                <span style="min-width:72px">@cargo.Operation</span>
+                                                <strong>@cargo.CargoTypeName</strong>
+                                                <span>@Qty(cargo)</span>
+                                                @if (cargo.ContractNumber is not null)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@cargo.ContractNumber</MudChip>
+                                                }
+                                                @if (Extras(cargo) is { } extras)
+                                                {
+                                                    <span style="@MutedStyle">@extras</span>
+                                                }
+                                                <MudSpacer />
+                                                <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+                                                         Size="Size.Small"
+                                                         Disabled="@(IsReadOnly || IsBusy)"
+                                                         AnchorOrigin="Origin.BottomRight"
+                                                         TransformOrigin="Origin.TopRight">
+                                                    <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
+                                                                 OnClick="@(() => OnEditCargoClicked.InvokeAsync(cargo))">
+                                                        Edit
+                                                    </MudMenuItem>
+                                                    <MudMenuItem Icon="@Icons.Material.Outlined.Delete"
+                                                                 OnClick="@(() => OnRemoveCargoClicked.InvokeAsync(cargo))">
+                                                        Remove
+                                                    </MudMenuItem>
+                                                </MudMenu>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                             previous = current;
                         }
                     }
-
-                    @* ── Destination (from voyage) ── *@
-                    <tr style="@RouteRowStyle">
-                        <td><MudIcon Icon="@Icons.Material.Outlined.Place" Size="Size.Small" Color="Color.Secondary" /></td>
-                        <td>@(Voyage.ArrivalPortName ?? "Not set")</td>
-                        <td>@Fmt(Voyage.ArrivalDate)</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td style="@MutedStyle">Voyage arrival</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
                 </tbody>
             </MudSimpleTable>
         </div>
@@ -129,6 +156,10 @@
     [Parameter] public EventCallback OnAddClicked { get; set; }
     [Parameter] public EventCallback<VoyageStopResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VoyageStopResponse> OnRemoveClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnAddCargoClicked { get; set; }
+    [Parameter] public EventCallback<VoyageCargoResponse> OnEditCargoClicked { get; set; }
+    [Parameter] public EventCallback<VoyageCargoResponse> OnRemoveCargoClicked { get; set; }
+
 
     private const string ThStyle =
         "font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
@@ -140,6 +171,11 @@
 
     private const string NotesStyle =
         "max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+
+
+    private const string CargoLineStyle =
+        "padding:4px 8px;border-left:2px solid var(--mud-palette-lines-default);font-size:13px;";
+
 
     private const string BadgeStyle =
         "display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;" +
@@ -169,18 +205,36 @@
         if (stop.ArrivalDate is DateTime arr && stop.DepartureDate is DateTime dep && dep < arr)
             warnings.Add("Departure is before arrival.");
 
-        if (stop.ArrivalDate is DateTime stopArrival && Voyage.DepartureDate is DateTime voyageDeparture
-            && stopArrival < voyageDeparture)
-            warnings.Add("Arrives before the voyage departure.");
-
-        if (stop.DepartureDate is DateTime stopDeparture && Voyage.ArrivalDate is DateTime voyageArrival
-            && stopDeparture > voyageArrival)
-            warnings.Add("Departs after the voyage arrival.");
-
         var previousLeft = previous?.DepartureDate ?? previous?.ArrivalDate;
         if (stop.ArrivalDate is DateTime arrivalHere && previousLeft is DateTime left && arrivalHere < left)
             warnings.Add($"Arrives before leaving stop {previous!.StopOrder}.");
 
         return warnings;
+    }
+
+    private static string Qty(VoyageCargoResponse c)
+    {
+        var qty = c.Unit is CargoUnit.MT or CargoUnit.CBM
+            ? $"{c.Quantity:N3} {c.Unit}"
+            : $"{c.Quantity:N0} {c.Unit}";
+
+        return c.Unit != CargoUnit.MT && c.WeightMt.HasValue
+            ? $"{qty} ({c.WeightMt:N3} MT)"
+            : qty;
+    }
+
+    private static string? Extras(VoyageCargoResponse c)
+    {
+        var parts = new List<string>();
+
+        if (c.DraftSurveyMt.HasValue) parts.Add($"Draft survey {c.DraftSurveyMt:N3} MT");
+        if (c.ShoreFigureMt.HasValue) parts.Add($"Shore {c.ShoreFigureMt:N3} MT");
+
+        if (c.PackageCount.HasValue) parts.Add($"{c.PackageCount:N0} {c.PackageType ?? "pkgs"}");
+        else if (c.PackageType is not null) parts.Add(c.PackageType);
+
+        if (c.VolumeCbm.HasValue) parts.Add($"{c.VolumeCbm:N3} CBM");
+
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
     }
 }
