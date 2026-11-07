@@ -26,6 +26,13 @@
                OnClick="OnRefreshClicked">
         Refresh
     </MudButton>
+
+    <MudButton Variant="Variant.Text"
+               Size="Size.Small"
+               StartIcon="@Icons.Material.Outlined.Settings"
+               OnClick="OnSettingsClicked">
+        Types
+    </MudButton>
     <MudSpacer />
     @if (HasActiveFilter)
     {
@@ -122,6 +129,7 @@
     [Parameter] public EventCallback<VoyageResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<VoyageResponse> OnDeleteClicked { get; set; }
 
+    [Parameter] public EventCallback OnSettingsClicked { get; set; }
 
     [Parameter] public EventCallback<VoyageResponse> OnManageFilesClicked { get; set; }
 

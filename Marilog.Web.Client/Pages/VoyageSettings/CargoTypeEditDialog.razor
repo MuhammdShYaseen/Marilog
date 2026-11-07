@@ -1,0 +1,134 @@
+﻿@using Marilog.Contracts.DTOs.Requests.CargoTypeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.VoyageSettings
+
+@* Create → returns CreateCargoTypeRequest. Edit → returns UpdateCargoTypeRequest (Code and Category are fixed). *@
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="5">
+                <MudTextField T="string" Value="@_code"
+                              ValueChanged="@((string v) => _code = v?.ToUpperInvariant() ?? string.Empty)"
+                              Label="Code"
+                              Required="true"
+                              Disabled="@IsEdit"
+                              HelperText="@(IsEdit ? "Not editable after creation" : "Short unique code, e.g. PHOS")"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="7">
+                <MudTextField T="string" @bind-Value="_name"
+                              Label="Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="CargoCategory"
+                           Value="_category"
+                           ValueChanged="OnCategoryChanged"
+                           Label="Category"
+                           Disabled="@IsEdit"
+                           HelperText="@(IsEdit ? "Not editable after creation" : "Decides which details a cargo line asks for")"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var c in Enum.GetValues<CargoCategory>())
+                    {
+                        <MudSelectItem T="CargoCategory" Value="c">@SharedVoyageSettingsPage.CategoryLabel(c)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="CargoUnit"
+                           @bind-Value="_defaultUnit"
+                           Label="Default unit"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var u in Enum.GetValues<CargoUnit>())
+                    {
+                        <MudSelectItem T="CargoUnit" Value="u">@u</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="5">
+                <MudNumericField T="int" @bind-Value="_sortOrder"
+                                 Label="Order"
+                                 HelperText="Lower appears first"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name))"
+                   OnClick="Submit">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Null => Create. Non-null => Edit.</summary>
+    [Parameter] public CargoTypeResponse? Existing { get; set; }
+
+    private string _code = string.Empty;
+    private string _name = string.Empty;
+    private CargoCategory _category = CargoCategory.DryBulk;
+    private CargoUnit _defaultUnit = CargoUnit.MT;
+    private int _sortOrder;
+
+    private bool IsEdit => Existing is not null;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+            return;
+
+        _code = Existing.Code;
+        _name = Existing.Name;
+        _category = Existing.Category;
+        _defaultUnit = Existing.DefaultUnit;
+        _sortOrder = Existing.SortOrder;
+    }
+
+    // Picking a category suggests its usual unit; the user can still change it.
+    private void OnCategoryChanged(CargoCategory category)
+    {
+        _category = category;
+        _defaultUnit = category switch
+        {
+            CargoCategory.Livestock => CargoUnit.Heads,
+            CargoCategory.RoRo => CargoUnit.Units,
+            CargoCategory.Container => CargoUnit.TEU,
+            _ => CargoUnit.MT
+        };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (Existing is null)
+            MudDialog.Close(DialogResult.Ok(new CreateCargoTypeRequest
+            {
+                Code = _code.Trim(),
+                Name = _name.Trim(),
+                Category = _category,
+                DefaultUnit = _defaultUnit,
+                SortOrder = _sortOrder
+            }));
+        else
+            MudDialog.Close(DialogResult.Ok(new UpdateCargoTypeRequest
+            {
+                Name = _name.Trim(),
+                DefaultUnit = _defaultUnit,
+                SortOrder = _sortOrder
+            }));
+    }
+}

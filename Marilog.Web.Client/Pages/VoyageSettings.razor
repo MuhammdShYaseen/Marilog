@@ -1,0 +1,138 @@
+﻿@page "/admin/voyage-settings"
+@using Marilog.Contracts.DTOs.Requests.CargoTypeDTOs
+@using Marilog.Contracts.DTOs.Requests.VesselTypeDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.VoyageSettings
+@using MudBlazor
+@inject ICargoTypeService CargoTypeService
+@inject IVesselTypeService VesselTypeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Thin host for cargo types + vessel types. Only this file touches the two services. *@
+<SharedVoyageSettingsPage CargoTypes="@_cargoTypes"
+                          VesselTypes="@_vesselTypes"
+                          IsLoading="@_loading"
+                          OnAddCargoTypeClicked="@AddCargoTypeAsync"
+                          OnEditCargoTypeClicked="@EditCargoTypeAsync"
+                          OnToggleCargoTypeClicked="@ToggleCargoTypeAsync"
+                          OnDeleteCargoTypeClicked="@DeleteCargoTypeAsync"
+                          OnAddVesselTypeClicked="@AddVesselTypeAsync"
+                          OnEditVesselTypeClicked="@EditVesselTypeAsync"
+                          OnToggleVesselTypeClicked="@ToggleVesselTypeAsync"
+                          OnDeleteVesselTypeClicked="@DeleteVesselTypeAsync" />
+
+@code {
+    private IReadOnlyList<CargoTypeResponse> _cargoTypes = [];
+    private IReadOnlyList<VesselTypeResponse> _vesselTypes = [];
+    private bool _loading;
+
+    private static readonly DialogOptions Options = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseButton = true
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        await TryAsync(async () =>
+        {
+            _cargoTypes = await CargoTypeService.GetAllAsync();
+            _vesselTypes = await VesselTypeService.GetAllAsync();
+        }, null);
+        _loading = false;
+    }
+
+    // ── Cargo types ───────────────────────────────────────────────────────────
+    private async Task AddCargoTypeAsync()
+    {
+        var dialog = await DialogService.ShowAsync<CargoTypeEditDialog>("New cargo type", Options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: CreateCargoTypeRequest r }) return;
+
+        await TryAsync(() => CargoTypeService.CreateAsync(r), "Cargo type created.");
+    }
+
+    private async Task EditCargoTypeAsync(CargoTypeResponse item)
+    {
+        var parameters = new DialogParameters<CargoTypeEditDialog> { { x => x.Existing, item } };
+        var dialog = await DialogService.ShowAsync<CargoTypeEditDialog>($"Edit cargo type — {item.Code}", parameters, Options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: UpdateCargoTypeRequest r }) return;
+
+        await TryAsync(() => CargoTypeService.UpdateAsync(item.Id, r), "Cargo type updated.");
+    }
+
+    private Task ToggleCargoTypeAsync(CargoTypeResponse item) =>
+        TryAsync(() => item.IsActive ? CargoTypeService.DeactivateAsync(item.Id) : CargoTypeService.ActivateAsync(item.Id),
+                 $"Cargo type {(item.IsActive ? "deactivated" : "activated")}.");
+
+    private async Task DeleteCargoTypeAsync(CargoTypeResponse item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete cargo type",
+            $"Delete '{item.Name}'? If it's used on voyage cargo lines it can't be deleted — deactivate it instead.",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await TryAsync(() => CargoTypeService.DeleteAsync(item.Id), "Cargo type deleted.");
+    }
+
+    // ── Vessel types ──────────────────────────────────────────────────────────
+    private async Task AddVesselTypeAsync()
+    {
+        var dialog = await DialogService.ShowAsync<VesselTypeEditDialog>("New vessel type", Options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: CreateVesselTypeRequest r }) return;
+
+        await TryAsync(() => VesselTypeService.CreateAsync(r), "Vessel type created.");
+    }
+
+    private async Task EditVesselTypeAsync(VesselTypeResponse item)
+    {
+        var parameters = new DialogParameters<VesselTypeEditDialog> { { x => x.Existing, item } };
+        var dialog = await DialogService.ShowAsync<VesselTypeEditDialog>($"Edit vessel type — {item.Code}", parameters, Options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: UpdateVesselTypeRequest r }) return;
+
+        await TryAsync(() => VesselTypeService.UpdateAsync(item.Id, r), "Vessel type updated.");
+    }
+
+    private Task ToggleVesselTypeAsync(VesselTypeResponse item) =>
+        TryAsync(() => item.IsActive ? VesselTypeService.DeactivateAsync(item.Id) : VesselTypeService.ActivateAsync(item.Id),
+                 $"Vessel type {(item.IsActive ? "deactivated" : "activated")}.");
+
+    private async Task DeleteVesselTypeAsync(VesselTypeResponse item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete vessel type",
+            $"Delete '{item.Name}'? If it's assigned to vessels it can't be deleted — deactivate it instead.",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await TryAsync(() => VesselTypeService.DeleteAsync(item.Id), "Vessel type deleted.");
+    }
+
+    /// <summary>Runs the call; on success shows the message and reloads; on failure shows the server's message.</summary>
+    private async Task TryAsync(Func<Task> action, string? successMessage)
+    {
+        try
+        {
+            await action();
+            if (successMessage is null) return;
+
+            Snackbar.Add(successMessage, Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

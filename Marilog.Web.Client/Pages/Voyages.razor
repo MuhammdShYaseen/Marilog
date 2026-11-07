@@ -23,6 +23,7 @@
                 OnFilterChanged="OnFilterChanged"
                 OnAddClicked="OpenCreateDialog"
                 OnRefreshClicked="ReloadAsync"
+                OnSettingsClicked="@(() => Nav.NavigateTo("/admin/voyage-settings"))"
                 OnOpenClicked="OpenVoyage"
                 OnEditClicked="OpenEditDialog"
                 OnManageFilesClicked="OpenStoredFilesDialog"

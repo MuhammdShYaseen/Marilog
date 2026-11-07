@@ -1,0 +1,194 @@
+﻿@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.VoyageSettings
+
+@* Cargo types and vessel types — user-managed lookups used by voyages and vessels. *@
+<div class="az-voyage-settings">
+    <MudPaper Class="pa-4" Elevation="0">
+        <MudText Typo="Typo.h5" Class="mb-2">Cargo &amp; vessel types</MudText>
+
+        <MudTabs Elevation="0" Rounded="false" PanelClass="pt-2">
+
+            @* ── Cargo types ── *@
+            <MudTabPanel Text="@($"Cargo types ({CargoTypes.Count})")">
+                <div class="az-commandbar">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => OnAddCargoTypeClicked.InvokeAsync())">
+                        New cargo type
+                    </MudButton>
+                </div>
+
+                <MudDataGrid T="CargoTypeResponse"
+                             Items="@CargoTypes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name)"
+                             Loading="@IsLoading"
+                             Dense="true"
+                             Hover="true"
+                             Elevation="0"
+                             Outlined="true"
+                             Square="true"
+                             SortMode="SortMode.None"
+                             Breakpoint="Breakpoint.Sm">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Code" Title="Code" />
+                        <PropertyColumn Property="x => x.Name" Title="Name" />
+                        <TemplateColumn Title="Category">
+                            <CellTemplate>@CategoryLabel(context.Item.Category)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.DefaultUnit" Title="Default unit" />
+                        <PropertyColumn Property="x => x.SortOrder" Title="Order" />
+                        <TemplateColumn Title="Status">
+                            <CellTemplate>@Status(context.Item.IsActive)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="" CellClass="az-actions">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                                               OnClick="@(() => OnEditCargoTypeClicked.InvokeAsync(context.Item))" />
+                                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                               Size="Size.Small"
+                                               Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                               title="@(context.Item.IsActive ? "Deactivate" : "Activate")"
+                                               OnClick="@(() => OnToggleCargoTypeClicked.InvokeAsync(context.Item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="Delete"
+                                               OnClick="@(() => OnDeleteCargoTypeClicked.InvokeAsync(context.Item))" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>
+                        <div class="az-muted pa-4">Nothing added yet.</div>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            </MudTabPanel>
+
+            @* ── Vessel types ── *@
+            <MudTabPanel Text="@($"Vessel types ({VesselTypes.Count})")">
+                <div class="az-commandbar">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => OnAddVesselTypeClicked.InvokeAsync())">
+                        New vessel type
+                    </MudButton>
+                </div>
+
+                <MudDataGrid T="VesselTypeResponse"
+                             Items="@VesselTypes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name)"
+                             Loading="@IsLoading"
+                             Dense="true"
+                             Hover="true"
+                             Elevation="0"
+                             Outlined="true"
+                             Square="true"
+                             SortMode="SortMode.None"
+                             Breakpoint="Breakpoint.Sm">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Code" Title="Code" />
+                        <PropertyColumn Property="x => x.Name" Title="Name" />
+                        <PropertyColumn Property="x => x.SortOrder" Title="Order" />
+                        <TemplateColumn Title="Status">
+                            <CellTemplate>@Status(context.Item.IsActive)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="" CellClass="az-actions">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                                               OnClick="@(() => OnEditVesselTypeClicked.InvokeAsync(context.Item))" />
+                                <MudIconButton Icon="@(context.Item.IsActive ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                               Size="Size.Small"
+                                               Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                               title="@(context.Item.IsActive ? "Deactivate" : "Activate")"
+                                               OnClick="@(() => OnToggleVesselTypeClicked.InvokeAsync(context.Item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="Delete"
+                                               OnClick="@(() => OnDeleteVesselTypeClicked.InvokeAsync(context.Item))" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>
+                        <div class="az-muted pa-4">Nothing added yet.</div>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            </MudTabPanel>
+
+        </MudTabs>
+    </MudPaper>
+</div>
+
+<style>
+    .az-voyage-settings .az-commandbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-voyage-settings .mud-tab {
+        text-transform: none;
+        min-width: 0;
+    }
+
+    .az-voyage-settings .mud-table-head .mud-table-cell {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-voyage-settings .mud-table-cell {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .az-voyage-settings .az-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .az-voyage-settings .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-voyage-settings .az-actions {
+        width: 1%;
+        white-space: nowrap;
+    }
+</style>
+
+@code {
+    [Parameter] public IReadOnlyList<CargoTypeResponse> CargoTypes { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselTypeResponse> VesselTypes { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public EventCallback OnAddCargoTypeClicked { get; set; }
+    [Parameter] public EventCallback<CargoTypeResponse> OnEditCargoTypeClicked { get; set; }
+    [Parameter] public EventCallback<CargoTypeResponse> OnToggleCargoTypeClicked { get; set; }
+    [Parameter] public EventCallback<CargoTypeResponse> OnDeleteCargoTypeClicked { get; set; }
+
+    [Parameter] public EventCallback OnAddVesselTypeClicked { get; set; }
+    [Parameter] public EventCallback<VesselTypeResponse> OnEditVesselTypeClicked { get; set; }
+    [Parameter] public EventCallback<VesselTypeResponse> OnToggleVesselTypeClicked { get; set; }
+    [Parameter] public EventCallback<VesselTypeResponse> OnDeleteVesselTypeClicked { get; set; }
+
+    public static string CategoryLabel(CargoCategory category) => category switch
+    {
+        CargoCategory.DryBulk => "Dry bulk",
+        CargoCategory.LiquidBulk => "Liquid bulk",
+        CargoCategory.GeneralCargo => "General cargo",
+        CargoCategory.Livestock => "Livestock",
+        CargoCategory.RoRo => "RoRo",
+        CargoCategory.Container => "Container",
+        _ => category.ToString()
+    };
+
+    private static RenderFragment Status(bool isActive) =>
+        @<span class="az-status">
+            <MudIcon Icon="@Icons.Material.Filled.Circle"
+                     Color="@(isActive ? Color.Success : Color.Default)"
+                     Style="font-size:10px" />
+            @(isActive ? "Active" : "Inactive")
+        </span>;
+}
