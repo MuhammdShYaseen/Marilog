@@ -162,6 +162,8 @@ else
                                     BillsOfLading="BillsOfLading"
                                     IsBusy="IsBusy"
                                     OnAssignMasterClicked="OnAssignMasterClicked"
+                                    OnLinkContractClicked="OnLinkContractClicked"
+                                    OnUnlinkContractClicked="OnUnlinkContractClicked"
                                     OnShowStops="@(() => OnSectionChanged.InvokeAsync(VoyageSection.Stops))"
                                     OnShowBills="@(() => OnSectionChanged.InvokeAsync(VoyageSection.BillsOfLading))" />
                     break;
@@ -211,6 +213,9 @@ else
     [Parameter] public EventCallback OnAssignMasterClicked { get; set; }
 
 
+    //----contract---------------------------------------------------------------------
+    [Parameter] public EventCallback OnLinkContractClicked { get; set; }
+    [Parameter] public EventCallback<VoyageContractResponse> OnUnlinkContractClicked { get; set; }
     //---Bill of Lading-----------------------------------------------------------
     [Parameter] public EventCallback<BillOfLadingResponse> OnChangeBlNumberClicked { get; set; }
     [Parameter] public EventCallback<BillOfLadingResponse> OnChangeIssuanceTypeClicked { get; set; }

@@ -1,6 +1,7 @@
 ﻿@attribute [RequirePage(EntityType.Voyage)]
 @page "/voyages/{VoyageId:int}"
 @page "/voyages/{VoyageId:int}/{Section}"
+@using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
 @using Marilog.Contracts.DTOs.Requests.VoyageDTOs
 @using Marilog.Contracts.DTOs.Responses
@@ -24,6 +25,7 @@
 @inject NavigationManager Nav
 @inject ICrewContractService CrewContractService
 @inject IJSRuntime JS
+@inject IContractService ContractService
 @inject IManageStoredFiles ManageStoredFiles
 <VoyageDetailsPage Voyage="_voyage"
                    BillsOfLading="_bills"
@@ -49,6 +51,8 @@
                    OnChangeIssuanceTypeClicked="OpenChangeIssuanceTypeDialog"
                    OnLinkToMasterBlClicked="OpenLinkToMasterBlDialog"
                    OnAssignMasterClicked="OpenAssignMasterDialog"
+                   OnLinkContractClicked="OpenLinkContractDialog"
+                   OnUnlinkContractClicked="ConfirmUnlinkContract"
                    OnAddBillClicked="OpenAddBillDialog"
                    OnViewBillClicked="OpenViewBillDialog"
                    OnEditBillClicked="OpenEditBillDialog"
@@ -461,6 +465,48 @@
             return;
 
         await RunCommandAsync(() => VoyageService.RemoveCargoAsync(VoyageId, line.VoyageCargoId), "Cargo removed");
+    }
+
+
+
+    // ── Contracts ─────────────────────────────────────────────────────────────
+    private async Task OpenLinkContractDialog()
+    {
+        if (_voyage is null) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(VoyageContractLinkDialog.LinkedIds)] = _voyage.Contracts.Select(c => c.ContractId).ToList(),
+            [nameof(VoyageContractLinkDialog.Search)] =
+                new Func<string?, CancellationToken, Task<IReadOnlyList<ContractSummary>>>(SearchContractsAsync),
+            [nameof(VoyageContractLinkDialog.OnLink)] = new Func<int, Task<bool>>(id =>
+                TryAsync(() => VoyageService.LinkContractAsync(VoyageId, id), "Contract linked"))
+        };
+
+        var dialog = await DialogService.ShowAsync<VoyageContractLinkDialog>("Link contract", parameters, SmallDialog);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await ReloadVoyageAsync();
+    }
+
+    private async Task<IReadOnlyList<ContractSummary>> SearchContractsAsync(string? text, CancellationToken ct)
+    {
+        var page = await ContractService.GetPagedAsync(new ContractFilter
+        {
+            SearchTerm = string.IsNullOrWhiteSpace(text) ? null : text.Trim(),
+            PageSize = 20
+        }, ct);
+
+        return page.Items;
+    }
+
+    private async Task ConfirmUnlinkContract(VoyageContractResponse contract)
+    {
+        if (!await ConfirmAsync("Unlink contract",
+                $"Unlink {contract.ContractNumber} from this voyage?",
+                "Unlink"))
+            return;
+
+        await RunCommandAsync(() => VoyageService.UnlinkContractAsync(VoyageId, contract.ContractId), "Contract unlinked");
     }
 
     // ── Master & financials ───────────────────────────────────────────────────

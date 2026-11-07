@@ -37,8 +37,9 @@ else
 <MudGrid Spacing="3">
 
     @* ── Essentials ── *@
-    <MudItem xs="12">
-        <VoyagePanel Title="Cargo">
+    @* ── Essentials ── *@
+    <MudItem xs="12" lg="6">
+        <VoyagePanel Title="Essentials">
             <div style="@GridStyle">
                 <EssentialsRow Label="Voyage number" Value="@Voyage.VoyageNumber" />
                 <EssentialsRow Label="Vessel" Value="@Voyage.VesselName" />
@@ -128,7 +129,42 @@ else
         </VoyagePanel>
     </MudItem>
 
-   
+    @* ── Contracts ── *@
+    <MudItem xs="12" lg="6">
+        <VoyagePanel Title="Contracts">
+            <Actions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.Link"
+                           Disabled="@(IsReadOnly || IsBusy)"
+                           OnClick="OnLinkContractClicked">
+                    Link
+                </MudButton>
+            </Actions>
+            <ChildContent>
+                @if (Voyage.Contracts.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No contracts linked.</MudText>
+                }
+                else
+                {
+                    @foreach (var c in Voyage.Contracts)
+                    {
+                        var contract = c;
+                        <div class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" Color="Color.Secondary" />
+                            <span>@contract.ContractNumber</span>
+                            <MudSpacer />
+                            <MudIconButton Icon="@Icons.Material.Outlined.LinkOff"
+                                           Size="Size.Small"
+                                           Title="Unlink"
+                                           Disabled="@(IsReadOnly || IsBusy)"
+                                           OnClick="@(() => OnUnlinkContractClicked.InvokeAsync(contract))" />
+                        </div>
+                    }
+                }
+            </ChildContent>
+        </VoyagePanel>
+    </MudItem>
 
     @* ── Notes ── *@
     @if (!string.IsNullOrWhiteSpace(Voyage.Notes))
@@ -149,7 +185,8 @@ else
     [Parameter] public EventCallback OnShowBills { get; set; }
     [Parameter] public bool IsBusy { get; set; }
     [Parameter] public EventCallback OnAssignMasterClicked { get; set; }
-
+    [Parameter] public EventCallback OnLinkContractClicked { get; set; }
+    [Parameter] public EventCallback<VoyageContractResponse> OnUnlinkContractClicked { get; set; }
     private bool IsReadOnly => Voyage.Status == VoyageStatus.CANCELLED;
 
     private const string GridStyle =

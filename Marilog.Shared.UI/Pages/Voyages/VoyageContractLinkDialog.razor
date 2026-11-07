@@ -1,0 +1,81 @@
+@using MudBlazor
+@using global::Marilog.Contracts.DTOs.Reports.Contract
+@namespace Marilog.Shared.UI.Pages.Voyages
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Link" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.h6">Link contract</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudAutocomplete T="ContractSummary"
+                                 @bind-Value="_contract"
+                                 Label="Contract"
+                                 Required="true"
+                                 SearchFunc="SearchAsync"
+                                 ToStringFunc="@(c => c is null ? null : $"{c.ContractNumber} · {c.Type} · {c.Status}")"
+                                 ResetValueOnEmptyText="true"
+                                 MaxItems="20"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    CP, TC, COA… A voyage can run under several contracts, and one contract can cover several voyages.
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="_saving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(_contract is null || _saving)"
+                   OnClick="SubmitAsync">
+            @(_saving ? "Linking…" : "Link")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Contracts already linked to the voyage — hidden from the results.</summary>
+    [Parameter] public IReadOnlyCollection<int> LinkedIds { get; set; } = [];
+
+    /// <summary>Host performs the server search.</summary>
+    [Parameter] public Func<string?, CancellationToken, Task<IReadOnlyList<ContractSummary>>>? Search { get; set; }
+
+    /// <summary>Host performs the link; returns true on success. Dialog stays open on failure.</summary>
+    [Parameter] public Func<int, Task<bool>>? OnLink { get; set; }
+
+    private ContractSummary? _contract;
+    private bool _saving;
+
+    private async Task<IEnumerable<ContractSummary>> SearchAsync(string? text, CancellationToken ct)
+    {
+        if (Search is null) return [];
+        var items = await Search(text, ct);
+        return items.Where(c => !LinkedIds.Contains(c.Id));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (_contract is null || _saving) return;
+
+        _saving = true;
+        var task = OnLink?.Invoke(_contract.Id);
+        var ok = task is not null && await task;
+        _saving = false;
+
+        if (ok) MudDialog.Close(DialogResult.Ok(true));
+    }
+}
