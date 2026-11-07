@@ -36,7 +36,6 @@
 
   <ItemGroup>
     <Folder Include="Controllers\OnlineCurrencyRate\" />
-    <Folder Include="Mapping\" />
   </ItemGroup>
 
 </Project>
