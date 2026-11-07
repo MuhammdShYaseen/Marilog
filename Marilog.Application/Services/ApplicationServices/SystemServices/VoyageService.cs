@@ -378,8 +378,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             string? notes, CancellationToken ct = default)
         {
             var voyage = await GetOrThrowAsync(id, ct);
-            voyage.Update(departurePortId, arrivalPortId, departureDate, arrivalDate,
-                          cargoType, cargoQuantityMt, notes);
+            // Legacy route/cargo columns stay untouched until Step 6 migrates them to stops.
+            voyage.Update(voyage.DeparturePortID, voyage.ArrivalPortID,
+                          voyage.DepartureDate, voyage.ArrivalDate,
+                          voyage.CargoType, voyage.CargoQuantityMT, notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
         }

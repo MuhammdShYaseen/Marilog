@@ -159,7 +159,6 @@ else
                                     BillsOfLading="BillsOfLading"
                                     IsBusy="IsBusy"
                                     OnAssignMasterClicked="OnAssignMasterClicked"
-                                    OnEditFinancialsClicked="OnEditFinancialsClicked"
                                     OnShowStops="@(() => OnSectionChanged.InvokeAsync(VoyageSection.Stops))"
                                     OnShowBills="@(() => OnSectionChanged.InvokeAsync(VoyageSection.BillsOfLading))" />
                     break;
@@ -203,7 +202,6 @@ else
 
     //------Overview--------------------------------------------------------------
     [Parameter] public EventCallback OnAssignMasterClicked { get; set; }
-    [Parameter] public EventCallback OnEditFinancialsClicked { get; set; }
 
 
     //---Bill of Lading-----------------------------------------------------------

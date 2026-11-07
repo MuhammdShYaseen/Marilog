@@ -128,29 +128,7 @@ else
         </VoyagePanel>
     </MudItem>
 
-    @* ── Master account ── *@
-    <MudItem xs="12" lg="6">
-        <VoyagePanel Title="Master account">
-            <Actions>
-                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                           StartIcon="@Icons.Material.Outlined.Edit"
-                           Disabled="@(IsReadOnly || IsBusy)"
-                           OnClick="OnEditFinancialsClicked">
-                    Edit
-                </MudButton>
-            </Actions>
-            <ChildContent>
-                <div style="@GridStyle">
-                    <EssentialsRow Label="Previous master balance" Value="@Usd(Voyage.PreviousMasterBalance)" />
-                    <EssentialsRow Label="Cash on board" Value="@Usd(Voyage.CashOnBoard)" />
-                    <EssentialsRow Label="Cigarettes on board" Value="@Usd(Voyage.CigarettesOnBoard)" />
-                </div>
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2" Style="display:block">
-                    Amounts in USD.
-                </MudText>
-            </ChildContent>
-        </VoyagePanel>
-    </MudItem>
+   
 
     @* ── Notes ── *@
     @if (!string.IsNullOrWhiteSpace(Voyage.Notes))
@@ -171,7 +149,6 @@ else
     [Parameter] public EventCallback OnShowBills { get; set; }
     [Parameter] public bool IsBusy { get; set; }
     [Parameter] public EventCallback OnAssignMasterClicked { get; set; }
-    [Parameter] public EventCallback OnEditFinancialsClicked { get; set; }
 
     private bool IsReadOnly => Voyage.Status == VoyageStatus.CANCELLED;
 
@@ -257,6 +234,5 @@ else
         }
     }
 
-    // ── Money ─────────────────────────────────────────────────────────────────
-    private static string Usd(decimal value) => $"{value:N2} USD";
+
 }

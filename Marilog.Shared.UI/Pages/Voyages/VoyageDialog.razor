@@ -73,66 +73,7 @@
                 </MudItem>
             }
 
-            @* ── Route ── *@
-            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Route</MudText></MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_departurePortId"
-                           Label="Departure port"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (var p in Ports)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <DateTimeField @bind-Value="_departureDate" Label="Departure" />
-            </MudItem>
-
-            <MudItem xs="12" sm="6">
-                <MudSelect T="int?"
-                           @bind-Value="_arrivalPortId"
-                           Label="Arrival port"
-                           Clearable="true"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
-                    @foreach (var p in Ports)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <DateTimeField @bind-Value="_arrivalDate"
-                               Label="Arrival"
-                               Error="ArrivalBeforeDeparture"
-                               ErrorText="Arrival cannot be before departure." />
-            </MudItem>
-
-            @* ── Cargo ── *@
-            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Cargo</MudText></MudItem>
-
-            <MudItem xs="12" sm="8">
-                <MudTextField @bind-Value="_cargoType"
-                              Label="Cargo type"
-                              MaxLength="150"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="4">
-                <MudNumericField T="decimal?"
-                                 @bind-Value="_cargoQuantityMt"
-                                 Label="Quantity (MT)"
-                                 Min="0"
-                                 Format="N3"
-                                 HideSpinButtons="true"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-            </MudItem>
+          
 
             <MudItem xs="12">
                 <MudTextField @bind-Value="_notes"
@@ -177,34 +118,18 @@
     private string _voyageNumber = string.Empty;
     private int _vesselId;
     private DateTime? _voyageMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-    private int? _departurePortId;
-    private int? _arrivalPortId;
-    private DateTime? _departureDate;
-    private DateTime? _arrivalDate;
-    private string? _cargoType;
-    private decimal? _cargoQuantityMt;
+
     private string? _notes;
     private bool _saving;
 
     private bool IsEdit => Voyage is not null;
 
-    private bool ArrivalBeforeDeparture =>
-        _departureDate.HasValue && _arrivalDate.HasValue && _arrivalDate < _departureDate;
-
     private bool IsValid =>
-        !ArrivalBeforeDeparture &&
-        (IsEdit || (!string.IsNullOrWhiteSpace(_voyageNumber) && _vesselId > 0 && _voyageMonth is not null));
+      IsEdit || (!string.IsNullOrWhiteSpace(_voyageNumber) && _vesselId > 0 && _voyageMonth is not null);
 
     protected override void OnInitialized()
     {
         if (Voyage is null) return;
-
-        _departurePortId = Voyage.DeparturePortId;
-        _arrivalPortId = Voyage.ArrivalPortId;
-        _departureDate = Voyage.DepartureDate;
-        _arrivalDate = Voyage.ArrivalDate;
-        _cargoType = Voyage.CargoType;
-        _cargoQuantityMt = Voyage.CargoQuantityMT;
         _notes = Voyage.Notes;
     }
 
@@ -225,24 +150,19 @@
     }
 
     private CreateVoyageRequest BuildCreate() => new(
-        VesselId: _vesselId,
-        VoyageNumber: _voyageNumber.Trim(),
-        VoyageMonth: new DateOnly(_voyageMonth!.Value.Year, _voyageMonth.Value.Month, 1),
-        DeparturePortId: _departurePortId,
-        ArrivalPortId: _arrivalPortId,
-        DepartureDate: _departureDate,
-        ArrivalDate: _arrivalDate,
-        CargoType: NullIfEmpty(_cargoType),
-        CargoQuantityMt: _cargoQuantityMt,
-        Notes: NullIfEmpty(_notes));
+    VesselId: _vesselId,
+    VoyageNumber: _voyageNumber.Trim(),
+    VoyageMonth: new DateOnly(_voyageMonth!.Value.Year, _voyageMonth.Value.Month, 1),
+    Notes: NullIfEmpty(_notes));
 
+    // Route and cargo now live on stops and cargo lines — only Notes is edited here.
     private UpdateVoyageRequest BuildUpdate() => new(
-        DeparturePortId: _departurePortId,
-        ArrivalPortId: _arrivalPortId,
-        DepartureDate: _departureDate,
-        ArrivalDate: _arrivalDate,
-        CargoType: NullIfEmpty(_cargoType),
-        CargoQuantityMt: _cargoQuantityMt,
+        DeparturePortId: null,
+        ArrivalPortId: null,
+        DepartureDate: null,
+        ArrivalDate: null,
+        CargoType: null,
+        CargoQuantityMt: null,
         Notes: NullIfEmpty(_notes));
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

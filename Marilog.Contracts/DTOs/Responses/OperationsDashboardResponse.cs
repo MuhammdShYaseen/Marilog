@@ -8,8 +8,6 @@
         public List<VoyageResponse> UpcomingArrivals { get; set; }
             = new();
 
-        public decimal TotalCashOnBoard { get; set; }
-
         public decimal TotalCargoMT { get; set; }
 
         public IReadOnlyList<CrewContractResponse> ExpiringCrewContracts { get; set; } = new List<CrewContractResponse>();

@@ -45,7 +45,6 @@
                    OnChangeIssuanceTypeClicked="OpenChangeIssuanceTypeDialog"
                    OnLinkToMasterBlClicked="OpenLinkToMasterBlDialog"
                    OnAssignMasterClicked="OpenAssignMasterDialog"
-                   OnEditFinancialsClicked="OpenFinancialsDialog"
                    OnAddBillClicked="OpenAddBillDialog"
                    OnViewBillClicked="OpenViewBillDialog"
                    OnEditBillClicked="OpenEditBillDialog"
@@ -450,23 +449,7 @@
             Rank: c.RankName,
             IsCurrentVesselMaster: vesselMaster is not null && vesselMaster.PersonId == c.PersonId);
 
-    private async Task OpenFinancialsDialog()
-    {
-        if (_voyage is null) return;
-
-        var parameters = new DialogParameters
-        {
-            [nameof(VoyageFinancialsDialog.Voyage)] = _voyage,
-            [nameof(VoyageFinancialsDialog.OnSave)] = new Func<UpdateVoyageFinancialsRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.UpdateFinancialsAsync(
-                    VoyageId, r.CashOnBoard, r.CigarettesOnBoard, r.PreviousMasterBalance),
-                "Master account updated"))
-        };
-
-        var dialog = await DialogService.ShowAsync<VoyageFinancialsDialog>("Master account", parameters, SmallDialog);
-        var result = await dialog.Result;
-        if (result is { Canceled: false }) await ReloadVoyageAsync();
-    }
+   
 
 
 

@@ -64,8 +64,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             // Aggregations
 
-            var totalCash = activeVoyages.Sum(v => v.CashOnBoard);
-
             var totalCargo = activeVoyages.Sum(v => v.CargoQuantityMT ?? 0);
 
             // Alerts
@@ -96,7 +94,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 ActiveVoyages = activeVoyages,
                 UpcomingArrivals = upcoming,
-                TotalCashOnBoard = totalCash,
                 TotalCargoMT = totalCargo,
                 ExpiringCrewContracts = expiringContracts,
                 ExpiredCrewContracts = expiredContracts,
