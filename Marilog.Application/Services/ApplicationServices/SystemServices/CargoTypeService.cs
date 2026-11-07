@@ -68,6 +68,55 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             };
         }
 
+
+        public async Task<IReadOnlyList<CargoTypeResponse>> CreateRangeAsync(
+    IEnumerable<CreateCargoTypeRequest> requests, CancellationToken ct = default)
+        {
+            var list = requests.ToList();
+            if (list.Count == 0)
+                return Array.Empty<CargoTypeResponse>();
+
+            // --- Duplicate codes inside the batch ---
+            var codes = new List<string>();
+            foreach (var r in list)
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(r.Code);
+                var upper = r.Code.Trim().ToUpperInvariant();
+                if (codes.Contains(upper))
+                    throw new InvalidOperationException($"Duplicate cargo type code in the request: '{upper}'.");
+                codes.Add(upper);
+            }
+
+            // --- Codes that already exist — one query ---
+            var existing = await _repo.Query()
+                .Where(x => codes.Contains(x.Code))
+                .Select(x => x.Code)
+                .ToListAsync(ct);
+
+            if (existing.Count > 0)
+                throw new InvalidOperationException(
+                    $"Cargo type code(s) already exist: {string.Join(", ", existing)}.");
+
+            var cargoTypes = list
+                .Select(r => CargoType.Create(r.Code, r.Name, r.Category, r.DefaultUnit, r.SortOrder))
+                .ToList();
+
+            await _repo.AddRangeAsync(cargoTypes, ct);
+            await _repo.SaveChangesAsync(ct);   // all or nothing
+
+            return cargoTypes
+                .Select(x => new CargoTypeResponse
+                {
+                    Id = x.Id,
+                    Code = x.Code,
+                    Name = x.Name,
+                    Category = x.Category,
+                    DefaultUnit = x.DefaultUnit,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive
+                })
+                .ToList();
+        }
         public async Task UpdateAsync(int id, UpdateCargoTypeRequest request, CancellationToken ct = default)
         {
             var cargoType = await GetOrThrowAsync(id, ct);

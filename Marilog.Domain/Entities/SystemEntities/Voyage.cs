@@ -1,9 +1,6 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.ValueObjects.Cargo;
 using Marilog.Kernel.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -20,6 +17,9 @@ namespace Marilog.Domain.Entities.SystemEntities
         public CrewContract? MasterContract { get; private set; }
         public VoyageStatus Status { get; private set; } = VoyageStatus.PLANNED;
         public string? Notes { get; private set; }
+
+        public DateTime? StartDate { get; private set; }
+        public DateTime? EndDate { get; private set; }
         private readonly List<BillOfLading> _billsOfLading = new();
 
         public IReadOnlyCollection<BillOfLading> BillsOfLading =>
@@ -33,10 +33,12 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private Voyage() { }
         public static Voyage Create(int vesselId, string voyageNumber, DateOnly voyageMonth,
-    int? masterContractId = null, string? notes = null)
+     int? masterContractId = null, DateTime? startDate = null, DateTime? endDate = null,
+     string? notes = null)
         {
             if (vesselId <= 0) throw new ArgumentException("Invalid VesselID.");
             ArgumentException.ThrowIfNullOrWhiteSpace(voyageNumber);
+            EnsureValidPeriod(startDate, endDate);
 
             return new Voyage
             {
@@ -44,14 +46,20 @@ namespace Marilog.Domain.Entities.SystemEntities
                 VoyageNumber = voyageNumber,
                 VoyageMonth = voyageMonth,
                 MasterContractID = masterContractId,
+                StartDate = startDate,
+                EndDate = endDate,
                 Notes = notes
             };
         }
 
-        // Route and cargo live on stops and cargo lines — only Notes is editable here.
-        public void Update(string? notes)
+        // Route and cargo live on stops and cargo lines — the voyage keeps its own period and notes.
+        public void Update(DateTime? startDate, DateTime? endDate, string? notes)
         {
             EnsureNotCancelled();
+            EnsureValidPeriod(startDate, endDate);
+
+            StartDate = startDate;
+            EndDate = endDate;
             Notes = notes;
             Touch();
         }
@@ -208,6 +216,12 @@ namespace Marilog.Domain.Entities.SystemEntities
         {
             if (Status == VoyageStatus.CANCELLED)
                 throw new InvalidOperationException("Cancelled voyages cannot be modified.");
+        }
+
+        private static void EnsureValidPeriod(DateTime? startDate, DateTime? endDate)
+        {
+            if (startDate.HasValue && endDate.HasValue && endDate < startDate)
+                throw new InvalidOperationException("Voyage end cannot be before voyage start.");
         }
     }
 }

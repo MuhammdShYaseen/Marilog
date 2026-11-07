@@ -22,7 +22,8 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? CargoType { get; set; }
         public decimal? CargoQuantityMT { get; set; }
         public string? Notes { get; set; }
-
+        public DateTime? StartDate { get; set; }   // entered manually — the voyage's commercial period
+        public DateTime? EndDate { get; set; }
         public IReadOnlyList<VoyageStopResponse> Stops { get; set; } = new List<VoyageStopResponse>();
 
         public IReadOnlyList<VoyageContractResponse> Contracts { get; set; } = new List<VoyageContractResponse>();

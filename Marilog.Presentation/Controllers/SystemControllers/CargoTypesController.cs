@@ -33,7 +33,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CargoTypeResponse>>> Create([FromBody] CreateCargoTypeRequest request, CancellationToken ct)
             => Ok(ApiResponse<CargoTypeResponse>.Ok(await _service.CreateAsync(request, ct)));
-
+        [HttpPost("batch")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<CargoTypeResponse>>>> CreateRange(
+            [FromBody] IEnumerable<CreateCargoTypeRequest> requests, CancellationToken ct)
+                => Ok(ApiResponse<IReadOnlyList<CargoTypeResponse>>.Ok(await _service.CreateRangeAsync(requests, ct)));
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCargoTypeRequest request, CancellationToken ct)
         {

@@ -38,7 +38,14 @@ namespace Marilog.Client.Services.SystemServices
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<CargoTypeResponse>>(ct);
             return response!.Data!;
         }
-
+        public async Task<IReadOnlyList<CargoTypeResponse>> CreateRangeAsync(
+            IEnumerable<CreateCargoTypeRequest> requests, CancellationToken ct = default)
+        {
+            var http = await _http.PostAsJsonAsync($"{Base}/batch", requests, ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+            var response = await http.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<CargoTypeResponse>>>(ct);
+            return response?.Data ?? [];
+        }
         public async Task UpdateAsync(int id, UpdateCargoTypeRequest request, CancellationToken ct = default)
         {
             var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);

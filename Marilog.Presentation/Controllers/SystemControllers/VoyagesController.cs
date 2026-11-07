@@ -72,15 +72,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPost]
         public async Task<ActionResult<VoyageResponse>> Create(CreateVoyageRequest request, CancellationToken ct)
         {
-            var result = await _service.CreateAsync(
-                request.VesselId,
-                request.VoyageNumber,
-                request.VoyageMonth,
-                request.MasterContractId,
-                request.Notes,
-                ct
-            );
-
+            var result = await _service.CreateAsync(request, ct);
             return CreatedAtAction(nameof(GetById), new { id = result.VoyageId }, ApiResponse<VoyageResponse>.Ok(result));
         }
 
@@ -89,23 +81,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             [FromBody] IEnumerable<CreateVoyageRequest> requests,
             CancellationToken ct)
         {
-            var commands = requests.Select(r => new CreateVoyageRequest(
-            r.VesselId,
-            r.VoyageNumber,
-            r.VoyageMonth,
-            r.MasterContractId,
-            r.Notes
-            ));
-
-            var result = await _service.CreateRangeAsync(commands, ct);
+            var result = await _service.CreateRangeAsync(requests, ct);
             return Ok(ApiResponse<IReadOnlyList<VoyageResponse>>.Ok(result));
         }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, UpdateVoyageRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(id, request.Notes, ct);
-
+            await _service.UpdateAsync(id, request, ct);
             return NoContent();
         }
 
@@ -146,37 +129,17 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         // ── Stops ───────────────────────────────────────────────
-
         [HttpPost("{voyageId:int}/stops")]
         public async Task<IActionResult> AddStop(int voyageId, AddVoyageStopRequest request, CancellationToken ct)
         {
-            var stop = await _service.AddStopAsync(
-                voyageId,
-                request.PortId,
-                request.StopOrder,
-                request.ArrivalDate,
-                request.DepartureDate,
-                request.PurposeOfCall,
-                request.Notes,
-                ct
-            );
-
+            var stop = await _service.AddStopAsync(voyageId, request, ct);
             return Ok(ApiResponse<VoyageStopResponse>.Ok(stop));
         }
 
         [HttpPut("{voyageId:int}/stops/{stopOrder:int}")]
         public async Task<IActionResult> UpdateStop(int voyageId, int stopOrder, UpdateVoyageStopRequest request, CancellationToken ct)
         {
-            await _service.UpdateStopAsync(
-                voyageId,
-                stopOrder,
-                request.ArrivalDate,
-                request.DepartureDate,
-                request.PurposeOfCall,
-                request.Notes,
-                ct
-            );
-
+            await _service.UpdateStopAsync(voyageId, stopOrder, request, ct);
             return NoContent();
         }
 

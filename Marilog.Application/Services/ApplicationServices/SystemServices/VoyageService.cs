@@ -239,27 +239,33 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber,
-        DateOnly voyageMonth, int? masterContractId = null,
-        string? notes = null, CancellationToken ct = default)
+        public async Task<VoyageResponse> CreateAsync(CreateVoyageRequest request, CancellationToken ct = default)
         {
-            await EnsureVesselActiveAsync(vesselId, ct);
-            await EnsureUniqueVoyageNumberAsync(voyageNumber, excludeId: null, ct);
+            await EnsureVesselActiveAsync(request.VesselId, ct);
+            await EnsureUniqueVoyageNumberAsync(request.VoyageNumber, excludeId: null, ct);
 
-            if (masterContractId.HasValue)
-                await EnsureContractActiveAsync(masterContractId.Value, ct);
+            if (request.MasterContractId.HasValue)
+                await EnsureContractActiveAsync(request.MasterContractId.Value, ct);
 
-            var voyage = Voyage.Create(vesselId, voyageNumber, voyageMonth, masterContractId, notes);
+            var voyage = Voyage.Create(request.VesselId, request.VoyageNumber, request.VoyageMonth,
+                masterContractId: request.MasterContractId,
+                startDate: request.StartDate,
+                endDate: request.EndDate,
+                notes: request.Notes);
+
             await _repo.AddAsync(voyage, ct);
             await _repo.SaveChangesAsync(ct);
+
             return new VoyageResponse
             {
                 VoyageId = voyage.Id,
-                VesselId = vesselId,
-                VoyageNumber = voyageNumber,
-                VoyageMonth = voyageMonth,
-                MasterContractId = masterContractId,
-                Notes = notes
+                VesselId = voyage.VesselID,
+                VoyageNumber = voyage.VoyageNumber,
+                VoyageMonth = voyage.VoyageMonth,
+                MasterContractId = voyage.MasterContractID,
+                StartDate = voyage.StartDate,
+                EndDate = voyage.EndDate,
+                Notes = voyage.Notes
             };
         }
 
@@ -322,10 +328,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     throw new InvalidOperationException(
                         $"MasterContract Id(s) not found or inactive: {string.Join(", ", inactiveContractIds)}");
             }
-
             // --- إنشاء دفعة واحدة ---
             var voyages = commandList
-                .Select(c => Voyage.Create(c.VesselId, c.VoyageNumber, c.VoyageMonth, c.MasterContractId, c.Notes))
+                .Select(c => Voyage.Create(c.VesselId, c.VoyageNumber, c.VoyageMonth,
+                    masterContractId: c.MasterContractId,
+                    startDate: c.StartDate,
+                    endDate: c.EndDate,
+                    notes: c.Notes))
                 .ToList();
 
             await _repo.AddRangeAsync(voyages, ct);
@@ -339,15 +348,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VoyageNumber = voyage.VoyageNumber,
                     VoyageMonth = voyage.VoyageMonth,
                     MasterContractId = voyage.MasterContractID,
+                    StartDate = voyage.StartDate,
+                    EndDate = voyage.EndDate,
                     Notes = voyage.Notes
                 })
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, string? notes, CancellationToken ct = default)
+        public async Task UpdateAsync(int id, UpdateVoyageRequest request, CancellationToken ct = default)
         {
             var voyage = await GetOrThrowAsync(id, ct);
-            voyage.Update(notes);
+            voyage.Update(request.StartDate, request.EndDate, request.Notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
         }
@@ -398,9 +409,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Stops ─────────────────────────────────────────────────────────────────
 
-        public async Task<VoyageStopResponse> AddStopAsync(int voyageId, int portId, int stopOrder,
-    DateTime? arrivalDate = null, DateTime? departureDate = null,
-    string? purposeOfCall = null, string? notes = null,
+        public async Task<VoyageStopResponse> AddStopAsync(int voyageId, AddVoyageStopRequest request,
     CancellationToken ct = default)
         {
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
@@ -411,12 +420,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .IgnoreQueryFilters()
                 .Where(v => v.Id == voyageId)
                 .SelectMany(v => v.Stops)
-                .AnyAsync(s => s.StopOrder == stopOrder, ct);
+                .AnyAsync(s => s.StopOrder == request.StopOrder, ct);
             if (orderTaken)
                 throw new InvalidOperationException(
-                    $"StopOrder {stopOrder} is already used on this voyage.");
+                    $"StopOrder {request.StopOrder} is already used on this voyage.");
 
-            voyage.AddStop(portId, stopOrder, arrivalDate, departureDate, purposeOfCall, notes);
+            voyage.AddStop(request.PortId, request.StopOrder, request.ArrivalDate,
+                request.DepartureDate, request.PurposeOfCall, request.Notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
 
@@ -424,7 +434,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .AsNoTracking()
                 .Where(v => v.Id == voyageId)
                 .SelectMany(v => v.Stops)
-                .Where(s => s.StopOrder == stopOrder)
+                .Where(s => s.StopOrder == request.StopOrder)
                 .Select(s => new VoyageStopResponse
                 {
                     StopOrder = s.StopOrder,
@@ -438,13 +448,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .FirstAsync(ct);
         }
 
-        public async Task UpdateStopAsync(int voyageId, int stopOrder,
-            DateTime? arrivalDate, DateTime? departureDate,
-            string? purposeOfCall, string? notes,
-            CancellationToken ct = default)
+        public async Task UpdateStopAsync(int voyageId, int stopOrder, UpdateVoyageStopRequest request, CancellationToken ct = default)
         {
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
-            voyage.UpdateStop(stopOrder, arrivalDate, departureDate, purposeOfCall, notes);
+            voyage.UpdateStop(stopOrder, request.ArrivalDate, request.DepartureDate,
+                request.PurposeOfCall, request.Notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
         }
@@ -675,6 +683,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             ArrivalPortName = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault(),
             ArrivalDate = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.ArrivalDate).FirstOrDefault(),
 
+            StartDate = x.StartDate,
+            EndDate = x.EndDate,
             // Cargo summary — derived from loaded cargo lines
             CargoType = x.Stops.SelectMany(s => s.Cargo)
                 .Where(c => c.Operation == CargoOperation.Load)

@@ -63,7 +63,52 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 IsActive = vesselType.IsActive
             };
         }
+        public async Task<IReadOnlyList<VesselTypeResponse>> CreateRangeAsync(
+    IEnumerable<CreateVesselTypeRequest> requests, CancellationToken ct = default)
+        {
+            var list = requests.ToList();
+            if (list.Count == 0)
+                return Array.Empty<VesselTypeResponse>();
 
+            // --- Duplicate codes inside the batch ---
+            var codes = new List<string>();
+            foreach (var r in list)
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(r.Code);
+                var upper = r.Code.Trim().ToUpperInvariant();
+                if (codes.Contains(upper))
+                    throw new InvalidOperationException($"Duplicate vessel type code in the request: '{upper}'.");
+                codes.Add(upper);
+            }
+
+            // --- Codes that already exist — one query ---
+            var existing = await _repo.Query()
+                .Where(x => codes.Contains(x.Code))
+                .Select(x => x.Code)
+                .ToListAsync(ct);
+
+            if (existing.Count > 0)
+                throw new InvalidOperationException(
+                    $"Vessel type code(s) already exist: {string.Join(", ", existing)}.");
+
+            var vesselTypes = list
+                .Select(r => VesselType.Create(r.Code, r.Name, r.SortOrder))
+                .ToList();
+
+            await _repo.AddRangeAsync(vesselTypes, ct);
+            await _repo.SaveChangesAsync(ct);   // all or nothing
+
+            return vesselTypes
+                .Select(x => new VesselTypeResponse
+                {
+                    Id = x.Id,
+                    Code = x.Code,
+                    Name = x.Name,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive
+                })
+                .ToList();
+        }
         public async Task UpdateAsync(int id, UpdateVesselTypeRequest request, CancellationToken ct = default)
         {
             var vesselType = await GetOrThrowAsync(id, ct);

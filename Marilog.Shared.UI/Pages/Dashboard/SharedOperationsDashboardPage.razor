@@ -159,8 +159,8 @@
         <HeaderContent>
             <MudTh>Voyage No.</MudTh>
             <MudTh>Vessel</MudTh>
-            <MudTh>Departure</MudTh>
-            <MudTh>Arrival</MudTh>
+            <MudTh>Voyage Start</MudTh>
+            <MudTh>Voyage End</MudTh>
             <MudTh Class="text-right">Cargo (MT)</MudTh>
             <MudTh>Status</MudTh>
         </HeaderContent>
@@ -171,8 +171,8 @@
                 </MudLink>
             </MudTd>
             <MudTd>@context.VesselName</MudTd>
-            <MudTd Class="az-muted">@context.DepartureDate?.ToString("dd MMM yyyy")</MudTd>
-            <MudTd Class="az-muted">@context.ArrivalDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd Class="az-muted">@context.StartDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd Class="az-muted">@context.EndDate?.ToString("dd MMM yyyy")</MudTd>
             <MudTd Class="text-right az-num">@context.CargoQuantityMT?.ToString("N2")</MudTd>
             <MudTd>
                 <MudChip T="string" Color="Color.Success" Size="Size.Small"

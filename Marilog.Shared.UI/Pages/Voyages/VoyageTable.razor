@@ -21,8 +21,8 @@
         <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByVessel">Vessel</MudTableSortLabel></MudTh>
         <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByMonth">Month</MudTableSortLabel></MudTh>
         <MudTh Style="@ThStyle">Route</MudTh>
-        <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByDeparture">Departure</MudTableSortLabel></MudTh>
-        <MudTh Style="@ThStyle">Arrival</MudTh>
+        <MudTh Style="@ThStyle"><MudTableSortLabel T="VoyageResponse" SortBy="@SortByStart">Voyage Start</MudTableSortLabel></MudTh>
+        <MudTh Style="@ThStyle">Voyage End</MudTh>
         <MudTh Style="@ThStyle">Master</MudTh>
         <MudTh Style="@($"{ThStyle}text-align:right;")">Cargo (MT)</MudTh>
         <MudTh Style="@ThStyle">Status</MudTh>
@@ -37,15 +37,16 @@
         <MudTd DataLabel="Month">@context.VoyageMonth.ToString("MMM yyyy")</MudTd>
         <MudTd DataLabel="Route">
             <span>@(context.DeparturePortName ?? "—") → @(context.ArrivalPortName ?? "—")</span>
-            @if (context.Stops.Count > 0)
+            @* First and last stops are the route itself — only the stops in between are counted. *@
+            @if (context.Stops.Count > 2)
             {
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block">
-                    @StopsLabel(context.Stops.Count)
+                    @StopsLabel(context.Stops.Count - 2)
                 </MudText>
             }
         </MudTd>
-        <MudTd DataLabel="Departure">@(context.DepartureDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
-        <MudTd DataLabel="Arrival">@(context.ArrivalDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd DataLabel="Voyage Start">@(context.StartDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
+        <MudTd DataLabel="Voyage End">@(context.EndDate?.ToString("dd MMM yyyy") ?? "—")</MudTd>
         <MudTd DataLabel="Master">@(context.MasterFullName ?? "—")</MudTd>
         <MudTd DataLabel="Cargo (MT)" Style="text-align:right">@(context.CargoQuantityMT?.ToString("N3") ?? "—")</MudTd>
         <MudTd DataLabel="Status"><VoyageStatusChip Status="context.Status" /></MudTd>
@@ -110,7 +111,7 @@
     private static readonly Func<VoyageResponse, object> SortByNumber = v => v.VoyageNumber;
     private static readonly Func<VoyageResponse, object> SortByVessel = v => v.VesselName;
     private static readonly Func<VoyageResponse, object> SortByMonth = v => v.VoyageMonth;
-    private static readonly Func<VoyageResponse, object> SortByDeparture = v => v.DepartureDate ?? DateTime.MaxValue;
+    private static readonly Func<VoyageResponse, object> SortByStart = v => v.StartDate ?? DateTime.MaxValue;
 
     private static bool CanDelete(VoyageResponse v)
         => v.Status is VoyageStatus.PLANNED or VoyageStatus.CANCELLED;

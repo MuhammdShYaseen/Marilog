@@ -155,7 +155,7 @@
         {
             [nameof(VoyageDialog.Voyage)] = _voyage,
             [nameof(VoyageDialog.OnUpdate)] = new Func<UpdateVoyageRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.UpdateAsync(VoyageId, r.Notes), "Voyage updated"))
+                TryAsync(() => VoyageService.UpdateAsync(VoyageId, r), "Voyage updated"))
         };
 
         var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit voyage", parameters, SmallDialog);
@@ -369,11 +369,7 @@
             [nameof(VoyageStopDialog.TakenOrders)] = taken,
             [nameof(VoyageStopDialog.NextStopOrder)] = taken.Count == 0 ? 1 : taken.Max() + 1,
             [nameof(VoyageStopDialog.OnAdd)] = new Func<AddVoyageStopRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.AddStopAsync(
-                    VoyageId, r.PortId, r.StopOrder,
-                    r.ArrivalDate, r.DepartureDate,
-                    r.PurposeOfCall, r.Notes),
-                "Stop added"))
+                    TryAsync(() => VoyageService.AddStopAsync(VoyageId, r), "Stop added"))
         };
 
         var dialog = await DialogService.ShowAsync<VoyageStopDialog>("Add port stop", parameters, SmallDialog);
@@ -387,11 +383,7 @@
         {
             [nameof(VoyageStopDialog.Stop)] = stop,
             [nameof(VoyageStopDialog.OnUpdate)] = new Func<UpdateVoyageStopRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.UpdateStopAsync(
-                    VoyageId, stop.StopOrder,
-                    r.ArrivalDate, r.DepartureDate,
-                    r.PurposeOfCall, r.Notes),
-                "Stop updated"))
+                TryAsync(() => VoyageService.UpdateStopAsync(VoyageId, stop.StopOrder, r), "Stop updated"))
         };
 
         var dialog = await DialogService.ShowAsync<VoyageStopDialog>("Edit port stop", parameters, SmallDialog);

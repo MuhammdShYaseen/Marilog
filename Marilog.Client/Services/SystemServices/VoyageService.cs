@@ -69,11 +69,8 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
-            int? masterContractId = null, string? notes = null, CancellationToken ct = default)
+        public async Task<VoyageResponse> CreateAsync(CreateVoyageRequest request, CancellationToken ct = default)
         {
-            var request = new CreateVoyageRequest(vesselId, voyageNumber, voyageMonth, masterContractId, notes);
-
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<VoyageResponse>>(ct);
@@ -88,23 +85,9 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, string? notes, CancellationToken ct = default)
+        public async Task UpdateAsync(int id, UpdateVoyageRequest request, CancellationToken ct = default)
         {
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}", new UpdateVoyageRequest(notes), ct);
-            await http.EnsureSuccessWithMessageAsync(ct);
-        }
-
-        public async Task UpdateFinancialsAsync(int id, decimal cashOnBoard,
-            decimal cigarettesOnBoard, decimal previousMasterBalance, CancellationToken ct = default)
-        {
-            var request = new UpdateVoyageFinancialsRequest
-            (
-                cashOnBoard,
-                cigarettesOnBoard,
-                previousMasterBalance
-            );
-
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}/financials", request, ct);
+            var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }
 
@@ -141,37 +124,18 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Stops ─────────────────────────────────────────────────────────────────
 
-        public async Task<VoyageStopResponse> AddStopAsync(int voyageId, int portId, int stopOrder,
-            DateTime? arrivalDate = null, DateTime? departureDate = null,
-            string? purposeOfCall = null, string? notes = null, CancellationToken ct = default)
+        public async Task<VoyageStopResponse> AddStopAsync(int voyageId, AddVoyageStopRequest request,
+     CancellationToken ct = default)
         {
-            var request = new AddVoyageStopRequest
-            (
-                portId,
-                stopOrder,
-                arrivalDate,
-                departureDate,
-                purposeOfCall,
-                notes
-            );
-
             var http = await _http.PostAsJsonAsync($"{Base}/{voyageId}/stops", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
             var response = await http.Content.ReadFromJsonAsync<ApiResponse<VoyageStopResponse>>(ct);
             return response!.Data!;
         }
 
-        public async Task UpdateStopAsync(int voyageId, int stopOrder, DateTime? arrivalDate,
-            DateTime? departureDate, string? purposeOfCall, string? notes, CancellationToken ct = default)
+        public async Task UpdateStopAsync(int voyageId, int stopOrder, UpdateVoyageStopRequest request,
+            CancellationToken ct = default)
         {
-            var request = new UpdateVoyageStopRequest
-            (
-                arrivalDate,
-                departureDate,
-                purposeOfCall,
-                notes
-            );
-
             var http = await _http.PutAsJsonAsync($"{Base}/{voyageId}/stops/{stopOrder}", request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }

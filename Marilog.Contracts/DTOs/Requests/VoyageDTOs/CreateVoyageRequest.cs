@@ -5,6 +5,8 @@
         string VoyageNumber,
         DateOnly VoyageMonth,
         int? MasterContractId = null,
+        DateTime? StartDate = null,
+        DateTime? EndDate = null,
         string? Notes = null
     );
 }

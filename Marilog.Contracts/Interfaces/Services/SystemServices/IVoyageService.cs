@@ -20,11 +20,9 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         //---Reports----------------------------------------------------------------
         Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions options, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
-        Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
-                          int? masterContractId = null, string? notes = null,
-                          CancellationToken ct = default);
+        Task<VoyageResponse> CreateAsync(CreateVoyageRequest request, CancellationToken ct = default);
         Task<IReadOnlyList<VoyageResponse>> CreateRangeAsync(IEnumerable<CreateVoyageRequest> commands, CancellationToken ct = default);
-        Task UpdateAsync(int id, string? notes, CancellationToken ct = default);
+        Task UpdateAsync(int id, UpdateVoyageRequest request, CancellationToken ct = default);
         Task         AssignMasterAsync(int id, int contractId, CancellationToken ct = default);
         Task         StartAsync(int id, CancellationToken ct = default);
         Task         CompleteAsync(int id, CancellationToken ct = default);
@@ -32,13 +30,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task         DeleteAsync(int id, CancellationToken ct = default);
 
         // ── Stops ─────────────────────────────────────────────────────────────────
-        Task<VoyageStopResponse> AddStopAsync(int voyageId, int portId, int stopOrder,
-                                      DateTime? arrivalDate = null, DateTime? departureDate = null,
-                                      string? purposeOfCall = null, string? notes = null,
-                                      CancellationToken ct = default);
-        Task             UpdateStopAsync(int voyageId, int stopOrder, DateTime? arrivalDate,
-                                         DateTime? departureDate, string? purposeOfCall,
-                                         string? notes, CancellationToken ct = default);
+        Task<VoyageStopResponse> AddStopAsync(int voyageId, AddVoyageStopRequest request, CancellationToken ct = default);
+        Task UpdateStopAsync(int voyageId, int stopOrder, UpdateVoyageStopRequest request, CancellationToken ct = default);
         Task             RemoveStopAsync(int voyageId, int stopOrder, CancellationToken ct = default);
 
 

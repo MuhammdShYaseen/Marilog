@@ -10,6 +10,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<VesselTypeResponse?> GetByIdAsync(int id, CancellationToken ct = default);
 
         Task<VesselTypeResponse> CreateAsync(CreateVesselTypeRequest request, CancellationToken ct = default);
+        Task<IReadOnlyList<VesselTypeResponse>> CreateRangeAsync(IEnumerable<CreateVesselTypeRequest> requests, CancellationToken ct = default);
         Task UpdateAsync(int id, UpdateVesselTypeRequest request, CancellationToken ct = default);
         Task ActivateAsync(int id, CancellationToken ct = default);
         Task DeactivateAsync(int id, CancellationToken ct = default);

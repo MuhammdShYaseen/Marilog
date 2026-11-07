@@ -73,7 +73,22 @@
                 </MudItem>
             }
 
-          
+            @* ── Voyage period ── *@
+            <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Voyage period</MudText></MudItem>
+            <MudItem xs="12" sm="6">
+                <DateTimeField @bind-Value="_startDate" Label="Voyage start" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <DateTimeField @bind-Value="_endDate"
+                               Label="Voyage end"
+                               Error="EndBeforeStart"
+                               ErrorText="Voyage end cannot be before voyage start." />
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Commercial period of the voyage — from arrival at the load port to departure from the discharge port.
+                </MudText>
+            </MudItem>
 
             <MudItem xs="12">
                 <MudTextField @bind-Value="_notes"
@@ -120,15 +135,22 @@
 
     private string? _notes;
     private bool _saving;
-
+    private DateTime? _startDate;
+    private DateTime? _endDate;
     private bool IsEdit => Voyage is not null;
 
+    private bool EndBeforeStart =>
+    _startDate.HasValue && _endDate.HasValue && _endDate < _startDate;
+
     private bool IsValid =>
-      IsEdit || (!string.IsNullOrWhiteSpace(_voyageNumber) && _vesselId > 0 && _voyageMonth is not null);
+        !EndBeforeStart &&
+        (IsEdit || (!string.IsNullOrWhiteSpace(_voyageNumber) && _vesselId > 0 && _voyageMonth is not null));
 
     protected override void OnInitialized()
     {
         if (Voyage is null) return;
+        _startDate = Voyage.StartDate;
+        _endDate = Voyage.EndDate;
         _notes = Voyage.Notes;
     }
 
@@ -152,9 +174,14 @@
     VesselId: _vesselId,
     VoyageNumber: _voyageNumber.Trim(),
     VoyageMonth: new DateOnly(_voyageMonth!.Value.Year, _voyageMonth.Value.Month, 1),
+    StartDate: _startDate,
+    EndDate: _endDate,
     Notes: NullIfEmpty(_notes));
 
-    private UpdateVoyageRequest BuildUpdate() => new(Notes: NullIfEmpty(_notes));
+    private UpdateVoyageRequest BuildUpdate() => new(
+        StartDate: _startDate,
+        EndDate: _endDate,
+        Notes: NullIfEmpty(_notes));
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

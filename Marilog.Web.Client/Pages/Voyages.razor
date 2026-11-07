@@ -141,11 +141,7 @@
     }
 
     private Task<bool> CreateVoyageAsync(CreateVoyageRequest r) =>
-        TryAsync(() => VoyageService.CreateAsync(
-            r.VesselId, r.VoyageNumber, r.VoyageMonth,
-            masterContractId: r.MasterContractId,
-            notes: r.Notes),
-        "Voyage created");
+    TryAsync(() => VoyageService.CreateAsync(r), "Voyage created");
 
     private async Task OpenEditDialog(VoyageResponse voyage)
     {
@@ -153,7 +149,7 @@
         {
             [nameof(VoyageDialog.Voyage)] = voyage,
             [nameof(VoyageDialog.OnUpdate)] = new Func<UpdateVoyageRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.UpdateAsync(voyage.VoyageId, r.Notes), "Voyage updated"))
+                                                             TryAsync(() => VoyageService.UpdateAsync(voyage.VoyageId, r), "Voyage updated"))
         };
 
         var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit voyage", parameters, FormDialogOptions);

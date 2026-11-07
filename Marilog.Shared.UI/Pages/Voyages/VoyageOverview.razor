@@ -37,13 +37,14 @@ else
 <MudGrid Spacing="3">
 
     @* ── Essentials ── *@
-    @* ── Essentials ── *@
     <MudItem xs="12" lg="6">
         <VoyagePanel Title="Essentials">
             <div style="@GridStyle">
                 <EssentialsRow Label="Voyage number" Value="@Voyage.VoyageNumber" />
                 <EssentialsRow Label="Vessel" Value="@Voyage.VesselName" />
                 <EssentialsRow Label="Voyage month" Value="@Voyage.VoyageMonth.ToString("MMMM yyyy")" />
+                <EssentialsRow Label="Voyage start" Value="@FormatDateTime(Voyage.StartDate)" />
+                <EssentialsRow Label="Voyage end" Value="@FormatDateTime(Voyage.EndDate)" />
                 <EssentialsRow Label="Status"><VoyageStatusChip Status="Voyage.Status" /></EssentialsRow>
                 <EssentialsRow Label="Master">
                     <div class="d-flex align-center gap-2">
