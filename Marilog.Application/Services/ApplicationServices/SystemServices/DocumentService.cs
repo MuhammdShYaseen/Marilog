@@ -854,8 +854,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Side = x.Side,
                     VoyageId = x.VoyageId,
                     VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
-                    VoyageSummary = x.Voyage != null
-                        ? "From : " + x.Voyage.DeparturePort!.PortName + " To : " + x.Voyage.ArrivalPort!.PortName
+                    VoyageSummary = x.Voyage != null && x.Voyage.Stops.Any()
+                        ? "From : " + x.Voyage.Stops.OrderBy(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault()
+                          + " To : " + x.Voyage.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault()
                         : null,
                 })
                 .ToListAsync(ct);

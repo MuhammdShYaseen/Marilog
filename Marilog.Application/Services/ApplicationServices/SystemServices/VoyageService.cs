@@ -104,7 +104,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
             => await _repo.Query().AsNoTracking()
                           .Where(x => x.Status == status)
-                          .OrderByDescending(x => x.DepartureDate)
+                          .OrderByDescending(x => x.VoyageMonth)
                           .Select (ToResponse)
                           .ToListAsync(ct);
 
@@ -137,16 +137,23 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.Status.HasValue)
                 query = query.Where(x => x.Status == options.Status.Value);
 
+            // Date range filters on VoyageMonth (the month the voyage is booked under)
             if (options.FromDate.HasValue)
-                query = query.Where(x => x.DepartureDate >= options.FromDate.Value);
+            {
+                var fromMonth = new DateOnly(options.FromDate.Value.Year, options.FromDate.Value.Month, 1);
+                query = query.Where(x => x.VoyageMonth >= fromMonth);
+            }
 
             if (options.ToDate.HasValue)
-                query = query.Where(x => x.DepartureDate <= options.ToDate.Value);
+            {
+                var toMonth = new DateOnly(options.ToDate.Value.Year, options.ToDate.Value.Month, 1);
+                query = query.Where(x => x.VoyageMonth <= toMonth);
+            }
 
             if (options.OnlyCurrent)
                 query = query.Where(x => x.Status == VoyageStatus.UNDERWAY);
 
-            query = query.OrderByDescending(x => x.DepartureDate)
+            query = query.OrderByDescending(x => x.VoyageMonth)
                          .ThenBy(x => x.VoyageNumber);
 
             var dbSummary = await query
@@ -654,21 +661,24 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ? x.MasterContract.Person.FullName
                 : null,
 
-            DeparturePortId = x.DeparturePortID,
-            DeparturePortName = x.DeparturePort != null
-                ? x.DeparturePort.PortName
-                : null,
+            // Route summary — derived from stops (first stop = departure, last stop = arrival)
+            DeparturePortId = x.Stops.OrderBy(s => s.StopOrder).Select(s => (int?)s.PortID).FirstOrDefault(),
+            DeparturePortName = x.Stops.OrderBy(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault(),
+            DepartureDate = x.Stops.OrderBy(s => s.StopOrder).Select(s => s.DepartureDate).FirstOrDefault(),
 
-            ArrivalPortId = x.ArrivalPortID,
-            ArrivalPortName = x.ArrivalPort != null
-                ? x.ArrivalPort.PortName
-                : null,
+            ArrivalPortId = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => (int?)s.PortID).FirstOrDefault(),
+            ArrivalPortName = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault(),
+            ArrivalDate = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.ArrivalDate).FirstOrDefault(),
 
-            DepartureDate = x.DepartureDate,
-            ArrivalDate = x.ArrivalDate,
-
-            CargoType = x.CargoType,
-            CargoQuantityMT = x.CargoQuantityMT,
+            // Cargo summary — derived from loaded cargo lines
+            CargoType = x.Stops.SelectMany(s => s.Cargo)
+                .Where(c => c.Operation == CargoOperation.Load)
+                .OrderBy(c => c.VoyageCargoID)
+                .Select(c => c.CargoType.Name)
+                .FirstOrDefault(),
+            CargoQuantityMT = x.Stops.SelectMany(s => s.Cargo)
+                .Where(c => c.Operation == CargoOperation.Load)
+                .Sum(c => c.WeightMt),
 
             CashOnBoard = x.CashOnBoard,
             CigarettesOnBoard = x.CigarettesOnBoard,
@@ -699,21 +709,24 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ? x.MasterContract.Person.FullName
                 : null,
 
-            DeparturePortId = x.DeparturePortID,
-            DeparturePortName = x.DeparturePort != null
-                ? x.DeparturePort.PortName
-                : null,
+            // Route summary — derived from stops (first stop = departure, last stop = arrival)
+            DeparturePortId = x.Stops.OrderBy(s => s.StopOrder).Select(s => (int?)s.PortID).FirstOrDefault(),
+            DeparturePortName = x.Stops.OrderBy(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault(),
+            DepartureDate = x.Stops.OrderBy(s => s.StopOrder).Select(s => s.DepartureDate).FirstOrDefault(),
 
-            ArrivalPortId = x.ArrivalPortID,
-            ArrivalPortName = x.ArrivalPort != null
-                ? x.ArrivalPort.PortName
-                : null,
+            ArrivalPortId = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => (int?)s.PortID).FirstOrDefault(),
+            ArrivalPortName = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault(),
+            ArrivalDate = x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.ArrivalDate).FirstOrDefault(),
 
-            DepartureDate = x.DepartureDate,
-            ArrivalDate = x.ArrivalDate,
-
-            CargoType = x.CargoType,
-            CargoQuantityMT = x.CargoQuantityMT,
+            // Cargo summary — derived from loaded cargo lines
+            CargoType = x.Stops.SelectMany(s => s.Cargo)
+                .Where(c => c.Operation == CargoOperation.Load)
+                .OrderBy(c => c.VoyageCargoID)
+                .Select(c => c.CargoType.Name)
+                .FirstOrDefault(),
+            CargoQuantityMT = x.Stops.SelectMany(s => s.Cargo)
+                .Where(c => c.Operation == CargoOperation.Load)
+                .Sum(c => c.WeightMt),
 
             CashOnBoard = x.CashOnBoard,
             CigarettesOnBoard = x.CigarettesOnBoard,
@@ -766,8 +779,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             VesselId = x.VesselID,
             DisplayText = x.Vessel.VesselName + " | " + x.VoyageNumber
             + " - " + x.VoyageMonth.Year
-            + " (" + (x.DeparturePort != null ? x.DeparturePort.PortName : "?")
-            + " → " + (x.ArrivalPort != null ? x.ArrivalPort.PortName : "?") + ")"
+            + " (" + (x.Stops.OrderBy(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault() ?? "?")
+            + " → " + (x.Stops.OrderByDescending(s => s.StopOrder).Select(s => s.Port.PortName).FirstOrDefault() ?? "?") + ")"
         };
     }
 }
