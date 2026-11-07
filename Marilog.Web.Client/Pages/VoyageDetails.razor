@@ -149,20 +149,13 @@
     // ── Edit ──────────────────────────────────────────────────────────────────
     private async Task OpenEditDialog()
     {
-        if (_voyage is null || !await EnsurePortsAsync()) return;
+        if (_voyage is null) return;
 
         var parameters = new DialogParameters
         {
             [nameof(VoyageDialog.Voyage)] = _voyage,
-            [nameof(VoyageDialog.Ports)] = _ports,
             [nameof(VoyageDialog.OnUpdate)] = new Func<UpdateVoyageRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.UpdateAsync(
-                    VoyageId,
-                    r.DeparturePortId, r.ArrivalPortId,
-                    r.DepartureDate, r.ArrivalDate,
-                    r.CargoType, r.CargoQuantityMt,
-                    r.Notes),
-                "Voyage updated"))
+                TryAsync(() => VoyageService.UpdateAsync(VoyageId, r.Notes), "Voyage updated"))
         };
 
         var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit voyage", parameters, SmallDialog);

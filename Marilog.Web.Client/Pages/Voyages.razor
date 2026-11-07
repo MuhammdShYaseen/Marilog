@@ -9,7 +9,6 @@
 @* VoyagePageHost.razor *@
 @inject IVoyageService VoyageService
 @inject IVesselService VesselService
-@inject IPortService PortService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -129,13 +128,9 @@
     // ── Create / Edit ─────────────────────────────────────────────────────────
     private async Task OpenCreateDialog()
     {
-        IReadOnlyList<PortResponse> ports = [];
-        if (!await TryAsync(async () => ports = await PortService.GetActiveAsync())) return;
-
         var parameters = new DialogParameters
         {
             [nameof(VoyageDialog.Vessels)] = _vessels,
-            [nameof(VoyageDialog.Ports)] = ports,
             [nameof(VoyageDialog.OnCreate)] = new Func<CreateVoyageRequest, Task<bool>>(CreateVoyageAsync)
         };
 
@@ -148,32 +143,16 @@
         TryAsync(() => VoyageService.CreateAsync(
             r.VesselId, r.VoyageNumber, r.VoyageMonth,
             masterContractId: r.MasterContractId,
-            departurePortId: r.DeparturePortId,
-            arrivalPortId: r.ArrivalPortId,
-            departureDate: r.DepartureDate,
-            arrivalDate: r.ArrivalDate,
-            cargoType: r.CargoType,
-            cargoQuantityMt: r.CargoQuantityMt,
             notes: r.Notes),
         "Voyage created");
 
     private async Task OpenEditDialog(VoyageResponse voyage)
     {
-        IReadOnlyList<PortResponse> ports = [];
-        if (!await TryAsync(async () => ports = await PortService.GetActiveAsync())) return;
-
         var parameters = new DialogParameters
         {
             [nameof(VoyageDialog.Voyage)] = voyage,
-            [nameof(VoyageDialog.Ports)] = ports,
             [nameof(VoyageDialog.OnUpdate)] = new Func<UpdateVoyageRequest, Task<bool>>(r =>
-                TryAsync(() => VoyageService.UpdateAsync(
-                    voyage.VoyageId,
-                    r.DeparturePortId, r.ArrivalPortId,
-                    r.DepartureDate, r.ArrivalDate,
-                    r.CargoType, r.CargoQuantityMt,
-                    r.Notes),
-                "Voyage updated"))
+                TryAsync(() => VoyageService.UpdateAsync(voyage.VoyageId, r.Notes), "Voyage updated"))
         };
 
         var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit voyage", parameters, FormDialogOptions);

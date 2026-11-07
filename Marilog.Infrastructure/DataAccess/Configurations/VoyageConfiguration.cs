@@ -14,16 +14,12 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Id).UseIdentityColumn();
             builder.Property(x => x.VoyageNumber).IsRequired().HasMaxLength(30);
             builder.Property(x => x.VoyageMonth).IsRequired().HasColumnType("date");
-            builder.Property(x => x.CargoType).HasMaxLength(150);
-            builder.Property(x => x.CargoQuantityMT).HasColumnType("decimal(14,3)");
             builder.Property(x => x.Status)
                    .IsRequired()
                    .HasMaxLength(20)
                    .HasDefaultValue(VoyageStatus.PLANNED)
                    .HasConversion<string>();
-            builder.Property(x => x.PreviousMasterBalance).HasColumnType("decimal(12,2)").HasDefaultValue(0m);
-            builder.Property(x => x.CashOnBoard).HasColumnType("decimal(12,2)").HasDefaultValue(0m);
-            builder.Property(x => x.CigarettesOnBoard).HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+            
             builder.Property(x => x.Notes).HasMaxLength(1000);
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
@@ -35,16 +31,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.HasOne(x => x.MasterContract)
                    .WithMany()
                    .HasForeignKey(x => x.MasterContractID)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.DeparturePort)
-                   .WithMany()
-                   .HasForeignKey(x => x.DeparturePortID)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.ArrivalPort)
-                   .WithMany()
-                   .HasForeignKey(x => x.ArrivalPortID)
                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(x => x.Stops)

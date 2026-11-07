@@ -2704,39 +2704,10 @@ namespace Marilog.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime?>("ArrivalDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ArrivalPortID")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("CargoQuantityMT")
-                        .HasColumnType("decimal(14,3)");
-
-                    b.Property<string>("CargoType")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<decimal>("CashOnBoard")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(12,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<decimal>("CigarettesOnBoard")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(12,2)")
-                        .HasDefaultValue(0m);
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<DateTime?>("DepartureDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DeparturePortID")
-                        .HasColumnType("int");
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
@@ -2755,11 +2726,6 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal>("PreviousMasterBalance")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(12,2)")
-                        .HasDefaultValue(0m);
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2783,10 +2749,6 @@ namespace Marilog.Infrastructure.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ArrivalPortID");
-
-                    b.HasIndex("DeparturePortID");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -4357,16 +4319,6 @@ namespace Marilog.Infrastructure.Migrations
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Voyage", b =>
                 {
-                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "ArrivalPort")
-                        .WithMany()
-                        .HasForeignKey("ArrivalPortID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "DeparturePort")
-                        .WithMany()
-                        .HasForeignKey("DeparturePortID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.CrewContract", "MasterContract")
                         .WithMany()
                         .HasForeignKey("MasterContractID")
@@ -4402,11 +4354,7 @@ namespace Marilog.Infrastructure.Migrations
                                 .HasForeignKey("VoyageID");
                         });
 
-                    b.Navigation("ArrivalPort");
-
                     b.Navigation("Contracts");
-
-                    b.Navigation("DeparturePort");
 
                     b.Navigation("MasterContract");
 

@@ -240,11 +240,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber,
-            DateOnly voyageMonth, int? masterContractId = null,
-            int? departurePortId = null, int? arrivalPortId = null,
-            DateTime? departureDate = null, DateTime? arrivalDate = null,
-            string? cargoType = null, decimal? cargoQuantityMt = null,
-            string? notes = null, CancellationToken ct = default)
+        DateOnly voyageMonth, int? masterContractId = null,
+        string? notes = null, CancellationToken ct = default)
         {
             await EnsureVesselActiveAsync(vesselId, ct);
             await EnsureUniqueVoyageNumberAsync(voyageNumber, excludeId: null, ct);
@@ -252,25 +249,17 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (masterContractId.HasValue)
                 await EnsureContractActiveAsync(masterContractId.Value, ct);
 
-            var voyage = Voyage.Create(vesselId, voyageNumber, voyageMonth,
-                                       masterContractId, departurePortId, arrivalPortId,
-                                       departureDate, arrivalDate, cargoType,
-                                       cargoQuantityMt, notes: notes);
+            var voyage = Voyage.Create(vesselId, voyageNumber, voyageMonth, masterContractId, notes);
             await _repo.AddAsync(voyage, ct);
             await _repo.SaveChangesAsync(ct);
             return new VoyageResponse
             {
+                VoyageId = voyage.Id,
                 VesselId = vesselId,
                 VoyageNumber = voyageNumber,
                 VoyageMonth = voyageMonth,
-                DepartureDate = departureDate,
-                DeparturePortId = departurePortId,
                 MasterContractId = masterContractId,
-                ArrivalDate = arrivalDate,
-                ArrivalPortId = arrivalPortId,
-                CargoQuantityMT = cargoQuantityMt,
-                Notes = notes,
-                VoyageId = voyage.Id
+                Notes = notes
             };
         }
 
@@ -336,18 +325,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             // --- إنشاء دفعة واحدة ---
             var voyages = commandList
-                .Select(c => Voyage.Create(
-                    c.VesselId,
-                    c.VoyageNumber,
-                    c.VoyageMonth,
-                    c.MasterContractId,
-                    c.DeparturePortId,
-                    c.ArrivalPortId,
-                    c.DepartureDate,
-                    c.ArrivalDate,
-                    c.CargoType,
-                    c.CargoQuantityMt,
-                    notes: c.Notes))
+                .Select(c => Voyage.Create(c.VesselId, c.VoyageNumber, c.VoyageMonth, c.MasterContractId, c.Notes))
                 .ToList();
 
             await _repo.AddRangeAsync(voyages, ct);
@@ -361,37 +339,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     VoyageNumber = voyage.VoyageNumber,
                     VoyageMonth = voyage.VoyageMonth,
                     MasterContractId = voyage.MasterContractID,
-                    DeparturePortId = voyage.DeparturePortID,
-                    ArrivalPortId = voyage.ArrivalPortID,
-                    DepartureDate = voyage.DepartureDate,
-                    ArrivalDate = voyage.ArrivalDate,
-                    CargoType = voyage.CargoType,
-                    CargoQuantityMT = voyage.CargoQuantityMT,
                     Notes = voyage.Notes
                 })
                 .ToList();
         }
 
-        public async Task UpdateAsync(int id, int? departurePortId, int? arrivalPortId,
-            DateTime? departureDate, DateTime? arrivalDate,
-            string? cargoType, decimal? cargoQuantityMt,
-            string? notes, CancellationToken ct = default)
+        public async Task UpdateAsync(int id, string? notes, CancellationToken ct = default)
         {
             var voyage = await GetOrThrowAsync(id, ct);
-            // Legacy route/cargo columns stay untouched until Step 6 migrates them to stops.
-            voyage.Update(voyage.DeparturePortID, voyage.ArrivalPortID,
-                          voyage.DepartureDate, voyage.ArrivalDate,
-                          voyage.CargoType, voyage.CargoQuantityMT, notes);
-            _repo.Update(voyage);
-            await _repo.SaveChangesAsync(ct);
-        }
-
-        public async Task UpdateFinancialsAsync(int id, decimal cashOnBoard,
-            decimal cigarettesOnBoard, decimal previousMasterBalance,
-            CancellationToken ct = default)
-        {
-            var voyage = await GetOrThrowAsync(id, ct);
-            voyage.UpdateFinancials(cashOnBoard, cigarettesOnBoard, previousMasterBalance);
+            voyage.Update(notes);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
         }
@@ -678,13 +634,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .OrderBy(c => c.VoyageCargoID)
                 .Select(c => c.CargoType.Name)
                 .FirstOrDefault(),
-            CargoQuantityMT = x.Stops.SelectMany(s => s.Cargo)
-                .Where(c => c.Operation == CargoOperation.Load)
-                .Sum(c => c.WeightMt),
-
-            CashOnBoard = x.CashOnBoard,
-            CigarettesOnBoard = x.CigarettesOnBoard,
-            PreviousMasterBalance = x.PreviousMasterBalance,
+            // null (not 0) when nothing is loaded — EF wraps SUM in COALESCE(…, 0)
+            CargoQuantityMT = x.Stops.SelectMany(s => s.Cargo).Any(c => c.Operation == CargoOperation.Load)
+                ? x.Stops.SelectMany(s => s.Cargo)
+                    .Where(c => c.Operation == CargoOperation.Load)
+                    .Sum(c => c.WeightMt)
+                : null,
 
             Notes = x.Notes,
 
@@ -726,13 +681,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .OrderBy(c => c.VoyageCargoID)
                 .Select(c => c.CargoType.Name)
                 .FirstOrDefault(),
-            CargoQuantityMT = x.Stops.SelectMany(s => s.Cargo)
-                .Where(c => c.Operation == CargoOperation.Load)
-                .Sum(c => c.WeightMt),
-
-            CashOnBoard = x.CashOnBoard,
-            CigarettesOnBoard = x.CigarettesOnBoard,
-            PreviousMasterBalance = x.PreviousMasterBalance,
+            // null (not 0) when nothing is loaded — EF wraps SUM in COALESCE(…, 0)
+            CargoQuantityMT = x.Stops.SelectMany(s => s.Cargo).Any(c => c.Operation == CargoOperation.Load)
+                ? x.Stops.SelectMany(s => s.Cargo)
+                    .Where(c => c.Operation == CargoOperation.Load)
+                    .Sum(c => c.WeightMt)
+                : null,
 
             Notes = x.Notes,
 

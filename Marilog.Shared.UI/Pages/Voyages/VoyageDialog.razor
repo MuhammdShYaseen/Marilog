@@ -103,7 +103,6 @@
 
     [Parameter] public VoyageResponse? Voyage { get; set; }
     [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
-    [Parameter, EditorRequired] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
 
     /// <summary>Host performs the create; returns true on success. Dialog stays open on failure.</summary>
     [Parameter] public Func<CreateVoyageRequest, Task<bool>>? OnCreate { get; set; }
@@ -155,15 +154,7 @@
     VoyageMonth: new DateOnly(_voyageMonth!.Value.Year, _voyageMonth.Value.Month, 1),
     Notes: NullIfEmpty(_notes));
 
-    // Route and cargo now live on stops and cargo lines — only Notes is edited here.
-    private UpdateVoyageRequest BuildUpdate() => new(
-        DeparturePortId: null,
-        ArrivalPortId: null,
-        DepartureDate: null,
-        ArrivalDate: null,
-        CargoType: null,
-        CargoQuantityMt: null,
-        Notes: NullIfEmpty(_notes));
+    private UpdateVoyageRequest BuildUpdate() => new(Notes: NullIfEmpty(_notes));
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

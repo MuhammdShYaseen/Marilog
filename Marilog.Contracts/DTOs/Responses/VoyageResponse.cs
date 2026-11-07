@@ -21,9 +21,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public DateTime? ArrivalDate { get; set; }
         public string? CargoType { get; set; }
         public decimal? CargoQuantityMT { get; set; }
-        public decimal CashOnBoard { get; set; }
-        public decimal CigarettesOnBoard { get; set; }
-        public decimal PreviousMasterBalance { get; set; }
         public string? Notes { get; set; }
 
         public IReadOnlyList<VoyageStopResponse> Stops { get; set; } = new List<VoyageStopResponse>();

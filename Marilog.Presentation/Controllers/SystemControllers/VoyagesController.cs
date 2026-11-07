@@ -77,12 +77,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 request.VoyageNumber,
                 request.VoyageMonth,
                 request.MasterContractId,
-                request.DeparturePortId,
-                request.ArrivalPortId,
-                request.DepartureDate,
-                request.ArrivalDate,
-                request.CargoType,
-                request.CargoQuantityMt,
                 request.Notes,
                 ct
             );
@@ -96,17 +90,11 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             CancellationToken ct)
         {
             var commands = requests.Select(r => new CreateVoyageRequest(
-                r.VesselId,
-                r.VoyageNumber,
-                r.VoyageMonth,
-                r.MasterContractId,
-                r.DeparturePortId,
-                r.ArrivalPortId,
-                r.DepartureDate,
-                r.ArrivalDate,
-                r.CargoType,
-                r.CargoQuantityMt,
-                r.Notes
+            r.VesselId,
+            r.VoyageNumber,
+            r.VoyageMonth,
+            r.MasterContractId,
+            r.Notes
             ));
 
             var result = await _service.CreateRangeAsync(commands, ct);
@@ -116,34 +104,11 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, UpdateVoyageRequest request, CancellationToken ct)
         {
-            await _service.UpdateAsync(
-                id,
-                request.DeparturePortId,
-                request.ArrivalPortId,
-                request.DepartureDate,
-                request.ArrivalDate,
-                request.CargoType,
-                request.CargoQuantityMt,
-                request.Notes,
-                ct
-            );
+            await _service.UpdateAsync(id, request.Notes, ct);
 
             return NoContent();
         }
 
-        [HttpPut("{id:int}/financials")]
-        public async Task<IActionResult> UpdateFinancials(int id, UpdateVoyageFinancialsRequest request, CancellationToken ct)
-        {
-            await _service.UpdateFinancialsAsync(
-                id,
-                request.CashOnBoard,
-                request.CigarettesOnBoard,
-                request.PreviousMasterBalance,
-                ct
-            );
-
-            return NoContent();
-        }
 
         [HttpPost("{id:int}/assign-master")]
         public async Task<IActionResult> AssignMaster(int id, AssignVoyageMasterRequest request, CancellationToken ct)

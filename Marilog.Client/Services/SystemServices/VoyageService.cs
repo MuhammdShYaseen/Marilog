@@ -70,13 +70,9 @@ namespace Marilog.Client.Services.SystemServices
         // ── Commands ─────────────────────────────────────────────────────────────
 
         public async Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
-            int? masterContractId = null, int? departurePortId = null, int? arrivalPortId = null,
-            DateTime? departureDate = null, DateTime? arrivalDate = null,
-            string? cargoType = null, decimal? cargoQuantityMt = null, string? notes = null,
-            CancellationToken ct = default)
+            int? masterContractId = null, string? notes = null, CancellationToken ct = default)
         {
-            var request = new CreateVoyageRequest(vesselId, voyageNumber, voyageMonth, masterContractId,
-                departurePortId, arrivalPortId, departureDate, arrivalDate, cargoType, cargoQuantityMt, notes);
+            var request = new CreateVoyageRequest(vesselId, voyageNumber, voyageMonth, masterContractId, notes);
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
@@ -92,23 +88,9 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? [];
         }
 
-        public async Task UpdateAsync(int id, int? departurePortId, int? arrivalPortId,
-            DateTime? departureDate, DateTime? arrivalDate,
-            string? cargoType, decimal? cargoQuantityMt, string? notes,
-            CancellationToken ct = default)
+        public async Task UpdateAsync(int id, string? notes, CancellationToken ct = default)
         {
-            var request = new UpdateVoyageRequest
-            (
-                departurePortId,
-                arrivalPortId,
-                departureDate,
-                arrivalDate,
-                cargoType,
-                cargoQuantityMt,
-                notes
-            );
-
-            var http = await _http.PutAsJsonAsync($"{Base}/{id}", request, ct);
+            var http = await _http.PutAsJsonAsync($"{Base}/{id}", new UpdateVoyageRequest(notes), ct);
             await http.EnsureSuccessWithMessageAsync(ct);
         }
 

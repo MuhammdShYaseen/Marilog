@@ -21,20 +21,10 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<VoyageReport> GetVoyagesReportAsync(VoyageReportFilterOptions options, CancellationToken ct = default);
         // ── Commands ─────────────────────────────────────────────────────────────
         Task<VoyageResponse> CreateAsync(int vesselId, string voyageNumber, DateOnly voyageMonth,
-                                 int? masterContractId = null, int? departurePortId = null,
-                                 int? arrivalPortId = null, DateTime? departureDate = null,
-                                 DateTime? arrivalDate = null, string? cargoType = null,
-                                 decimal? cargoQuantityMt = null, string? notes = null,
-                                 CancellationToken ct = default);
+                          int? masterContractId = null, string? notes = null,
+                          CancellationToken ct = default);
         Task<IReadOnlyList<VoyageResponse>> CreateRangeAsync(IEnumerable<CreateVoyageRequest> commands, CancellationToken ct = default);
-        Task         UpdateAsync(int id, int? departurePortId, int? arrivalPortId,
-                                 DateTime? departureDate, DateTime? arrivalDate,
-                                 string? cargoType, decimal? cargoQuantityMt,
-                                 string? notes, CancellationToken ct = default);
-        Task         UpdateFinancialsAsync(int id, decimal cashOnBoard,
-                                           decimal cigarettesOnBoard,
-                                           decimal previousMasterBalance,
-                                           CancellationToken ct = default);
+        Task UpdateAsync(int id, string? notes, CancellationToken ct = default);
         Task         AssignMasterAsync(int id, int contractId, CancellationToken ct = default);
         Task         StartAsync(int id, CancellationToken ct = default);
         Task         CompleteAsync(int id, CancellationToken ct = default);
