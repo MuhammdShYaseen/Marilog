@@ -58,6 +58,7 @@
                                             OnEditClicked="@OnEditClicked"
                                             OnCancelClicked="@OnCancelClicked"
                                             OnManageAttachedFilesClicked="@OnManageAttachedFilesClicked"
+                                            OnCommentsClicked="@OnCommentsClicked"
                                             OnEditChargeDetailsClicked="@OnEditChargeDetailsClicked"
                                             OnAddFeeClicked="@OnAddFeeClicked"
                                             OnEditFeeClicked="@OnEditFeeClicked"
@@ -80,7 +81,7 @@
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<SwiftTransferResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
 
     [Parameter] public EventCallback<SwiftTransferResponse> OnMarkReceivedClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnCancelClicked { get; set; }

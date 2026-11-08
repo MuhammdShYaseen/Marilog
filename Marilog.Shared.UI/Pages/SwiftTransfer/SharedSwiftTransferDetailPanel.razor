@@ -44,6 +44,12 @@
             Attached files
         </MudButton>
 
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Outlined.Comment"
+                   OnClick="@(() => OnCommentsClicked.InvokeAsync((Transfer.Id, EntityType.SwiftTransfer)))">
+            Comments
+        </MudButton>
+
         @if (!IsCancelled)
         {
             <MudTooltip Text="@(HasPayments ? "Remove allocated payments first" : "Cancel this transfer")">
@@ -297,6 +303,7 @@
     [Parameter] public EventCallback<SwiftTransferResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnCancelClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnEditChargeDetailsClicked { get; set; }
     [Parameter] public EventCallback<SwiftTransferResponse> OnAddFeeClicked { get; set; }
     [Parameter] public EventCallback<(SwiftTransferResponse Transfer, SwiftBankFeeResponse Fee)> OnEditFeeClicked { get; set; }

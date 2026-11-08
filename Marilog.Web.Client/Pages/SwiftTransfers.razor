@@ -17,6 +17,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IManageStoredFiles ManageStoredFiles
+@inject IManageComments ManageComments
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host. Only file with @page and the only file that references
    the concrete client services. Loads reference data (companies/banks/
@@ -43,7 +44,8 @@
                          FilterOptions="@_filter"
                          Companies="@_companies"
                          OnFilterChanged="@HandleFilterChangedAsync"
-                         OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
+                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, SwiftLabel(arg.entityId)))"
+                         OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, SwiftLabel(arg.entityId)))"
                          OnEditChargeDetailsClicked="@HandleEditChargeDetailsClickedAsync"
                          OnAddFeeClicked="@HandleAddFeeClickedAsync"
                          OnEditFeeClicked="@HandleEditFeeClickedAsync"
@@ -68,7 +70,14 @@
         CloseButton = true,
         Position = DialogPosition.Center
     };
+    private string? SwiftLabel(int transferId)
+    {
+        var t = _transfers.FirstOrDefault(x => x.Id == transferId);
+        if (t is null) return null;
 
+        var parties = $"{t.SenderCompanyName ?? "?"} → {t.ReceiverCompanyName ?? "?"}";
+        return $"SWIFT {t.SwiftReference} — {parties} · {t.Amount:N2} {t.CurrencyCode}";
+    }
 
     async Task HandleFilterChangedAsync(SwiftTransferFilterOptions filter)
     {
