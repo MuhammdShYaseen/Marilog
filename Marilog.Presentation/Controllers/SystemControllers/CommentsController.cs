@@ -2,6 +2,7 @@
 using Marilog.Contracts.DTOs.Requests.CommentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +16,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     public class CommentsController : ControllerBase
     {
         private readonly ICommentService _service;
-
+        private readonly IAuthorizationService _authorization;
         public CommentsController(ICommentService service)
         {
             _service = service;
@@ -28,11 +29,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             int id,
             CancellationToken ct)
         {
-            var comment = await _service.GetByIdAsync(id, ct);
 
+
+            var comment = await _service.GetByIdAsync(id, ct);
             if (comment is null)
                 return NotFound(ApiResponse<CommentResponse>.Fail(
                     $"Comment with ID {id} was not found."));
+
+            if (await CheckReadAsync(comment.EntityType) is { } denied) return denied;
 
             return Ok(ApiResponse<CommentResponse>.Ok(comment));
         }
@@ -54,6 +58,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             int entityId,
             CancellationToken ct)
         {
+            if (await CheckReadAsync(entityType) is { } denied) return denied;
+
             var result = await _service.GetByEntityAsync(entityType, entityId, ct);
 
             return Ok(ApiResponse<IReadOnlyList<CommentResponse>>.Ok(result));
@@ -76,6 +82,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             [FromBody] CreateCommentRequest request,
             CancellationToken ct)
         {
+            if (await CheckReadAsync(request.EntityType) is { } denied) return denied;
+
             var userId = GetCurrentUserId();
 
             var result = await _service.CreateAsync(request, userId, ct);
@@ -122,6 +130,18 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                     "Unable to identify the authenticated user.");
 
             return id;
+        }
+
+        private async Task<ActionResult?> CheckReadAsync(EntityType owner)
+        {
+            var result = await _authorization.AuthorizeAsync(
+                User,
+                HttpContext,
+                new PermissionRequirement(PermissionTargetKind.Entity, (int)owner, PermissionAction.Read));
+
+            return result.Succeeded
+                ? null
+                : Problem(detail: "You don't have permission to view this record's comments.", statusCode: 403);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.Common;
+﻿using Marilog.Application.Interfaces.UserIdentity;
+using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.CommentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -13,10 +14,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class CommentService : ICommentService
     {
         private readonly IRepository<Comment> _repo;
-
-        public CommentService(IRepository<Comment> repository)
+        private readonly ICurrentUserService _currentUser;
+        public CommentService(IRepository<Comment> repository, ICurrentUserService currentUser)
         {
             _repo = repository;
+            _currentUser = currentUser;
         }
 
         // ── Mapping ──────────────────────────────────────────────
@@ -74,8 +76,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Commands ─────────────────────────────────────────────
 
-        public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, Guid userId, CancellationToken ct = default)
+        public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, CancellationToken ct = default)
         {
+            var userId = _currentUser.UserId
+                ?? throw new UnauthorizedAccessException("Unable to identify the authenticated user.");
+
             var comment = Comment.Create(request.Text, userId, request.EntityType, request.EntityId);
 
             await _repo.AddAsync(comment, ct);
@@ -88,8 +93,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<CommentResponse> UpdateAsync(int id, UpdateCommentRequest request, CancellationToken ct = default)
         {
-            var comment = await _repo.GetByIdAsync(id, ct)
+          
+             var comment = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException($"There is no comment with ID: {id}");
+
+            EnsureAuthor(comment);
 
             comment.UpdateText(request.Text);
 
@@ -103,7 +111,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var comment = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException($"There is no comment with ID: {id}");
-
+            EnsureAuthor(comment);
             _repo.HardDelete(comment);
 
             await _repo.SaveChangesAsync(ct);
@@ -130,6 +138,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Page = request.Page,
                 PageSize = request.PageSize
             };
+        }
+
+
+        private void EnsureAuthor(Comment comment)
+        {
+            if (comment.UserId != _currentUser.UserId)
+                throw new InvalidOperationException("You can only edit or delete your own comments.");
         }
     }
 }

@@ -17,7 +17,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<PagedResponse<CommentResponse>> GetAllAsync(PagedRequest request, CancellationToken ct = default);
 
         // Commands
-        Task<CommentResponse> CreateAsync(CreateCommentRequest request, Guid userId, CancellationToken ct = default);
+        Task<CommentResponse> CreateAsync(CreateCommentRequest request, CancellationToken ct = default);
 
         Task<CommentResponse> UpdateAsync(int id, UpdateCommentRequest request, CancellationToken ct = default);
 

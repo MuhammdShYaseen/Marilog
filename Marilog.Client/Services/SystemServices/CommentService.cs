@@ -64,10 +64,7 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────
 
-        public async Task<CommentResponse> CreateAsync(
-            CreateCommentRequest request,
-            Guid userId,
-            CancellationToken ct = default)
+        public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, CancellationToken ct = default)
         {
             // UserId is determined by the server from the authenticated JWT.
 
