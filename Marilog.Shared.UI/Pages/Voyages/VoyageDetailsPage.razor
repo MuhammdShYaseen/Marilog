@@ -59,6 +59,14 @@ else
                            Disabled="@(Voyage is null)"
                            OnClick="OnManageFilesClicked" />
         </MudTooltip>
+
+        <MudTooltip Text="Comments">
+        <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                       Size="Size.Small"
+                       Disabled="@(Voyage is null)"
+                       OnClick="OnCommentsClicked" />
+        </MudTooltip>
+
         <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.PlayArrow"
@@ -226,6 +234,8 @@ else
     [Parameter] public EventCallback OnManageFilesClicked { get; set; }
 
 
+    //---Comments----------------------------------------------------------
+    [Parameter] public EventCallback OnCommentsClicked { get; set; }
 
 
     private const string BarStyle =

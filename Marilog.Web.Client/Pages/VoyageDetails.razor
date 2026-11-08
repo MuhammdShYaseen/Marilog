@@ -27,6 +27,7 @@
 @inject IJSRuntime JS
 @inject IContractService ContractService
 @inject IManageStoredFiles ManageStoredFiles
+@inject IManageComments ManageComments
 <VoyageDetailsPage Voyage="_voyage"
                    BillsOfLading="_bills"
                    Documents="_docs"
@@ -57,6 +58,7 @@
                    OnViewBillClicked="OpenViewBillDialog"
                    OnEditBillClicked="OpenEditBillDialog"
                    OnManageFilesClicked="OpenStoredFilesDialog"
+                   OnCommentsClicked="OpenCommentsDialog"
                    OnDeleteBillClicked="ConfirmDeleteBill" />
 
 @code {
@@ -70,7 +72,13 @@
             (VoyageId, EntityType.Voyage),
             $"Voyage {_voyage.VoyageNumber} — {_voyage.VesselName}");
     }
-
+    private async Task OpenCommentsDialog()
+    {
+        if (_voyage is null) return;
+        await ManageComments.OpenCommentsDialogAsync(
+            (VoyageId, EntityType.Voyage),
+            $"Voyage {_voyage.VoyageNumber} — {_voyage.VesselName}");
+    }
     private static readonly DialogOptions SmallDialog = new()
     {
         MaxWidth = MaxWidth.Small,

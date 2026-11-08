@@ -1,0 +1,213 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Comments
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Outlined.Comment" Color="Color.Primary" />
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Comments</MudText>
+                <MudText Typo="Typo.subtitle1">@ContextLabel</MudText>
+            </MudStack>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-3">
+            <MudTextField T="string" @bind-Value="_newText"
+                          Placeholder="Write a comment..."
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="2"
+                          Immediate="true"
+                          Class="flex-grow-1" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Send"
+                       Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_newText))"
+                       OnClick="AddAsync">
+                Send
+            </MudButton>
+        </MudStack>
+
+        @if (_isLoading)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-6">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </MudStack>
+        }
+        else if (_comments.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="py-4">
+                No comments yet.
+            </MudText>
+        }
+        else
+        {
+            <div style="max-height: 55vh; overflow-y: auto;">
+                @foreach (var c in _comments)
+                {
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-2 mb-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.body2">
+                                <b>@(string.IsNullOrWhiteSpace(c.UserName) ? "Unknown user" : c.UserName)</b>
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @c.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")@(IsEdited(c) ? " · edited" : "")
+                            </MudText>
+                            <MudSpacer />
+                            @if (c.UserId == CurrentUserId && _editingId != c.Id)
+                            {
+                                <MudMenu Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" Dense="true">
+                                    <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => StartEdit(c))">Edit</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteAsync(c))">Delete</MudMenuItem>
+                                </MudMenu>
+                            }
+                        </MudStack>
+
+                        @if (_editingId == c.Id)
+                        {
+                            <MudTextField T="string" @bind-Value="_editText"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Lines="3"
+                                          Immediate="true"
+                                          Class="mt-1" />
+                            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1" Class="mt-1">
+                                <MudButton Size="Size.Small" OnClick="CancelEdit">Cancel</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                           Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_editText))"
+                                           OnClick="@(() => SaveEditAsync(c))">
+                                    Save
+                                </MudButton>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-1" Style="white-space: pre-wrap;">@c.Text</MudText>
+                        }
+                    </MudPaper>
+                }
+            </div>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    // ── all client-service dependencies come from the host via Parameters ──
+    [Parameter] public Func<CancellationToken, Task<IReadOnlyList<CommentResponse>>>? LoadCommentsFunc { get; set; }
+    [Parameter] public Func<string, CancellationToken, Task>? AddCommentFunc { get; set; }
+    [Parameter] public Func<int, string, CancellationToken, Task>? UpdateCommentFunc { get; set; }
+    [Parameter] public Func<int, CancellationToken, Task>? DeleteCommentFunc { get; set; }
+    [Parameter] public Guid CurrentUserId { get; set; }
+    [Parameter] public string? ContextLabel { get; set; }
+
+    private List<CommentResponse> _comments = new();
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string _newText = string.Empty;
+    private int? _editingId;
+    private string _editText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        if (LoadCommentsFunc is null) return;
+
+        try
+        {
+            var items = await LoadCommentsFunc(CancellationToken.None);
+            _comments = items.OrderByDescending(c => c.CreatedAt).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        if (AddCommentFunc is null) return;
+
+        var text = _newText;
+        if (await RunAsync(() => AddCommentFunc(text, CancellationToken.None)))
+            _newText = string.Empty;
+    }
+
+    private void StartEdit(CommentResponse c)
+    {
+        _editingId = c.Id;
+        _editText = c.Text;
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _editText = string.Empty;
+    }
+
+    private async Task SaveEditAsync(CommentResponse c)
+    {
+        if (UpdateCommentFunc is null) return;
+
+        var text = _editText;
+        if (await RunAsync(() => UpdateCommentFunc(c.Id, text, CancellationToken.None)))
+            CancelEdit();
+    }
+
+    private async Task DeleteAsync(CommentResponse c)
+    {
+        if (DeleteCommentFunc is null) return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Comment",
+            "Are you sure you want to delete this comment?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        await RunAsync(() => DeleteCommentFunc(c.Id, CancellationToken.None));
+    }
+
+    // Runs one action, reloads the list on success, shows the server message on failure.
+    private async Task<bool> RunAsync(Func<Task> action)
+    {
+        _isBusy = true;
+        try
+        {
+            await action();
+            await LoadAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    // UpdatedAt is set on creation too (Entity ctor), so "edited" means updated well after creation.
+    private static bool IsEdited(CommentResponse c)
+        => c.UpdatedAt is { } updated && (updated - c.CreatedAt).TotalSeconds > 5;
+
+    private void Close() => MudDialog.Close();
+}
