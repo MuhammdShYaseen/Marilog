@@ -29,6 +29,7 @@
 @inject IStoredFileService StoredFileService
 @inject IRecordCreator RecordCreator
 @inject IManageStoredFiles ManageStoredFiles
+@inject IManageComments ManageComments
 @inject IDocumentExtractionService ExtractionService
 
 @if (_loading)
@@ -57,6 +58,7 @@
                                   OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
                                   OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
                                   OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
+                                  OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, DocumentLabel(arg.entityId)))"
                                   OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))" />
     }
 

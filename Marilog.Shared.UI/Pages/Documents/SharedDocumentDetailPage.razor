@@ -72,6 +72,13 @@ else
                                    Color="Color.Default"
                                    OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))" />
                 </MudTooltip>
+
+                <MudTooltip Text="Comments">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                                   Color="Color.Default"
+                                   OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))" />
+                </MudTooltip>
+
                 <MudTooltip Text="Delete">
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                    Color="Color.Error"
@@ -519,6 +526,7 @@ else
     [Parameter] public EventCallback<(int DocumentId, int PaymentId)> OnRemovePaymentClicked { get; set; }
 
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     private bool IsNonFinancial => Document?.Side == FinancialSide.None;
     private IReadOnlyList<AdjustmentResponse> Adjustments
         => Document?.Adjustments ?? [];
