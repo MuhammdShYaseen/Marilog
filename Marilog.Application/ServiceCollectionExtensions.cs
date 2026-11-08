@@ -136,6 +136,9 @@ namespace Marilog.Application
 
             //----DocumentExtraction--------------------------
             services.AddScoped<IDocumentExtractionService, DocumentExtractionService>();
+
+            //----Comments------------------------------------
+            services.AddScoped<ICommentService, CommentService>();
             return services;
         }
     }

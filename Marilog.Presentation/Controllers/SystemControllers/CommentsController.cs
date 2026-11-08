@@ -1,0 +1,127 @@
+﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Requests.CommentDTOs;
+using Marilog.Contracts.DTOs.Responses;
+using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Kernel.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace Marilog.Presentation.Controllers.SystemControllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class CommentsController : ControllerBase
+    {
+        private readonly ICommentService _service;
+
+        public CommentsController(ICommentService service)
+        {
+            _service = service;
+        }
+
+        // ── Queries ──────────────────────────────────────────────
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<ApiResponse<CommentResponse>>> GetById(
+            int id,
+            CancellationToken ct)
+        {
+            var comment = await _service.GetByIdAsync(id, ct);
+
+            if (comment is null)
+                return NotFound(ApiResponse<CommentResponse>.Fail(
+                    $"Comment with ID {id} was not found."));
+
+            return Ok(ApiResponse<CommentResponse>.Ok(comment));
+        }
+
+        [HttpGet("user/{userId:guid}")]
+        public async Task<ActionResult<ApiResponse<PagedResponse<CommentResponse>>>> GetByUserId(
+            Guid userId,
+            [FromQuery] PagedRequest request,
+            CancellationToken ct)
+        {
+            var result = await _service.GetByUserIdAsync(userId, request, ct);
+
+            return Ok(ApiResponse<PagedResponse<CommentResponse>>.Ok(result));
+        }
+
+        [HttpGet("entity/{entityType}/{entityId:int}")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<CommentResponse>>>> GetByEntity(
+            EntityType entityType,
+            int entityId,
+            CancellationToken ct)
+        {
+            var result = await _service.GetByEntityAsync(entityType, entityId, ct);
+
+            return Ok(ApiResponse<IReadOnlyList<CommentResponse>>.Ok(result));
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<PagedResponse<CommentResponse>>>> GetAll(
+            [FromQuery] PagedRequest request,
+            CancellationToken ct)
+        {
+            var result = await _service.GetAllAsync(request, ct);
+
+            return Ok(ApiResponse<PagedResponse<CommentResponse>>.Ok(result));
+        }
+
+        // ── Commands ─────────────────────────────────────────────
+
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<CommentResponse>>> Create(
+            [FromBody] CreateCommentRequest request,
+            CancellationToken ct)
+        {
+            var userId = GetCurrentUserId();
+
+            var result = await _service.CreateAsync(request, userId, ct);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.Id },
+                ApiResponse<CommentResponse>.Ok(result, "Comment created successfully."));
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<ApiResponse<CommentResponse>>> Update(
+            int id,
+            [FromBody] UpdateCommentRequest request,
+            CancellationToken ct)
+        {
+            var result = await _service.UpdateAsync(id, request, ct);
+
+            return Ok(ApiResponse<CommentResponse>.Ok(
+                result,
+                "Comment updated successfully."));
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(
+            int id,
+            CancellationToken ct)
+        {
+            await _service.DeleteAsync(id, ct);
+
+            return Ok(ApiResponse<bool>.Ok(
+                true,
+                "Comment deleted successfully."));
+        }
+
+        // ── Private Helpers ──────────────────────────────────────
+
+        private Guid GetCurrentUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userId, out var id))
+                throw new UnauthorizedAccessException(
+                    "Unable to identify the authenticated user.");
+
+            return id;
+        }
+    }
+}
