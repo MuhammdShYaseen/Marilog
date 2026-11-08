@@ -45,15 +45,5 @@ namespace Marilog.Domain.Entities.SystemEntities
             Text = text;
             Touch();
         }
-
-        public void UpdateEntityLink(EntityType entityType, int? entityId)
-        {
-            if (EntityType == entityType && EntityId == entityId)
-                return;
-
-            EntityType = entityType;
-            EntityId = entityId;
-            Touch();
-        }
     }
 }

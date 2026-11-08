@@ -17,9 +17,10 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     {
         private readonly ICommentService _service;
         private readonly IAuthorizationService _authorization;
-        public CommentsController(ICommentService service)
+        public CommentsController(ICommentService service, IAuthorizationService authorizationService)
         {
             _service = service;
+            _authorization = authorizationService;
         }
 
         // ── Queries ──────────────────────────────────────────────
@@ -66,6 +67,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         [HttpGet]
+        [Authorize(Policy = AuthPolicies.SuperAdmin)]
         public async Task<ActionResult<ApiResponse<PagedResponse<CommentResponse>>>> GetAll(
             [FromQuery] PagedRequest request,
             CancellationToken ct)
@@ -86,7 +88,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
             var userId = GetCurrentUserId();
 
-            var result = await _service.CreateAsync(request, userId, ct);
+            var result = await _service.CreateAsync(request, ct);
 
             return CreatedAtAction(
                 nameof(GetById),
