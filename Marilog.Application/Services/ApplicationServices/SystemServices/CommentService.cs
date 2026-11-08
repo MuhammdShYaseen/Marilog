@@ -31,7 +31,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Text = c.Text,
                 EntityType = c.EntityType,
                 EntityId = c.EntityId,
-                CreatedAt = c.CreatedAt
+                CreatedAt = c.CreatedAt,
+                UserName = c.UserName,
+                UpdatedAt = c.UpdatedAt
             };
 
         // ── Queries ──────────────────────────────────────────────
@@ -81,7 +83,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var userId = _currentUser.UserId
                 ?? throw new UnauthorizedAccessException("Unable to identify the authenticated user.");
 
-            var comment = Comment.Create(request.Text, userId, request.EntityType, request.EntityId);
+            var comment = Comment.Create(request.Text, userId, _currentUser.UserName ?? string.Empty, request.EntityType, request.EntityId);
 
             await _repo.AddAsync(comment, ct);
             await _repo.SaveChangesAsync(ct);
@@ -136,7 +138,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Items = items,
                 TotalCount = total,
                 Page = request.Page,
-                PageSize = request.PageSize
+                PageSize = request.PageSize,
             };
         }
 

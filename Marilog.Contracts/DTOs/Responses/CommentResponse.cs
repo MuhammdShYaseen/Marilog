@@ -10,5 +10,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public EntityType EntityType { get; init; }
         public int? EntityId { get; init; }
         public DateTime CreatedAt { get; init; }
+        public string UserName { get; init; } = null!;
+        public DateTime? UpdatedAt { get; init; }
     }
 }

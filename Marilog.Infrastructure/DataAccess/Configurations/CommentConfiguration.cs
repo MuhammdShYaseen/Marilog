@@ -29,6 +29,10 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
 
             builder.Property(x => x.UserId)
                    .IsRequired();
+
+            builder.Property(x => x.UserName)
+                   .IsRequired()
+                   .HasMaxLength(256);
             // ── Indexes ───────────────────────────────────────────────────
 
             builder.HasIndex(x => new { x.EntityType, x.EntityId, x.CreatedAt });

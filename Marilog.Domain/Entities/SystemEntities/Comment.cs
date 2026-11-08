@@ -10,12 +10,12 @@ namespace Marilog.Domain.Entities.SystemEntities
         public int? EntityId { get; private set; }
 
         public Guid UserId { get; private set; }
-
+        public string UserName { get; private set; } = null!;
         public string Text { get; private set; } = null!;
 
         private Comment() { }
 
-        public static Comment Create(string text, Guid userId, EntityType entityType, int? entityId)
+        public static Comment Create(string text, Guid userId, string userName, EntityType entityType, int? entityId)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
@@ -27,7 +27,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Text = text.Trim(),
                 UserId = userId,
                 EntityType = entityType,
-                EntityId = entityId
+                EntityId = entityId,
+                UserName = userName
             };
             comment.AddDomainEvent(new CommentCreatedEvent(comment.UserId, comment.Text, comment.EntityType, comment.EntityId, comment.Guid));
             return comment;
