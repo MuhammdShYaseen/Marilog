@@ -42,6 +42,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<CommentResponse>.Ok(comment));
         }
 
+        [Authorize(Policy = AuthPolicies.SuperAdmin)]
+
         [HttpGet("user/{userId:guid}")]
         public async Task<ActionResult<ApiResponse<PagedResponse<CommentResponse>>>> GetByUserId(
             Guid userId,
@@ -86,8 +88,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             if (await CheckReadAsync(request.EntityType) is { } denied) return denied;
 
-            var userId = GetCurrentUserId();
-
             var result = await _service.CreateAsync(request, ct);
 
             return CreatedAtAction(
@@ -122,18 +122,6 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
         // ── Private Helpers ──────────────────────────────────────
-
-        private Guid GetCurrentUserId()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (!Guid.TryParse(userId, out var id))
-                throw new UnauthorizedAccessException(
-                    "Unable to identify the authenticated user.");
-
-            return id;
-        }
-
         private async Task<ActionResult?> CheckReadAsync(EntityType owner)
         {
             var result = await _authorization.AuthorizeAsync(

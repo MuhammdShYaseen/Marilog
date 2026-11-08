@@ -23,7 +23,8 @@ namespace Marilog.Kernel.Enumerations
             EntityType.AuditLog,
             EntityType.Role,
             EntityType.RolePermission,
-            EntityType.UserRole
+            EntityType.UserRole,
+            EntityType.Comment,
         ];
 
         // Readable by every authenticated user. Only Create/Update/Delete are permissions.
