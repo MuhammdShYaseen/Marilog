@@ -35,6 +35,13 @@
         </MudButton>
 
         <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Outlined.Comment"
+                   OnClick="@(() => OnCommentsClicked.InvokeAsync((Contract.Id, EntityType.AContract)))">
+            Comments
+        </MudButton>
+
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
                    StartIcon="@Icons.Material.Filled.Timer"
                    OnClick="@(() => OnCharterTermsClicked.InvokeAsync(Contract.Id))">
             @(Contract.HasCharterTerms ? "Charter terms" : "Set up charter terms")
@@ -241,7 +248,7 @@
     [Parameter] public EventCallback<int> OnMarkExpiredClicked { get; set; }
     [Parameter] public EventCallback<int> OnCharterTermsClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<int> OnAddPartyClicked { get; set; }
     [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
     [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }

@@ -18,6 +18,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IManageStoredFiles ManageStoredFiles
+@inject IManageComments ManageComments
 @inject NavigationManager Navigation
 
 <SharedContractsPage @ref="_sharedPage"
@@ -43,7 +44,8 @@
                      OnTerminateClicked="TerminateAsync"
                      OnMarkExpiredClicked="MarkExpiredAsync"
                      OnCharterTermsClicked="@(id => Navigation.NavigateTo($"/operations/laytime/charter-terms/{id}"))"
-                     OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, FilesLabel(arg.entityId)))"
+                     OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, ContractLabel(arg.entityId)))"
+                     OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, ContractLabel(arg.entityId)))"
                      OnAddPartyClicked="OpenAddPartyDialogAsync"
                      OnRemovePartyClicked="RemovePartyAsync"
                      OnRecordAmendmentClicked="OpenRecordAmendmentDialogAsync"
@@ -121,8 +123,19 @@
 
     private Task<ContractDetailResponse?> GetDetailAsync(int id) => ContractService.GetByIdAsync(id);
 
-    private string? FilesLabel(int id) =>
-        _paged?.Items.FirstOrDefault(x => x.Id == id) is { } x ? $"Contract Ref : {x.ContractNumber}" : null;
+    private string? ContractLabel(int id)
+    {
+        var c = _paged?.Items.FirstOrDefault(x => x.Id == id);
+        if (c is null) return null;
+
+        var parties = string.Join(" / ", c.Parties
+            .Where(p => !string.IsNullOrWhiteSpace(p.CompanyName))
+            .Select(p => p.CompanyName));
+
+        return string.IsNullOrEmpty(parties)
+            ? $"{c.Type} {c.ContractNumber}"
+            : $"{c.Type} {c.ContractNumber} — {parties}";
+    }
 
     // ─── Filters / paging ────────────────────────────────────────────────
 

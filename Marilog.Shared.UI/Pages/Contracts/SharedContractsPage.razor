@@ -101,6 +101,7 @@
                              OnMarkExpiredClicked="@OnMarkExpiredClicked"
                              OnCharterTermsClicked="@OnCharterTermsClicked"
                              OnManageAttachedFilesClicked="@OnManageAttachedFilesClicked"
+                             OnCommentsClicked="@OnCommentsClicked"
                              OnAddPartyClicked="@OnAddPartyClicked"
                              OnRemovePartyClicked="@OnRemovePartyClicked"
                              OnRecordAmendmentClicked="@OnRecordAmendmentClicked"
@@ -203,7 +204,7 @@
     [Parameter] public EventCallback<int> OnMarkExpiredClicked { get; set; }
     [Parameter] public EventCallback<int> OnCharterTermsClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<int> OnAddPartyClicked { get; set; }
     [Parameter] public EventCallback<(int ContractId, ContractPartyResponse Party)> OnRemovePartyClicked { get; set; }
     [Parameter] public EventCallback<int> OnRecordAmendmentClicked { get; set; }
