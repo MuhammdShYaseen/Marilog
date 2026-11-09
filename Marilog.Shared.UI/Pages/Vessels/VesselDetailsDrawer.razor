@@ -49,6 +49,9 @@
                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Receipt"
                            OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Vessel.Id, EntityType.Vessel))">Files</MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Outlined.Comment"
+                           OnClick="() => OnCommentsClicked.InvokeAsync((Vessel.Id, EntityType.Vessel))">Comments</MudButton>
                 <MudButton Variant="Variant.Text" Size="Size.Small"
                            Color="@(Vessel.IsActive ? Color.Warning : Color.Success)"
                            StartIcon="@(Vessel.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
@@ -181,7 +184,7 @@
     [Parameter] public RenderFragment<VesselResponse>? CertificatesContent { get; set; }
     [Parameter] public RenderFragment<VesselResponse>? PositionContent { get; set; }
     [Parameter] public RenderFragment<VesselResponse>? WeatherContent { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     private int _activeTab;
     private int? _lastVesselId;
 

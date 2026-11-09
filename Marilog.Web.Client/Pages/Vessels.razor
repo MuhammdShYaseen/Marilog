@@ -6,7 +6,7 @@
 @using Marilog.Shared.UI.Pages.Vessels
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
-
+@inject IManageComments ManageComments
 @inject IVesselService  VesselService
 @inject ICompanyService CompanyService
 @inject ICountryService CountryService
@@ -28,7 +28,8 @@
                       OnEditClicked="OpenEditDialog"
                       OnDeleteClicked="ConfirmDelete"
                       OnToggleActiveClicked="ToggleActive"
-                      OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync">
+                      OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, VesselLabel(arg.entityId)))"
+                      OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, VesselLabel(arg.entityId)))">
         <CertificatesContent Context="vessel">
             <VesselCertificatesPanel VesselId="vessel.Id" OnChanged="LoadAsync" />
         </CertificatesContent>
@@ -78,7 +79,15 @@
             _initialized = true;
         }
     }
+    private string? VesselLabel(int id)
+    {
+        var v = _vessels.FirstOrDefault(x => x.Id == id);
+        if (v is null) return null;
 
+        return string.IsNullOrWhiteSpace(v.IMONumber)
+            ? $"Vessel : {v.Name}"
+            : $"Vessel : {v.Name} · IMO {v.IMONumber}";
+    }
     private async Task OpenAddDialog()
     {
         var parameters = new DialogParameters

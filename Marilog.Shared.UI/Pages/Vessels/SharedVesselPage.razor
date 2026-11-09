@@ -88,6 +88,7 @@
                          OnDeleteClicked="OnDeleteClicked"
                          OnToggleActiveClicked="OnToggleActiveClicked"
                          OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                         OnCommentsClicked="OnCommentsClicked"
                          CertificatesContent="CertificatesContent"
                          PositionContent="PositionContent"
                          WeatherContent="WeatherContent" />
@@ -102,7 +103,7 @@
     [Parameter] public EventCallback<VesselResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<VesselResponse> OnToggleActiveClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public RenderFragment<VesselResponse>? CertificatesContent { get; set; }
     [Parameter] public RenderFragment<VesselResponse>? PositionContent { get; set; }
     [Parameter] public RenderFragment<VesselResponse>? WeatherContent { get; set; }

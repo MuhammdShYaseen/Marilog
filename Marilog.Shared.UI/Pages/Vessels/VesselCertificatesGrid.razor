@@ -70,7 +70,7 @@
             </CellTemplate>
         </TemplateColumn>
 
-        <TemplateColumn Title="" HeaderStyle="width:110px" CellStyle="white-space:nowrap">
+        <TemplateColumn Title="" HeaderStyle="width:140px" CellStyle="white-space:nowrap">
             <CellTemplate>
                 <MudStack Row="true" Spacing="0">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
@@ -79,6 +79,9 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Receipt"
                                    Size="Size.Small"
                                    OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Index, EntityType.VesselCertificate))" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                                   Size="Size.Small"
+                                   OnClick="() => OnCommentsClicked.InvokeAsync((context.Item.Index, EntityType.VesselCertificate))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                    Size="Size.Small"
                                    Color="Color.Error"
@@ -117,6 +120,7 @@
     [Parameter] public EventCallback<CertificateResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<CertificateResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<int> OnVesselClicked { get; set; }
 
     private readonly DateOnly _today = CertificateRules.Today();

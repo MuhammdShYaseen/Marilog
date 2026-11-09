@@ -11,7 +11,7 @@
 @using Marilog.Shared.UI.Pages.Vessels
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
-
+@inject IManageComments ManageComments
 @inject IVesselCertificateService CertificateService
 @inject IVesselService VesselService
 @inject IDialogService DialogService
@@ -56,7 +56,8 @@
                         OnPageChanged="OnPageChangedAsync"
                         OnEditClicked="EditAsync"
                         OnDeleteClicked="DeleteAsync"
-                        OnManageAttachedFilesClicked="ManageStoredFiles.OpenManageStoredFilesDialogAsync"
+                        OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CertificateLabel(arg.entityId)))"
+                        OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CertificateLabel(arg.entityId)))"
                         OnVesselClicked="OnVesselClicked" />
 
 @code {
@@ -69,7 +70,14 @@
     private CertificateSummaryResponse _summary = new();
     private PagedResponse<CertificateResponse> _page = new() { Page = 1, PageSize = PageSize };
     private IReadOnlyList<VesselLookupResponse> _vessels = [];
+    private string? CertificateLabel(int id)
+    {
+        var c = _page.Items.FirstOrDefault(x => x.Index == id);
+        if (c is null) return null;
 
+        var title = $"{c.CertificateName} {c.CertificateNumber}".Trim();
+        return string.IsNullOrWhiteSpace(c.VName) ? title : $"{title} — {c.VName}";
+    }
     private CertificateExpiryStatus? _status;
     private VesselCertificateType? _type;
     private string? _search;
