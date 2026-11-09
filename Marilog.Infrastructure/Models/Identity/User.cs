@@ -7,7 +7,7 @@ namespace Marilog.Infrastructure.Models.Identity
         public string FullName { get; private set; } = "";
         public bool IsActive { get; private set; }
         public bool IsSuperAdmin { get; private set; }
-
+        public DateTime CreatedAt { get; private set; }
         private User() { }   // لـ EF
 
         public static User Create(string userName, string fullName, string? email = null)
@@ -21,7 +21,8 @@ namespace Marilog.Infrastructure.Models.Identity
                 UserName = userName.Trim(),
                 Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
                 FullName = fullName.Trim(),
-                IsActive = true
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
             };
         }
 

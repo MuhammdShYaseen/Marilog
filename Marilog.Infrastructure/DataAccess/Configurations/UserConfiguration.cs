@@ -10,6 +10,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
         {
             builder.ToTable("Users");
             builder.Property(u => u.FullName).HasMaxLength(200).IsRequired();
+            builder.Property(u => u.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         }
     }
 }

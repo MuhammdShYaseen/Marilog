@@ -1,4 +1,5 @@
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Components.Comments
 @using Marilog.Shared.UI.Pages.NavMenuDesigner
 @using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
@@ -7,12 +8,15 @@
 {
     <MudNavGroup Title="@Item.Title"
                  Icon="@GetIcon(Item.Icon)">
-
-        @foreach (var child in Item.Children)
-        {
-            <NavMenuItem Item="child" />
-        }
-
+        <TitleContent>
+            @Item.Title<CommentBadge Types="@CommentNav.TypesFor(Item)" />
+        </TitleContent>
+        <ChildContent>
+            @foreach (var child in Item.Children)
+            {
+                <NavMenuItem Item="child" />
+            }
+        </ChildContent>
     </MudNavGroup>
 }
 else
@@ -22,7 +26,7 @@ else
                 Icon="@GetIcon(Item.Icon)"
                 Class="mud-inherit-text">
 
-        @Item.Title
+        @Item.Title<CommentBadge Types="@CommentNav.TypesFor(Item)" />
 
     </MudNavLink>
 }

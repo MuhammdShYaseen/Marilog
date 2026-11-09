@@ -3069,6 +3069,11 @@ namespace Marilog.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -3890,6 +3895,31 @@ namespace Marilog.Infrastructure.Migrations
                     b.Navigation("ShipperCompany");
 
                     b.Navigation("Voyage");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Comment", b =>
+                {
+                    b.OwnsMany("Marilog.Domain.Entities.SystemEntities.CommentRead", "Reads", b1 =>
+                        {
+                            b1.Property<int>("CommentId")
+                                .HasColumnType("int");
+
+                            b1.Property<Guid>("UserId")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime>("ReadAt")
+                                .HasColumnType("datetime2");
+
+                            b1.HasKey("CommentId", "UserId");
+
+                            b1.ToTable("CommentReads", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("CommentId");
+                        });
+
+                    b.Navigation("Reads");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Company", b =>

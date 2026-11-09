@@ -14,12 +14,15 @@ namespace Marilog.Web.Client.Services.Implementation
         private readonly ICommentService _commentService;
         private readonly IDialogService _dialogService;
         private readonly AuthenticationStateProvider _authState;
+        private readonly UnreadCommentsState _unread;
 
-        public ManageComments(ICommentService commentService, IDialogService dialogService, AuthenticationStateProvider authState)
+        public ManageComments(ICommentService commentService, IDialogService dialogService,
+            AuthenticationStateProvider authState, UnreadCommentsState unread)
         {
             _commentService = commentService;
             _dialogService = dialogService;
             _authState = authState;
+            _unread = unread;
         }
 
         public async Task OpenCommentsDialogAsync((int entityId, EntityType entityType) arg, string? contextLabel = null)
@@ -41,7 +44,8 @@ namespace Marilog.Web.Client.Services.Implementation
 
             var parameters = new DialogParameters<CommentsDialog>
             {
-                { x => x.LoadCommentsFunc, ct => _commentService.GetByEntityAsync(arg.entityType, arg.entityId, ct) },
+                { x => x.LoadCommentsFunc, ct => _commentService.GetByEntityAsync(arg.entityType, arg.entityId, ct: ct) },
+                { x => x.MarkReadFunc, ct => _commentService.MarkEntityReadAsync(arg.entityType, arg.entityId, ct) },
                 { x => x.AddCommentFunc, (text, ct) => _commentService.CreateAsync(new CreateCommentRequest
                     {
                         Text = text,
@@ -54,7 +58,11 @@ namespace Marilog.Web.Client.Services.Implementation
                 { x => x.ContextLabel, title },
             };
 
-            await _dialogService.ShowAsync<CommentsDialog>(title, parameters, options);
+            var dialog = await _dialogService.ShowAsync<CommentsDialog>(title, parameters, options);
+            await dialog.Result;
+
+            // The dialog marked this record read; update the badges right away.
+            await _unread.RefreshAsync();
         }
     }
 }

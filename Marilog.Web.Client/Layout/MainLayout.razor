@@ -6,6 +6,8 @@
 @using Marilog.Web.Client.Auth
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
+@using Marilog.Web.Client.Services.Implementation
+@inject UnreadCommentsState UnreadState
 @inject IJSRuntime JS
 @inject INavigationService NavService
 @inject IAppThemeService ThemeService
@@ -15,8 +17,8 @@
 @implements IDisposable
 @inherits LayoutComponentBase
 
-
-<SharedMainLayout Items="AppState.NavItems"
+<CascadingValue Value="UnreadState.Current">
+    <SharedMainLayout Items="AppState.NavItems"
                   Theme="AppState.Theme"
                   Themes="AppState.Themes"
                   OnThemeSelected="OnThemeSelectedAsync"
@@ -25,9 +27,10 @@
                   OnLogout="LogoutAsync"
                   AppSubtitle="@_CompanyName">
 
-    @Body
+        @Body
 
-</SharedMainLayout>
+    </SharedMainLayout>
+</CascadingValue>
 @code {
     private const string ThemeStorageKey = "marilog.themeId";
 
@@ -37,7 +40,8 @@
     protected override async Task OnInitializedAsync()
     {
         AppState.OnChange += HandleStateChanged;
-
+        UnreadState.Changed += HandleStateChanged;
+        UnreadState.Start();
         var savedThemeId = await GetSavedThemeIdAsync();
         var getCompany = await CompanyService.GetOwnCompanyNameAsync();
         _CompanyName = getCompany != null ? getCompany.Name : "";
@@ -93,5 +97,10 @@
 
     private void HandleStateChanged() => InvokeAsync(StateHasChanged);
 
-    public void Dispose() => AppState.OnChange -= HandleStateChanged;
+    public void Dispose()
+    {
+        AppState.OnChange -= HandleStateChanged;
+        UnreadState.Changed -= HandleStateChanged;
+        UnreadState.Stop();
+    }
 }

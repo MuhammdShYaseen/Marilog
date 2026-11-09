@@ -58,14 +58,77 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await GetPagedResultAsync(query, request, ct);
         }
 
-        public async Task<IReadOnlyList<CommentResponse>> GetByEntityAsync(EntityType entityType, int entityId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<CommentResponse>> GetByEntityAsync(EntityType entityType, int entityId, DateTime? newSince = null, CancellationToken ct = default)
         {
+            var userId = _currentUser.UserId;
+
             return await _repo.Query()
                 .AsNoTracking()
                 .Where(c => c.EntityType == entityType && c.EntityId == entityId)
                 .OrderBy(c => c.CreatedAt)
-                .Select(ToResponse)
+                .Select(c => new CommentResponse
+                {
+                    Id = c.Id,
+                    UserId = c.UserId,
+                    Text = c.Text,
+                    EntityType = c.EntityType,
+                    EntityId = c.EntityId,
+                    CreatedAt = c.CreatedAt,
+                    UserName = c.UserName,
+                    UpdatedAt = c.UpdatedAt,
+                    IsNew = c.UserId != userId
+                            && (newSince == null || c.CreatedAt >= newSince)
+                            && !c.Reads.Any(r => r.UserId == userId)
+                })
                 .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<UnreadCommentCount>> GetUnreadSummaryAsync(List<EntityType>? entityTypes = null, DateTime? since = null, CancellationToken ct = default)
+        {
+            var userId = _currentUser.UserId
+                ?? throw new UnauthorizedAccessException("Unable to identify the authenticated user.");
+
+            var query = _repo.Query()
+                .AsNoTracking()
+                .Where(c => c.EntityId != null
+                         && c.UserId != userId
+                         && !c.Reads.Any(r => r.UserId == userId));
+
+            if (entityTypes is not null)
+                query = query.Where(c => entityTypes.Contains(c.EntityType));
+
+            if (since is not null)
+                query = query.Where(c => c.CreatedAt >= since);
+
+            return await query
+                .GroupBy(c => new { c.EntityType, EntityId = c.EntityId!.Value })
+                .Select(g => new UnreadCommentCount
+                {
+                    EntityType = g.Key.EntityType,
+                    EntityId = g.Key.EntityId,
+                    Count = g.Count()
+                })
+                .ToListAsync(ct);
+        }
+
+        public async Task MarkEntityReadAsync(EntityType entityType, int entityId, CancellationToken ct = default)
+        {
+            var userId = _currentUser.UserId
+                ?? throw new UnauthorizedAccessException("Unable to identify the authenticated user.");
+
+            var unread = await _repo.Query()
+                .Where(c => c.EntityType == entityType
+                         && c.EntityId == entityId
+                         && c.UserId != userId
+                         && !c.Reads.Any(r => r.UserId == userId))
+                .ToListAsync(ct);
+
+            if (unread.Count == 0) return;
+
+            foreach (var comment in unread)
+                comment.MarkReadBy(userId);
+
+            await _repo.SaveChangesAsync(ct);
         }
 
         public async Task<PagedResponse<CommentResponse>> GetAllAsync(PagedRequest request, CancellationToken ct = default)

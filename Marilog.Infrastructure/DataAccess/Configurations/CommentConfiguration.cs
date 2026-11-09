@@ -33,6 +33,18 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.UserName)
                    .IsRequired()
                    .HasMaxLength(256);
+
+            builder.OwnsMany(c => c.Reads, b =>
+            {
+                b.WithOwner().HasForeignKey("CommentId");
+                b.ToTable("CommentReads");
+                b.HasKey("CommentId", nameof(CommentRead.UserId));
+                b.Property(r => r.ReadAt).IsRequired();
+            });
+
+            builder.Navigation(c => c.Reads)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
             // ── Indexes ───────────────────────────────────────────────────
 
             builder.HasIndex(x => new { x.EntityType, x.EntityId, x.CreatedAt });

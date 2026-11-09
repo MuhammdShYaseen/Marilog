@@ -60,6 +60,7 @@ namespace Marilog.Web.Client
             builder.Services.AddMarilogUI();
             builder.Services.AddScoped<IManageStoredFiles, ManageStoredFiles>();
             builder.Services.AddScoped<IManageComments, ManageComments>();
+            builder.Services.AddScoped<UnreadCommentsState>();
             builder.Services.AddScoped<IRecordCreator, RecordCreator>();
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");

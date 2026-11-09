@@ -12,7 +12,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         public Guid UserId { get; private set; }
         public string UserName { get; private set; } = null!;
         public string Text { get; private set; } = null!;
-
+        private readonly List<CommentRead> _reads = [];
+        public IReadOnlyCollection<CommentRead> Reads => _reads.AsReadOnly();
         private Comment() { }
 
         public static Comment Create(string text, Guid userId, string userName, EntityType entityType, int? entityId)
@@ -45,6 +46,15 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             Text = text;
             Touch();
+        }
+
+
+        public bool IsReadBy(Guid userId) => UserId == userId || _reads.Any(r => r.UserId == userId);
+
+        public void MarkReadBy(Guid userId)
+        {
+            if (IsReadBy(userId)) return;
+            _reads.Add(CommentRead.Create(userId));
         }
     }
 }

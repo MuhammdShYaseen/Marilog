@@ -12,7 +12,10 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         Task<PagedResponse<CommentResponse>> GetByUserIdAsync(Guid userId, PagedRequest request, CancellationToken ct = default);
 
-        Task<IReadOnlyList<CommentResponse>> GetByEntityAsync(EntityType entityType, int entityId, CancellationToken ct = default);
+        Task<IReadOnlyList<CommentResponse>> GetByEntityAsync(EntityType entityType, int entityId, DateTime? newSince = null, CancellationToken ct = default);
+
+        // entityTypes / since are applied by the server; the client passes nothing.
+        Task<IReadOnlyList<UnreadCommentCount>> GetUnreadSummaryAsync(List<EntityType>? entityTypes = null, DateTime? since = null, CancellationToken ct = default);
 
         Task<PagedResponse<CommentResponse>> GetAllAsync(PagedRequest request, CancellationToken ct = default);
 
@@ -20,6 +23,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<CommentResponse> CreateAsync(CreateCommentRequest request, CancellationToken ct = default);
 
         Task<CommentResponse> UpdateAsync(int id, UpdateCommentRequest request, CancellationToken ct = default);
+
+        Task MarkEntityReadAsync(EntityType entityType, int entityId, CancellationToken ct = default);
 
         Task DeleteAsync(int id, CancellationToken ct = default);
     }

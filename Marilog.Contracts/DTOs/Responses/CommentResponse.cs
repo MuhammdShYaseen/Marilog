@@ -12,5 +12,6 @@ namespace Marilog.Contracts.DTOs.Responses
         public DateTime CreatedAt { get; init; }
         public string UserName { get; init; } = null!;
         public DateTime? UpdatedAt { get; init; }
+        public bool IsNew { get; init; }
     }
 }

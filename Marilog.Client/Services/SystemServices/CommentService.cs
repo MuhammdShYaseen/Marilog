@@ -39,10 +39,9 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data ?? new PagedResponse<CommentResponse>();
         }
 
-        public async Task<IReadOnlyList<CommentResponse>> GetByEntityAsync(
-            EntityType entityType,
-            int entityId,
-            CancellationToken ct = default)
+        public async Task<IReadOnlyList<CommentResponse>> GetByEntityAsync(EntityType entityType, int entityId,
+                                                                           DateTime? newSince = null,
+                                                                           CancellationToken ct = default)
         {
             var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<CommentResponse>>>(
                 $"{Base}/entity/{(int)entityType}/{entityId}", ct);
@@ -61,6 +60,18 @@ namespace Marilog.Client.Services.SystemServices
 
             return response?.Data ?? new PagedResponse<CommentResponse>();
         }
+
+        public async Task<IReadOnlyList<UnreadCommentCount>> GetUnreadSummaryAsync(List<EntityType>? entityTypes = null,
+                                                                                   DateTime? since = null, CancellationToken ct = default)
+        {
+            // Permissions and the account date are applied by the server.
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<UnreadCommentCount>>>(
+                $"{Base}/unread-summary", ct);
+
+            return response?.Data ?? Array.Empty<UnreadCommentCount>();
+        }
+
+       
 
         // ── Commands ─────────────────────────────────────────────────────────
 
@@ -92,6 +103,14 @@ namespace Marilog.Client.Services.SystemServices
             return response?.Data
                 ?? throw new InvalidOperationException("Comment update failed.");
         }
+
+
+        public async Task MarkEntityReadAsync(EntityType entityType, int entityId, CancellationToken ct = default)
+        {
+            var httpResponse = await _http.PostAsync($"{Base}/entity/{(int)entityType}/{entityId}/mark-read", null, ct);
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
+        }
+
 
         public async Task DeleteAsync(
             int id,

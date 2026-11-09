@@ -1,0 +1,41 @@
+﻿@using Marilog.Kernel.Enums
+@namespace Marilog.Shared.UI.Components.Comments
+
+@if (Count > 0)
+{
+    <span title="@($"{Count} new comment(s)")" style="@BadgeStyle">@(Count > 99 ? "99+" : Count.ToString())</span>
+}
+
+@code {
+    [CascadingParameter] public UnreadComments? Unread { get; set; }
+
+    // One record (tables, detail panels).
+    [Parameter] public EntityType EntityType { get; set; }
+    [Parameter] public int EntityId { get; set; }
+
+    // Optional child records counted into the same badge (e.g. a voyage's stops).
+    [Parameter] public EntityType ChildType { get; set; }
+    [Parameter] public IEnumerable<int>? ChildIds { get; set; }
+
+    // Whole entity types instead of one record (nav menu).
+    [Parameter] public IReadOnlyCollection<EntityType>? Types { get; set; }
+
+    private int Count
+    {
+        get
+        {
+            if (Unread is null) return 0;
+            if (Types is not null) return Unread.ForTypes(Types);
+
+            var count = Unread.ForRecord(EntityType, EntityId);
+            if (ChildIds is not null)
+                count += ChildIds.Sum(id => Unread.ForRecord(ChildType, id));
+            return count;
+        }
+    }
+
+    private const string BadgeStyle =
+        "display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;" +
+        "padding:0 5px;margin-left:6px;border-radius:9px;background:var(--mud-palette-error);" +
+        "color:var(--mud-palette-error-text);font-size:11px;font-weight:600;line-height:1;vertical-align:middle;";
+}

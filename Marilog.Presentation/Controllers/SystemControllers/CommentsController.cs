@@ -7,7 +7,8 @@ using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using Marilog.Infrastructure.Models.Identity;
+using Microsoft.AspNetCore.Identity;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
@@ -18,10 +19,16 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     {
         private readonly ICommentService _service;
         private readonly IAuthorizationService _authorization;
-        public CommentsController(ICommentService service, IAuthorizationService authorizationService)
+        private readonly UserManager<User> _userManager;
+        private readonly UserPermissionReader _permissionReader;
+
+        public CommentsController(ICommentService service, IAuthorizationService authorizationService,
+            UserManager<User> userManager, UserPermissionReader permissionReader)
         {
             _service = service;
             _authorization = authorizationService;
+            _userManager = userManager;
+            _permissionReader = permissionReader;
         }
 
         // ── Queries ──────────────────────────────────────────────
@@ -64,7 +71,8 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         {
             if (await CheckReadAsync(entityType) is { } denied) return denied;
 
-            var result = await _service.GetByEntityAsync(entityType, entityId, ct);
+            var user = await _userManager.GetUserAsync(User);
+            var result = await _service.GetByEntityAsync(entityType, entityId, user?.CreatedAt, ct);
 
             return Ok(ApiResponse<IReadOnlyList<CommentResponse>>.Ok(result));
         }
@@ -79,6 +87,24 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
             return Ok(ApiResponse<PagedResponse<CommentResponse>>.Ok(result));
         }
+
+        [HttpGet("unread-summary")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<UnreadCommentCount>>>> GetUnreadSummary(CancellationToken ct)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null || !user.IsActive)
+                return Ok(ApiResponse<IReadOnlyList<UnreadCommentCount>>.Ok(Array.Empty<UnreadCommentCount>()));
+
+            var permissions = await _permissionReader.GetAsync(user, ct);
+            var readable = Enum.GetValues<EntityType>()
+                .Where(t => permissions.Can(PermissionTargetKind.Entity, (int)PermissionCatalog.PermissionOwner(t), PermissionAction.Read))
+                .ToList();
+
+            var result = await _service.GetUnreadSummaryAsync(readable, user.CreatedAt, ct);
+            return Ok(ApiResponse<IReadOnlyList<UnreadCommentCount>>.Ok(result));
+        }
+
+       
 
         // ── Commands ─────────────────────────────────────────────
 
@@ -120,6 +146,16 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<bool>.Ok(
                 true,
                 "Comment deleted successfully."));
+        }
+
+
+        [HttpPost("entity/{entityType}/{entityId:int}/mark-read")]
+        public async Task<IActionResult> MarkRead(EntityType entityType, int entityId, CancellationToken ct)
+        {
+            if (await CheckReadAsync(entityType) is { } denied) return denied;
+
+            await _service.MarkEntityReadAsync(entityType, entityId, ct);
+            return NoContent();
         }
 
         // ── Private Helpers ──────────────────────────────────────

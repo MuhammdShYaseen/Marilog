@@ -2,10 +2,10 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Components.Comments
 
-<MudDialog>
+<MudDialog ContentStyle="padding:0">
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Outlined.Comment" Color="Color.Primary" />
+            <MudIcon Icon="@Icons.Material.Outlined.Forum" Color="Color.Primary" />
             <MudStack Spacing="0">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Comments</MudText>
                 <MudText Typo="Typo.subtitle1">@ContextLabel</MudText>
@@ -14,7 +14,93 @@
     </TitleContent>
 
     <DialogContent>
-        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-3">
+        @* column-reverse keeps the view anchored at the newest message without any JS,
+           so messages are rendered newest-first in the markup. *@
+        <div style="@ChatStyle">
+            @if (_isLoading)
+            {
+                <div style="margin:auto">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_comments.Count == 0)
+            {
+                <div style="@EmptyStyle">No comments yet. Start the conversation.</div>
+            }
+            else
+            {
+                for (var i = 0; i < _comments.Count; i++)
+                {
+                    var c = _comments[i];
+                    var mine = c.UserId == CurrentUserId;
+                    var isNew = _newIds.Contains(c.Id);
+                    var editing = _editingId == c.Id;
+                    var day = Local(c.CreatedAt).Date;
+                    DateTime? olderDay = i + 1 < _comments.Count ? Local(_comments[i + 1].CreatedAt).Date : null;
+
+                    <div @key="c.Id" style="@(mine ? RowMineStyle : RowOtherStyle)">
+                        <div style="@BubbleStyle(mine, isNew, editing)">
+                            @if (!mine)
+                            {
+                                <div style="@NameStyle">@DisplayName(c)</div>
+                            }
+
+                            @if (editing)
+                            {
+                                <MudTextField T="string" @bind-Value="_editText"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Lines="3"
+                                              Immediate="true" />
+                                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1" Class="mt-1">
+                                    <MudButton Size="Size.Small" OnClick="CancelEdit">Cancel</MudButton>
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                               Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_editText))"
+                                               OnClick="@(() => SaveEditAsync(c))">
+                                        Save
+                                    </MudButton>
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <div style="white-space:pre-wrap;word-break:break-word;">@c.Text</div>
+                            }
+
+                            <div style="@MetaStyle">
+                                @if (isNew)
+                                {
+                                    <span style="@NewStyle">NEW</span>
+                                }
+                                @if (IsEdited(c))
+                                {
+                                    <span>edited</span>
+                                }
+                                <span>@Local(c.CreatedAt).ToString("HH:mm")</span>
+                                @if (mine && !editing)
+                                {
+                                    <MudMenu Icon="@Icons.Material.Filled.ExpandMore"
+                                             Size="Size.Small"
+                                             Dense="true"
+                                             Style="margin:-6px -8px -6px -4px;"
+                                             AnchorOrigin="Origin.BottomRight"
+                                             TransformOrigin="Origin.TopRight">
+                                        <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => StartEdit(c))">Edit</MudMenuItem>
+                                        <MudMenuItem Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteAsync(c))">Delete</MudMenuItem>
+                                    </MudMenu>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    if (olderDay != day)
+                    {
+                        <div style="@DayStyle"><span style="@DayChipStyle">@DayLabel(day)</span></div>
+                    }
+                }
+            }
+        </div>
+
+        <div style="@InputBarStyle">
             <MudTextField T="string" @bind-Value="_newText"
                           Placeholder="Write a comment..."
                           Variant="Variant.Outlined"
@@ -22,79 +108,13 @@
                           Lines="2"
                           Immediate="true"
                           Class="flex-grow-1" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                       StartIcon="@Icons.Material.Filled.Send"
-                       Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_newText))"
-                       OnClick="AddAsync">
-                Send
-            </MudButton>
-        </MudStack>
-
-        @if (_isLoading)
-        {
-            <MudStack AlignItems="AlignItems.Center" Class="py-6">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </MudStack>
-        }
-        else if (_comments.Count == 0)
-        {
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="py-4">
-                No comments yet.
-            </MudText>
-        }
-        else
-        {
-            <div style="max-height: 55vh; overflow-y: auto;">
-                @foreach (var c in _comments)
-                {
-                    <MudPaper Outlined="true" Elevation="0" Class="pa-2 mb-2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudText Typo="Typo.body2">
-                                <b>@(string.IsNullOrWhiteSpace(c.UserName) ? "Unknown user" : c.UserName)</b>
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @c.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")@(IsEdited(c) ? " · edited" : "")
-                            </MudText>
-                            <MudSpacer />
-                            @if (c.UserId == CurrentUserId && _editingId != c.Id)
-                            {
-                                <MudMenu Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" Dense="true">
-                                    <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => StartEdit(c))">Edit</MudMenuItem>
-                                    <MudMenuItem Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteAsync(c))">Delete</MudMenuItem>
-                                </MudMenu>
-                            }
-                        </MudStack>
-
-                        @if (_editingId == c.Id)
-                        {
-                            <MudTextField T="string" @bind-Value="_editText"
-                                          Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"
-                                          Lines="3"
-                                          Immediate="true"
-                                          Class="mt-1" />
-                            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1" Class="mt-1">
-                                <MudButton Size="Size.Small" OnClick="CancelEdit">Cancel</MudButton>
-                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                           Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_editText))"
-                                           OnClick="@(() => SaveEditAsync(c))">
-                                    Save
-                                </MudButton>
-                            </MudStack>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2" Class="mt-1" Style="white-space: pre-wrap;">@c.Text</MudText>
-                        }
-                    </MudPaper>
-                }
-            </div>
-        }
+            <MudIconButton Icon="@Icons.Material.Filled.Send"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_newText))"
+                           OnClick="AddAsync" />
+        </div>
     </DialogContent>
-
-    <DialogActions>
-        <MudButton OnClick="Close">Close</MudButton>
-    </DialogActions>
 </MudDialog>
 
 @code {
@@ -105,6 +125,7 @@
 
     // ── all client-service dependencies come from the host via Parameters ──
     [Parameter] public Func<CancellationToken, Task<IReadOnlyList<CommentResponse>>>? LoadCommentsFunc { get; set; }
+    [Parameter] public Func<CancellationToken, Task>? MarkReadFunc { get; set; }
     [Parameter] public Func<string, CancellationToken, Task>? AddCommentFunc { get; set; }
     [Parameter] public Func<int, string, CancellationToken, Task>? UpdateCommentFunc { get; set; }
     [Parameter] public Func<int, CancellationToken, Task>? DeleteCommentFunc { get; set; }
@@ -112,6 +133,7 @@
     [Parameter] public string? ContextLabel { get; set; }
 
     private List<CommentResponse> _comments = new();
+    private HashSet<int> _newIds = new();   // captured on open; stays until the dialog closes
     private bool _isLoading = true;
     private bool _isBusy;
     private string _newText = string.Empty;
@@ -122,6 +144,20 @@
     {
         await LoadAsync();
         _isLoading = false;
+
+        _newIds = _comments.Where(c => c.IsNew).Select(c => c.Id).ToHashSet();
+
+        if (_newIds.Count > 0 && MarkReadFunc is not null)
+        {
+            try
+            {
+                await MarkReadFunc(CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
     }
 
     private async Task LoadAsync()
@@ -209,5 +245,63 @@
     private static bool IsEdited(CommentResponse c)
         => c.UpdatedAt is { } updated && (updated - c.CreatedAt).TotalSeconds > 5;
 
-    private void Close() => MudDialog.Close();
+    private static DateTime Local(DateTime utc) => utc.ToLocalTime();
+
+    private static string DisplayName(CommentResponse c)
+        => string.IsNullOrWhiteSpace(c.UserName) ? "Unknown user" : c.UserName;
+
+    private static string DayLabel(DateTime day)
+    {
+        var today = DateTime.Now.Date;
+        if (day == today) return "Today";
+        if (day == today.AddDays(-1)) return "Yesterday";
+        return day.ToString("dd MMM yyyy");
+    }
+
+    // ── Styles ───────────────────────────────────────────────
+
+    private const string ChatStyle =
+        "display:flex;flex-direction:column-reverse;gap:6px;height:55vh;overflow-y:auto;padding:12px 14px;" +
+        "background:color-mix(in srgb, var(--mud-palette-primary) 5%, var(--mud-palette-background));";
+
+    private const string EmptyStyle = "margin:auto;color:var(--mud-palette-text-secondary);font-size:13px;";
+
+    private const string RowMineStyle = "display:flex;justify-content:flex-end;";
+    private const string RowOtherStyle = "display:flex;justify-content:flex-start;";
+
+    private static string BubbleStyle(bool mine, bool isNew, bool editing)
+    {
+        var style = "max-width:78%;padding:6px 10px 4px;font-size:14px;line-height:1.4;" +
+                    "box-shadow:0 1px 1px rgba(0,0,0,.08);";
+
+        style += mine
+            ? "background:color-mix(in srgb, var(--mud-palette-primary) 16%, var(--mud-palette-surface));border-radius:10px 10px 2px 10px;"
+            : "background:var(--mud-palette-surface);border-radius:10px 10px 10px 2px;";
+
+        if (isNew) style += "outline:1px solid var(--mud-palette-success);";
+        if (editing) style += "min-width:300px;";
+
+        return style;
+    }
+
+    private const string NameStyle =
+        "font-size:12px;font-weight:600;color:var(--mud-palette-primary);margin-bottom:2px;";
+
+    private const string MetaStyle =
+        "display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:2px;" +
+        "font-size:11px;color:var(--mud-palette-text-secondary);";
+
+    private const string NewStyle =
+        "padding:0 6px;border-radius:8px;background:var(--mud-palette-success);" +
+        "color:var(--mud-palette-success-text);font-size:10px;font-weight:700;letter-spacing:.04em;";
+
+    private const string DayStyle = "display:flex;justify-content:center;margin:6px 0;";
+
+    private const string DayChipStyle =
+        "padding:2px 10px;border-radius:8px;background:var(--mud-palette-surface);" +
+        "color:var(--mud-palette-text-secondary);font-size:11px;box-shadow:0 1px 1px rgba(0,0,0,.06);";
+
+    private const string InputBarStyle =
+        "display:flex;align-items:flex-end;gap:8px;padding:8px 12px;" +
+        "border-top:1px solid var(--mud-palette-lines-default);";
 }
