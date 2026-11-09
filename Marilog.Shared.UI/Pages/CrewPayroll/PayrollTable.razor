@@ -21,7 +21,7 @@
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd>@context.PersonFullName</MudTd>
+        <MudTd>@context.PersonFullName<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.CrewPayroll" EntityId="@context.Id" /></MudTd>
         <MudTd>@context.VesselName</MudTd>
         <MudTd>@context.PayrollMonth.ToString("MMM yyyy")</MudTd>
         <MudTd>@context.GrossAmount.ToString("N2") @context.CurrencyCode</MudTd>

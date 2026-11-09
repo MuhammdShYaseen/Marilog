@@ -66,23 +66,23 @@ else
                        Disabled="@(Voyage is null)"
                        OnClick="OnCommentsClicked" />
         </MudTooltip>
-
+        <Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Voyage" EntityId="@(Voyage?.VoyageId ?? 0)" ChildType="EntityType.VoyageStop" ChildIds="@Voyage?.Stops.Select(s => s.StopId)" />
         <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.PlayArrow"
-                   Disabled="@(Voyage.Status != VoyageStatus.PLANNED || IsBusy)"
+                   Disabled="@(Voyage?.Status != VoyageStatus.PLANNED || IsBusy)"
                    OnClick="OnStartClicked">
             Start
         </MudButton>
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.Flag"
-                   Disabled="@(Voyage.Status != VoyageStatus.UNDERWAY || IsBusy)"
+                   Disabled="@(Voyage?.Status != VoyageStatus.UNDERWAY || IsBusy)"
                    OnClick="OnCompleteClicked">
             Complete
         </MudButton>
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.Block"
-                   Disabled="@(Voyage.Status is VoyageStatus.COMPLETED or VoyageStatus.CANCELLED || IsBusy)"
+                   Disabled="@(Voyage?.Status is VoyageStatus.COMPLETED or VoyageStatus.CANCELLED || IsBusy)"
                    OnClick="OnCancelClicked">
             Cancel voyage
         </MudButton>

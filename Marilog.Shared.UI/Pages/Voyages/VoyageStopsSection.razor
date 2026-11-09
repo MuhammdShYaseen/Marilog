@@ -59,6 +59,7 @@
                                 <td>
                                     <div class="d-flex align-center gap-1">
                                         <span>@current.PortName</span>
+                                        <Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.VoyageStop" EntityId="@current.StopId" />
                                         @if (warnings.Count > 0)
                                         {
                                             <MudTooltip Text="@string.Join(" ", warnings)">

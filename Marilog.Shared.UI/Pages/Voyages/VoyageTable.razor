@@ -31,7 +31,7 @@
 
     <RowTemplate>
         <MudTd DataLabel="Voyage">
-            <MudText Typo="Typo.body2" Color="Color.Primary">@context.VoyageNumber</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Primary">@context.VoyageNumber<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Voyage" EntityId="@context.VoyageId" ChildType="EntityType.VoyageStop" ChildIds="@context.Stops.Select(s => s.StopId)" /></MudText>
         </MudTd>
         <MudTd DataLabel="Vessel">@context.VesselName</MudTd>
         <MudTd DataLabel="Month">@context.VoyageMonth.ToString("MMM yyyy")</MudTd>

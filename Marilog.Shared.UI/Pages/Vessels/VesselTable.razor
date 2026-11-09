@@ -14,7 +14,11 @@
              Breakpoint="Breakpoint.Sm">
 
     <Columns>
-        <PropertyColumn Property="x => x.Name" Title="Vessel Name" />
+        <PropertyColumn Property="x => x.Name" Title="Vessel Name">
+            <CellTemplate>
+                @context.Item.Name<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Vessel" EntityId="@context.Item.Id" />
+            </CellTemplate>
+        </PropertyColumn>
         <PropertyColumn Property="x => x.VesselTypeName" Title="Type" />
         <PropertyColumn Property="x => x.IMONumber" Title="IMO Number" />
         <PropertyColumn Property="x => x.GrossTonnage" Title="GRT" Format="N0" />

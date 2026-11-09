@@ -27,9 +27,9 @@
                 <MudText Typo="Typo.body2" title="@context.Item.CertificateName" Style="@ClampStyle">
                     @context.Item.CertificateName
                 </MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @CertificateUi.TypeLabel(context.Item.VType)@(string.IsNullOrWhiteSpace(context.Item.CertificateNumber) ? "" : $" · {context.Item.CertificateNumber}")
-                </MudText>
+               <MudText Typo="Typo.caption" Color="Color.Secondary">
+                     @CertificateUi.TypeLabel(context.Item.VType)@(string.IsNullOrWhiteSpace(context.Item.CertificateNumber) ? "" : $" · {context.Item.CertificateNumber}")<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.VesselCertificate" EntityId="@context.Item.Index" />
+               </MudText>
             </CellTemplate>
         </TemplateColumn>
 

@@ -39,7 +39,7 @@
             var hasPayments = context.AllocatedAmount > 0;
             var showUnallocated = context.Status == SwiftTransferStatus.Received;
         }
-        <MudTd DataLabel="Reference">@context.SwiftReference</MudTd>
+        <MudTd DataLabel="Reference">@context.SwiftReference<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.SwiftTransfer" EntityId="@context.Id" /></MudTd>
         <MudTd DataLabel="Date">@context.TransactionDate.ToString("yyyy-MM-dd")</MudTd>
         <MudTd DataLabel="Currency">@context.CurrencyCode</MudTd>
         <MudTd DataLabel="Amount" Style="text-align:right">@context.Amount.ToString("N2")</MudTd>

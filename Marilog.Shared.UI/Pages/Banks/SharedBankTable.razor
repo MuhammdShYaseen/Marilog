@@ -36,7 +36,9 @@
                     }
 
                     <MudText>
-                        @context.Item.BankName
+                        <MudText>
+                            @context.Item.BankName<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Bank" EntityId="@(context.Item.BankId ?? 0)" />
+                        </MudText>
                     </MudText>
 
                 </MudStack>

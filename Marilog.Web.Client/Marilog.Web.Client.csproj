@@ -15,7 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Components\Comments\" />
     <Folder Include="Shared\" />
     <Folder Include="wwwroot\lib\" />
     <Folder Include="wwwroot\sample-data\" />
