@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.Requests.CommentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Infrastructure.Helpers.UserIdentity;
+using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -127,7 +128,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _authorization.AuthorizeAsync(
                 User,
                 HttpContext,
-                new PermissionRequirement(PermissionTargetKind.Entity, (int)owner, PermissionAction.Read));
+                new PermissionRequirement(PermissionTargetKind.Entity, (int)PermissionCatalog.PermissionOwner(owner), PermissionAction.Read)); ;
 
             return result.Succeeded
                 ? null

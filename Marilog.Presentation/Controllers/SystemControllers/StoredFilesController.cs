@@ -6,6 +6,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Contracts.Interfaces.Services.UserIdenty;
 using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Infrastructure.Models.Identity;
+using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Enums;
 using Marilog.Presentation.Controllers.Attributes;
 using Marilog.Presentation.PresentationDTOs;
@@ -295,7 +296,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _authorization.AuthorizeAsync(
                 User,
                 HttpContext,
-                new PermissionRequirement(PermissionTargetKind.Entity, (int)owner, action));
+                new PermissionRequirement(PermissionTargetKind.Entity, (int)PermissionCatalog.PermissionOwner(owner), action));
 
             return result.Succeeded
                 ? null
@@ -324,7 +325,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var permissions = await _permissionReader.GetAsync(user, ct);
 
             return Enum.GetValues<EntityType>()
-                .Where(t => permissions.Can(PermissionTargetKind.Entity, (int)t, PermissionAction.Read))
+                .Where(t => permissions.Can(PermissionTargetKind.Entity, (int)PermissionCatalog.PermissionOwner(t), PermissionAction.Read))
                 .ToList();
         }
     }

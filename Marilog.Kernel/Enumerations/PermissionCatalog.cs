@@ -25,6 +25,7 @@ namespace Marilog.Kernel.Enumerations
             EntityType.RolePermission,
             EntityType.UserRole,
             EntityType.Comment,
+            EntityType.VoyageStop,
         ];
 
         // Readable by every authenticated user. Only Create/Update/Delete are permissions.
@@ -94,6 +95,14 @@ namespace Marilog.Kernel.Enumerations
             Enum.GetValues<EntityType>().Where(e => !SuperAdminOnly.Contains(e)).ToList();
 
         public static IReadOnlyList<AppScreen> ScreenTargets { get; } = Enum.GetValues<AppScreen>();
+
+
+        // Child records with no permission of their own are checked against their parent.
+        public static EntityType PermissionOwner(EntityType entity) => entity switch
+        {
+            EntityType.VoyageStop => EntityType.Voyage,
+            _ => entity
+        };
 
         // ── Display (roles UI only; no effect on permission logic) ──
         // Declared in this order on purpose: static initializers run top to bottom.

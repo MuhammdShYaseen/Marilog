@@ -1,4 +1,3 @@
-
 @using MudBlazor
 @using global::Marilog.Contracts.DTOs.Responses
 @using global::Marilog.Kernel.Enums
@@ -35,11 +34,11 @@
                         <th style="@ThStyle">Time in port</th>
                         <th style="@ThStyle">Purpose</th>
                         <th style="@ThStyle">Notes</th>
-                        <th style="@ThStyle;width:48px"></th>
+                        <th style="@ThStyle;width:104px"></th>
                     </tr>
                 </thead>
                 <tbody>
-                   
+
 
                     @* ── Intermediate stops ── *@
                     @if (Voyage.Stops.Count == 0)
@@ -76,26 +75,38 @@
                                 <td>@(current.PurposeOfCall ?? "—")</td>
                                 <td style="@NotesStyle" title="@current.Notes">@(current.Notes ?? "—")</td>
                                 <td>
-                                    <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
-                                             Size="Size.Small"
-                                             Disabled="@(IsReadOnly || IsBusy)"
-                                             AnchorOrigin="Origin.BottomRight"
-                                             TransformOrigin="Origin.TopRight">
+                                    <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center">
+                                        @* Files and comments stay available on read-only (cancelled) voyages. *@
+                                        <MudIconButton Icon="@Icons.Material.Filled.Receipt"
+                                                       Size="Size.Small"
+                                                       title="Files"
+                                                       OnClick="@(() => OnFilesClicked.InvokeAsync(current))" />
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                                                       Size="Size.Small"
+                                                       title="Comments"
+                                                       OnClick="@(() => OnCommentsClicked.InvokeAsync(current))" />
 
-                                        <MudMenuItem Icon="@Icons.Material.Outlined.Inventory2"
-                                                     OnClick="@(() => OnAddCargoClicked.InvokeAsync(current))">
-                                            Add cargo
-                                        </MudMenuItem>
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreHoriz"
+                                                 Size="Size.Small"
+                                                 Disabled="@(IsReadOnly || IsBusy)"
+                                                 AnchorOrigin="Origin.BottomRight"
+                                                 TransformOrigin="Origin.TopRight">
 
-                                        <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
-                                                     OnClick="@(() => OnEditClicked.InvokeAsync(current))">
-                                            Edit
-                                        </MudMenuItem>
-                                        <MudMenuItem Icon="@Icons.Material.Outlined.Delete"
-                                                     OnClick="@(() => OnRemoveClicked.InvokeAsync(current))">
-                                            Remove
-                                        </MudMenuItem>
-                                    </MudMenu>
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Inventory2"
+                                                         OnClick="@(() => OnAddCargoClicked.InvokeAsync(current))">
+                                                Add cargo
+                                            </MudMenuItem>
+
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Edit"
+                                                         OnClick="@(() => OnEditClicked.InvokeAsync(current))">
+                                                Edit
+                                            </MudMenuItem>
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Delete"
+                                                         OnClick="@(() => OnRemoveClicked.InvokeAsync(current))">
+                                                Remove
+                                            </MudMenuItem>
+                                        </MudMenu>
+                                    </MudStack>
                                 </td>
                             </tr>
                             if (current.Cargo.Count > 0)
@@ -159,6 +170,8 @@
     [Parameter] public EventCallback<VoyageStopResponse> OnAddCargoClicked { get; set; }
     [Parameter] public EventCallback<VoyageCargoResponse> OnEditCargoClicked { get; set; }
     [Parameter] public EventCallback<VoyageCargoResponse> OnRemoveCargoClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnFilesClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnCommentsClicked { get; set; }
 
 
     private const string ThStyle =

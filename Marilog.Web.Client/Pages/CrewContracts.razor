@@ -32,7 +32,6 @@ else
                              OnSignOffClicked="OpenSignOffDialog"
                              OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CrewContractLabel(arg.entityId)))"
                              OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CrewContractLabel(arg.entityId)))" />
-/>
 }
 
 @code {

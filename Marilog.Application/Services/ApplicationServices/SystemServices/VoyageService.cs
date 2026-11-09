@@ -438,6 +438,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(s => new VoyageStopResponse
                 {
                     StopOrder = s.StopOrder,
+                    StopId = s.StopID,
                     PortId = s.PortID,
                     PortName = s.Port.PortName,
                     ArrivalDate = s.ArrivalDate,
@@ -711,6 +712,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Notes = s.Notes,
                 PortId = s.PortID,
                 PortName = s.Port.PortName,
+                StopId = s.StopID,
                 PurposeOfCall = s.PurposeOfCall,
                 Cargo = s.Cargo
                     .OrderBy(c => c.VoyageCargoID)

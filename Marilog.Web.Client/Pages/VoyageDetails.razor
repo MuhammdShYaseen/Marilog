@@ -48,6 +48,8 @@
                    OnCompleteClicked="CompleteAsync"
                    OnCancelClicked="CancelVoyageAsync"
                    OnDeleteClicked="DeleteAsync"
+                   OnStopFilesClicked="OpenStopFilesDialog"
+                   OnStopCommentsClicked="OpenStopCommentsDialog"
                    OnChangeBlNumberClicked="OpenChangeBlNumberDialog"
                    OnChangeIssuanceTypeClicked="OpenChangeIssuanceTypeDialog"
                    OnLinkToMasterBlClicked="OpenLinkToMasterBlDialog"
@@ -64,6 +66,16 @@
 @code {
     [Parameter] public int VoyageId { get; set; }
     [Parameter] public string? Section { get; set; }
+
+
+    private string StopLabel(VoyageStopResponse s)
+    => $"Voyage {_voyage?.VoyageNumber} — Stop {s.StopOrder}: {s.PortName}";
+
+    private Task OpenStopFilesDialog(VoyageStopResponse s)
+        => ManageStoredFiles.OpenManageStoredFilesDialogAsync((s.StopId, EntityType.VoyageStop), StopLabel(s));
+
+    private Task OpenStopCommentsDialog(VoyageStopResponse s)
+        => ManageComments.OpenCommentsDialogAsync((s.StopId, EntityType.VoyageStop), StopLabel(s));
 
     private async Task OpenStoredFilesDialog()
     {

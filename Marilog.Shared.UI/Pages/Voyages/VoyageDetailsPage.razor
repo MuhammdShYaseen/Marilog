@@ -145,6 +145,8 @@ else
                                         OnEditClicked="OnEditStopClicked"
                                         OnRemoveClicked="OnRemoveStopClicked"
                                         OnAddCargoClicked="OnAddCargoClicked"
+                                        OnFilesClicked="OnStopFilesClicked"
+                                        OnCommentsClicked="OnStopCommentsClicked"
                                         OnEditCargoClicked="OnEditCargoClicked"
                                         OnRemoveCargoClicked="OnRemoveCargoClicked" />
                     break;
@@ -237,6 +239,8 @@ else
     //---Comments----------------------------------------------------------
     [Parameter] public EventCallback OnCommentsClicked { get; set; }
 
+    [Parameter] public EventCallback<VoyageStopResponse> OnStopFilesClicked { get; set; }
+    [Parameter] public EventCallback<VoyageStopResponse> OnStopCommentsClicked { get; set; }
 
     private const string BarStyle =
         "border-top:1px solid var(--mud-palette-lines-default);" +

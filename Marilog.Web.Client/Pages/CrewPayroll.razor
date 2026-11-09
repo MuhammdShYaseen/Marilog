@@ -54,7 +54,7 @@
     string? PayrollLabel(int payrollId) =>
     _byMonth.Concat(_byStatus).Concat(_outstanding)
             .FirstOrDefault(x => x.Id == payrollId) is { } p
-        ? ? $"Payroll — {p.PersonFullName} · {p.PayrollMonth:MMM yyyy}"
+        ?  $"Payroll — {p.PersonFullName} · {p.PayrollMonth:MMM yyyy}"
         : null;
     private bool _initialized;
     private CrewPayrollResponse? _selected;
