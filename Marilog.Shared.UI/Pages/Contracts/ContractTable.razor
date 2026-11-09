@@ -18,7 +18,7 @@
     <Columns>
         <PropertyColumn Property="x => x.ContractNumber" Title="Contract no.">
             <CellTemplate>
-                @context.Item.ContractNumber<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.AContract" EntityId="@context.Item.Id" />
+                @context.Item.ContractNumber<CommentBadge EntityType="EntityType.AContract" EntityId="@context.Item.Id" />
             </CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.Type" Title="Type" />

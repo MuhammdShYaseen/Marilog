@@ -15,7 +15,7 @@
     <Columns>
         <PropertyColumn Property="x => x.PersonFullName" Title="Name">
             <CellTemplate>
-                @context.Item.PersonFullName<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.CrewContract" EntityId="@context.Item.ContractId" />
+                @context.Item.PersonFullName<CommentBadge EntityType="EntityType.CrewContract" EntityId="@context.Item.ContractId" />
             </CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.VesselName" Title="Vessel" />

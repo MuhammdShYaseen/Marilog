@@ -73,7 +73,7 @@
                             var status = CertStatus(cert.ExpiryDate);
                             <tr>
                                 <td>
-                                    <div>@cert.CertificateName<Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.PersonCertificate" EntityId="@cert.Index" /></div>
+                                    <div>@cert.CertificateName<CommentBadge EntityType="EntityType.PersonCertificate" EntityId="@cert.Index" /></div>
                                     @if (!string.IsNullOrWhiteSpace(cert.Description))
                                     {
                                         <div class="az-muted az-small">@cert.Description</div>

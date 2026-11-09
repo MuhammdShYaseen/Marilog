@@ -20,7 +20,7 @@
         <TemplateColumn Title="No.">
             <CellTemplate>
                 <span style="font-weight:600; white-space:nowrap;">@context.Item.Number</span>
-                <Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.InboxEntry" EntityId="@context.Item.Id" />
+                <CommentBadge EntityType="EntityType.InboxEntry" EntityId="@context.Item.Id" />
             </CellTemplate>
         </TemplateColumn>
 

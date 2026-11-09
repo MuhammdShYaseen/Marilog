@@ -66,7 +66,7 @@ else
                        Disabled="@(Voyage is null)"
                        OnClick="OnCommentsClicked" />
         </MudTooltip>
-        <Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Voyage" EntityId="@(Voyage?.VoyageId ?? 0)" ChildType="EntityType.VoyageStop" ChildIds="@Voyage?.Stops.Select(s => s.StopId)" />
+        <CommentBadge EntityType="EntityType.Voyage" EntityId="@(Voyage?.VoyageId ?? 0)" ChildType="EntityType.VoyageStop" ChildIds="@Voyage?.Stops.Select(s => s.StopId)" />
         <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
         <MudButton Variant="Variant.Text" Size="Size.Small"
                    StartIcon="@Icons.Material.Outlined.PlayArrow"

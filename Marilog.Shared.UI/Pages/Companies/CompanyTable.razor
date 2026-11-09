@@ -20,7 +20,7 @@
             <CellTemplate>
                 <span class="az-status">
                     @context.Item.Name
-                    <Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Company" EntityId="@context.Item.Id" />
+                    <CommentBadge EntityType="EntityType.Company" EntityId="@context.Item.Id" />
                     @if (context.Item.IsOwn)
                     {
                         <MudTooltip Text="Own company (runs this Marilog installation)">

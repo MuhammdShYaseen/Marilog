@@ -38,7 +38,7 @@
                                 Placement="Placement.Top">
                         @context.Item.FullName
                     </MudTooltip>
-                    <Marilog.Shared.UI.Components.Comments.CommentBadge EntityType="EntityType.Person" EntityId="@context.Item.Id" ChildType="EntityType.PersonCertificate" ChildIds="@context.Item.Certificates.Select(c => c.Index)" />
+                    <CommentBadge EntityType="EntityType.Person" EntityId="@context.Item.Id" ChildType="EntityType.PersonCertificate" ChildIds="@context.Item.Certificates.Select(c => c.Index)" />
                 </span>
             </CellTemplate>
         </TemplateColumn>
