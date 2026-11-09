@@ -32,7 +32,11 @@
                    OnClick="@(() => OnManageAttachedFilesClicked.InvokeAsync((Entry.Id, EntityType.InboxEntry)))">
             Files
         </MudButton>
-
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Outlined.Comment"
+                   OnClick="@(() => OnCommentsClicked.InvokeAsync((Entry.Id, EntityType.InboxEntry)))">
+            Comments
+        </MudButton>
         @if (!Entry.IsProcessed && !Entry.IsCancelled)
         {
             <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" Style="text-transform:none"
@@ -192,7 +196,7 @@
     [Parameter] public EventCallback<InboxEntryResponse> OnAddLinkClicked { get; set; }
     [Parameter] public EventCallback<(InboxEntryResponse, InboxEntryLinkResponse)> OnUnlinkClicked { get; set; }
     [Parameter] public EventCallback<int> OnOpenEntryClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
 
     [Parameter] public EventCallback<(InboxEntryResponse, EntityType)> OnCreateFromClicked { get; set; }
 

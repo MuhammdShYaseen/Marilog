@@ -9,7 +9,7 @@
 @using Marilog.Shared.UI.Pages.Inbox
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
-
+@inject IManageComments ManageComments
 @inject IInboxService InboxService
 @inject IVesselService VesselService
 @inject IDialogService DialogService
@@ -27,7 +27,8 @@
                  OnLoadRequested="LoadAsync"
                  OnCreate="CreateAsync"
                  OnEditClicked="OpenEditDialog"
-                 OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))"
+                 OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, InboxLabel(arg.entityId)))"
+                 OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, InboxLabel(arg.entityId)))"
                  OnProcessedClicked="MarkProcessed"
                  OnCancelClicked="ConfirmCancel"
                  OnDeleteClicked="ConfirmDelete"
@@ -42,7 +43,14 @@
     private bool _loading = true;
     private SharedInboxPage _sharedPage = default!;
     private string? _selectedNumber;
-    string? XLabel(int id) => _result.Items.FirstOrDefault(x => x.Id == id) is { } x ? $"Inbox : {x.Number}" : null;
+    string? InboxLabel(int id)
+    {
+        var x = _result.Items.FirstOrDefault(e => e.Id == id);
+        if (x is null) return null;
+
+        var desc = x.Description.Length > 60 ? x.Description[..60] + "…" : x.Description;
+        return $"Inbox {x.Number} — {desc}";
+    }
 
     private async Task RefreshAsync(int id)
     {

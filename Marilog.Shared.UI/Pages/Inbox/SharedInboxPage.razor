@@ -121,6 +121,7 @@
                            OnProcessedClicked="OnProcessedClicked"
                            OnCancelClicked="OnCancelClicked"
                            OnDeleteClicked="OnDeleteClicked"
+                           OnCommentsClicked="OnCommentsClicked"
                            OnCreateFromClicked="OnCreateFromClicked"
                            OnAddLinkClicked="OnAddLinkClicked"
                            OnUnlinkClicked="OnUnlinkClicked"
@@ -130,7 +131,7 @@
 @code {
     [Parameter] public PagedResponse<InboxEntryResponse> Result { get; set; } = new();
     [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<InboxEntryFilter> OnLoadRequested { get; set; }
     [Parameter, EditorRequired] public Func<CreateInboxEntryRequest, Task<string?>> OnCreate { get; set; } = default!;
     [Parameter] public EventCallback<InboxEntryResponse> OnEditClicked { get; set; }
