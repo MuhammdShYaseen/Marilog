@@ -42,7 +42,7 @@
                          OnRefreshClicked="LoadAsync"
                          OnSetOwnClicked="ToggleOwn"
                          OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CompanyLabel(arg.entityId)))"
-                         OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CompanyLabel(arg.entityId)))" /> />
+                         OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CompanyLabel(arg.entityId)))" />
 
 @code {
     private IReadOnlyList<CompanyResponse> _companies = [];
