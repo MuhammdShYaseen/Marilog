@@ -56,6 +56,7 @@
                             OnDeactivateClicked="@OnDeactivateClicked"
                             OnSetOwnClicked="@OnSetOwnClicked"
                             OnManageAttachedFilesClicked="@OnManageAttachedFilesClicked"
+                            OnCommentsClicked="@OnCommentsClicked"
                             OnVesselClick="@OnVesselClick"
                             OnAddEmailClicked="@OnAddEmailClicked"
                             OnEditEmailClicked="@OnEditEmailClicked"
@@ -84,7 +85,7 @@
     [Parameter] public EventCallback<CompanyResponse> OnSetOwnClicked { get; set; }
     [Parameter] public EventCallback<int> OnVesselClick { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<CompanyResponse> OnAddEmailClicked { get; set; }
     [Parameter] public EventCallback<(CompanyResponse, EmailsResponse)> OnEditEmailClicked { get; set; }
     [Parameter] public EventCallback<(CompanyResponse, EmailsResponse)> OnDeleteEmailClicked { get; set; }

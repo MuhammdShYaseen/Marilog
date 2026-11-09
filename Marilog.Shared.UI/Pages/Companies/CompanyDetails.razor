@@ -33,6 +33,12 @@
             Files
         </MudButton>
 
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                   StartIcon="@Icons.Material.Outlined.Comment"
+                   OnClick="@(() => OnCommentsClicked.InvokeAsync((Company.Id, EntityType.Company)))">
+            Comments
+        </MudButton>
+
         @if (Company.IsActive)
         {
             <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" Style="text-transform:none"
@@ -291,6 +297,7 @@
     [Parameter] public EventCallback<CompanyResponse> OnDeactivateClicked { get; set; }
     [Parameter] public EventCallback<CompanyResponse> OnSetOwnClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<int> OnVesselClick { get; set; }
 
     [Parameter] public EventCallback<CompanyResponse> OnAddEmailClicked { get; set; }
