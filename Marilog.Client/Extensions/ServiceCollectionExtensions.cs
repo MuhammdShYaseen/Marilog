@@ -88,9 +88,9 @@ namespace Marilog.Client.Extensions
             //==vesselFinder=================================
             services.AddScoped<IVesselPositionService, VesselPositionService>();
 
-            //===Vessel Certificate==========================
+            //=== Certificate==========================
             services.AddScoped<IVesselCertificateService, VesselCertificateService>();
-
+            services.AddScoped<IPersonCertificateService, PersonCertificateService>();
             //===Weather ====================================
             services.AddScoped<IWeatherService, WeatherService>();
 

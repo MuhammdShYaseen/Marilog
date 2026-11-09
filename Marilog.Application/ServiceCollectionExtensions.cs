@@ -107,9 +107,9 @@ namespace Marilog.Application
 
 
 
-            //---Vessel certificate-----------------------------------------------
+            //-- certificate-----------------------------------------------
             services.AddScoped<IVesselCertificateService, VesselCertificateService>();
-
+            services.AddScoped<IPersonCertificateService, PersonCertificateService>();
 
 
             //---Weather------------------------------------------------------------
