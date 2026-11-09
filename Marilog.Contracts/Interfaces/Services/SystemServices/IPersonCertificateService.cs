@@ -9,5 +9,6 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
     {
         Task<CertificateSummaryResponse> GetSummaryAsync(int? personId = null, bool includeInactivePersons = false, CancellationToken ct = default);
         Task<PagedResponse<CertificateResponse>> GetPagedAsync(PagedRequest paging, PersonCertificateFilter filter, CancellationToken ct = default);
+        Task<IReadOnlyList<string>> GetNamesAsync(CancellationToken ct = default);
     }
 }

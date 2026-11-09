@@ -1,0 +1,13 @@
+﻿@attribute [RequirePage(EntityType.PersonCertificate)]
+@page "/person-certificates"
+@using Marilog.Kernel.Enums
+@using MudBlazor
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Color="Color.Primary" />
+        <MudText Typo="Typo.h6">Person Certificates</MudText>
+    </MudStack>
+
+    <PersonCertificatesPanel />
+</MudPaper>

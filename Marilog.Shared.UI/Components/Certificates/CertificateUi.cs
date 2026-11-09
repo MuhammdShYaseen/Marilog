@@ -48,6 +48,9 @@ namespace Marilog.Shared.UI.Components.Certificates
         public static string TypeLabel(VesselCertificateType? type)
             => type is null ? "—" : Humanize(type.Value.ToString());
 
+        public static string TypeLabel(PersonCertificateType? type)
+            => type is null ? "—" : Humanize(type.Value.ToString());
+
         private static string Humanize(string name)
             => Regex.Replace(name.Replace('_', ' '), "(?<=[a-z])(?=[A-Z])", " ");
     }

@@ -42,7 +42,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Valid = total - expired - expiringSoon - noExpiry
             };
         }
-
+        public async Task<IReadOnlyList<string>> GetNamesAsync(CancellationToken ct = default)
+            => await _repo.Query()
+                .SelectMany(p => p.Certificates)
+                .Select(c => c.Certificate.CertificateName)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToListAsync(ct);
         public async Task<PagedResponse<CertificateResponse>> GetPagedAsync(PagedRequest paging,
             PersonCertificateFilter filter, CancellationToken ct = default)
         {

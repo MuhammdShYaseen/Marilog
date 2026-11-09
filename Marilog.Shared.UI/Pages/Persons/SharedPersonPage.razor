@@ -36,8 +36,8 @@
                            Size="Size.Small"
                            Color="Color.Default"
                            StartIcon="@Icons.Material.Filled.CardMembership"
-                           OnClick="HandleExpiringCertificatesClick">
-                    Expiring certificates
+                           Href="/person-certificates">
+                    Certificates
                 </MudButton>
 
                 <MudSpacer />
@@ -61,9 +61,6 @@
                           OnEditBankClicked="OnEditBankClicked"
                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
                           OnCommentsClicked="OnCommentsClicked"
-                          OnAddCertificateClicked="OnAddCertificateClicked"
-                          OnEditCertificateClicked="OnEditCertificateClicked"
-                          OnRemoveCertificateClicked="OnRemoveCertificateClicked"
                           OnAddSeaServiceClicked="OnAddSeaServiceClicked"
                           OnEditSeaServiceClicked="OnEditSeaServiceClicked"
                           OnSuitabilityRatingChanged="OnSuitabilityRatingChanged"
@@ -73,7 +70,7 @@
         @* ── Filtered Persons ── *@
         <MudTabPanel Text="Filtered persons">
             <PersonsFilterTab Ranks="Ranks"
-                              CertificateNames="_certificateNames"
+                              CertificateNames="CertificateNames"
                               Results="FilteredPersons"
                               IsLoading="IsFiltering"
                               OnSearch="OnFilterSearch"
@@ -83,10 +80,8 @@
                               OnDeactivateClicked="OnDeactivateClicked"
                               OnEditBankClicked="OnEditBankClicked"
                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                              CertificatesContent="CertificatesContent"
                               OnCommentsClicked="OnCommentsClicked"
-                              OnAddCertificateClicked="OnAddCertificateClicked"
-                              OnEditCertificateClicked="OnEditCertificateClicked"
-                              OnRemoveCertificateClicked="OnRemoveCertificateClicked"
                               OnAddSeaServiceClicked="OnAddSeaServiceClicked"
                               OnEditSeaServiceClicked="OnEditSeaServiceClicked"
                               OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
@@ -200,17 +195,19 @@
     [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
     [Parameter] public EventCallback OnAddClicked { get; set; }
 
-    [Parameter] public EventCallback<List<PersonResponse>> OnShowExpiringCertificatesClicked { get; set; }
+    
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
+ 
+    [Parameter] public IReadOnlyList<string> CertificateNames { get; set; } = [];
+    [Parameter] public RenderFragment<PersonResponse>? CertificatesContent { get; set; }
 
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, CrewSuitabilityRating rating)> OnSuitabilityRatingChanged { get; set; }
+
+
 
     // ── State ─────────────────────────────────────────────────────
     private string _search = string.Empty;
@@ -229,24 +226,6 @@
                         (p.Phone?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
                         (p.Email?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
 
-    // ── Certificate names for the filter tab ─────────────────────
-    private IReadOnlyList<string> _certificateNames =>
-        Persons
-            .SelectMany(p => p.Certificates)
-            .Select(c => c.CertificateName)
-            .OfType<string>()
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Distinct()
-            .Order()
-            .ToList();
-
-    // ── Expiring Certificates ─────────────────────────────────────
-    private async Task HandleExpiringCertificatesClick()
-    {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-
-        var expiring = Persons.Where(c => c.Certificates.Any(a => a.ExpiryDate <= today.AddDays(30))).ToList();
-
-        await OnShowExpiringCertificatesClicked.InvokeAsync(expiring);
-    }
+  
+    
 }

@@ -7,6 +7,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Domain.ValueObjects.Person;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Rules;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
@@ -578,20 +579,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 IsActive = p.IsActive,
                 SuitabilityRating = p.SuitabilityRating,
 
-                // ✅ يُحسب في الميموري — مش في SQL
-                Certificates = p.Certificates
-                    .Select((c, i) => new CertificateResponse
-                    {
-                        Index = c.Id,
-                        CertificateName = c.Certificate.CertificateName,
-                        IssueDate = c.Certificate.IssueDate,
-                        ExpiryDate = c.Certificate.ExpiryDate,
-                        Description = c.Certificate.Description,
-                        CertificateNumber = c.Certificate.CertificateNumber,
-                        IssuingAuthority = c.Certificate.IssuingAuthority,
-                        PType = c.Type
-                        
-                    }).ToList(),
+                CertificatesCount = p.Certificates.Count,
+                ExpiredCertificates = p.Certificates.Count(c =>
+                    CertificateRules.GetStatus(c.Certificate.ExpiryDate, CertificateRules.Today()) == CertificateExpiryStatus.Expired),
+                ExpiringCertificates = p.Certificates.Count(c =>
+                    CertificateRules.GetStatus(c.Certificate.ExpiryDate, CertificateRules.Today()) == CertificateExpiryStatus.ExpiringSoon),
 
                 SeaServices = p.SeaServices
                     .Select((s, i) => new PersonSeaServiceResponse

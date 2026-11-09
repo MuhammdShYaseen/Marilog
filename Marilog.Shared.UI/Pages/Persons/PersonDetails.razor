@@ -38,81 +38,9 @@
         </MudTabPanel>
 
         @* ── Certificates ── *@
-        <MudTabPanel Text="@($"Certificates ({Person.Certificates.Count})")">
-            <div class="az-commandbar">
-                <MudButton Variant="Variant.Text"
-                           Size="Size.Small"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="() => OnAddCertificateClicked.InvokeAsync(Person)">
-                    Add certificate
-                </MudButton>
-            </div>
-
-            @if (Person.Certificates.Count == 0)
-            {
-                <div class="az-muted">No certificates added.</div>
-            }
-            else
-            {
-                <MudSimpleTable Dense="true" Hover="true" Outlined="true" Elevation="0" Square="true">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Number</th>
-                            <th>Issuing authority</th>
-                            <th>Issue date</th>
-                            <th>Expiry date</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var cert in Person.Certificates)
-                        {
-                            var status = CertStatus(cert.ExpiryDate);
-                            <tr>
-                                <td>
-                                    <div>@cert.CertificateName<CommentBadge EntityType="EntityType.PersonCertificate" EntityId="@cert.Index" /></div>
-                                    @if (!string.IsNullOrWhiteSpace(cert.Description))
-                                    {
-                                        <div class="az-muted az-small">@cert.Description</div>
-                                    }
-                                </td>
-                                <td>@Dash(cert.CertificateNumber)</td>
-                                <td>@Dash(cert.IssuingAuthority)</td>
-                                <td>@(cert.IssueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                                <td>@(cert.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                                <td>
-                                    <span class="az-status">
-                                        <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@status.Color" Style="font-size:10px" />
-                                        @status.Text
-                                    </span>
-                                </td>
-                                <td class="az-actions">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                   Size="Size.Small"
-                                                   title="Edit"
-                                                   OnClick="() => OnEditCertificateClicked.InvokeAsync((Person, cert))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
-                                                   Size="Size.Small"
-                                                   title="Files"
-                                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((cert.Index, EntityType.PersonCertificate))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error"
-                                                   title="Delete"
-                                                   OnClick="() => OnRemoveCertificateClicked.InvokeAsync((Person, cert))" />
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
-                                                   Size="Size.Small"
-                                                   title="Comments"
-                                                   OnClick="() => OnCommentsClicked.InvokeAsync((cert.Index, EntityType.PersonCertificate))" />
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </MudSimpleTable>
-            }
+        @* ── Certificates ── *@
+        <MudTabPanel Text="@($"Certificates ({Person.CertificatesCount})")">
+            @CertificatesContent?.Invoke(Person)
         </MudTabPanel>
 
         @* ── Sea Services ── *@
@@ -205,13 +133,15 @@
 
     [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
+    
+    [Parameter] public RenderFragment<PersonResponse>? CertificatesContent { get; set; }
+    
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
+
+
 
     private (string Label, string? Value)[] Essentials =>
     [
@@ -234,14 +164,4 @@
     private static string Dash(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "—" : value;
 
-    private static (Color Color, string Text) CertStatus(DateOnly? expiry)
-    {
-        if (!expiry.HasValue) return (Color.Default, "No expiry");
-
-        var days = expiry.Value.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
-
-        if (days < 0) return (Color.Error, "Expired");
-        if (days <= 90) return (Color.Warning, $"Expires in {days}d");
-        return (Color.Success, "Valid");
-    }
 }

@@ -1,0 +1,83 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Certificates
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+
+    <MudTextField T="string"
+                  Value="SearchTerm"
+                  ValueChanged="SearchTermChanged"
+                  Placeholder="Search name, number, authority..."
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  DebounceInterval="400"
+                  Clearable="true"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Style="min-width:220px; max-width:280px" />
+
+    @if (ShowPersonFilter)
+    {
+        <MudAutocomplete T="PersonResponse"
+                         Value="Person"
+                         ValueChanged="PersonChanged"
+                         SearchFunc="SearchAsync"
+                         ToStringFunc="@(p => p is null ? string.Empty : p.FullName)"
+                         Label="Person"
+                         Clearable="true"
+                         ResetValueOnEmptyText="true"
+                         DebounceInterval="300"
+                         MaxItems="20"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         Style="min-width:220px" />
+    }
+
+    <MudSelect T="PersonCertificateType?"
+               Value="Type"
+               ValueChanged="TypeChanged"
+               ToStringFunc="@(t => t is null ? string.Empty : CertificateUi.TypeLabel(t))"
+               Label="Type"
+               Clearable="true"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Style="min-width:220px">
+        @foreach (var t in Enum.GetValues<PersonCertificateType>())
+        {
+            <MudSelectItem T="PersonCertificateType?" Value="(PersonCertificateType?)t">@CertificateUi.TypeLabel(t)</MudSelectItem>
+        }
+    </MudSelect>
+
+    @if (ShowPersonFilter)
+    {
+        <MudSwitch T="bool"
+                   Value="IncludeInactive"
+                   ValueChanged="IncludeInactiveChanged"
+                   Label="Include inactive persons"
+                   Color="Color.Primary" />
+    }
+
+</MudStack>
+
+@code {
+    [Parameter] public string? SearchTerm { get; set; }
+    [Parameter] public EventCallback<string?> SearchTermChanged { get; set; }
+
+    [Parameter] public PersonCertificateType? Type { get; set; }
+    [Parameter] public EventCallback<PersonCertificateType?> TypeChanged { get; set; }
+
+    [Parameter] public bool ShowPersonFilter { get; set; }
+    [Parameter] public Func<string?, CancellationToken, Task<IReadOnlyList<PersonResponse>>>? SearchPersons { get; set; }
+    [Parameter] public PersonResponse? Person { get; set; }
+    [Parameter] public EventCallback<PersonResponse?> PersonChanged { get; set; }
+
+    [Parameter] public bool IncludeInactive { get; set; }
+    [Parameter] public EventCallback<bool> IncludeInactiveChanged { get; set; }
+
+    private async Task<IEnumerable<PersonResponse>> SearchAsync(string? text, CancellationToken ct)
+    {
+        if (SearchPersons is null) return [];
+        return await SearchPersons(text, ct);
+    }
+}

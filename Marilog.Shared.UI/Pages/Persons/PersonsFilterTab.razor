@@ -160,9 +160,7 @@
                   OnDeactivateClicked="OnDeactivateClicked"
                   OnEditBankClicked="OnEditBankClicked"
                   OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
-                  OnAddCertificateClicked="OnAddCertificateClicked"
-                  OnEditCertificateClicked="OnEditCertificateClicked"
-                  OnRemoveCertificateClicked="OnRemoveCertificateClicked"
+                  CertificatesContent="CertificatesContent"
                   OnAddSeaServiceClicked="OnAddSeaServiceClicked"
                   OnEditSeaServiceClicked="OnEditSeaServiceClicked"
                   OnCommentsClicked="OnCommentsClicked"
@@ -188,13 +186,13 @@ else
     [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
+
+
+    [Parameter] public RenderFragment<PersonResponse>? CertificatesContent { get; set; }
     // ── State ──
     private PersonFilterOptions _filter = new();
     private IReadOnlyCollection<string>? _certNames = [];

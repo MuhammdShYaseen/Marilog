@@ -1,0 +1,242 @@
+﻿@* PersonCertificatesPanel.razor *@
+@using Marilog.Contracts.Common
+@using Marilog.Contracts.DTOs.Requests.Common
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.DTOs.Responses.Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Components.Certificates
+@using Marilog.Shared.UI.Components.SharedDialogs
+@using Marilog.Shared.UI.Pages.Persons
+@using Marilog.Web.Client.Services.Interfaces
+@using MudBlazor
+@inject IManageComments ManageComments
+@inject IPersonCertificateService CertificateService
+@inject IPersonService PersonService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IManageStoredFiles ManageStoredFiles
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+<CertificateSummaryBar Summary="_summary"
+                       SelectedStatus="_status"
+                       SelectedStatusChanged="OnStatusChangedAsync" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="my-3">
+    <PersonCertificateFilterBar SearchTerm="@_search"
+                                SearchTermChanged="OnSearchChangedAsync"
+                                Type="_type"
+                                TypeChanged="OnTypeChangedAsync"
+                                ShowPersonFilter="PersonId is null"
+                                SearchPersons="SearchPersonsAsync"
+                                Person="_filterPerson"
+                                PersonChanged="OnPersonFilterChangedAsync"
+                                IncludeInactive="_includeInactive"
+                                IncludeInactiveChanged="OnIncludeInactiveChangedAsync" />
+    <MudSpacer />
+    <MudTooltip Text="@(EffectivePersonId is null ? "Select a person to add a certificate" : string.Empty)">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@(EffectivePersonId is null)"
+                   OnClick="AddAsync">
+            New
+        </MudButton>
+    </MudTooltip>
+</MudStack>
+
+<PersonCertificatesGrid Data="_page"
+                        Compact="@(PersonId is not null)"
+                        OnPageChanged="OnPageChangedAsync"
+                        OnEditClicked="EditAsync"
+                        OnDeleteClicked="DeleteAsync"
+                        OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CertificateLabel(arg.entityId)))"
+                        OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CertificateLabel(arg.entityId)))" />
+
+@code {
+    [Parameter] public int? PersonId { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private const int PageSize = 20;
+
+    private CertificateSummaryResponse _summary = new();
+    private PagedResponse<CertificateResponse> _page = new() { Page = 1, PageSize = PageSize };
+    private string? CertificateLabel(int id)
+    {
+        var c = _page.Items.FirstOrDefault(x => x.Index == id);
+        if (c is null) return null;
+
+        var title = $"{c.CertificateName} {c.CertificateNumber}".Trim();
+        return string.IsNullOrWhiteSpace(c.PName) ? title : $"{title} — {c.PName}";
+    }
+    private CertificateExpiryStatus? _status;
+    private PersonCertificateType? _type;
+    private string? _search;
+    private PersonResponse? _filterPerson;
+    private bool _includeInactive;
+    private int _pageNumber = 1;
+
+    private bool _loading;
+    private bool _initialized;
+    private int? _loadedForPersonId;
+
+    private int? EffectivePersonId => PersonId ?? _filterPerson?.Id;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && _loadedForPersonId == PersonId) return;
+
+        _initialized = true;
+        _loadedForPersonId = PersonId;
+        _status = null; _type = null; _search = null; _filterPerson = null; _pageNumber = 1;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var paging = new PagedRequest { Page = _pageNumber, PageSize = PageSize, SearchTerm = _search };
+            var filter = new PersonCertificateFilter
+            {
+                PersonId = EffectivePersonId,
+                Status = _status,
+                Type = _type,
+                IncludeInactivePersons = _includeInactive
+            };
+
+            var summaryTask = CertificateService.GetSummaryAsync(EffectivePersonId, _includeInactive);
+            var pageTask = CertificateService.GetPagedAsync(paging, filter);
+            await Task.WhenAll(summaryTask, pageTask);
+
+            _summary = summaryTask.Result;
+            _page = pageTask.Result;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadAndNotifyAsync()
+    {
+        await LoadAsync();
+
+        // حذف آخر عنصر بآخر صفحة بيترك صفحة فاضية — ارجع لآخر صفحة فيها داتا
+        if (_page.Items.Count == 0 && _pageNumber > 1 && _page.TotalCount > 0)
+        {
+            _pageNumber = _page.TotalPages;
+            await LoadAsync();
+        }
+
+        await OnChanged.InvokeAsync();
+    }
+
+    // ── Filters ──────────────────────────────────────────────────────────
+
+    private async Task OnStatusChangedAsync(CertificateExpiryStatus? status)
+    { _status = status; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnTypeChangedAsync(PersonCertificateType? type)
+    { _type = type; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnSearchChangedAsync(string? search)
+    { _search = search; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnPersonFilterChangedAsync(PersonResponse? person)
+    { _filterPerson = person; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task<IReadOnlyList<PersonResponse>> SearchPersonsAsync(string? text, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+        return await PersonService.SearchAsync(text.Trim(), ct);
+    }
+
+    private async Task OnIncludeInactiveChangedAsync(bool include)
+    { _includeInactive = include; _pageNumber = 1; await LoadAsync(); }
+
+    private async Task OnPageChangedAsync(int page)
+    { _pageNumber = page; await LoadAsync(); }
+
+    // ── Commands ─────────────────────────────────────────────────────────
+
+    private async Task AddAsync()
+    {
+        if (EffectivePersonId is not int personId) return;
+
+        var parameters = new DialogParameters { [nameof(CertificateDialog.Entity)] = EntityType.Person };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            await PersonService.AddCertificateAsync(personId, (UpsertCertificateRequest)result.Data!);
+            Snackbar.Add("Certificate added.", Severity.Success);
+            await ReloadAndNotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EditAsync(CertificateResponse cert)
+    {
+        if (cert.PId is not int personId) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(CertificateDialog.Certificate)] = cert,
+            [nameof(CertificateDialog.Entity)] = EntityType.Person
+        };
+        var dialog = await DialogService.ShowAsync<CertificateDialog>("Edit Certificate", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            await PersonService.UpdateCertificateAsync(personId, cert.Index, (UpsertCertificateRequest)result.Data!);
+            Snackbar.Add("Certificate updated.", Severity.Success);
+            await ReloadAndNotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteAsync(CertificateResponse cert)
+    {
+        if (cert.PId is not int personId) return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Certificate",
+            $"Remove '{cert.CertificateName}'?",
+            yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        try
+        {
+            await PersonService.RemoveCertificateAsync(personId, cert.Index);
+            Snackbar.Add("Certificate removed.", Severity.Success);
+            await ReloadAndNotifyAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

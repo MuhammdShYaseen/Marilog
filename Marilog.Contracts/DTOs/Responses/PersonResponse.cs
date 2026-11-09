@@ -19,7 +19,9 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? IBAN { get; set; } = null!;
         public string? BankSwiftCode { get; set; } = null!;
         public bool IsActive { get; set; }
-        public IReadOnlyList<CertificateResponse> Certificates { get; set; } = [];
+        public int CertificatesCount { get; set; }
+        public int ExpiredCertificates { get; set; }
+        public int ExpiringCertificates { get; set; }
         public IReadOnlyList<PersonSeaServiceResponse> SeaServices { get; set; } = [];
         public CrewSuitabilityRating SuitabilityRating { get; set; }
     }

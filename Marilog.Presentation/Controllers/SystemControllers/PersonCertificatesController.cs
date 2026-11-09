@@ -29,5 +29,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await _service.GetPagedAsync(paging, filter, ct);
             return Ok(ApiResponse<PagedResponse<CertificateResponse>>.Ok(result));
         }
+
+
+        [HttpGet("names")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<string>>>> GetNames(CancellationToken ct)
+        {
+            var result = await _service.GetNamesAsync(ct);
+            return Ok(ApiResponse<IReadOnlyList<string>>.Ok(result));
+        }
     }
 }

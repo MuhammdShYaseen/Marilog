@@ -38,7 +38,7 @@
                                 Placement="Placement.Top">
                         @context.Item.FullName
                     </MudTooltip>
-                    <CommentBadge EntityType="EntityType.Person" EntityId="@context.Item.Id" ChildType="EntityType.PersonCertificate" ChildIds="@context.Item.Certificates.Select(c => c.Index)" />
+                    <CommentBadge EntityType="EntityType.Person" EntityId="@context.Item.Id" />
                 </span>
             </CellTemplate>
         </TemplateColumn>
@@ -114,12 +114,7 @@
                        OnEditBankClicked="OnEditBankClicked"
                        OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
                        OnCommentsClicked="OnCommentsClicked"
-                       OnAddCertificateClicked="OnAddCertificateClicked"
-                       OnEditCertificateClicked="OnEditCertificateClicked"
-                       OnRemoveCertificateClicked="OnRemoveCertificateClicked"
-                       OnAddSeaServiceClicked="OnAddSeaServiceClicked"
-                       OnEditSeaServiceClicked="OnEditSeaServiceClicked"
-                       OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
+                       CertificatesContent="CertificatesContent" />
     </ChildRowContent>
 
     <NoRecordsContent>
@@ -137,14 +132,14 @@
     [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-    [Parameter] public EventCallback<PersonResponse> OnAddCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnEditCertificateClicked { get; set; }
-    [Parameter] public EventCallback<(PersonResponse, CertificateResponse)> OnRemoveCertificateClicked { get; set; }
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, CrewSuitabilityRating rating)> OnSuitabilityRatingChanged { get; set; }
+
+
+    [Parameter] public RenderFragment<PersonResponse>? CertificatesContent { get; set; }
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
     private static readonly CrewSuitabilityRating[] Ratings = Enum.GetValues<CrewSuitabilityRating>();

@@ -18,6 +18,7 @@ namespace Marilog.Shared.UI.Components.Comments
             ["vessel-certificates"] = [EntityType.VesselCertificate],
             ["crew-contracts"] = [EntityType.CrewContract],
             ["persons"] = [EntityType.Person, EntityType.PersonCertificate],
+            ["person-certificates"] = [EntityType.PersonCertificate],
             ["payroll"] = [EntityType.CrewPayroll],
             ["admin/banks"] = [EntityType.Bank],
         };

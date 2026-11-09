@@ -42,5 +42,11 @@ namespace Marilog.Client.Services.SystemServices
 
             return response?.Data ?? new PagedResponse<CertificateResponse> { Page = paging.Page, PageSize = paging.PageSize };
         }
+
+        public async Task<IReadOnlyList<string>> GetNamesAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<string>>>($"{Base}/names", ct);
+            return response?.Data ?? [];
+        }
     }
 }

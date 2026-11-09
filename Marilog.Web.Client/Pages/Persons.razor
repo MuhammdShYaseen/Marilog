@@ -1,12 +1,10 @@
 ﻿@attribute [RequirePage(EntityType.Person)]
 @page "/persons"
 @using Marilog.Contracts.DTOs.Reports.PersonReports
-@using Marilog.Contracts.DTOs.Requests.Common
 @using Marilog.Contracts.DTOs.Requests.PersonDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Kernel.Enums
-@using Marilog.Shared.UI.Components.SharedDialogs
 @using Marilog.Shared.UI.Pages.Persons
 @using Marilog.Web.Client.Services.Interfaces
 @inject ICountryService CountryService
@@ -14,6 +12,7 @@
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IPersonCertificateService CertificateService
 @inject IRankService RankService
 @inject IManageStoredFiles StoredFiles
 @inject IManageComments ManageComments
@@ -34,16 +33,17 @@
                   OnEditClicked="OpenEditDialog"
                   OnAddClicked="OpenAddDialog"
                   OnEditBankClicked="OpenEditBankDialog"
-                  OnAddCertificateClicked="OpenAddCertificateDialog"
-                  OnEditCertificateClicked="OpenEditCertificateDialog"
-                  OnRemoveCertificateClicked="ConfirmRemoveCertificate"
+                  CertificateNames="_certificateNames"
                   OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
                   OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
-                  OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
                   OnManageAttachedFilesClicked="@(arg => StoredFiles.OpenManageStoredFilesDialogAsync(arg, PersonLabel(arg)))"
                   OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PersonLabel(arg)))"
-                  OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged" />
+                  OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged">
+                    <CertificatesContent Context="person">
+                        <PersonCertificatesPanel PersonId="person.Id" OnChanged="LoadAsync" />
+                    </CertificatesContent>
+ </SharedPersonPage>
 
 @code {
 
@@ -52,17 +52,6 @@
     {
         var people = _persons.Concat(_filteredPersons);
 
-        if (arg.entityType == EntityType.PersonCertificate)
-        {
-            foreach (var p in people)
-            {
-                var c = p.Certificates.FirstOrDefault(x => x.Index == arg.entityId);
-                if (c is not null)
-                    return $"{$"{c.CertificateName} {c.CertificateNumber}".Trim()} — {p.FullName}";
-            }
-            return null;
-        }
-
         var person = people.FirstOrDefault(x => x.Id == arg.entityId);
         return person is null ? null : $"Person : {person.FullName}";
     }
@@ -70,6 +59,7 @@
     private IReadOnlyList<PersonResponse> _persons = [];
     private IReadOnlyList<RankResponse> _ranks = [];
     private bool _loading = true;
+    private IReadOnlyList<string> _certificateNames = [];
 
     // ── Filter State ──────────────────────────────────────────────────────────────
     private IReadOnlyList<PersonResponse> _filteredPersons = [];
@@ -88,6 +78,9 @@
     {
         _loading = true;
         _persons = await PersonService.GetAllAsync();
+        // مستخدم بدون صلاحية قراءة الشهادات: الفلتر بيضل بدون أسماء بدل ما تنكسر الصفحة
+        try { _certificateNames = await CertificateService.GetNamesAsync(); }
+        catch { _certificateNames = []; }
         await RefreshFilteredAsync();
         _loading = false;
     }
@@ -264,58 +257,7 @@
         await LoadAsync();
     }
 
-    // ── Certificates ──────────────────────────────────────────────────────────────
 
-    private async Task OpenAddCertificateDialog(PersonResponse person)
-    {
-        var dialog = await DialogService.ShowAsync<CertificateDialog>("New Certificate");
-        var result = await dialog.Result;
-        if (result is null || result.Canceled) return;
-
-        var request = (UpsertCertificateRequest)result.Data!;
-        await PersonService.AddCertificateAsync(person.Id, request);
-        Snackbar.Add("Certificate added.", Severity.Success);
-        await LoadAsync();
-    }
-
-    private async Task OpenEditCertificateDialog((PersonResponse person, CertificateResponse cert) args)
-    {
-        var parameters = new DialogParameters { ["Certificate"] = args.cert };
-        var dialog = await DialogService.ShowAsync<CertificateDialog>("Edit Certificate", parameters);
-        var result = await dialog.Result;
-        if (result is null || result.Canceled) return;
-
-        var request = (UpsertCertificateRequest)result.Data!;
-        await PersonService.UpdateCertificateAsync(args.person.Id, args.cert.Index, request);
-        Snackbar.Add("Certificate updated.", Severity.Success);
-        await LoadAsync();
-    }
-
-    private async Task ConfirmRemoveCertificate((PersonResponse person, CertificateResponse cert) args)
-    {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Remove Certificate",
-            $"Remove '{args.cert.CertificateName}'?",
-            yesText: "Remove",
-            cancelText: "Cancel");
-
-        if (confirmed == true)
-        {
-            await PersonService.RemoveCertificateAsync(args.person.Id, args.cert.Index);
-            Snackbar.Add("Certificate removed.", Severity.Success);
-            await LoadAsync();
-        }
-    }
-
-    private async Task OpenExpiringCertificatesDialog(List<PersonResponse> items)
-    {
-        var parameters = new DialogParameters { ["Items"] = items };
-
-        await DialogService.ShowAsync<ExpiringCertificatesDialog>(
-            "Expiring Certificates",
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
-    }
 
     // ── Sea Services ──────────────────────────────────────────────────────────────
 
