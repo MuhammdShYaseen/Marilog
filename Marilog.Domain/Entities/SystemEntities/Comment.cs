@@ -31,7 +31,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 EntityId = entityId,
                 UserName = userName
             };
-            comment.AddDomainEvent(new CommentCreatedEvent(comment.UserId, comment.Text, comment.EntityType, comment.EntityId, comment.Guid));
+            //comment.AddDomainEvent(new CommentCreatedEvent(comment.UserId, comment.Text, comment.EntityType, comment.EntityId, comment.Guid));
             return comment;
         }
 
