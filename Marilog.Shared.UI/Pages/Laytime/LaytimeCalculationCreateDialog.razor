@@ -61,7 +61,7 @@
     public int VoyageId { get; set; }
 
     [Parameter, EditorRequired]
-    public IReadOnlyList<ContractSummary> Contracts { get; set; } = [];
+    public Func<string?, CancellationToken, Task<IReadOnlyList<ContractSummary>>>? Search { get; set; }
 
     [Parameter, EditorRequired]
     public IReadOnlyList<PortResponse> Ports { get; set; } = [];
@@ -98,14 +98,10 @@
             _cargoQuantityMt = terms.CargoQuantityMt;
     }
 
-    private Task<IEnumerable<ContractSummary>> SearchContracts(string? text, CancellationToken token)
+    private async Task<IEnumerable<ContractSummary>> SearchContracts(string? text, CancellationToken token)
     {
-        var result = string.IsNullOrWhiteSpace(text)
-            ? Contracts
-            : Contracts.Where(c => c.ContractNumber.Contains(text, StringComparison.OrdinalIgnoreCase)
-                                || c.Type.Contains(text, StringComparison.OrdinalIgnoreCase));
-
-        return Task.FromResult(result);
+        if (Search is null) return [];
+        return await Search(text, token);
     }
 
     private Task<IEnumerable<PortResponse>> SearchPorts(string? text, CancellationToken token)

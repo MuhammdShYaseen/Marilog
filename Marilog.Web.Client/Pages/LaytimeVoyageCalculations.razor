@@ -50,7 +50,6 @@
     private IReadOnlyList<LaytimeCalculationSummaryResponse> _calculations = Array.Empty<LaytimeCalculationSummaryResponse>();
     private bool _isLoading = true;
     private IReadOnlyList<PortResponse>? _ports;
-    private IReadOnlyList<ContractSummary>? _contracts;
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
@@ -81,7 +80,6 @@
         try
         {
             _ports ??= await PortService.GetActiveAsync();
-            _contracts ??= (await ContractService.GetPagedAsync(new ContractFilter { PageSize = 1000 })).Items;
         }
         catch (Exception ex)
         {
@@ -93,7 +91,7 @@
         var parameters = new DialogParameters<LaytimeCalculationCreateDialog>
         {
             { x => x.VoyageId, VoyageId },
-            { x => x.Contracts, _contracts },
+            { x => x.Search, SearchContractsAsync },
             { x => x.Ports, _ports },
             { x => x.LoadCharterTerms, id => CharterTermsService.GetCharterTermsAsync(id) }
         };
@@ -117,7 +115,16 @@
             Snackbar.Add($"Failed to create calculation: {ex.Message}", Severity.Error);
         }
     }
+    private async Task<IReadOnlyList<ContractSummary>> SearchContractsAsync(string? text, CancellationToken ct)
+    {
+        var page = await ContractService.GetPagedAsync(new ContractFilter
+        {
+            SearchTerm = string.IsNullOrWhiteSpace(text) ? null : text.Trim(),
+            PageSize = 20
+        }, ct);
 
+        return page.Items;
+    }
     private void OpenWorkspace(LaytimeCalculationSummaryResponse calc)
     {
         Nav.NavigateTo($"/operations/laytime/calculation/{calc.Id}");
