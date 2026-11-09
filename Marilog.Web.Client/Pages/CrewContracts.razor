@@ -16,7 +16,7 @@
 @inject ISnackbar            Snackbar
 @inject IDialogService       DialogService
 @inject IManageStoredFiles ManageStoredFiles
-
+@inject IManageComments ManageComments
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -30,7 +30,9 @@ else
                              OnEditClicked="OpenEditDialog"
                              OnDeleteClicked="ConfirmDelete"
                              OnSignOffClicked="OpenSignOffDialog"
-                             OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
+                             OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CrewContractLabel(arg.entityId)))"
+                             OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CrewContractLabel(arg.entityId)))" />
+/>
 }
 
 @code {
@@ -45,7 +47,11 @@ else
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     // ─── Load ──────────────────────────────────────────────────────────────
-    string? XLabel(int id) => _contracts.FirstOrDefault(x => x.ContractId == id) is { } x ? $"Crew Member : {x.PersonFullName}" : null;
+    string? CrewContractLabel(int id)
+    {
+        var c = _contracts.Concat(_expiring).FirstOrDefault(x => x.ContractId == id);
+        return c is null ? null : $"Crew Contract — {c.PersonFullName} · {c.RankName} · {c.VesselName}";
+    }
     private async Task LoadAsync()
     {
         _loading = true;

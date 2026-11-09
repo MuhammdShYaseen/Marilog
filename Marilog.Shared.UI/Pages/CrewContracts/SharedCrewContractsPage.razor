@@ -192,6 +192,13 @@
                         Files
                     </MudButton>
 
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.Comment"
+                               OnClick="() => OnCommentsClicked.InvokeAsync((_selected.ContractId, EntityType.CrewContract))">
+                        Comments
+                    </MudButton>
+
                     @if (_selected.IsActive)
                     {
                         <MudButton Variant="Variant.Outlined"
@@ -224,7 +231,7 @@
     [Parameter] public EventCallback<CrewContractResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<CrewContractResponse> OnSignOffClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     private CrewContractResponse? _selected;
     private string _search = string.Empty;
     private int _activeTab;
