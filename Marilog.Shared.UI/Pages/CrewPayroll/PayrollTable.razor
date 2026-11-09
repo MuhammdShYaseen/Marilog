@@ -53,6 +53,10 @@
                            Size="Size.Small"
                            Color="Color.Primary"
                            OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Id, EntityType.CrewPayroll))" />
+            <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="() => OnCommentsClicked.InvokeAsync((context.Id, EntityType.CrewPayroll))" />
             <MudIconButton Icon="@Icons.Material.Filled.Delete"
                            Size="Size.Small"
                            Color="Color.Error"
@@ -72,6 +76,7 @@
     [Parameter] public EventCallback<CrewPayrollResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<CrewPayrollResponse> OnDeleteClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
 
     // Selected comes from GetByIdAsync (a different instance) — match the row by Id
     private CrewPayrollResponse? SelectedRow =>

@@ -16,6 +16,7 @@
 @inject ISnackbar Snackbar
 @inject IRankService RankService
 @inject IManageStoredFiles StoredFiles
+@inject IManageComments ManageComments
 
 @if (_loading)
 {
@@ -40,10 +41,31 @@
                   OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
                   OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
                   OnShowExpiringCertificatesClicked="OpenExpiringCertificatesDialog"
-                  OnManageAttachedFilesClicked="StoredFiles.OpenManageStoredFilesDialogAsync" 
+                  OnManageAttachedFilesClicked="@(arg => StoredFiles.OpenManageStoredFilesDialogAsync(arg, PersonLabel(arg)))"
+                  OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PersonLabel(arg)))"
                   OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged" />
 
 @code {
+
+    //-------Label------------------------------
+    private string? PersonLabel((int entityId, EntityType entityType) arg)
+    {
+        var people = _persons.Concat(_filteredPersons);
+
+        if (arg.entityType == EntityType.PersonCertificate)
+        {
+            foreach (var p in people)
+            {
+                var c = p.Certificates.FirstOrDefault(x => x.Index == arg.entityId);
+                if (c is not null)
+                    return $"{$"{c.CertificateName} {c.CertificateNumber}".Trim()} — {p.FullName}";
+            }
+            return null;
+        }
+
+        var person = people.FirstOrDefault(x => x.Id == arg.entityId);
+        return person is null ? null : $"Person : {person.FullName}";
+    }
     // ── State ─────────────────────────────────────────────────────────────────────
     private IReadOnlyList<PersonResponse> _persons = [];
     private IReadOnlyList<RankResponse> _ranks = [];

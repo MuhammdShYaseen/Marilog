@@ -10,6 +10,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IManageStoredFiles ManageStoredFiles
+@inject IManageComments ManageComments
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host for Banks. Loads active banks in tree mode (GetPagedAsync
    has no page-size/page-number parameters, so it's not usable as a real list
@@ -26,13 +27,14 @@
                 OnManageContactsClicked="@HandleManageContactsClickedAsync"
                 OnToggleActiveClicked="@HandleToggleActiveClickedAsync"
                 OnDeleteClicked="@HandleDeleteClickedAsync"
-                OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
+                OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, BankLabel(arg.entityId)))"
+                OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, BankLabel(arg.entityId)))" />
 
 @code {
     List<BankResponse> _banks = [];
     List<CountryResponse> _countries = [];
     bool _isLoading;
-    string? XLabel(int id) => _banks.FirstOrDefault(x => x.BankId == id) is { } x ? $"Bank · {x.BankName}" : null;
+    string? BankLabel(int id) => _banks.FirstOrDefault(x => x.BankId == id) is { } x ? $"Bank · {x.BankName}" : null;
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadCountriesAsync(), LoadBanksAsync());

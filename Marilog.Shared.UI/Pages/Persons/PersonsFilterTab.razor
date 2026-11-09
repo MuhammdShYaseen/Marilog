@@ -165,6 +165,7 @@
                   OnRemoveCertificateClicked="OnRemoveCertificateClicked"
                   OnAddSeaServiceClicked="OnAddSeaServiceClicked"
                   OnEditSeaServiceClicked="OnEditSeaServiceClicked"
+                  OnCommentsClicked="OnCommentsClicked"
                   OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
 }
 else
@@ -193,7 +194,7 @@ else
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     // ── State ──
     private PersonFilterOptions _filter = new();
     private IReadOnlyCollection<string>? _certNames = [];

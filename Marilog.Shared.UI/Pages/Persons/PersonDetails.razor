@@ -103,6 +103,10 @@
                                                    Color="Color.Error"
                                                    title="Delete"
                                                    OnClick="() => OnRemoveCertificateClicked.InvokeAsync((Person, cert))" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                                                   Size="Size.Small"
+                                                   title="Comments"
+                                                   OnClick="() => OnCommentsClicked.InvokeAsync((cert.Index, EntityType.PersonCertificate))" />
                                 </td>
                             </tr>
                         }
@@ -207,6 +211,7 @@
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
 
     private (string Label, string? Value)[] Essentials =>
     [

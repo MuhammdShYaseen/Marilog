@@ -31,7 +31,8 @@
                      OnManageContactsClicked="@OnManageContactsClicked"
                      OnToggleActiveClicked="@OnToggleActiveClicked"
                      OnDeleteClicked="@OnDeleteClicked"
-                     OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
+                     OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                     OnCommentsClicked="OnCommentsClicked" />
 </MudPaper>
 
 @code {
@@ -43,7 +44,7 @@
     [Parameter, EditorRequired] public EventCallback<BankResponse> OnManageContactsClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<BankResponse> OnToggleActiveClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<BankResponse> OnDeleteClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     string _searchText = string.Empty;
 
     // Filters root banks only — a matching branch keeps its parent visible via

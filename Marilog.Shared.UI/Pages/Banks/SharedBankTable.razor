@@ -79,7 +79,9 @@
                     <MudIconButton Icon="@Icons.Material.Filled.ContactMail"
                                    Size="Size.Small"
                                    OnClick="() => OnManageContactsClicked.InvokeAsync(context.Item)" />
-
+                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                                   Size="Size.Small"
+                                   OnClick="() => OnCommentsClicked.InvokeAsync((context.Item!.BankId!.Value, EntityType.Bank))" />
                     <MudIconButton Icon="@(context.Item.IsActive
                                             ? Icons.Material.Filled.ToggleOn
                                             : Icons.Material.Filled.ToggleOff)"
@@ -136,6 +138,7 @@
     [Parameter, EditorRequired] public IReadOnlyList<BankResponse> Items { get; set; } = [];
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<BankResponse> OnEditClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<BankResponse> OnManageContactsClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<BankResponse> OnToggleActiveClicked { get; set; }

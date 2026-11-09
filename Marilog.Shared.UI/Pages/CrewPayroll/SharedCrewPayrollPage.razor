@@ -54,6 +54,7 @@
                                   OnRowSelected="SelectRow"
                                   OnEditClicked="OnEditClicked"
                                   OnDeleteClicked="OnDeleteClicked"
+                                  OnCommentsClicked="OnCommentsClicked"
                                   OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
@@ -77,6 +78,7 @@
                                   OnRowSelected="SelectRow"
                                   OnEditClicked="OnEditClicked"
                                   OnDeleteClicked="OnDeleteClicked"
+                                  OnCommentsClicked="OnCommentsClicked"
                                   OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
@@ -87,6 +89,7 @@
                                   OnRowSelected="SelectRow"
                                   OnEditClicked="OnEditClicked"
                                   OnDeleteClicked="OnDeleteClicked"
+                                  OnCommentsClicked="OnCommentsClicked"
                                   OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
                 </MudTabPanel>
 
@@ -311,6 +314,7 @@
     [Parameter] public EventCallback<PayrollStatus?> OnStatusChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> OnMonthSelected { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
 
     [Parameter] public EventCallback OnGenerateClicked { get; set; }
 

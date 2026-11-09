@@ -60,6 +60,7 @@
                           OnDeactivateClicked="OnDeactivateClicked"
                           OnEditBankClicked="OnEditBankClicked"
                           OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                          OnCommentsClicked="OnCommentsClicked"
                           OnAddCertificateClicked="OnAddCertificateClicked"
                           OnEditCertificateClicked="OnEditCertificateClicked"
                           OnRemoveCertificateClicked="OnRemoveCertificateClicked"
@@ -82,6 +83,7 @@
                               OnDeactivateClicked="OnDeactivateClicked"
                               OnEditBankClicked="OnEditBankClicked"
                               OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                              OnCommentsClicked="OnCommentsClicked"
                               OnAddCertificateClicked="OnAddCertificateClicked"
                               OnEditCertificateClicked="OnEditCertificateClicked"
                               OnRemoveCertificateClicked="OnRemoveCertificateClicked"
@@ -207,7 +209,7 @@
     [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
-
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
     [Parameter] public EventCallback<(PersonResponse person, CrewSuitabilityRating rating)> OnSuitabilityRatingChanged { get; set; }
 
     // ── State ─────────────────────────────────────────────────────

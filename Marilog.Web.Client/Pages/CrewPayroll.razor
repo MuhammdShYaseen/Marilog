@@ -13,7 +13,7 @@
 @inject IDialogService DialogService
 @inject IManageStoredFiles ManageStoredFiles
 @inject ICurrencyService CurrencyService
-
+@inject IManageComments ManageComments
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -36,7 +36,8 @@
                            OnMonthSelected="LoadByMonth"
                            OnStatusChanged="LoadByStatus"
                            OnGenerateClicked="OpenGenerateDialog"
-                           OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, XLabel(arg.entityId)))" />
+                           OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, PayrollLabel(arg.entityId)))"
+                           OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PayrollLabel(arg.entityId)))" />
 }
 
 @code {
@@ -50,10 +51,10 @@
     private DateOnly _selectedMonth = DateOnly.FromDateTime(DateTime.Today);
     private PayrollStatus _selectedStatus = PayrollStatus.Draft;
 
-    string? XLabel(int payrollId) =>
+    string? PayrollLabel(int payrollId) =>
     _byMonth.Concat(_byStatus).Concat(_outstanding)
             .FirstOrDefault(x => x.Id == payrollId) is { } p
-        ? $"Crew Member : {p.PersonFullName} — {p.PayrollMonth:MMM yyyy}"
+        ? ? $"Payroll — {p.PersonFullName} · {p.PayrollMonth:MMM yyyy}"
         : null;
     private bool _initialized;
     private CrewPayrollResponse? _selected;
