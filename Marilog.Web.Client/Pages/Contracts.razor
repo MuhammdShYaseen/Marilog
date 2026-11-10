@@ -1,5 +1,6 @@
 ﻿@attribute [RequirePage(EntityType.AContract)]
 @page "/contracts"
+@page "/contracts/{Id:int}"
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.Contract
 @using Marilog.Contracts.DTOs.Requests.ContractDTOs
@@ -21,46 +22,90 @@
 @inject IManageComments ManageComments
 @inject NavigationManager Navigation
 
-<SharedContractsPage @ref="_sharedPage"
-                     Paged="_paged"
-                     Report="_report"
-                     ContractTypes="_types"
-                     IsLoading="_loading"
-                     GetContractDetail="GetDetailAsync"
-                     ContractTypeId="_typeId"
-                     StatusFilter="_status"
-                     OnAddClicked="OpenCreateDialogAsync"
-                     OnRefreshClicked="ReloadAllAsync"
-                     OnSettingsClicked="@(() => Navigation.NavigateTo("/admin/contract-settings"))"
-                     OnSearchChanged="OnSearchChangedAsync"
-                     OnTypeChanged="OnTypeChangedAsync"
-                     OnStatusChanged="OnStatusChangedAsync"
-                     OnPrevPage="PrevPageAsync"
-                     OnNextPage="NextPageAsync"
-                     OnEditClicked="OpenEditDialogAsync"
-                     OnDeleteClicked="DeleteAsync"
-                     OnActivateClicked="ActivateAsync"
-                     OnSuspendClicked="SuspendAsync"
-                     OnTerminateClicked="TerminateAsync"
-                     OnMarkExpiredClicked="MarkExpiredAsync"
-                     OnCharterTermsClicked="@(id => Navigation.NavigateTo($"/operations/laytime/charter-terms/{id}"))"
-                     OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, ContractLabel(arg.entityId)))"
-                     OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, ContractLabel(arg.entityId)))"
-                     OnAddPartyClicked="OpenAddPartyDialogAsync"
-                     OnRemovePartyClicked="RemovePartyAsync"
-                     OnRecordAmendmentClicked="OpenRecordAmendmentDialogAsync"
-                     OnChangeExpiryClicked="OpenChangeExpiryDialogAsync" />
+@if (Id is not null)
+{
+    @if (_contract is not null)
+    {
+        <ContractsStyles />
+        <div class="az-contracts">
+            <MudPaper Outlined="true" Elevation="0">
+                <ContractDetails Contract="_contract"
+                                 IsLoading="_loading"
+                                 OnClose="@(() => Navigation.NavigateTo("/contracts"))"
+                                 OnEditClicked="OpenEditDialogAsync"
+                                 OnDeleteClicked="DeleteAsync"
+                                 OnActivateClicked="ActivateAsync"
+                                 OnSuspendClicked="SuspendAsync"
+                                 OnTerminateClicked="TerminateAsync"
+                                 OnMarkExpiredClicked="MarkExpiredAsync"
+                                 OnCharterTermsClicked="@(id => Navigation.NavigateTo($"/operations/laytime/charter-terms/{id}"))"
+                                 OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, ContractLabel(arg.entityId)))"
+                                 OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, ContractLabel(arg.entityId)))"
+                                 OnAddPartyClicked="OpenAddPartyDialogAsync"
+                                 OnRemovePartyClicked="RemovePartyAsync"
+                                 OnRecordAmendmentClicked="OpenRecordAmendmentDialogAsync"
+                                 OnChangeExpiryClicked="OpenChangeExpiryDialogAsync" />
+            </MudPaper>
+        </div>
+    }
+    else if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Contract @Id was not found. <MudLink Href="/contracts">Back to contracts</MudLink>
+        </MudAlert>
+    }
+}
+else
+{
+    <SharedContractsPage @ref="_sharedPage"
+                         Paged="_paged"
+                         Report="_report"
+                         ContractTypes="_types"
+                         IsLoading="_loading"
+                         GetContractDetail="GetDetailAsync"
+                         ContractTypeId="_typeId"
+                         StatusFilter="_status"
+                         OnAddClicked="OpenCreateDialogAsync"
+                         OnRefreshClicked="ReloadAllAsync"
+                         OnSettingsClicked="@(() => Navigation.NavigateTo("/admin/contract-settings"))"
+                         OnSearchChanged="OnSearchChangedAsync"
+                         OnTypeChanged="OnTypeChangedAsync"
+                         OnStatusChanged="OnStatusChangedAsync"
+                         OnPrevPage="PrevPageAsync"
+                         OnNextPage="NextPageAsync"
+                         OnEditClicked="OpenEditDialogAsync"
+                         OnDeleteClicked="DeleteAsync"
+                         OnActivateClicked="ActivateAsync"
+                         OnSuspendClicked="SuspendAsync"
+                         OnTerminateClicked="TerminateAsync"
+                         OnMarkExpiredClicked="MarkExpiredAsync"
+                         OnCharterTermsClicked="@(id => Navigation.NavigateTo($"/operations/laytime/charter-terms/{id}"))"
+                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, ContractLabel(arg.entityId)))"
+                         OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, ContractLabel(arg.entityId)))"
+                         OnAddPartyClicked="OpenAddPartyDialogAsync"
+                         OnRemovePartyClicked="RemovePartyAsync"
+                         OnRecordAmendmentClicked="OpenRecordAmendmentDialogAsync"
+                         OnChangeExpiryClicked="OpenChangeExpiryDialogAsync" />
+}
 
 @code {
     private const int PageSize = 25;
 
     private SharedContractsPage _sharedPage = default!;
+    [Parameter] public int? Id { get; set; }
+    private ContractDetailResponse? _contract;
+    private bool _lookupsLoaded;
+    private int? _shownId;
     private PagedResponse<ContractSummary>? _paged;
     private ContractReport? _report;
     private IReadOnlyList<ContractLookupResponse> _types = [];
     private IReadOnlyList<ContractLookupResponse> _roles = [];
     private IReadOnlyList<CompanyResponse> _companies = [];
-    private bool _loading;
+    private bool _loading = true;
 
     // Filter state
     private int _page = 1;
@@ -75,15 +120,24 @@
         CloseButton = true
     };
 
-    protected override async Task OnInitializedAsync()
+    // Same component for /contracts and /contracts/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
     {
-        await TryAsync(async () =>
+        if (_lookupsLoaded && _shownId == Id) return;
+
+        if (!_lookupsLoaded)
         {
-            _types = await ContractTypeService.GetAllAsync();
-            _roles = await ContractRoleService.GetAllAsync();
-            _companies = await CompanyService.GetActiveAsync();
-        });
-        await ReloadAllAsync();
+            _lookupsLoaded = true;
+            await TryAsync(async () =>
+            {
+                _types = await ContractTypeService.GetAllAsync();
+                _roles = await ContractRoleService.GetAllAsync();
+                _companies = await CompanyService.GetActiveAsync();
+            });
+        }
+
+        _shownId = Id;
+        await TryAsync(ReloadAllAsync);
     }
 
     // ─── Load ──────────────────────────────────────────────────────────────
@@ -115,16 +169,32 @@
 
     private async Task ReloadAllAsync()
     {
+        if (Id is int id)
+        {
+            _loading = true;
+            _contract = await LoadContractAsync(id);
+            _loading = false;
+            return;
+        }
+
         await TryAsync(async () => _report = await ContractService.GetReportAsync());
         await LoadPageAsync();
         if (_sharedPage is not null)
             await _sharedPage.RefreshSelectedIfOpenAsync();
     }
 
+    // A missing (or just deleted) contract is null, not an error.
+    private async Task<ContractDetailResponse?> LoadContractAsync(int id)
+    {
+        try { return await ContractService.GetByIdAsync(id); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
+    }
+
     private Task<ContractDetailResponse?> GetDetailAsync(int id) => ContractService.GetByIdAsync(id);
 
     private string? ContractLabel(int id)
     {
+        if (_contract?.Id == id) return $"{_contract.Type} {_contract.ContractNumber}";
         var c = _paged?.Items.FirstOrDefault(x => x.Id == id);
         if (c is null) return null;
 
@@ -210,7 +280,10 @@
         if (confirmed != true) return;
 
         if (await RunAsync(() => ContractService.DeleteAsync(id), "Contract deleted."))
-            _sharedPage?.CloseDetail();
+        {
+            if (Id is not null) Navigation.NavigateTo("/contracts");
+            else _sharedPage?.CloseDetail();
+        }
     }
 
     // ─── Status ──────────────────────────────────────────────────────────

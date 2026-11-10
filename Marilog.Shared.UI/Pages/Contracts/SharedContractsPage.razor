@@ -111,68 +111,7 @@
 </MudPaper>
 </div>
 
-<style>
-    .az-contracts .az-commandbar {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 0;
-        margin-bottom: 8px;
-        border-bottom: 1px solid var(--mud-palette-lines-default);
-    }
-
-    .az-contracts .az-pivot {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
-    }
-
-    .az-contracts .az-pivot .mud-button-root {
-        text-transform: none;
-        border-radius: 0;
-    }
-
-    .az-contracts .az-pivot .az-pivot-active {
-        border-bottom: 2px solid var(--mud-palette-primary);
-    }
-
-    .az-contracts .mud-tab {
-        text-transform: none;
-        min-width: 0;
-    }
-
-    .az-contracts .mud-table-head .mud-table-cell,
-    .az-contracts .mud-simple-table thead th {
-        text-transform: uppercase;
-        font-size: .7rem;
-        font-weight: 600;
-        letter-spacing: .04em;
-        color: var(--mud-palette-text-secondary);
-        background-color: var(--mud-palette-background-gray);
-    }
-
-    .az-contracts .mud-table-cell,
-    .az-contracts .mud-simple-table td {
-        font-size: .8125rem;
-        padding-top: 4px;
-        padding-bottom: 4px;
-    }
-
-    .az-contracts .az-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .az-contracts .az-muted {
-        color: var(--mud-palette-text-secondary);
-    }
-
-    .az-contracts .az-actions {
-        width: 1%;
-        white-space: nowrap;
-    }
-</style>
+<ContractsStyles/>
 
 @code {
     public const string ExpiringFilter = "Expiring";
