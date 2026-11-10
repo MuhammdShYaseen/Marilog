@@ -39,6 +39,9 @@ namespace Marilog.Contracts.DTOs.Responses
         public int? MasterBlId { get; init; }
         public string? MasterBlNumber { get; init; }
         public string? Notes {  get; init; }
+        public int? VoyageCargoId { get; init; }
+        public string? Clauses { get; init; }
+        public bool IsClean { get; init; }
         public DateTime? CreatedAt { get; init; }
         public DateTime? UpdatedAt { get; init; }
     }

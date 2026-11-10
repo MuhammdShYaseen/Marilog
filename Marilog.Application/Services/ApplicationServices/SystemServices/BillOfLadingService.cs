@@ -97,6 +97,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 MasterBlId =  b.MasterBlID,
                 MasterBlNumber = b.MasterBl == null ? null : b.MasterBl.BlNumber,
                 Notes = b.Notes,
+                VoyageCargoId = b.VoyageCargoID,
+                Clauses = b.Clauses,
+                IsClean = b.Clauses == null,
                 CreatedAt = b.CreatedAt,
                 UpdatedAt = b.UpdatedAt
             };
@@ -127,7 +130,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
 
             await EnsureVoyageWritableAsync(r.VoyageId, ct);
-            await EnsureUniqueBlNumberAsync(r.BlNumber, excludeId: null, ct);
+            await EnsureUniqueBlNumberAsync(r.BlNumber, r.VoyageId, excludeId: null, ct);
+            if (r.VoyageCargoId.HasValue)
+                await EnsureLoadLineOfVoyageAsync(r.VoyageCargoId.Value, r.VoyageId, ct);
             if (r.IssuanceType == BlIssuanceType.House && r.MasterBlId.HasValue)
                 await EnsureValidMasterBlAsync(r.MasterBlId.Value, r.VoyageId, selfId: null, ct);
             var bl = BillOfLading.Create(
@@ -139,7 +144,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 r.HsCode, r.VolumeM3, r.PackageCount, r.PackageType, r.MarksAndNumbers,
                 r.FreightAmount, r.Incoterms, r.PlaceOfIssue, r.OnBoardDate,
                 r.OriginalCopiesCount, r.MasterBlId,
-                r.PlaceOfReceiptPortId, r.PlaceOfDeliveryPortId, r.Notes);
+               r.PlaceOfReceiptPortId, r.PlaceOfDeliveryPortId, r.Notes, r.VoyageCargoId, r.Clauses);
 
             await _repo.AddAsync(bl, ct);
             await _repo.SaveChangesAsync(ct);
@@ -151,7 +156,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var bl = await GetOrThrowAsync(id, ct);
             await EnsureVoyageWritableAsync(bl.VoyageID, ct);
-
+            if (r.VoyageCargoId.HasValue)
+                await EnsureLoadLineOfVoyageAsync(r.VoyageCargoId.Value, bl.VoyageID, ct);
             bl.Update(
                 r.BlType, r.ShipperCompanyId, r.CarrierCompanyId,
                 r.PortOfLoadingId, r.PortOfDischargeId,
@@ -159,7 +165,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 r.ConsigneeCompanyId, r.ConsigneeToOrder, r.NotifyPartyCompanyId,
                 r.HsCode, r.VolumeM3, r.PackageCount, r.PackageType, r.MarksAndNumbers,
                 r.FreightAmount, r.Incoterms, r.PlaceOfIssue, r.OnBoardDate,
-                r.OriginalCopiesCount, r.PlaceOfReceiptPortId, r.PlaceOfDeliveryPortId, r.Notes);
+                r.OriginalCopiesCount, r.PlaceOfReceiptPortId, r.PlaceOfDeliveryPortId, r.Notes,
+                r.VoyageCargoId, r.Clauses);
 
             await _repo.SaveChangesAsync(ct);
 
@@ -181,6 +188,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var bl = await _repo.GetByIdAsync(id, ct)
                 ?? throw new NullReferenceException(nameof(BillOfLading) + id.ToString());
+
+            await EnsureUniqueBlNumberAsync(r.NewBlNumber, bl.VoyageID, excludeId: id, ct);
 
             bl.ChangeBlNumber(r.NewBlNumber);
             await _repo.SaveChangesAsync(ct);
@@ -231,14 +240,31 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         // Matches the current global unique index on BlNumber.
-        private async Task EnsureUniqueBlNumberAsync(string blNumber, int? excludeId, CancellationToken ct)
+        // Matches the unique index on (VoyageID, BlNumber).
+        private async Task EnsureUniqueBlNumberAsync(string blNumber, int voyageId, int? excludeId, CancellationToken ct)
         {
             var exists = await _repo.Query()
-                .AnyAsync(b => b.BlNumber == blNumber && (excludeId == null || b.Id != excludeId), ct);
+                .AnyAsync(b => b.VoyageID == voyageId
+                            && b.BlNumber == blNumber
+                            && (excludeId == null || b.Id != excludeId), ct);
             if (exists)
-                throw new InvalidOperationException($"Bill of lading number '{blNumber}' already exists.");
+                throw new InvalidOperationException($"Bill of lading number '{blNumber}' already exists on this voyage.");
         }
 
+        private async Task EnsureLoadLineOfVoyageAsync(int voyageCargoId, int voyageId, CancellationToken ct)
+        {
+            var operation = await _voyageRepo.Query()
+                .Where(v => v.Id == voyageId)
+                .SelectMany(v => v.Stops)
+                .SelectMany(s => s.Cargo)
+                .Where(c => c.VoyageCargoID == voyageCargoId)
+                .Select(c => (CargoOperation?)c.Operation)
+                .FirstOrDefaultAsync(ct)
+                ?? throw new InvalidOperationException("The cargo line does not belong to this voyage.");
+
+            if (operation != CargoOperation.Load)
+                throw new InvalidOperationException("A bill of lading can only be linked to a loading cargo line.");
+        }
         private async Task EnsureValidMasterBlAsync(int masterBlId, int voyageId, int? selfId, CancellationToken ct)
         {
             if (selfId == masterBlId)

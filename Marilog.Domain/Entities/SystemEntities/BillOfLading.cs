@@ -68,6 +68,13 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         public string? Notes { get; private set; }
 
+
+        // ── سطر التحميل على الرحلة ──────────────────────────────────────────
+        public int? VoyageCargoID { get; private set; }
+
+        // ── تحفّظات الماستر — فاضي = بوليصة نظيفة ──────────────────────────
+        public string? Clauses { get; private set; }
+        public bool IsClean => string.IsNullOrWhiteSpace(Clauses);
         private BillOfLading() { }
 
         // ── Create ───────────────────────────────────────────────────────────
@@ -100,7 +107,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             int? masterBlId = null,
             int? placeOfReceiptPortId = null,
             int? placeOfDeliveryPortId = null,
-            string? notes = null)
+            string? notes = null, 
+            int? voyageCargoId = null,
+            string? clauses = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(blNumber);
             ArgumentException.ThrowIfNullOrWhiteSpace(cargoDescription);
@@ -158,7 +167,9 @@ namespace Marilog.Domain.Entities.SystemEntities
                 OnBoardDate = onBoardDate,
                 OriginalCopiesCount = originalCopiesCount,
                 MasterBlID = masterBlId,
-                Notes = notes
+                Notes = notes,
+                VoyageCargoID = voyageCargoId,
+                Clauses = string.IsNullOrWhiteSpace(clauses) ? null : clauses.Trim()
             };
         }
 
@@ -188,7 +199,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             int originalCopiesCount = 3,
             int? placeOfReceiptPortId = null,
             int? placeOfDeliveryPortId = null,
-            string? notes = null)
+             string? notes = null,
+            int? voyageCargoId = null,
+            string? clauses = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(cargoDescription);
             if (grossWeightMt <= 0) throw new ArgumentException("GrossWeightMT must be positive.");
@@ -238,6 +251,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             OnBoardDate = onBoardDate;
             OriginalCopiesCount = originalCopiesCount;
             Notes = notes;
+            VoyageCargoID = voyageCargoId;
+            Clauses = string.IsNullOrWhiteSpace(clauses) ? null : clauses.Trim();
             Touch();
         }
 

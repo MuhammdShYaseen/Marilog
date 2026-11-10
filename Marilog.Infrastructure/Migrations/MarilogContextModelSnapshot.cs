@@ -830,6 +830,10 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<int>("CarrierCompanyID")
                         .HasColumnType("int");
 
+                    b.Property<string>("Clauses")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int?>("ConsigneeCompanyID")
                         .HasColumnType("int");
 
@@ -931,13 +935,13 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<decimal?>("VolumeM3")
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<int?>("VoyageCargoID")
+                        .HasColumnType("int");
+
                     b.Property<int>("VoyageID")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BlNumber")
-                        .IsUnique();
 
                     b.HasIndex("CarrierCompanyID");
 
@@ -959,6 +963,8 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasIndex("PortOfLoadingID");
 
                     b.HasIndex("ShipperCompanyID");
+
+                    b.HasIndex("VoyageCargoID");
 
                     b.HasIndex("VoyageID", "BlNumber")
                         .IsUnique();
@@ -3869,6 +3875,11 @@ namespace Marilog.Infrastructure.Migrations
                         .HasForeignKey("ShipperCompanyID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.VoyageCargo", null)
+                        .WithMany()
+                        .HasForeignKey("VoyageCargoID")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Voyage", "Voyage")
                         .WithMany("BillsOfLading")

@@ -32,6 +32,7 @@ namespace Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
     int? MasterBlId = null,
     int? PlaceOfReceiptPortId = null,
     int? PlaceOfDeliveryPortId = null,
-    string? Notes = null
-);
+    string? Notes = null,
+    int? VoyageCargoId = null,
+    string? Clauses = null);
 }

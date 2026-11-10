@@ -462,6 +462,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
         {
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
+            var cargoIds = voyage.Stops.FirstOrDefault(s => s.StopOrder == stopOrder)?.Cargo
+                                       .Select(c => c.VoyageCargoID)
+                                       .ToList() ?? [];
+
+            await EnsureCargoNotOnBlsAsync(voyageId, cargoIds, ct);
             voyage.RemoveStop(stopOrder);
             _repo.Update(voyage);
             await _repo.SaveChangesAsync(ct);
@@ -512,6 +517,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task UpdateCargoAsync(int voyageId, int voyageCargoId, SaveVoyageCargoRequest request,
             CancellationToken ct = default)
         {
+            if (request.Operation != CargoOperation.Load)
+                await EnsureCargoNotOnBlsAsync(voyageId, [voyageCargoId], ct);
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
             var category = await GetCargoCategoryAsync(request.CargoTypeId, requireActive: false, ct);
 
@@ -527,6 +534,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task RemoveCargoAsync(int voyageId, int voyageCargoId, CancellationToken ct = default)
         {
+            await EnsureCargoNotOnBlsAsync(voyageId, [voyageCargoId], ct);
             var voyage = await GetWithStopsOrThrowAsync(voyageId, ct);
             voyage.RemoveCargo(voyageCargoId);
             _repo.Update(voyage);
@@ -536,6 +544,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // ── Private ───────────────────────────────────────────────────────────────
 
+
+        private async Task EnsureCargoNotOnBlsAsync(int voyageId, IReadOnlyCollection<int> cargoIds, CancellationToken ct)
+        {
+            if (cargoIds.Count == 0) return;
+
+            var count = await _repo.Query()
+                .Where(v => v.Id == voyageId)
+                .SelectMany(v => v.BillsOfLading)
+                .CountAsync(b => b.VoyageCargoID != null && cargoIds.Contains(b.VoyageCargoID.Value), ct);
+
+            if (count > 0)
+                throw new InvalidOperationException(
+                    $"{count} bill(s) of lading are linked to this cargo — unlink them first.");
+        }
         private async Task<Voyage> GetOrThrowAsync(int id, CancellationToken ct)
             => await _repo.GetByIdAsync(id, ct)
                ?? throw new KeyNotFoundException($"Voyage {id} not found.");

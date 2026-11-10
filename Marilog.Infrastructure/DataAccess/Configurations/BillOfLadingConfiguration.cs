@@ -17,9 +17,6 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                 .IsRequired()
                 .HasMaxLength(50);
 
-            builder.HasIndex(b => b.BlNumber)
-                .IsUnique();
-
             builder.Property(b => b.BlType)
                 .IsRequired()
                 .HasConversion<string>()
@@ -129,6 +126,17 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             // ── Notes ───────────────────────────────────────────────────────
             builder.Property(b => b.Notes)
                 .HasMaxLength(2000);
+
+            // ── سطر التحميل + التحفّظات ─────────────────────────────────────
+            builder.HasOne<VoyageCargo>()
+                .WithMany()
+                .HasForeignKey(b => b.VoyageCargoID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(b => b.Clauses)
+                .HasMaxLength(1000);
+
+            builder.Ignore(b => b.IsClean);
 
             // ── علاقة Voyage (Aggregate Root) ───────────────────────────────
             builder.HasOne(b => b.Voyage)

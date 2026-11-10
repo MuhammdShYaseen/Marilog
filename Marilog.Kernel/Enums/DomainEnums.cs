@@ -1,6 +1,9 @@
 ﻿namespace Marilog.Kernel.Enums
 {
 
+
+    
+
     //Voyage after Refactor Enums
     /// <summary>Fixed on purpose — code behaviour (UI fields, cargo extensions) depends on it.</summary>
     public enum CargoCategory
@@ -264,9 +267,10 @@
 
     public enum FreightTerms
     {
-        Prepaid,       // Shipper pays freight
-        Collect,       // Consignee pays at destination
-        ThirdParty     // Third party pays
+        Prepaid,            // Shipper pays freight
+        Collect,            // Consignee pays at destination
+        ThirdParty,         // Third party pays
+        AsPerCharterParty   // Freight payable as per C/P (Congenbill)
     }
     public enum EntityType
     {

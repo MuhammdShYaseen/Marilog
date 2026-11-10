@@ -1,7 +1,4 @@
 ﻿using Marilog.Kernel.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
 {
@@ -30,7 +27,8 @@ namespace Marilog.Contracts.DTOs.Requests.BillOfLadingDTOs
     int OriginalCopiesCount = 3,
     int? PlaceOfReceiptPortId = null,
     int? PlaceOfDeliveryPortId = null,
-    string? Notes = null
-);
+    string? Notes = null,
+    int? VoyageCargoId = null,
+    string? Clauses = null);
 
 }
