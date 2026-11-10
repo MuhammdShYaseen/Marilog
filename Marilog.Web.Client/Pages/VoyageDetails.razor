@@ -299,6 +299,7 @@
             [nameof(BillOfLadingDialog.VoyageId)] = VoyageId,
             [nameof(BillOfLadingDialog.Companies)] = _companies,
             [nameof(BillOfLadingDialog.Ports)] = _ports,
+            [nameof(BillOfLadingDialog.LoadLines)] = LoadLines(),
             [nameof(BillOfLadingDialog.OnUpdate)] = new Func<UpdateBillOfLadingRequest, Task<bool>>(r =>
                 TryAsync(() => BillOfLadingService.UpdateAsync(bl.Id, r), "Bill of lading updated"))
         };

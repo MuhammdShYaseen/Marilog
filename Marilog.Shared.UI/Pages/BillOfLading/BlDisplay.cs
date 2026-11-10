@@ -18,6 +18,7 @@ namespace Marilog.Shared.UI.Pages.BillOfLading
             FreightTerms.Prepaid => "Prepaid",
             FreightTerms.Collect => "Collect",
             FreightTerms.ThirdParty => "Third party",
+            FreightTerms.AsPerCharterParty => "As per C/P",
             _ => terms.ToString()
         };
 

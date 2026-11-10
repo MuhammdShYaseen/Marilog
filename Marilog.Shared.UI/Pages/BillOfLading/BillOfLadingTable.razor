@@ -38,6 +38,12 @@
                             <MudIcon Icon="@Icons.Material.Outlined.WarningAmber" Size="Size.Small" Color="Color.Warning" />
                         </MudTooltip>
                     }
+                    @if (!context.IsClean)
+                    {
+                        <MudTooltip Text="@($"Claused: {context.Clauses}")">
+                            <MudIcon Icon="@Icons.Material.Outlined.ReportProblem" Size="Size.Small" Color="Color.Warning" />
+                        </MudTooltip>
+                    }
                 </div>
             }
             else
