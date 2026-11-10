@@ -42,7 +42,7 @@
     @if (_detail is not null)
     {
         <SharedDocumentDetailPage Document="_detail"
-                                  OnBackClicked="@(() => Nav.NavigateTo("/documents"))"
+                                  OnBackClicked="GoBackAsync"
                                   OnEditClicked="OpenEditDialog"
                                   OnDeleteClicked="ConfirmDelete"
                                   OnAddPaymentClicked="OpenAddPaymentDialog"
@@ -145,6 +145,14 @@ else
     private bool _initialized;
     private int? _shownId;
 
+
+    
+    // Back from the details page: to wherever the user came from; to the list when the page was opened directly.
+    private async Task GoBackAsync()
+    {
+        if (!await JS.InvokeAsync<bool>("marilogGoBack"))
+            Nav.NavigateTo("/documents");
+    }
     // Same component for /documents and /documents/{id}: reload only when the route changes.
     protected override async Task OnParametersSetAsync()
     {

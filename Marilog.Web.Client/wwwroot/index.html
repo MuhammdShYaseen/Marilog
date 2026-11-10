@@ -72,6 +72,12 @@
 
             URL.revokeObjectURL(url);
         };
+
+        // Back button on details pages: go to the previous page; false when there is none (page opened directly).
+        window.marilogGoBack = () => {
+            if (window.history.length > 1) { window.history.back(); return true; }
+            return false;
+        };
     </script>
     <script src="js/google-oauth.js"></script>
 </body>

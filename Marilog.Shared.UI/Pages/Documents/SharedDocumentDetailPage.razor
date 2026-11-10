@@ -9,502 +9,558 @@
 }
 else
 {
-    @* ── Sticky header with primary actions ──────────────────── *@
-    <MudPaper Class="pa-3 mb-4" Elevation="2" Style="position:sticky; top:0; z-index:10;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="OnBackClicked" />
+    <div class="az-doc">
 
-            <MudStack Spacing="0">
-                <MudText Typo="Typo.h5">@Document.DocNumber</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @(Document.DocTypeName ?? "—") &middot; @Document.DocDate.ToString("dd MMM yyyy")
-                </MudText>
-            </MudStack>
+        @* ── Header: title, status and command bar (sticky) ──────── *@
+        <div class="az-doc-header">
+            <div class="az-doc-title-row">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" OnClick="OnBackClicked" />
 
-            @if (IsNonFinancial)
-            {
-                <MudChip T="string" Color="Color.Default" Size="Size.Small">None</MudChip>
-            }
-            else
-            {
-                <MudChip T="string"
-                         Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
-                         Size="Size.Small">
-                    @(Document.IsFullyPaid ? "Fully Paid" : "Unpaid")
-                </MudChip>
-            }
+                <div class="az-doc-title">
+                    <MudText Typo="Typo.h6">@Document.DocNumber</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(Document.DocTypeName ?? "Document") &middot; @Document.DocDate.ToString("dd MMM yyyy")
+                    </MudText>
+                </div>
 
-            @if (HasAdjustments)
-            {
-                <MudTooltip Text="@($"Original {Document.TotalAmount.ToString("N2")} → Net {Document.NetAmount.ToString("N2")} {Document.CurrencyCode}")">
-                    <MudChip T="string" Color="Color.Info" Size="Size.Small"
-                             Icon="@Icons.Material.Filled.PriceChange">
-                        Price Adjusted
+                @if (IsNonFinancial)
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined" Class="ma-0">Non-financial</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
+                             Size="Size.Small" Variant="Variant.Filled" Class="ma-0">
+                        @(Document.IsFullyPaid ? "Fully paid" : "Unpaid")
                     </MudChip>
-                </MudTooltip>
-            }
+                }
 
-            @if (!Document.IsActive)
-            {
-                <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactive</MudChip>
-            }
+                @if (HasAdjustments)
+                {
+                    <MudTooltip Text="@($"Original {Document.TotalAmount:N2} → Net {Document.NetAmount:N2} {Document.CurrencyCode}")">
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Outlined" Class="ma-0"
+                                 Icon="@Icons.Material.Filled.PriceChange">
+                            Price adjusted
+                        </MudChip>
+                    </MudTooltip>
+                }
 
-            <MudSpacer />
+                @if (!Document.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Outlined" Class="ma-0">Inactive</MudChip>
+                }
+            </div>
 
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+            <div class="az-doc-commandbar">
                 <MudTooltip Text="@(IsNonFinancial ? "No financial side — payments not applicable" : string.Empty)">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Size="Size.Small"
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Payment"
-                               OnClick="() => OnAddPaymentClicked.InvokeAsync(Document)"
-                               Disabled="@(Document.IsFullyPaid || IsNonFinancial)">
-                        Add Payment
+                               Disabled="@(Document.IsFullyPaid || IsNonFinancial)"
+                               OnClick="() => OnAddPaymentClicked.InvokeAsync(Document)">
+                        Add payment
                     </MudButton>
                 </MudTooltip>
-                <MudTooltip Text="Edit">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                   Color="Color.Primary"
-                                   OnClick="() => OnEditClicked.InvokeAsync(Document)" />
-                </MudTooltip>
-                <MudTooltip Text="Attachments">
-                    <MudIconButton Icon="@Icons.Material.Filled.Receipt"
-                                   Color="Color.Default"
-                                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))" />
-                </MudTooltip>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="() => OnEditClicked.InvokeAsync(Document)">
+                    Edit
+                </MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Receipt"
+                           OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))">
+                    Files
+                </MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.Comment"
+                           OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))">
+                    Comments
+                </MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="() => OnDeleteClicked.InvokeAsync(Document)">
+                    Delete
+                </MudButton>
+            </div>
+        </div>
 
-                <MudTooltip Text="Comments">
-                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
-                                   Color="Color.Default"
-                                   OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))" />
-                </MudTooltip>
+        <div class="az-doc-body">
 
-                <MudTooltip Text="Delete">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Color="Color.Error"
-                                   OnClick="() => OnDeleteClicked.InvokeAsync(Document)" />
-                </MudTooltip>
-            </MudStack>
-        </MudStack>
-    </MudPaper>
-
-    @* ── Validation alert — only shown when there's a mismatch ── *@
-    @if (!Document.Is_TotalAmount_Equal_TotalItemsAmount)
-    {
-        <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.WarningAmber">
-            Document total (@Document.TotalAmount.ToString("N2") @Document.CurrencyCode) doesn't match
-            items total (@Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode) —
-            difference of @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode.
-            @if (HasAdjustments)
+            @* ── Mismatch warning — only when items don't add up ───── *@
+            @if (!Document.Is_TotalAmount_Equal_TotalItemsAmount)
             {
-                <text> This check uses the original amount; price adjustments are excluded.</text>
+                <MudAlert Severity="Severity.Warning" Dense="true" Square="true" Icon="@Icons.Material.Filled.WarningAmber">
+                    Document total (@Money(Document.TotalAmount)) doesn't match
+                    items total (@Money(Document.TotalItemsAmount)) —
+                    difference of @Money(Document.TotalAmount_Minus_TotalItemsAmount).
+                    @if (HasAdjustments)
+                    {
+                        <text> This check uses the original amount; price adjustments are excluded.</text>
+                    }
+                </MudAlert>
             }
-        </MudAlert>
-    }
 
-    <MudGrid>
+            @* ── Amounts ───────────────────────────────────────────── *@
+            <div class="az-doc-tiles">
+                <div class="az-doc-tile">
+                    <div class="az-doc-label">@(HasAdjustments ? "Original amount" : "Total amount")</div>
+                    <MudText Typo="Typo.h6">@Money(Document.TotalAmount)</MudText>
+                    @if (ShowBase)
+                    {
+                        <div class="az-doc-base">@BaseMoney(Document.TotalAmountBase)</div>
+                    }
+                </div>
 
-        @* ── Header Info ───────────────────────────────────────── *@
-        <MudItem xs="12" md="7">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
-                    Document Info
-                </MudText>
-                <MudGrid Spacing="3">
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Currency</MudText>
-                        <MudText Typo="Typo.body2">@Document.CurrencyCode</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Reference</MudText>
-                        <MudText Typo="Typo.body2">@(Document.Reference ?? "—")</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Supplier</MudText>
-                        <MudText Typo="Typo.body2">@(Document.SupplierName ?? "—")</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Buyer</MudText>
-                        <MudText Typo="Typo.body2">@(Document.BuyerName ?? "—")</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Vessel</MudText>
-                        <MudText Typo="Typo.body2">@(Document.VesselName ?? "—")</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Port</MudText>
-                        <MudText Typo="Typo.body2">@(Document.PortName ?? "—")</MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
+                @if (HasAdjustments)
+                {
+                    <div class="az-doc-tile">
+                        <div class="az-doc-label">Adjustments</div>
+                        <MudText Typo="Typo.h6" Color="Color.Info">@FormatSigned(Document.AdjustmentsTotal) @Document.CurrencyCode</MudText>
+                    </div>
+                    <div class="az-doc-tile">
+                        <div class="az-doc-label">Net amount</div>
+                        <MudText Typo="Typo.h6">@Money(Document.NetAmount)</MudText>
+                        @if (ShowBase)
+                        {
+                            <div class="az-doc-base">@BaseMoney(Document.NetAmountBase)</div>
+                        }
+                    </div>
+                }
 
-            @* ── Items Validation ─────────────────────────────── *@
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small" Class="mr-1" />
-                    Items Validation
-                </MudText>
-                <MudStack Spacing="2">
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Items Total</MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2" Style="font-weight:600">
-                            @Document.TotalItemsAmount.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Difference</MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2"
-                                 Color="@(Document.TotalAmount_Minus_TotalItemsAmount == 0 ? Color.Success : Color.Warning)"
-                                 Style="font-weight:600">
-                            @Document.TotalAmount_Minus_TotalItemsAmount.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-                    <MudStack Row="true" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Validation</MudText>
-                        <MudSpacer />
+                <div class="az-doc-tile">
+                    <div class="az-doc-label">Total paid</div>
+                    <MudText Typo="Typo.h6" Color="Color.Success">@Money(Document.TotalPaid)</MudText>
+                    @if (ShowBase)
+                    {
+                        <div class="az-doc-base">@BaseMoney(Document.PaidAmountBase)</div>
+                    }
+                </div>
+
+                <div class="az-doc-tile">
+                    <div class="az-doc-label">Remaining</div>
+                    <MudText Typo="Typo.h6" Color="@(Document.RemainingBalance > 0 ? Color.Warning : Color.Success)">
+                        @Money(Document.RemainingBalance)
+                    </MudText>
+                    @if (ShowBase)
+                    {
+                        <div class="az-doc-base">@BaseMoney(Document.RemainingBase)</div>
+                    }
+                </div>
+            </div>
+
+            @* ── Essentials ────────────────────────────────────────── *@
+            <div class="az-doc-card">
+                <div class="az-doc-card-head">
+                    <span class="az-doc-section-title">Essentials</span>
+                </div>
+                <div class="az-doc-card-body">
+                    <div class="az-doc-essentials">
+                        <div>
+                            <div class="az-doc-label">Document type</div>
+                            <div class="az-doc-value">@Dash(Document.DocTypeName)</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Document date</div>
+                            <div class="az-doc-value">@Document.DocDate.ToString("dd MMM yyyy")</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Due date</div>
+                            <div class="az-doc-value">
+                                @if (Document.DocDue is DateOnly due)
+                                {
+                                    <span>@due.ToString("dd MMM yyyy")</span>
+                                    @if (DueState is { } state)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@state.Color" Class="ma-0">
+                                            @state.Text
+                                        </MudChip>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="az-doc-muted">—</span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Side</div>
+                            <div class="az-doc-value">@SideLabel(Document.Side)</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Reference</div>
+                            <div class="az-doc-value">@Dash(Document.Reference)</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Currency</div>
+                            <div class="az-doc-value">@Document.CurrencyCode</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Supplier</div>
+                            <div class="az-doc-value">@Link(Document.SupplierName, Document.SupplierId, "/companies")</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Buyer</div>
+                            <div class="az-doc-value">@Link(Document.BuyerName, Document.BuyerId, "/companies")</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Vessel</div>
+                            <div class="az-doc-value">@Link(Document.VesselName, Document.VesselId, "/vessels")</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Port</div>
+                            <div class="az-doc-value">@Dash(Document.PortName)</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Voyage</div>
+                            <div class="az-doc-value">@Link(Document.VoyageId is null ? null : "View voyage", Document.VoyageId, "/voyages")</div>
+                        </div>
+                        <div>
+                            <div class="az-doc-label">Parent document</div>
+                            <div class="az-doc-value">@Link(Document.ParentDocumentId is null ? null : "View parent", Document.ParentDocumentId, "/documents")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Items ─────────────────────────────────────────────── *@
+            <div class="az-doc-card">
+                <div class="az-doc-card-head">
+                    <span class="az-doc-section-title">Items</span>
+                    <span class="az-doc-muted">(@Document.Items.Count)</span>
+                    <MudTooltip Text="@ItemsCheckTooltip">
                         @if (Document.Is_TotalAmount_Equal_TotalItemsAmount)
                         {
-                            <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small"
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small" Class="ma-0"
                                      Icon="@Icons.Material.Filled.CheckCircle">
-                                Matched
+                                Matches total
                             </MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small"
+                            <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small" Class="ma-0"
                                      Icon="@Icons.Material.Filled.ErrorOutline">
-                                Mismatch
+                                Mismatch @Money(Document.TotalAmount_Minus_TotalItemsAmount)
                             </MudChip>
                         }
-                    </MudStack>
-                    @if (HasAdjustments)
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Compared against the original amount — price adjustments are not part of the items.
-                        </MudText>
-                    }
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        @* ── Financial Summary ─────────────────────────────────── *@
-        <MudItem xs="12" md="5">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" Class="mr-1" />
-                    Financial Summary
-                </MudText>
-                <MudStack Spacing="2">
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            @(HasAdjustments ? "Original Amount" : "Total Amount")
-                        </MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2" Style="font-weight:600">
-                            @Document.TotalAmount.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-
-                    @if (HasAdjustments)
-                    {
-                        <MudStack Row="true">
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Adjustments</MudText>
-                            <MudSpacer />
-                            <MudText Typo="Typo.body2" Color="Color.Info" Style="font-weight:600">
-                                @FormatSigned(Document.AdjustmentsTotal) @Document.CurrencyCode
-                            </MudText>
-                        </MudStack>
-                        <MudStack Row="true">
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Net Amount</MudText>
-                            <MudSpacer />
-                            <MudText Typo="Typo.subtitle2" Style="font-weight:700">
-                                @Document.NetAmount.ToString("N2") @Document.CurrencyCode
-                            </MudText>
-                        </MudStack>
-                    }
-
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total Paid</MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2" Color="Color.Success">
-                            @Document.TotalPaid.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-                    <MudDivider />
-                    <MudStack Row="true">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Remaining</MudText>
-                        <MudSpacer />
-                        <MudText Typo="Typo.body2"
-                                 Color="@(Document.RemainingBalance > 0 ? Color.Warning : Color.Success)"
-                                 Style="font-weight:600">
-                            @Document.RemainingBalance.ToString("N2") @Document.CurrencyCode
-                        </MudText>
-                    </MudStack>
-                </MudStack>
-
-                <MudExpansionPanels Class="mt-3" Elevation="0">
-                    <MudExpansionPanel Text="@($"Base currency ({Document.CurrencyCodeBase})")" Dense="true">
-                        <MudStack Spacing="2">
-                            <MudStack Row="true">
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    @(HasAdjustments ? "Original" : "Total")
-                                </MudText>
-                                <MudSpacer />
-                                <MudText Typo="Typo.body2" Style="font-weight:600">
-                                    @Document.TotalAmountBase.ToString("N2") @Document.CurrencyCodeBase
-                                </MudText>
-                            </MudStack>
-                            @if (HasAdjustments)
-                            {
-                                <MudStack Row="true">
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Net</MudText>
-                                    <MudSpacer />
-                                    <MudText Typo="Typo.body2" Style="font-weight:700">
-                                        @Document.NetAmountBase.ToString("N2") @Document.CurrencyCodeBase
-                                    </MudText>
-                                </MudStack>
-                            }
-                            <MudStack Row="true">
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Paid</MudText>
-                                <MudSpacer />
-                                <MudText Typo="Typo.body2" Color="Color.Success">
-                                    @Document.PaidAmountBase.ToString("N2") @Document.CurrencyCodeBase
-                                </MudText>
-                            </MudStack>
-                            <MudStack Row="true">
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Remaining</MudText>
-                                <MudSpacer />
-                                <MudText Typo="Typo.body2"
-                                         Color="@(Document.RemainingBase > 0 ? Color.Warning : Color.Success)"
-                                         Style="font-weight:600">
-                                    @Document.RemainingBase.ToString("N2") @Document.CurrencyCodeBase
-                                </MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudExpansionPanel>
-                </MudExpansionPanels>
-            </MudPaper>
-        </MudItem>
-
-        @* ── Items ─────────────────────────────────────────────── *@
-        <MudItem xs="12">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.subtitle1">
-                        <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Small" Class="mr-1" />
-                        Items
-                    </MudText>
+                    </MudTooltip>
                     <MudSpacer />
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               Size="Size.Small"
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Add"
                                OnClick="() => OnAddItemClicked.InvokeAsync(Document)">
-                        Add Item
+                        Add item
                     </MudButton>
-                </MudStack>
-                <MudTable Items="Document.Items" Dense="true" Hover="true" Striped="true">
+                </div>
+                <MudTable Items="Document.Items" Dense="true" Hover="true" Elevation="0" Square="true">
                     <HeaderContent>
                         <MudTh>Product</MudTh>
-                        <MudTh>Qty</MudTh>
+                        <MudTh Class="az-num">Qty</MudTh>
                         <MudTh>Unit</MudTh>
-                        <MudTh Style="text-align:right">Unit Price</MudTh>
-                        <MudTh Style="text-align:right">Line Total</MudTh>
-                        <MudTh Style="width:96px"></MudTh>
+                        <MudTh Class="az-num">Unit price</MudTh>
+                        <MudTh Class="az-num">Line total</MudTh>
+                        <MudTh Style="width:80px"></MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>@context.ProductName</MudTd>
-                        <MudTd>@context.Quantity.ToString("N2")</MudTd>
-                        <MudTd>@(context.Unit ?? "—")</MudTd>
-                        <MudTd Style="text-align:right">@context.UnitPrice.ToString("N2")</MudTd>
-                        <MudTd Style="text-align:right; font-weight:600">@context.LineTotal.ToString("N2")</MudTd>
+                        <MudTd Class="az-num">@context.Quantity.ToString("N2")</MudTd>
+                        <MudTd>@Dash(context.Unit)</MudTd>
+                        <MudTd Class="az-num">@context.UnitPrice.ToString("N2")</MudTd>
+                        <MudTd Class="az-num" Style="font-weight:600">@context.LineTotal.ToString("N2")</MudTd>
                         <MudTd>
-                            <MudStack Row="true" Spacing="0">
-                                <MudTooltip Text="Edit">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                   Size="Size.Small"
-                                                   OnClick="() => OnEditItemClicked.InvokeAsync((Document.Id, context))" />
-                                </MudTooltip>
-                                <MudTooltip Text="Delete">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error"
-                                                   OnClick="() => OnRemoveItemClicked.InvokeAsync((Document.Id, context.Id))" />
-                                </MudTooltip>
-                            </MudStack>
+                            <div class="az-doc-row-actions">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                                               OnClick="() => OnEditItemClicked.InvokeAsync((Document.Id, context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="Delete"
+                                               OnClick="() => OnRemoveItemClicked.InvokeAsync((Document.Id, context.Id))" />
+                            </div>
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText Color="Color.Secondary">No items yet.</MudText>
+                        <div class="az-doc-empty">No items yet.</div>
                     </NoRecordsContent>
                     <FooterContent>
-                        <MudTd colspan="4">
-                            <MudText Typo="Typo.body2" Style="font-weight:600">Total</MudText>
-                        </MudTd>
-                        <MudTd Style="text-align:right">
-                            <MudText Typo="Typo.body2" Style="font-weight:600">
-                                @Document.Items.Sum(i => i.LineTotal).ToString("N2")
-                            </MudText>
-                        </MudTd>
+                        <MudTd colspan="4" Style="font-weight:600">Items total</MudTd>
+                        <MudTd Class="az-num" Style="font-weight:600">@Money(Document.Items.Sum(i => i.LineTotal))</MudTd>
                         <MudTd />
                     </FooterContent>
                 </MudTable>
-            </MudPaper>
-        </MudItem>
+            </div>
 
-        @* ── Price Adjustments ─────────────────────────────────── *@
-        <MudItem xs="12">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.subtitle1">
-                        <MudIcon Icon="@Icons.Material.Filled.PriceChange" Size="Size.Small" Class="mr-1" />
-                        Price Adjustments
-                    </MudText>
+            @* ── Price adjustments ─────────────────────────────────── *@
+            <div class="az-doc-card">
+                <div class="az-doc-card-head">
+                    <span class="az-doc-section-title">Price adjustments</span>
+                    <span class="az-doc-muted">(@Adjustments.Count)</span>
                     <MudSpacer />
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Info"
-                               Size="Size.Small"
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Add"
                                OnClick="() => OnAddAdjustmentClicked.InvokeAsync(Document)">
-                        Add Adjustment
+                        Add adjustment
                     </MudButton>
-                </MudStack>
-
-                <MudTable Items="Adjustments" Dense="true" Hover="true" Striped="true">
+                </div>
+                <MudTable Items="Adjustments" Dense="true" Hover="true" Elevation="0" Square="true">
                     <HeaderContent>
                         <MudTh>Date</MudTh>
                         <MudTh>Reason</MudTh>
                         <MudTh>Type</MudTh>
-                        <MudTh Style="text-align:right">Amount</MudTh>
-                        <MudTh Style="width:96px"></MudTh>
+                        <MudTh Class="az-num">Amount</MudTh>
+                        <MudTh Style="width:80px"></MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>@context.AdjustmentDate.ToString("dd MMM yyyy")</MudTd>
-                        <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "—" : context.Reason)</MudTd>
+                        <MudTd>@Dash(context.Reason)</MudTd>
                         <MudTd>
                             @if (context.Amount >= 0)
                             {
-                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small"
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small" Class="ma-0"
                                          Icon="@Icons.Material.Filled.TrendingUp">
                                     Increase
                                 </MudChip>
                             }
                             else
                             {
-                                <MudChip T="string" Color="Color.Success" Variant="Variant.Text" Size="Size.Small"
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Text" Size="Size.Small" Class="ma-0"
                                          Icon="@Icons.Material.Filled.TrendingDown">
                                     Decrease
                                 </MudChip>
                             }
                         </MudTd>
-                        <MudTd Style="text-align:right; font-weight:600">
-                            @FormatSigned(context.Amount)
-                        </MudTd>
+                        <MudTd Class="az-num" Style="font-weight:600">@FormatSigned(context.Amount)</MudTd>
                         <MudTd>
-                            <MudStack Row="true" Spacing="0">
-                                <MudTooltip Text="Edit">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                   Size="Size.Small"
-                                                   OnClick="() => OnEditAdjustmentClicked.InvokeAsync((Document, context))" />
-                                </MudTooltip>
-                                <MudTooltip Text="Delete">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error"
-                                                   OnClick="() => OnRemoveAdjustmentClicked.InvokeAsync((Document.Id, context.Id))" />
-                                </MudTooltip>
-                            </MudStack>
+                            <div class="az-doc-row-actions">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                                               OnClick="() => OnEditAdjustmentClicked.InvokeAsync((Document, context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="Delete"
+                                               OnClick="() => OnRemoveAdjustmentClicked.InvokeAsync((Document.Id, context.Id))" />
+                            </div>
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText Color="Color.Secondary">
-                            No price adjustments — the document is settled at its original amount.
-                        </MudText>
+                        <div class="az-doc-empty">No price adjustments — the document is settled at its original amount.</div>
                     </NoRecordsContent>
                     <FooterContent>
-                        <MudTd colspan="3">
-                            <MudText Typo="Typo.body2" Style="font-weight:600">Net Adjustment</MudText>
-                        </MudTd>
-                        <MudTd Style="text-align:right">
-                            <MudText Typo="Typo.body2" Style="font-weight:600">
-                                @FormatSigned(Document.AdjustmentsTotal)
-                            </MudText>
-                        </MudTd>
+                        <MudTd colspan="3" Style="font-weight:600">Net adjustment</MudTd>
+                        <MudTd Class="az-num" Style="font-weight:600">@FormatSigned(Document.AdjustmentsTotal)</MudTd>
                         <MudTd />
                     </FooterContent>
                 </MudTable>
-
                 @if (HasAdjustments)
                 {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
-                        Payments settle against the net amount
-                        (@Document.NetAmount.ToString("N2") @Document.CurrencyCode).
-                    </MudText>
+                    <div class="az-doc-note">
+                        Payments settle against the net amount (@Money(Document.NetAmount)).
+                    </div>
                 }
-            </MudPaper>
-        </MudItem>
+            </div>
 
-        @* ── Payments ──────────────────────────────────────────── *@
-        <MudItem xs="12">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Small" Class="mr-1" />
-                    Payments
-                </MudText>
-                <MudTable Items="Document.Payments" Dense="true" Hover="true" Striped="true">
+            @* ── Payments ──────────────────────────────────────────── *@
+            <div class="az-doc-card">
+                <div class="az-doc-card-head">
+                    <span class="az-doc-section-title">Payments</span>
+                    <span class="az-doc-muted">(@Document.Payments.Count)</span>
+                </div>
+                <MudTable Items="Document.Payments" Dense="true" Hover="true" Elevation="0" Square="true">
                     <HeaderContent>
-                        <MudTh>SWIFT Ref</MudTh>
-                        <MudTh>Payment Method</MudTh>
-                        <MudTh>Discreption</MudTh>
                         <MudTh>Date</MudTh>
-                        <MudTh Style="text-align:right">Amount</MudTh>
-                        <MudTh Style="width:96px"></MudTh>
+                        <MudTh>Method</MudTh>
+                        <MudTh>SWIFT ref</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh Class="az-num">Amount</MudTh>
+                        <MudTh Style="width:80px"></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@(context.SwiftTransfer?.SwiftReference ?? "—")</MudTd>
-                        <MudTd>@context.PaymentMethod.ToString()</MudTd>
-                        <MudTd>@(context.Discreption ?? "—")</MudTd>
                         <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
-                        <MudTd Style="text-align:right; font-weight:600">@context.PaidAmount.ToString("N2")</MudTd>
+                        <MudTd>@context.PaymentMethod</MudTd>
+                        <MudTd>@Link(context.SwiftTransfer?.SwiftReference, context.SwiftTransferId, "/swift-transfers")</MudTd>
+                        <MudTd>@Dash(context.Discreption)</MudTd>
+                        <MudTd Class="az-num" Style="font-weight:600">@context.PaidAmount.ToString("N2")</MudTd>
                         <MudTd>
-                            <MudStack Row="true" Spacing="0">
-                                <MudTooltip Text="Edit">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                                   Size="Size.Small"
-                                                   OnClick="() => OnEditPaymentClicked.InvokeAsync((Document, context))" />
-                                </MudTooltip>
-                                <MudTooltip Text="Delete">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error"
-                                                   OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
-                                </MudTooltip>
-                            </MudStack>
+                            <div class="az-doc-row-actions">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="Edit"
+                                               OnClick="() => OnEditPaymentClicked.InvokeAsync((Document, context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="Delete"
+                                               OnClick="() => OnRemovePaymentClicked.InvokeAsync((Document.Id, context.Id))" />
+                            </div>
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
-                        <MudText Color="Color.Secondary">No payments recorded.</MudText>
+                        <div class="az-doc-empty">No payments recorded.</div>
                     </NoRecordsContent>
                     <FooterContent>
-                        <MudTd colspan="4">
-                            <MudText Typo="Typo.body2" Style="font-weight:600">Total Paid</MudText>
-                        </MudTd>
-                        <MudTd Style="text-align:right">
-                            <MudText Typo="Typo.body2" Style="font-weight:600">
-                                @Document.Payments.Sum(p => p.PaidAmount).ToString("N2")
-                            </MudText>
-                        </MudTd>
+                        <MudTd colspan="4" Style="font-weight:600">Total paid</MudTd>
+                        <MudTd Class="az-num" Style="font-weight:600">@Money(Document.Payments.Sum(p => p.PaidAmount))</MudTd>
                         <MudTd />
                     </FooterContent>
                 </MudTable>
-            </MudPaper>
-        </MudItem>
+            </div>
 
-    </MudGrid>
+        </div>
+    </div>
 }
+
+<style>
+    .az-doc {
+        background-color: var(--mud-palette-background);
+        min-height: 100%;
+    }
+
+        /* ── Header ── */
+        .az-doc .az-doc-header {
+            position: sticky;
+            top: var(--mud-appbar-height, 0px); /* on its own page: stay below the app bar */
+            z-index: 10;
+            padding: 8px 16px 0 8px;
+            background-color: var(--mud-palette-surface);
+            border-bottom: 1px solid var(--mud-palette-lines-default);
+        }
+
+    /* inside the drawer the drawer itself scrolls: stick to its top */
+    .mud-drawer .az-doc .az-doc-header {
+        top: 0;
+    }
+
+    .az-doc .az-doc-title-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .az-doc .az-doc-title {
+        display: flex;
+        flex-direction: column;
+        margin-right: 8px;
+    }
+
+    .az-doc .az-doc-commandbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px;
+        padding: 4px 0 4px 32px;
+    }
+
+        .az-doc .az-doc-commandbar .mud-button-root,
+        .az-doc .az-doc-card-head .mud-button-root {
+            text-transform: none;
+        }
+
+    /* ── Body ── */
+    .az-doc .az-doc-body {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    /* ── Amount tiles: 1px grid lines between tiles ── */
+    .az-doc .az-doc-tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 1px;
+        background-color: var(--mud-palette-lines-default);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-doc .az-doc-tile {
+        padding: 10px 14px;
+        background-color: var(--mud-palette-surface);
+    }
+
+    .az-doc .az-doc-base {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    /* ── Cards ── */
+    .az-doc .az-doc-card {
+        background-color: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-doc .az-doc-card-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 4px 12px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-doc .az-doc-card-body {
+        padding: 12px 14px;
+    }
+
+    .az-doc .az-doc-section-title {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-doc .az-doc-essentials {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px 24px;
+    }
+
+    .az-doc .az-doc-label {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-doc .az-doc-value {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: .875rem;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .az-doc .az-doc-muted {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-doc .az-doc-empty {
+        padding: 8px 0;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-doc .az-doc-note {
+        padding: 6px 12px;
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    /* ── Tables ── */
+    .az-doc .mud-table-head .mud-table-cell {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-doc .mud-table-cell {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .az-doc .az-num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .az-doc .az-doc-row-actions {
+        display: flex;
+        justify-content: flex-end;
+        white-space: nowrap;
+    }
+</style>
 
 @code {
     [Parameter] public DocumentResponse? Document { get; set; }
@@ -527,12 +583,66 @@ else
 
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
+
     private bool IsNonFinancial => Document?.Side == FinancialSide.None;
-    private IReadOnlyList<AdjustmentResponse> Adjustments
-        => Document?.Adjustments ?? [];
+
+    private IReadOnlyList<AdjustmentResponse> Adjustments => Document?.Adjustments ?? [];
 
     private bool HasAdjustments => Adjustments.Count > 0;
 
+    // Base-currency figures are only worth showing when they differ from the document's currency.
+    private bool ShowBase => Document is not null
+                             && !string.IsNullOrWhiteSpace(Document.CurrencyCodeBase)
+                             && Document.CurrencyCodeBase != Document.CurrencyCode;
+
+    private string ItemsCheckTooltip => Document is null
+        ? string.Empty
+        : $"Document total {Money(Document.TotalAmount)} · Items total {Money(Document.TotalItemsAmount)}"
+          + (HasAdjustments ? " · compared against the original amount" : string.Empty);
+
+    // ── Due date: colour + days left. Null when there is nothing to say. ──
+    private (string Text, Color Color)? DueState
+    {
+        get
+        {
+            if (Document?.DocDue is not DateOnly due || IsNonFinancial) return null;
+            if (Document.IsFullyPaid) return ("Paid", Color.Success);
+
+            var days = due.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
+            return days switch
+            {
+                < 0 => ($"Overdue by {Days(-days)}", Color.Error),
+                0 => ("Due today", Color.Error),
+                <= 7 => ($"Due in {Days(days)}", Color.Warning),
+                _ => ($"{Days(days)} left", Color.Success)
+            };
+        }
+    }
+
+    private static string Days(int n) => n == 1 ? "1 day" : $"{n} days";
+
+    private string Money(decimal value) => $"{value:N2} {Document?.CurrencyCode}";
+
+    private string BaseMoney(decimal value) => $"{value:N2} {Document?.CurrencyCodeBase}";
+
     private static string FormatSigned(decimal value)
         => value > 0 ? $"+{value:N2}" : value.ToString("N2");
+
+    private static string Dash(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    private static string SideLabel(FinancialSide side) => side switch
+    {
+        FinancialSide.Revenue => "Revenue",
+        FinancialSide.Expense => "Expense",
+        _ => "Non-financial"
+    };
+
+    // A link to the record's own page when it has one, plain text otherwise.
+    private RenderFragment Link(string? text, int? id, string basePath)
+    {
+        if (id is int recordId && !string.IsNullOrWhiteSpace(text))
+            return @<MudLink Href="@($"{basePath}/{recordId}")" Typo="Typo.body2">@text</MudLink>;
+
+        return @<span>@Dash(text)</span>;
+    }
 }
