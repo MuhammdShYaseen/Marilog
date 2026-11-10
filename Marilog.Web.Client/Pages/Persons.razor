@@ -1,5 +1,6 @@
 ﻿@attribute [RequirePage(EntityType.Person)]
 @page "/persons"
+@page "/persons/{Id:int}"
 @using Marilog.Contracts.DTOs.Reports.PersonReports
 @using Marilog.Contracts.DTOs.Requests.PersonDTOs
 @using Marilog.Contracts.DTOs.Responses
@@ -22,37 +23,71 @@
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 
-<SharedPersonPage Persons="_persons"
-                  Ranks="_ranks"
-                  FilteredPersons="_filteredPersons"
-                  IsFiltering="_isFiltering"
-                  OnFilterSearch="HandleFilterSearch"
-                  OnActivateClicked="Activate"
-                  OnDeactivateClicked="Deactivate"
-                  OnDeleteClicked="ConfirmDelete"
-                  OnEditClicked="OpenEditDialog"
-                  OnAddClicked="OpenAddDialog"
-                  OnEditBankClicked="OpenEditBankDialog"
-                  CertificateNames="_certificateNames"
-                  OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
-                  OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
-                  OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
-                  OnManageAttachedFilesClicked="@(arg => StoredFiles.OpenManageStoredFilesDialogAsync(arg, PersonLabel(arg)))"
-                  OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PersonLabel(arg)))"
-                  OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged">
-                    <CertificatesContent Context="person">
-                        <PersonCertificatesPanel PersonId="person.Id" OnChanged="LoadAsync" />
-                    </CertificatesContent>
- </SharedPersonPage>
+@if (Id is not null)
+{
+    @if (_person is not null)
+    {
+        <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+            <PersonDetailsView Person="_person"
+                               OnCloseClicked="@(() => Nav.NavigateTo("/persons"))"
+                               OnEditClicked="OpenEditDialog"
+                               OnDeleteClicked="ConfirmDelete"
+                               OnActivateClicked="Activate"
+                               OnDeactivateClicked="Deactivate"
+                               OnEditBankClicked="OpenEditBankDialog"
+                               OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
+                               OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
+                               OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
+                               OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged"
+                               OnManageAttachedFilesClicked="@(arg => StoredFiles.OpenManageStoredFilesDialogAsync(arg, PersonLabel(arg)))"
+                               OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PersonLabel(arg)))"
+                               CertificatesContent="CertificatesFragment" />
+        </MudPaper>
+    }
+    else if (!_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Person @Id was not found. <MudLink Href="/persons">Back to persons</MudLink>
+        </MudAlert>
+    }
+}
+else
+{
+    <SharedPersonPage Persons="_persons"
+                      Ranks="_ranks"
+                      FilteredPersons="_filteredPersons"
+                      IsFiltering="_isFiltering"
+                      OnFilterSearch="HandleFilterSearch"
+                      OnActivateClicked="Activate"
+                      OnDeactivateClicked="Deactivate"
+                      OnDeleteClicked="ConfirmDelete"
+                      OnEditClicked="OpenEditDialog"
+                      OnAddClicked="OpenAddDialog"
+                      OnEditBankClicked="OpenEditBankDialog"
+                      CertificateNames="_certificateNames"
+                      OnAddSeaServiceClicked="OpenAddSeaServiceDialog"
+                      OnEditSeaServiceClicked="OpenEditSeaServiceDialog"
+                      OnRemoveSeaServiceClicked="ConfirmRemoveSeaService"
+                      OnManageAttachedFilesClicked="@(arg => StoredFiles.OpenManageStoredFilesDialogAsync(arg, PersonLabel(arg)))"
+                      OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PersonLabel(arg)))"
+                      OnSuitabilityRatingChanged="HandleSuitabilityRatingChanged"
+                      CertificatesContent="CertificatesFragment" />
+}
 
 @code {
+    [Parameter] public int? Id { get; set; }
+    private PersonResponse? _person;
+    private bool _initialized;
+    private int? _shownId;
 
+    // Shared by the list rows and the details page.
+    private RenderFragment<PersonResponse> CertificatesFragment => person => @<PersonCertificatesPanel PersonId="person.Id" OnChanged="LoadAsync" />;
     //-------Label------------------------------
     private string? PersonLabel((int entityId, EntityType entityType) arg)
     {
-        var people = _persons.Concat(_filteredPersons);
-
-        var person = people.FirstOrDefault(x => x.Id == arg.entityId);
+        var person = _person?.Id == arg.entityId
+    ? _person
+    : _persons.Concat(_filteredPersons).FirstOrDefault(x => x.Id == arg.entityId);
         return person is null ? null : $"Person : {person.FullName}";
     }
     // ── State ─────────────────────────────────────────────────────────────────────
@@ -68,15 +103,29 @@
 
     // ── Init & Load ───────────────────────────────────────────────────────────────
 
-    protected override async Task OnInitializedAsync()
+    // Same component for /persons and /persons/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
     {
-        _ranks = await RanksList();
+        if (_initialized && _shownId == Id) return;
+        _initialized = true;
+        _shownId = Id;
+
+        if (_ranks.Count == 0) _ranks = await RanksList();
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _loading = true;
+
+        if (Id is int id)
+        {
+            try { _person = await PersonService.GetByIdAsync(id); }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { _person = null; }
+            _loading = false;
+            return;
+        }
+
         _persons = await PersonService.GetAllAsync();
         // مستخدم بدون صلاحية قراءة الشهادات: الفلتر بيضل بدون أسماء بدل ما تنكسر الصفحة
         try { _certificateNames = await CertificateService.GetNamesAsync(); }
@@ -213,6 +262,8 @@
         {
             await PersonService.DeleteAsync(person.Id);
             Snackbar.Add("Person deleted.", Severity.Success);
+            if (Id is not null) Nav.NavigateTo("/persons");
+            else await LoadAsync();
             await LoadAsync();
         }
     }

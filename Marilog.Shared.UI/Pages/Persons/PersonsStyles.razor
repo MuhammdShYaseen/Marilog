@@ -1,0 +1,91 @@
+@* PersonsStyles.razor — shared styles for the persons list and the person details page. *@
+@namespace Marilog.Shared.UI.Pages.Persons
+
+
+<style>
+    .az-persons .az-page-title {
+        padding-bottom: 8px;
+    }
+
+    .az-persons .az-commandbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-persons .mud-tab {
+        text-transform: none;
+        min-width: 0;
+    }
+
+    .az-persons .mud-table-head .mud-table-cell,
+    .az-persons .mud-simple-table thead th {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .az-persons .mud-table-cell,
+    .az-persons .mud-simple-table td {
+        font-size: .8125rem;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .az-persons .az-detail {
+        padding: 8px 16px 16px 16px;
+        border-left: 2px solid var(--mud-palette-primary);
+        background-color: var(--mud-palette-background);
+    }
+
+    .az-persons .az-essentials {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px 24px;
+    }
+
+    .az-persons .az-label {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-persons .az-value {
+        font-size: .8125rem;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .az-persons .az-section-label {
+        text-transform: uppercase;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        color: var(--mud-palette-text-secondary);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        padding-bottom: 2px;
+    }
+
+    .az-persons .az-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .az-persons .az-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .az-persons .az-small {
+        font-size: .75rem;
+    }
+
+    .az-persons .az-actions {
+        width: 1%;
+        white-space: nowrap;
+    }
+</style>

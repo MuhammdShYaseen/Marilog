@@ -57,10 +57,12 @@
                         OnEditClicked="EditAsync"
                         OnDeleteClicked="DeleteAsync"
                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CertificateLabel(arg.entityId)))"
-                        OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CertificateLabel(arg.entityId)))" />
+                        OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CertificateLabel(arg.entityId)))"
+                        OnPersonClicked="OnPersonClicked" />
 
 @code {
     [Parameter] public int? PersonId { get; set; }
+    [Parameter] public EventCallback<int> OnPersonClicked { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
 
     private const int PageSize = 20;

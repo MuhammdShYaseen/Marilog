@@ -1,0 +1,115 @@
+@* PersonDetailsView.razor — one person on its own page (/persons/{id}). *@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Persons
+
+<PersonsStyles />
+
+<div class="az-persons">
+
+    @* ── Header ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium">
+            <MudIcon Icon="@Icons.Material.Filled.Person" />
+        </MudAvatar>
+        <MudStack Spacing="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudText Typo="Typo.h6">@Person.FullName</MudText>
+                <MudMenu Icon="@Icons.Material.Filled.Circle"
+                         Color="@RatingColor(Person.SuitabilityRating)"
+                         Size="Size.Small"
+                         Dense="true"
+                         AnchorOrigin="Origin.BottomLeft"
+                         TransformOrigin="Origin.TopLeft">
+                    @foreach (var rating in Ratings)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Circle"
+                                     IconColor="@RatingColor(rating)"
+                                     OnClick="() => ChangeRating(rating)">
+                            @rating
+                        </MudMenuItem>
+                    }
+                </MudMenu>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Passport @(Person.PassportNo ?? "—") · Seaman book @(Person.SeamanBookNo ?? "—")
+            </MudText>
+        </MudStack>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                       Size="Size.Small"
+                       OnClick="OnCloseClicked" />
+    </MudStack>
+
+    @* ── Command bar ── *@
+    <div class="az-commandbar">
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="() => OnEditClicked.InvokeAsync(Person)">Edit</MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Receipt"
+                   OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Person.Id, EntityType.Person))">Files</MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.Comment"
+                   OnClick="() => OnCommentsClicked.InvokeAsync((Person.Id, EntityType.Person))">Comments</MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   Color="@(Person.IsActive ? Color.Warning : Color.Success)"
+                   StartIcon="@(Person.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                   OnClick="ToggleActive">
+            @(Person.IsActive ? "Deactivate" : "Activate")
+        </MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="() => OnDeleteClicked.InvokeAsync(Person)">Delete</MudButton>
+    </div>
+
+    <PersonDetails Person="Person"
+                   OnEditBankClicked="OnEditBankClicked"
+                   OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                   OnCommentsClicked="OnCommentsClicked"
+                   CertificatesContent="CertificatesContent"
+                   OnAddSeaServiceClicked="OnAddSeaServiceClicked"
+                   OnEditSeaServiceClicked="OnEditSeaServiceClicked"
+                   OnRemoveSeaServiceClicked="OnRemoveSeaServiceClicked" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PersonResponse Person { get; set; } = default!;
+    [Parameter] public EventCallback OnCloseClicked { get; set; }
+
+    [Parameter] public EventCallback<PersonResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnActivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnDeactivateClicked { get; set; }
+    [Parameter] public EventCallback<PersonResponse> OnEditBankClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
+    [Parameter] public RenderFragment<PersonResponse>? CertificatesContent { get; set; }
+
+    [Parameter] public EventCallback<PersonResponse> OnAddSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnEditSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, PersonSeaServiceResponse service)> OnRemoveSeaServiceClicked { get; set; }
+    [Parameter] public EventCallback<(PersonResponse person, CrewSuitabilityRating rating)> OnSuitabilityRatingChanged { get; set; }
+
+    private static readonly CrewSuitabilityRating[] Ratings = Enum.GetValues<CrewSuitabilityRating>();
+
+    private Task ToggleActive() =>
+        Person.IsActive
+            ? OnDeactivateClicked.InvokeAsync(Person)
+            : OnActivateClicked.InvokeAsync(Person);
+
+    private Task ChangeRating(CrewSuitabilityRating rating) =>
+        rating == Person.SuitabilityRating
+            ? Task.CompletedTask
+            : OnSuitabilityRatingChanged.InvokeAsync((Person, rating));
+
+    private static Color RatingColor(CrewSuitabilityRating rating) => rating switch
+    {
+        CrewSuitabilityRating.Good => Color.Success,
+        CrewSuitabilityRating.Average => Color.Info,
+        CrewSuitabilityRating.Poor => Color.Warning,
+        CrewSuitabilityRating.Dangerous => Color.Error,
+        _ => Color.Default
+    };
+}
