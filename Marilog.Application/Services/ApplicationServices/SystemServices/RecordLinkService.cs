@@ -128,7 +128,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             EntityType.Vessel => $"/vessels/{id}",
             EntityType.Person => $"/persons/{id}",
             EntityType.Company => $"/companies/{id}",
-            EntityType.Bank => $"/admin/banks/{id}",
             EntityType.AContract => $"/contracts/{id}",
             EntityType.Document => $"/documents/{id}",
             EntityType.SwiftTransfer => $"/swift-transfers/{id}",
