@@ -1,5 +1,6 @@
 ﻿@attribute [RequirePage(EntityType.CrewPayroll)]
 @page "/payroll"
+@page "/payroll/{Id:int}"
 @using Marilog.Contracts.DTOs.Requests.CrewPayrollDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
@@ -14,11 +15,37 @@
 @inject IManageStoredFiles ManageStoredFiles
 @inject ICurrencyService CurrencyService
 @inject IManageComments ManageComments
+@inject NavigationManager Nav
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-@if (_initialized)
+@if (Id is not null)
+{
+    @if (_selected is not null)
+    {
+        <MudPaper Class="pa-4" Outlined="true" Elevation="0">
+            <PayrollDetails Payroll="_selected"
+                            OnClose="@(() => Nav.NavigateTo("/payroll"))"
+                            OnEditClicked="OpenEditDialog"
+                            OnDeleteClicked="ConfirmDelete"
+                            OnApproveClicked="Approve"
+                            OnCancelClicked="Cancel"
+                            OnPayClicked="OpenPayDialog"
+                            OnConfirmDisbursementClicked="@(a => ConfirmDisbursement(a.payrollId, a.disbursement))"
+                            OnCancelDisbursementClicked="@(a => CancelDisbursement(a.payrollId, a.disbursement))"
+                            OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, PayrollLabel(arg.entityId)))"
+                            OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, PayrollLabel(arg.entityId)))" />
+        </MudPaper>
+    }
+    else if (_initialized && !_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Payroll @Id was not found. <MudLink Href="/payroll">Back to payroll</MudLink>
+        </MudAlert>
+    }
+}
+else if (_initialized)
 {
     <SharedCrewPayrollPage PayrollByMonth="_byMonth"
                            PayrollByStatus="_byStatus"
@@ -52,26 +79,38 @@
     private PayrollStatus _selectedStatus = PayrollStatus.Draft;
 
     string? PayrollLabel(int payrollId) =>
-    _byMonth.Concat(_byStatus).Concat(_outstanding)
-            .FirstOrDefault(x => x.Id == payrollId) is { } p
-        ?  $"Payroll — {p.PersonFullName} · {p.PayrollMonth:MMM yyyy}"
+        (_selected?.Id == payrollId
+            ? _selected
+            : _byMonth.Concat(_byStatus).Concat(_outstanding).FirstOrDefault(x => x.Id == payrollId)) is { } p
+        ? $"Payroll — {p.PersonFullName} · {p.PayrollMonth:MMM yyyy}"
         : null;
     private bool _initialized;
     private CrewPayrollResponse? _selected;
+    [Parameter] public int? Id { get; set; }
+    private int? _shownId;
 
-    protected override async Task OnInitializedAsync()
+    // Same component for /payroll and /payroll/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
     {
-        try
+        if (_initialized && _shownId == Id) return;
+        _shownId = Id;
+
+        if (!_initialized)
         {
-            _currencies = await CurrencyService.GetAllAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
+            try { _currencies = await CurrencyService.GetAllAsync(); }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
 
-        await LoadAsync();
+        if (Id is null) _selected = null; // back from a details page: start with the panel closed
+        await LoadAsync();                 // on /payroll/{id} this also loads the payroll itself
         _initialized = true;
+    }
+
+    // A missing (or just deleted) payroll is null, not an error.
+    private async Task<CrewPayrollResponse?> LoadPayrollAsync(int id)
+    {
+        try { return await PayrollService.GetByIdAsync(id); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
     }
     // ─── Loading ───────────────────────────────────────────────────────────
 
@@ -90,8 +129,8 @@
             _byStatus = t2.Result;
             _outstanding = t3.Result;
             _contracts = t4.Result;
-            if (_selected is not null)
-                _selected = await PayrollService.GetByIdAsync(_selected.Id);
+            if ((Id ?? _selected?.Id) is int selectedId)
+                _selected = await LoadPayrollAsync(selectedId);
         }
         catch (Exception ex)
         {
@@ -270,6 +309,7 @@
             if (_selected?.Id == payroll.Id) _selected = null;
         }, 
         "Payroll deleted.");
+        if (Id is not null && _selected is null) Nav.NavigateTo("/payroll");
     }
 
     // ─── Disbursement ──────────────────────────────────────────────────────
