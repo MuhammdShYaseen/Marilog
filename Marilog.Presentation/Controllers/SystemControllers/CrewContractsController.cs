@@ -25,7 +25,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         public async Task<ActionResult<CrewContractResponse>> GetById(int id, CancellationToken ct)
         {
             var contract = await _service.GetByIdAsync(id, ct);
-            return contract is null ? NotFound() : Ok(contract);
+            return contract is null ? NotFound() : Ok(ApiResponse<CrewContractResponse>.Ok(contract));
         }
 
         [HttpGet("by-person/{personId:int}")]

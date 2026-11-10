@@ -1,0 +1,161 @@
+@* CrewContractDetails.razor — one crew contract. Used by the side panel and by /crew-contracts/{id}. *@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.CrewContracts
+
+@{
+    var c = Contract;
+}
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudLink Href="@($"/persons/{c.PersonId}")" Typo="Typo.h6">@c.PersonFullName</MudLink>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                   Size="Size.Small"
+                   OnClick="OnClose" />
+</MudStack>
+
+<MudDivider Class="mb-3" />
+
+<MudGrid Spacing="2">
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Vessel</MudText>
+        <MudLink Href="@($"/vessels/{c.VesselId}")" Typo="Typo.body2">@c.VesselName</MudLink>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Rank</MudText>
+        <MudText Typo="Typo.body2">@c.RankName</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Department</MudText>
+        <MudText Typo="Typo.body2">@c.RankDepartment</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Monthly Wage</MudText>
+        <MudText Typo="Typo.body2">@c.MonthlyWage.ToString("N2")</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign On</MudText>
+        <MudText Typo="Typo.body2">@c.SignOnDate.ToString("dd MMM yyyy")</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign Off</MudText>
+        <MudText Typo="Typo.body2">@(c.SignOffDate?.ToString("dd MMM yyyy") ?? "—")</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign On Port</MudText>
+        <MudText Typo="Typo.body2">@(c.SignOnPortName ?? "—")</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign Off Port</MudText>
+        <MudText Typo="Typo.body2">@(c.SignOffPortName ?? "—")</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Duration</MudText>
+        <MudText Typo="Typo.body2">@(c.ContractDurationDays?.ToString() ?? "—") days</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Wage Earned</MudText>
+        <MudText Typo="Typo.body2">@(c.TotalWageEarned?.ToString("N2") ?? "—")</MudText>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+        <MudChip T="string"
+                 Color="@(c.IsActive ? Color.Success : Color.Default)"
+                 Size="Size.Small">
+            @(c.IsActive ? "Active" : "Signed Off")
+        </MudChip>
+    </MudItem>
+
+    <MudItem xs="6">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Validity</MudText>
+        <MudChip T="string"
+                 Color="@ValidityColor(c.ContractStatus)"
+                 Size="Size.Small">
+            @ValidityLabel(c.ContractStatus)
+        </MudChip>
+    </MudItem>
+
+    @if (!string.IsNullOrWhiteSpace(c.Notes))
+    {
+        <MudItem xs="12">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
+            <MudText Typo="Typo.body2">@c.Notes</MudText>
+        </MudItem>
+    }
+
+</MudGrid>
+
+<MudDivider Class="my-3" />
+
+<MudStack Row="true" Spacing="2">
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Edit"
+               OnClick="() => OnEditClicked.InvokeAsync(c)">
+        Edit
+    </MudButton>
+
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Receipt"
+               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((c.ContractId, EntityType.CrewContract))">
+        Files
+    </MudButton>
+
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Outlined.Comment"
+               OnClick="() => OnCommentsClicked.InvokeAsync((c.ContractId, EntityType.CrewContract))">
+        Comments
+    </MudButton>
+
+    @if (c.IsActive)
+    {
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Warning"
+                   StartIcon="@Icons.Material.Filled.ExitToApp"
+                   OnClick="() => OnSignOffClicked.InvokeAsync(c)">
+            Sign Off
+        </MudButton>
+    }
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Error"
+               StartIcon="@Icons.Material.Filled.Delete"
+               OnClick="() => OnDeleteClicked.InvokeAsync(c)">
+        Delete
+    </MudButton>
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public CrewContractResponse Contract { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    [Parameter] public EventCallback<CrewContractResponse> OnEditClicked { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<CrewContractResponse> OnSignOffClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnCommentsClicked { get; set; }
+
+    private static Color ValidityColor(CrewContractStatus s) => s switch
+    {
+        CrewContractStatus.Valied => Color.Success,
+        CrewContractStatus.Expiring => Color.Warning,
+        CrewContractStatus.Expired => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string ValidityLabel(CrewContractStatus s) => s == CrewContractStatus.Valied ? "Valid" : s.ToString();
+}

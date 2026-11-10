@@ -93,129 +93,13 @@
     {
         <MudItem xs="12" md="5">
             <MudPaper Class="pa-4" Elevation="2">
-
-                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.h6">@_selected.PersonFullName</MudText>
-                    <MudSpacer />
-                    <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                   Size="Size.Small"
-                                   OnClick="ClosePanel" />
-                </MudStack>
-
-                <MudDivider Class="mb-3" />
-
-                <MudGrid Spacing="2">
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Vessel</MudText>
-                        <MudText Typo="Typo.body2">@_selected.VesselName</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rank</MudText>
-                        <MudText Typo="Typo.body2">@_selected.RankName</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Department</MudText>
-                        <MudText Typo="Typo.body2">@_selected.RankDepartment</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Monthly Wage</MudText>
-                        <MudText Typo="Typo.body2">@_selected.MonthlyWage.ToString("N2")</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign On</MudText>
-                        <MudText Typo="Typo.body2">@_selected.SignOnDate.ToString("dd MMM yyyy")</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign Off</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.SignOffDate?.ToString("dd MMM yyyy") ?? "—")</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign On Port</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.SignOnPortName ?? "—")</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sign Off Port</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.SignOffPortName ?? "—")</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Duration</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.ContractDurationDays?.ToString() ?? "—") days</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Wage Earned</MudText>
-                        <MudText Typo="Typo.body2">@(_selected.TotalWageEarned?.ToString("N2") ?? "—")</MudText>
-                    </MudItem>
-
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
-                        <MudChip T="string"
-                                 Color="@(_selected.IsActive ? Color.Success : Color.Default)"
-                                 Size="Size.Small">
-                            @(_selected.IsActive ? "Active" : "Signed Off")
-                        </MudChip>
-                    </MudItem>
-
-                    @if (!string.IsNullOrWhiteSpace(_selected.Notes))
-                    {
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Notes</MudText>
-                            <MudText Typo="Typo.body2">@_selected.Notes</MudText>
-                        </MudItem>
-                    }
-
-                </MudGrid>
-
-                <MudDivider Class="my-3" />
-
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => OnEditClicked.InvokeAsync(_selected)">
-                        Edit
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Receipt"
-                               OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((_selected.ContractId, EntityType.CrewContract))">
-                        Files
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Outlined.Comment"
-                               OnClick="() => OnCommentsClicked.InvokeAsync((_selected.ContractId, EntityType.CrewContract))">
-                        Comments
-                    </MudButton>
-
-                    @if (_selected.IsActive)
-                    {
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Warning"
-                                   StartIcon="@Icons.Material.Filled.ExitToApp"
-                                   OnClick="() => OnSignOffClicked.InvokeAsync(_selected)">
-                            Sign Off
-                        </MudButton>
-                    }
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => OnDeleteClicked.InvokeAsync(_selected)">
-                        Delete
-                    </MudButton>
-                </MudStack>
-
+                <CrewContractDetails Contract="_selected"
+                                     OnClose="ClosePanel"
+                                     OnEditClicked="OnEditClicked"
+                                     OnDeleteClicked="OnDeleteClicked"
+                                     OnSignOffClicked="OnSignOffClicked"
+                                     OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                                     OnCommentsClicked="OnCommentsClicked" />
             </MudPaper>
         </MudItem>
     }

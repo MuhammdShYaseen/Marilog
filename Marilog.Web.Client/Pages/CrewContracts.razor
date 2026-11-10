@@ -1,5 +1,6 @@
 ﻿@attribute [RequirePage(EntityType.CrewContract)]
 @page "/crew-contracts"
+@page "/crew-contracts/{Id:int}"
 @using Marilog.Contracts.DTOs.Requests.CrewDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
@@ -17,11 +18,34 @@
 @inject IDialogService       DialogService
 @inject IManageStoredFiles ManageStoredFiles
 @inject IManageComments ManageComments
+@inject NavigationManager Nav
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-else
+
+@if (Id is not null)
+{
+    @if (_contract is not null)
+    {
+        <MudPaper Class="pa-4" Outlined="true" Elevation="0">
+            <CrewContractDetails Contract="_contract"
+                                 OnClose="@(() => Nav.NavigateTo("/crew-contracts"))"
+                                 OnEditClicked="OpenEditDialog"
+                                 OnDeleteClicked="ConfirmDelete"
+                                 OnSignOffClicked="OpenSignOffDialog"
+                                 OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CrewContractLabel(arg.entityId)))"
+                                 OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CrewContractLabel(arg.entityId)))" />
+        </MudPaper>
+    }
+    else if (!_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Crew contract @Id was not found. <MudLink Href="/crew-contracts">Back to crew contracts</MudLink>
+        </MudAlert>
+    }
+}
+else if (!_loading)
 {
     <SharedCrewContractsPage Contracts="@_contracts"
                              ExpiringContracts="@_expiring"
@@ -42,13 +66,33 @@ else
     private IReadOnlyList<RankResponse>         _ranks     = [];
     private IReadOnlyList<PortResponse>         _ports     = [];
     private bool _loading = true;
+    [Parameter] public int? Id { get; set; }
+    private CrewContractResponse? _contract;
+    private bool _initialized;
+    private int? _shownId;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    // Same component for /crew-contracts and /crew-contracts/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && _shownId == Id) return;
+        _initialized = true;
+        _shownId = Id;
+
+        if (Id is null) _contract = null;
+        await LoadAsync();
+    }
+
+    // A missing (or just deleted) contract is null, not an error.
+    private async Task<CrewContractResponse?> LoadContractAsync(int id)
+    {
+        try { return await CrewContractService.GetByIdAsync(id); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
+    }
 
     // ─── Load ──────────────────────────────────────────────────────────────
     string? CrewContractLabel(int id)
     {
-        var c = _contracts.Concat(_expiring).FirstOrDefault(x => x.ContractId == id);
+        var c = _contract?.ContractId == id ? _contract : _contracts.Concat(_expiring).FirstOrDefault(x => x.ContractId == id);
         return c is null ? null : $"Crew Contract — {c.PersonFullName} · {c.RankName} · {c.VesselName}";
     }
     private async Task LoadAsync()
@@ -71,6 +115,9 @@ else
             _persons   = t4.Result;
             _ranks     = t5.Result;
             _ports     = t6.Result;
+
+            if (Id is int id)
+                _contract = await LoadContractAsync(id);
         }
         catch (Exception ex)
         {
@@ -202,6 +249,7 @@ else
         if (outcome.IsSuccess)
         {
             Snackbar.Add("Contract deleted.", Severity.Success);
+            if (Id is not null) { Nav.NavigateTo("/crew-contracts"); return; }
             await LoadAsync();
         }
         else
