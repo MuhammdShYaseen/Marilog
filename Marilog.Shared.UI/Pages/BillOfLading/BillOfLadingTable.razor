@@ -42,7 +42,15 @@
             }
             else
             {
-                <MudText Typo="Typo.body2" Color="Color.Primary">@context.BlNumber</MudText>
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.body2" Color="Color.Primary">@context.BlNumber</MudText>
+                    @if (!context.IsClean)
+                    {
+                        <MudTooltip Text="@($"Claused: {context.Clauses}")">
+                            <MudIcon Icon="@Icons.Material.Outlined.ReportProblem" Size="Size.Small" Color="Color.Warning" />
+                        </MudTooltip>
+                    }
+                </div>
             }
         </MudTd>
         <MudTd DataLabel="Issuance">

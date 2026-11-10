@@ -129,7 +129,7 @@
             <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">FREIGHT &amp; TERMS</MudText>
             <MudGrid Class="mb-2">
                 <MudItem xs="12" sm="4">
-                    <BlField Label="Freight Terms" Value="@Bl.FreightTerms.ToString()" />
+                    <BlField Label="Freight Terms" Value="@BlDisplay.Freight(Bl.FreightTerms)" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <BlField Label="Freight Amount" Value="@(Bl.FreightAmount ?? "—")" />
@@ -157,7 +157,12 @@
                     <BlField Label="Issuance Type" Value="@Bl.IssuanceType.ToString()" />
                 </MudItem>
             </MudGrid>
-
+            @if (!Bl.IsClean)
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle2" Color="Color.Warning" Class="mb-2">MASTER'S CLAUSES</MudText>
+                <MudText Typo="Typo.body2" Style="white-space:pre-line">@Bl.Clauses</MudText>
+            }
             @if (!string.IsNullOrWhiteSpace(Bl.Notes))
             {
                 <MudDivider Class="my-4" />

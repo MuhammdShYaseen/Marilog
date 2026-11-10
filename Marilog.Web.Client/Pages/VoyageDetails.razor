@@ -244,6 +244,16 @@
     }
 
     // ── Bills of lading ───────────────────────────────────────────────────────
+
+    private IReadOnlyDictionary<int, string> LoadLines() =>
+    _voyage?.Stops
+        .OrderBy(s => s.StopOrder)
+        .SelectMany(s => s.Cargo
+            .Where(c => c.Operation == CargoOperation.Load)
+            .Select(c => (c.VoyageCargoId, Label: $"{s.PortName} · {c.CargoTypeName} · {c.Quantity:N3} {c.Unit}")))
+        .ToDictionary(x => x.VoyageCargoId, x => x.Label)
+    ?? new Dictionary<int, string>();
+
     private IReadOnlyList<BillOfLadingResponse> MasterBls(int? excludeId = null)
         => _bills.Where(b => b.IssuanceType == BlIssuanceType.Master && b.Id != excludeId)
                  .OrderBy(b => b.BlNumber)
@@ -271,6 +281,7 @@
             [nameof(BillOfLadingDialog.AvailableMasterBls)] = MasterBls(),
             [nameof(BillOfLadingDialog.DefaultPortOfLoadingId)] = _voyage.DeparturePortId,
             [nameof(BillOfLadingDialog.DefaultPortOfDischargeId)] = _voyage.ArrivalPortId,
+            [nameof(BillOfLadingDialog.LoadLines)] = LoadLines(),
             [nameof(BillOfLadingDialog.OnCreate)] = new Func<CreateBillOfLadingRequest, Task<bool>>(r =>
                 TryAsync(() => BillOfLadingService.CreateAsync(r), "Bill of lading created"))
         };

@@ -219,7 +219,19 @@
 
             @* ── Cargo ── *@
             <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Cargo</MudText></MudItem>
-
+            @if (LoadLines.Count > 0)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="int?" @bind-Value="_voyageCargoId" Label="Loading cargo line" Clearable="true"
+                               HelperText="The voyage cargo line this B/L was issued against."
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var line in LoadLines)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)line.Key)">@line.Value</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
             <MudItem xs="12">
                 <MudTextField @bind-Value="_cargoDescription" Label="Description of goods" Required="true"
                               Lines="3" MaxLength="1000" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -253,7 +265,11 @@
                 <MudTextField @bind-Value="_marksAndNumbers" Label="Marks & numbers" MaxLength="500"
                               Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_clauses" Label="Master's clauses" Lines="2" MaxLength="1000"
+                              HelperText="Leave empty for a clean B/L."
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
             @* ── Freight ── *@
             <MudItem xs="12"><MudText Typo="Typo.caption" Style="@SectionStyle">Freight</MudText></MudItem>
 
@@ -325,7 +341,8 @@
     [Parameter] public IReadOnlyList<BillOfLadingResponse> AvailableMasterBls { get; set; } = [];
     [Parameter] public int? DefaultPortOfLoadingId { get; set; }
     [Parameter] public int? DefaultPortOfDischargeId { get; set; }
-
+    /// <summary>Voyage load lines: VoyageCargoId → label.</summary>
+    [Parameter] public IReadOnlyDictionary<int, string> LoadLines { get; set; } = new Dictionary<int, string>();
     /// <summary>Host performs the create; returns true on success. Dialog stays open on failure.</summary>
     [Parameter] public Func<CreateBillOfLadingRequest, Task<bool>>? OnCreate { get; set; }
 
@@ -364,6 +381,8 @@
     private string? _placeOfIssue;
     private int _originalCopiesCount = 3;
     private string? _notes;
+    private int? _voyageCargoId;
+    private string? _clauses;
     private bool _saving;
 
     private bool IsEdit => ExistingBl is not null;
@@ -441,6 +460,8 @@
         _placeOfIssue = ExistingBl.PlaceOfIssue;
         _originalCopiesCount = ExistingBl.OriginalCopiesCount ?? 3;
         _notes = ExistingBl.Notes;
+        _voyageCargoId = ExistingBl.VoyageCargoId;
+        _clauses = ExistingBl.Clauses;
     }
 
     private void OnIssuanceTypeChanged(BlIssuanceType value)
@@ -498,7 +519,9 @@
         MasterBlId: _issuanceType == BlIssuanceType.House ? _masterBlId : null,
         PlaceOfReceiptPortId: _placeOfReceiptPortId,
         PlaceOfDeliveryPortId: _placeOfDeliveryPortId,
-        Notes: NullIfEmpty(_notes));
+        Notes: NullIfEmpty(_notes),
+        VoyageCargoId: _voyageCargoId,
+        Clauses: NullIfEmpty(_clauses));
 
     private UpdateBillOfLadingRequest BuildUpdate() => new(
         BlType: _blType,
@@ -525,7 +548,9 @@
         OriginalCopiesCount: _originalCopiesCount,
         PlaceOfReceiptPortId: _placeOfReceiptPortId,
         PlaceOfDeliveryPortId: _placeOfDeliveryPortId,
-        Notes: NullIfEmpty(_notes));
+        Notes: NullIfEmpty(_notes),
+        VoyageCargoId: _voyageCargoId,
+        Clauses: NullIfEmpty(_clauses));
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }
