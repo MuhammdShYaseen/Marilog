@@ -1,5 +1,6 @@
 @attribute [RequirePage(EntityType.SwiftTransfer)]
 @page "/swift-transfers"
+@page "/swift-transfers/{Id:int}"
 @using Marilog.Client.Interfaces
 @using Marilog.Contracts.DTOs.Reports.SwiftTransferReports
 @using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
@@ -18,6 +19,7 @@
 @inject ISnackbar Snackbar
 @inject IManageStoredFiles ManageStoredFiles
 @inject IManageComments ManageComments
+@inject NavigationManager Nav
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host. Only file with @page and the only file that references
    the concrete client services. Loads reference data (companies/banks/
@@ -31,25 +33,58 @@
    SwiftTransferFilterOptions / GetSwiftTransfersReportAsync are wired up.
    ──────────────────────────────────────────────────────────────────────── *@
 
-<SharedSwiftTransferPage @ref="_sharedPage"
-                         Items="@_transfers"
-                         IsLoading="@_isLoading"
-                         LoadDetailFunc="@LoadDetailAsync"
-                         OnAddClicked="@HandleAddClickedAsync"
-                         OnEditClicked="@HandleEditClickedAsync"
-                         OnMarkReceivedClicked="@HandleMarkReceivedClickedAsync"
-                         OnCancelClicked="@HandleCancelClickedAsync"
-                         OnDeleteClicked="@HandleDeleteClickedAsync"
-                         OnRefreshClicked="@LoadTransfersAsync"
-                         FilterOptions="@_filter"
-                         Companies="@_companies"
-                         OnFilterChanged="@HandleFilterChangedAsync"
-                         OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, SwiftLabel(arg.entityId)))"
-                         OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, SwiftLabel(arg.entityId)))"
-                         OnEditChargeDetailsClicked="@HandleEditChargeDetailsClickedAsync"
-                         OnAddFeeClicked="@HandleAddFeeClickedAsync"
-                         OnEditFeeClicked="@HandleEditFeeClickedAsync"
-                         OnRemoveFeeClicked="@HandleRemoveFeeClickedAsync" />
+@if (Id is not null)
+{
+    @if (_transfer is not null)
+    {
+        <MudPaper Outlined="true" Elevation="0">
+            <SharedSwiftTransferDetailPanel Transfer="_transfer"
+                                            IsLoadingPayments="_isLoading"
+                                            OnMarkReceivedClicked="HandleMarkReceivedClickedAsync"
+                                            OnEditClicked="HandleEditClickedAsync"
+                                            OnCancelClicked="HandleCancelClickedAsync"
+                                            OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, SwiftLabel(arg.entityId)))"
+                                            OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, SwiftLabel(arg.entityId)))"
+                                            OnEditChargeDetailsClicked="HandleEditChargeDetailsClickedAsync"
+                                            OnAddFeeClicked="HandleAddFeeClickedAsync"
+                                            OnEditFeeClicked="HandleEditFeeClickedAsync"
+                                            OnRemoveFeeClicked="HandleRemoveFeeClickedAsync"
+                                            OnClose="@(() => Nav.NavigateTo("/swift-transfers"))" />
+        </MudPaper>
+    }
+    else if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            SWIFT transfer @Id was not found. <MudLink Href="/swift-transfers">Back to SWIFT transfers</MudLink>
+        </MudAlert>
+    }
+}
+else
+{
+    <SharedSwiftTransferPage @ref="_sharedPage"
+                             Items="@_transfers"
+                             IsLoading="@_isLoading"
+                             LoadDetailFunc="@LoadDetailAsync"
+                             OnAddClicked="@HandleAddClickedAsync"
+                             OnEditClicked="@HandleEditClickedAsync"
+                             OnMarkReceivedClicked="@HandleMarkReceivedClickedAsync"
+                             OnCancelClicked="@HandleCancelClickedAsync"
+                             OnDeleteClicked="@HandleDeleteClickedAsync"
+                             OnRefreshClicked="@LoadTransfersAsync"
+                             FilterOptions="@_filter"
+                             Companies="@_companies"
+                             OnFilterChanged="@HandleFilterChangedAsync"
+                             OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, SwiftLabel(arg.entityId)))"
+                             OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, SwiftLabel(arg.entityId)))"
+                             OnEditChargeDetailsClicked="@HandleEditChargeDetailsClickedAsync"
+                             OnAddFeeClicked="@HandleAddFeeClickedAsync"
+                             OnEditFeeClicked="@HandleEditFeeClickedAsync"
+                             OnRemoveFeeClicked="@HandleRemoveFeeClickedAsync" />
+}
 
 @code {
     SharedSwiftTransferPage _sharedPage = null!;
@@ -61,7 +96,12 @@
 
     SwiftTransferFilterOptions _filter = new();
     CancellationTokenSource? _loadCts;
-    bool _isLoading;
+    bool _isLoading = true;
+
+    [Parameter] public int? Id { get; set; }
+    SwiftTransferResponse? _transfer;
+    bool _referenceLoaded;
+    int? _shownId;
 
     static readonly DialogOptions StatusDialogOptions = new()
     {
@@ -72,7 +112,7 @@
     };
     private string? SwiftLabel(int transferId)
     {
-        var t = _transfers.FirstOrDefault(x => x.Id == transferId);
+        var t = _transfer?.Id == transferId ? _transfer : _transfers.FirstOrDefault(x => x.Id == transferId);
         if (t is null) return null;
 
         var parties = $"{t.SenderCompanyName ?? "?"} → {t.ReceiverCompanyName ?? "?"}";
@@ -225,19 +265,23 @@
         {
             await SwiftTransferService.RemoveFeeAsync(args.Transfer.Id, args.Fee.Id);
             Snackbar.Add("Fee removed.", Severity.Success);
-            await _sharedPage.RefreshSelectedIfOpenAsync();
+            await RefreshSelectedAsync();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Failed to remove fee: {ex.Message}", Severity.Error);
         }
     }
-
-    protected override async Task OnInitializedAsync()
+    // Same component for /swift-transfers and /swift-transfers/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
     {
-        await Task.WhenAll(
-            LoadReferenceDataAsync(),
-            LoadTransfersAsync());
+        if (_referenceLoaded && _shownId == Id) return;
+        _shownId = Id;
+
+        var reference = _referenceLoaded ? Task.CompletedTask : LoadReferenceDataAsync();
+        _referenceLoaded = true;
+
+        await Task.WhenAll(reference, Id is int id ? LoadTransferAsync(id) : LoadTransfersAsync());
     }
 
     async Task LoadReferenceDataAsync()
@@ -255,6 +299,7 @@
 
     async Task LoadTransfersAsync()
     {
+         if (Id is not null) return; // details page: no list to load
         _loadCts?.Cancel();
         _loadCts = new CancellationTokenSource();
         var ct = _loadCts.Token;
@@ -286,7 +331,22 @@
         var details = await SwiftTransferService.GetByIdAsync(id, ct);
         return details;
     }
+    
+    async Task LoadTransferAsync(int id)
+    {
+        _isLoading = true;
+        try { _transfer = await SwiftTransferService.GetByIdAsync(id); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { _transfer = null; }
+        catch (Exception ex) { Snackbar.Add($"Failed to load SWIFT transfer: {ex.Message}", Severity.Error); }
+        finally { _isLoading = false; }
+    }
 
+    // After a change: reload the details page, or the open drawer on the list.
+    async Task RefreshSelectedAsync()
+    {
+        if (Id is int id) await LoadTransferAsync(id);
+        else await _sharedPage.RefreshSelectedIfOpenAsync();
+    }
     async Task HandleAddClickedAsync()
     {
         var parameters = new DialogParameters<SwiftTransferEditDialog>
@@ -340,7 +400,7 @@
         if (result is { Canceled: false })
         {
             await LoadTransfersAsync();
-            await _sharedPage.RefreshSelectedIfOpenAsync();
+            await RefreshSelectedAsync();
         }
     }
 
