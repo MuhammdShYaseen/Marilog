@@ -288,5 +288,5 @@
         var updated = await CompanyService.GetWithVesselsAsync(companyId) ?? new();
         _sharedPage?.UpdateSelected(updated);
     }
-    private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels?id={id}");
+    private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
 }

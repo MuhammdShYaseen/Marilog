@@ -128,7 +128,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudLink @onclick="() => OnVesselClick.InvokeAsync(context.Id)" Class="az-link">
+                <MudLink OnClick="() => OnVesselClick.InvokeAsync(context.Id)" Class="az-link">
                     @context.Name
                 </MudLink>
             </MudTd>
@@ -166,7 +166,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudLink @onclick="() => OnVoyageClick.InvokeAsync(context.VoyageId)" Class="az-link">
+                <MudLink OnClick="() => OnVesselClick.InvokeAsync(context.VesselId)" Class="az-link">
                     @context.VoyageNumber
                 </MudLink>
             </MudTd>
@@ -210,7 +210,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudLink @onclick="() => OnVoyageClick.InvokeAsync(context.VoyageId)" Class="az-link">
+                <MudLink OnClick="() => OnVoyageClick.InvokeAsync(context.VoyageId)" Class="az-link">
                     @context.VoyageNumber
                 </MudLink>
             </MudTd>
@@ -412,7 +412,7 @@
             else if (context.Document is not null)
             {
                 <MudTd>
-                    <MudLink @onclick="() => OnDocumentClick.InvokeAsync(context.Document.Id)"
+                    <MudLink OnClick="() => OnDocumentClick.InvokeAsync(context.Document.Id)"
                              Class="az-link font-weight-medium">
                         @context.Document.DocNumber
                     </MudLink>
