@@ -100,7 +100,7 @@ else
         <VoyagePanel Title="Cargo">
             <div style="@GridStyle">
                 <EssentialsRow Label="Cargo type" Value="@Voyage.CargoType" />
-                <EssentialsRow Label="Declared quantity"
+                <EssentialsRow Label="Loaded quantity"
                                Value="@(Voyage.CargoQuantityMT.HasValue ? $"{Voyage.CargoQuantityMT:N3} MT" : null)" />
                 <EssentialsRow Label="Bills of lading">
                     @if (BillsOfLading.Count > 0)
@@ -123,7 +123,7 @@ else
             @if (HasCargoMismatch)
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-3">
-                    Declared quantity differs from the master B/L total by
+                    Loaded quantity differs from the master B/L total by
                     <strong>@($"{Math.Abs(Voyage.CargoQuantityMT!.Value - MasterBlTotalMt):N3} MT")</strong>.
                 </MudAlert>
             }
