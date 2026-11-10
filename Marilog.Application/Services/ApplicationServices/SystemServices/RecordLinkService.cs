@@ -125,16 +125,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         private static string? PageUrl(EntityType type, int id) => type switch
         {
-            EntityType.Vessel => $"/vessels?id={id}",
-            EntityType.Person => $"/persons?id={id}",
-            EntityType.Company => $"/companies?id={id}",
-            EntityType.Bank => $"/admin/banks?id={id}",
-            EntityType.AContract => $"/contracts?id={id}",
-            EntityType.Document => $"/documents?id={id}",
-            EntityType.SwiftTransfer => $"/swift-transfers?id={id}",
-            EntityType.InboxEntry => $"/inbox-entry?id={id}",
-            EntityType.CrewContract => $"/crew-contracts?id={id}",
-            EntityType.CrewPayroll => $"/payroll?id={id}",
+            EntityType.Vessel => $"/vessels/{id}",
+            EntityType.Person => $"/persons/{id}",
+            EntityType.Company => $"/companies/{id}",
+            EntityType.Bank => $"/admin/banks/{id}",
+            EntityType.AContract => $"/contracts/{id}",
+            EntityType.Document => $"/documents/{id}",
+            EntityType.SwiftTransfer => $"/swift-transfers/{id}",
+            EntityType.InboxEntry => $"/inbox-entry/{id}",
+            EntityType.CrewContract => $"/crew-contracts/{id}",
+            EntityType.CrewPayroll => $"/payroll/{id}",
             EntityType.Voyage => $"/voyages/{id}",
             EntityType.LaytimeCalculation => $"/operations/laytime/calculation/{id}",
             _ => null

@@ -1,5 +1,6 @@
 ﻿@* VesselsPageHost.razor *@
 @page "/vessels"
+@page "/vessels/{Id:int}"
 @using Marilog.Contracts.DTOs.Requests.VesselDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.SystemServices
@@ -14,57 +15,89 @@
 @inject IDialogService  DialogService
 @inject IManageStoredFiles ManageStoredFiles
 @inject IVesselTypeService VesselTypeService
-
+@inject NavigationManager Nav
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 
-@if (_initialized)
+@if (_initialized && Id is not null)
+{
+    @if (_vessel is null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Vessel @Id was not found. <MudLink Href="/vessels">Back to vessels</MudLink>
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Outlined="true" Elevation="0">
+            <VesselDetailsView Vessel="_vessel"
+                               OnCloseClicked="@(() => Nav.NavigateTo("/vessels"))"
+                               OnEditClicked="OpenEditDialog"
+                               OnDeleteClicked="ConfirmDelete"
+                               OnToggleActiveClicked="ToggleActive"
+                               OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, VesselLabel(arg.entityId)))"
+                               OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, VesselLabel(arg.entityId)))"
+                               CertificatesContent="CertificatesFragment"
+                               PositionContent="PositionFragment"
+                               WeatherContent="WeatherFragment" />
+        </MudPaper>
+    }
+}
+else if (_initialized)
 {
     <SharedVesselPage Vessels="@_vessels"
-                      OpenVesselId="Id"
                       OnAddClicked="OpenAddDialog"
                       OnEditClicked="OpenEditDialog"
                       OnDeleteClicked="ConfirmDelete"
                       OnToggleActiveClicked="ToggleActive"
                       OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, VesselLabel(arg.entityId)))"
-                      OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, VesselLabel(arg.entityId)))">
-        <CertificatesContent Context="vessel">
-            <VesselCertificatesPanel VesselId="vessel.Id" OnChanged="LoadAsync" />
-        </CertificatesContent>
-        <PositionContent Context="vessel">
-            <VesselPositionPanel Vessel="vessel" />
-        </PositionContent>
-        <WeatherContent Context="vessel">
-            <VesselWeatherPanel Vessel="vessel" />
-        </WeatherContent>
-    </SharedVesselPage>
+                      OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, VesselLabel(arg.entityId)))"
+                      CertificatesContent="CertificatesFragment"
+                      PositionContent="PositionFragment"
+                      WeatherContent="WeatherFragment" />
 }
 
 @code {
-    [SupplyParameterFromQuery] public int? Id { get; set; }
-    private IReadOnlyList<VesselResponse>  _vessels   = [];
+    [Parameter] public int? Id { get; set; }
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private VesselResponse? _vessel;
     private IReadOnlyList<CompanyResponse> _companies = [];
     private IReadOnlyList<CountryResponse> _countries = [];
     private IReadOnlyList<VesselTypeResponse> _vesselTypes = [];
     private bool _loading = true;
     private bool _initialized;
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private int? _shownId;
 
+    // Same component for /vessels and /vessels/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && _shownId == Id) return;
+        _shownId = Id;
+        await LoadAsync();
+    }
+
+    // Shared by the list drawer and the details page.
+    private RenderFragment<VesselResponse> CertificatesFragment => vessel => @<VesselCertificatesPanel VesselId="vessel.Id" OnChanged="LoadAsync" />;
+    private RenderFragment<VesselResponse> PositionFragment => vessel => @<VesselPositionPanel Vessel="vessel" />;
+    private RenderFragment<VesselResponse> WeatherFragment => vessel => @<VesselWeatherPanel Vessel="vessel" />;
     private async Task LoadAsync()
     {
         _loading = true;
         try
         {
-            var t1 = VesselService.GetAllAsync();
             var t2 = CompanyService.GetActiveAsync();
             var t3 = CountryService.GetAllAsync();
             var t4 = VesselTypeService.GetAllAsync();
 
-            await Task.WhenAll(t1, t2, t3, t4);
+            if (Id is int id)
+                _vessel = await VesselService.GetByIdAsync(id);
+            else
+                _vessels = await VesselService.GetAllAsync();
 
-            _vessels = t1.Result;
+            await Task.WhenAll(t2, t3, t4);
+
             _companies = t2.Result;
             _countries = t3.Result;
             _vesselTypes = t4.Result;
@@ -81,7 +114,7 @@
     }
     private string? VesselLabel(int id)
     {
-        var v = _vessels.FirstOrDefault(x => x.Id == id);
+        var v = _vessel?.Id == id ? _vessel : _vessels.FirstOrDefault(x => x.Id == id);
         if (v is null) return null;
 
         return string.IsNullOrWhiteSpace(v.IMONumber)
@@ -191,7 +224,8 @@
         {
             await VesselService.DeleteAsync(vessel.Id);
             Snackbar.Add("Vessel deleted.", Severity.Success);
-            await LoadAsync();
+            if (Id is not null) Nav.NavigateTo("/vessels");
+            else await LoadAsync();
         }
         catch (Exception ex)
         {
