@@ -1,4 +1,5 @@
 ﻿@page "/companies"
+@page "/companies/{Id:int}"
 @using Marilog.Contracts.DTOs.Requests.CompanyDTOs
 @using Marilog.Contracts.DTOs.Requests.ContactsRequestDTOs
 @using Marilog.Contracts.DTOs.Responses
@@ -21,7 +22,43 @@
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 
-<SharedCompaniesPage @ref="_sharedPage"
+@if (Id is not null)
+{
+    @if (_company is not null)
+    {
+        <MudPaper Outlined="true" Elevation="0">
+            <CompanyDetails Company="_company"
+                            IsLoading="_loading"
+                            OnClose="@(() => Nav.NavigateTo("/companies"))"
+                            OnEditClicked="OpenEditDialog"
+                            OnDeleteClicked="ConfirmDelete"
+                            OnActivateClicked="Activate"
+                            OnDeactivateClicked="Deactivate"
+                            OnSetOwnClicked="ToggleOwn"
+                            OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CompanyLabel(arg.entityId)))"
+                            OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CompanyLabel(arg.entityId)))"
+                            OnVesselClick="OnVesselClicked"
+                            OnAddEmailClicked="OpenAddEmailDialog"
+                            OnEditEmailClicked="OpenEditEmailDialog"
+                            OnDeleteEmailClicked="ConfirmDeleteEmail"
+                            OnAddPhoneClicked="OpenAddPhoneDialog"
+                            OnEditPhoneClicked="OpenEditPhoneDialog"
+                            OnDeletePhoneClicked="ConfirmDeletePhone"
+                            OnAddBankAccountClicked="OpenAddBankAccountDialog"
+                            OnEditBankAccountClicked="OpenEditBankAccountDialog"
+                            OnDeleteBankAccountClicked="ConfirmDeleteBankAccount" />
+        </MudPaper>
+    }
+    else if (!_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Company @Id was not found. <MudLink Href="/companies">Back to companies</MudLink>
+        </MudAlert>
+    }
+}
+else
+{
+    <SharedCompaniesPage @ref="_sharedPage"
                          Companies="_companies"
                          OnAddClicked="OpenAddDialog"
                          OnEditClicked="OpenEditDialog"
@@ -43,20 +80,39 @@
                          OnSetOwnClicked="ToggleOwn"
                          OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, CompanyLabel(arg.entityId)))"
                          OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, CompanyLabel(arg.entityId)))" />
-
+}
 @code {
+    [Parameter] public int? Id { get; set; }
+    private CompanyResponse? _company;
+    private bool _initialized;
+    private int? _shownId;
     private IReadOnlyList<CompanyResponse> _companies = [];
     private bool _loading = true;
-    string? CompanyLabel(int id) => _companies.FirstOrDefault(x => x.Id == id) is { } x ? $"Company : {x.Name}" : null;
-    protected override async Task OnInitializedAsync()
+    string? CompanyLabel(int id) => (_company?.Id == id ? _company : _companies.FirstOrDefault(x => x.Id == id)) is { } x ? $"Company : {x.Name}" : null;
+    // Same component for /companies and /companies/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
     {
+        if (_initialized && _shownId == Id) return;
+        _initialized = true;
+        _shownId = Id;
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _companies = await CompanyService.GetAllAsync();
+
+        if (Id is int id)
+        {
+            // The server answers 404 for a missing company; the page shows "not found".
+            try { _company = await CompanyService.GetWithVesselsAsync(id); }
+            catch { _company = null; }
+        }
+        else
+        {
+            _companies = await CompanyService.GetAllAsync();
+        }
+
         _loading = false;
     }
 
@@ -102,7 +158,7 @@
 
         Snackbar.Add("Company updated.", Severity.Success);
         await LoadAsync();
-        await _sharedPage.RefreshSelectedIfOpenAsync();
+        if (Id is null) await _sharedPage.RefreshSelectedIfOpenAsync();
     }
 
     private async Task ConfirmDelete(CompanyResponse company)
@@ -117,7 +173,8 @@
         {
             await CompanyService.DeleteAsync(company.Id);
             Snackbar.Add("Company deleted.", Severity.Success);
-            await LoadAsync();
+            if (Id is not null) Nav.NavigateTo("/companies");
+            else await LoadAsync();
         }
     }
 
@@ -126,7 +183,7 @@
         await CompanyService.ActivateAsync(company.Id);
         Snackbar.Add($"{company.Name} activated.", Severity.Success);
         await LoadAsync();
-        await _sharedPage.RefreshSelectedIfOpenAsync();
+        if (Id is null) await _sharedPage.RefreshSelectedIfOpenAsync();
     }
 
     private async Task Deactivate(CompanyResponse company)
@@ -134,7 +191,7 @@
         await CompanyService.DeactivateAsync(company.Id);
         Snackbar.Add($"{company.Name} deactivated.", Severity.Warning);
         await LoadAsync();
-        await _sharedPage.RefreshSelectedIfOpenAsync();
+        if (Id is null) await _sharedPage.RefreshSelectedIfOpenAsync();
     }
 
     private async Task ToggleOwn(CompanyResponse company)
@@ -144,7 +201,7 @@
             ? $"{company.Name} is no longer the own company."
             : $"{company.Name} set as own company.", Severity.Success);
         await LoadAsync();
-        await _sharedPage.RefreshSelectedIfOpenAsync();
+        if (Id is null) await _sharedPage.RefreshSelectedIfOpenAsync();
     }
 
     private CompanyResponse _selectedCompany =new();
@@ -286,7 +343,8 @@
     private async Task RefreshSelected(int companyId)
     {
         var updated = await CompanyService.GetWithVesselsAsync(companyId) ?? new();
-        _sharedPage?.UpdateSelected(updated);
+        if (Id is not null) _company = updated;
+        else _sharedPage?.UpdateSelected(updated);
     }
     private void OnVesselClicked(int id) => Nav.NavigateTo($"/vessels/{id}");
 }

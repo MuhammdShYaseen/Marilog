@@ -264,7 +264,6 @@ else
             Snackbar.Add("Person deleted.", Severity.Success);
             if (Id is not null) Nav.NavigateTo("/persons");
             else await LoadAsync();
-            await LoadAsync();
         }
     }
 
