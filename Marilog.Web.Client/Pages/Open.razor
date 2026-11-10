@@ -1,0 +1,54 @@
+﻿@page "/open/{Type}/{Id:int}"
+@using System.Net
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@inject IRecordLinkService RecordLinks
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+@* /open/vessel/12, /open/VesselCertificate/5 — asks the server which page shows the record, then goes there. *@
+
+@if (_forbidden)
+{
+    <ForbiddenPage />
+}
+else
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+@code {
+    [Parameter] public string Type { get; set; } = string.Empty;
+    [Parameter] public int Id { get; set; }
+
+    private bool _forbidden;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _forbidden = false;
+
+        if (!Enum.TryParse<EntityType>(Type, ignoreCase: true, out var type) || !Enum.IsDefined(type))
+        {
+            Nav.NavigateTo("/not-found", replace: true);
+            return;
+        }
+
+        try
+        {
+            var link = await RecordLinks.ResolveAsync(type, Id);
+            Nav.NavigateTo(link?.Url ?? "/not-found", replace: true);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            _forbidden = true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Nav.NavigateTo("/not-found", replace: true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

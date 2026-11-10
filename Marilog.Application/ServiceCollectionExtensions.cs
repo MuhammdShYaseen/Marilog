@@ -67,6 +67,7 @@ namespace Marilog.Application
             services.AddScoped<IPayrollCalculatorService, PayrollCalculatorService>();
             services.AddScoped<IInboxService, InboxService>();
             services.AddScoped<InboxLinkResolver>();
+            services.AddScoped<IRecordLinkService, RecordLinkService>();
             //---Contracts-----------------------
             services.AddScoped<IContractService, ContractService>();
 

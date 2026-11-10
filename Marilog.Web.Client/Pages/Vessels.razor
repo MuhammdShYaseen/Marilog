@@ -23,7 +23,7 @@
 @if (_initialized)
 {
     <SharedVesselPage Vessels="@_vessels"
-                      OpenVesselId="VesselId"
+                      OpenVesselId="Id"
                       OnAddClicked="OpenAddDialog"
                       OnEditClicked="OpenEditDialog"
                       OnDeleteClicked="ConfirmDelete"
@@ -43,7 +43,7 @@
 }
 
 @code {
-    [SupplyParameterFromQuery] public int? VesselId { get; set; }
+    [SupplyParameterFromQuery] public int? Id { get; set; }
     private IReadOnlyList<VesselResponse>  _vessels   = [];
     private IReadOnlyList<CompanyResponse> _companies = [];
     private IReadOnlyList<CountryResponse> _countries = [];
