@@ -165,6 +165,13 @@
                                                                title="Open"
                                                                OnClick="() => OnOpenEntryClicked.InvokeAsync(link.EntityId)" />
                                             }
+                                            else if (link.Label is not null)
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                                               Size="Size.Small"
+                                                               title="Open"
+                                                               Href="@($"/open/{link.EntityType}/{link.EntityId}")" />
+                                            }
                                             <MudIconButton Icon="@Icons.Material.Filled.LinkOff"
                                                            Size="Size.Small"
                                                            Color="Color.Error"

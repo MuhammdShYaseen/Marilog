@@ -1,5 +1,6 @@
 ﻿@attribute [RequirePage(EntityType.InboxEntry)]
 @page "/inbox-entry"
+@page "/inbox-entry/{Id:int}"
 @using Marilog.Contracts.Common
 @using Marilog.Contracts.DTOs.Reports.InboxEntryReport
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
@@ -16,26 +17,57 @@
 @inject IManageStoredFiles ManageStoredFiles
 @inject ISnackbar Snackbar
 @inject IRecordCreator RecordCreator
+@inject NavigationManager Nav
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 
-<SharedInboxPage @ref="_sharedPage"
-                 Result="_result"
-                 VesselNames="_vesselNames"
-                 OnLoadRequested="LoadAsync"
-                 OnCreate="CreateAsync"
-                 OnEditClicked="OpenEditDialog"
-                 OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, InboxLabel(arg.entityId)))"
-                 OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, InboxLabel(arg.entityId)))"
-                 OnProcessedClicked="MarkProcessed"
-                 OnCancelClicked="ConfirmCancel"
-                 OnDeleteClicked="ConfirmDelete"
-                 OnCreateFromClicked="CreateFrom"
-                 OnAddLinkClicked="OpenLinkDialog"
-                 OnUnlinkClicked="ConfirmUnlink"
-                 OnOpenEntryClicked="OpenEntry" />
+@if (Id is not null)
+{
+    @if (_entry is not null)
+    {
+        <MudPaper Outlined="true" Elevation="0">
+            <InboxEntryDetails Entry="_entry"
+                               VesselNames="_vesselNames"
+                               OnClose="@(() => Nav.NavigateTo("/inbox-entry"))"
+                               OnEditClicked="OpenEditDialog"
+                               OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, InboxLabel(arg.entityId)))"
+                               OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, InboxLabel(arg.entityId)))"
+                               OnProcessedClicked="MarkProcessed"
+                               OnCancelClicked="ConfirmCancel"
+                               OnDeleteClicked="ConfirmDelete"
+                               OnCreateFromClicked="CreateFrom"
+                               OnAddLinkClicked="OpenLinkDialog"
+                               OnUnlinkClicked="ConfirmUnlink"
+                               OnOpenEntryClicked="OpenEntry" />
+        </MudPaper>
+    }
+    else if (!_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Inbox entry @Id was not found. <MudLink Href="/inbox-entry">Back to inbox</MudLink>
+        </MudAlert>
+    }
+}
+else
+{
+    <SharedInboxPage @ref="_sharedPage"
+                     Result="_result"
+                     VesselNames="_vesselNames"
+                     OnLoadRequested="LoadAsync"
+                     OnCreate="CreateAsync"
+                     OnEditClicked="OpenEditDialog"
+                     OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, InboxLabel(arg.entityId)))"
+                     OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, InboxLabel(arg.entityId)))"
+                     OnProcessedClicked="MarkProcessed"
+                     OnCancelClicked="ConfirmCancel"
+                     OnDeleteClicked="ConfirmDelete"
+                     OnCreateFromClicked="CreateFrom"
+                     OnAddLinkClicked="OpenLinkDialog"
+                     OnUnlinkClicked="ConfirmUnlink"
+                     OnOpenEntryClicked="OpenEntry" />
+}
 @code {
     private PagedResponse<InboxEntryResponse> _result = new();
     private IReadOnlyDictionary<int, string> _vesselNames = new Dictionary<int, string>();
@@ -43,9 +75,14 @@
     private bool _loading = true;
     private SharedInboxPage _sharedPage = default!;
     private string? _selectedNumber;
+    [Parameter] public int? Id { get; set; }
+    private InboxEntryResponse? _entry;
+    private bool _initialized;
+    private int? _shownId;
+
     string? InboxLabel(int id)
     {
-        var x = _result.Items.FirstOrDefault(e => e.Id == id);
+        var x = _entry?.Id == id ? _entry : _result.Items.FirstOrDefault(e => e.Id == id);
         if (x is null) return null;
 
         var desc = x.Description.Length > 60 ? x.Description[..60] + "…" : x.Description;
@@ -54,6 +91,7 @@
 
     private async Task RefreshAsync(int id)
     {
+        if (Id is not null) { _entry = await LoadEntryAsync(id); return; }
         await LoadAsync(_filter);
         var fresh = await InboxService.GetByIdAsync(id, default);
         _selectedNumber = fresh?.Number;
@@ -62,6 +100,7 @@
 
     private async Task OpenEntry(int id)
     {
+        if (Id is not null) { Nav.NavigateTo($"/inbox-entry/{id}"); return; }
         var entry = await InboxService.GetByIdAsync(id, default);
         if (entry is null)
         {
@@ -105,6 +144,7 @@
 
         await InboxService.DeleteAsync(entry.Id);
         Snackbar.Add($"{entry.Number} deleted.", Severity.Success);
+        if (Id is not null) { Nav.NavigateTo("/inbox-entry"); return; }
         _sharedPage.UpdateSelected(null);
         await LoadAsync(_filter);
     }
@@ -142,11 +182,33 @@
         Snackbar.Add("Link removed.", Severity.Success);
         await RefreshAsync(args.entry.Id);
     }
-    protected override async Task OnInitializedAsync()
+
+    // Same component for /inbox-entry and /inbox-entry/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
     {
-        var vessels = await VesselService.GetAllAsLookUpAsync(); // ← replace with your light vessel list method
-        _vesselNames = vessels.ToDictionary(v => v.Id, v => v.Name);
-        await LoadAsync(_filter);
+        if (_initialized && _shownId == Id) return;
+        _shownId = Id;
+
+        if (!_initialized)
+        {
+            _initialized = true;
+            var vessels = await VesselService.GetAllAsLookUpAsync();
+            _vesselNames = vessels.ToDictionary(v => v.Id, v => v.Name);
+        }
+
+        if (Id is int id)
+            _entry = await LoadEntryAsync(id);
+        else
+            await LoadAsync(_filter);
+    }
+
+    // A missing (or just deleted) entry is null, not an error.
+    private async Task<InboxEntryResponse?> LoadEntryAsync(int id)
+    {
+        _loading = true;
+        try { return await InboxService.GetByIdAsync(id, default); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
+        finally { _loading = false; }
     }
 
     private async Task LoadAsync(InboxEntryFilter filter)
@@ -182,7 +244,7 @@
         await InboxService.UpdateAsync(entry.Id, request.ReceivedDate, request.Source, request.VesselIds ?? [], request.Description);
 
         Snackbar.Add($"{entry.Number} updated.", Severity.Success);
-        await LoadAsync(_filter);
+        await RefreshAsync(entry.Id);
     }
 
     private async Task CreateFrom((InboxEntryResponse entry, EntityType type) args)

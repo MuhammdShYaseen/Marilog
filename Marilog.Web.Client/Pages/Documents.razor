@@ -1,5 +1,6 @@
 ﻿@attribute [RequirePage(EntityType.Document)]
 @page "/documents"
+@page "/documents/{Id:int}"
 <PageTitle>Documents</PageTitle>
 @using Kernel.Enums
 @using Marilog.Contracts.Common
@@ -31,12 +32,40 @@
 @inject IManageStoredFiles ManageStoredFiles
 @inject IManageComments ManageComments
 @inject IDocumentExtractionService ExtractionService
-
+@inject NavigationManager Nav
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-
+@if (Id is not null)
+{
+    @if (_detail is not null)
+    {
+        <SharedDocumentDetailPage Document="_detail"
+                                  OnBackClicked="@(() => Nav.NavigateTo("/documents"))"
+                                  OnEditClicked="OpenEditDialog"
+                                  OnDeleteClicked="ConfirmDelete"
+                                  OnAddPaymentClicked="OpenAddPaymentDialog"
+                                  OnAddItemClicked="OpenAddItemDialog"
+                                  OnEditItemClicked="OpenEditItemDialog"
+                                  OnRemoveItemClicked="ConfirmRemoveItem"
+                                  OnRemovePaymentClicked="ConfirmRemovePayment"
+                                  OnEditPaymentClicked="@((args) => OpenEditPaymentDialog(args.doc, args.Payment))"
+                                  OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
+                                  OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
+                                  OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
+                                  OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, DocumentLabel(arg.entityId)))"
+                                  OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))" />
+    }
+    else if (!_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            Document @Id was not found. <MudLink Href="/documents">Back to documents</MudLink>
+        </MudAlert>
+    }
+}
+else
+{
 <MudDrawer @bind-Open="_isDetailDrawerOpen"
            Anchor="Anchor.End"
            Variant="DrawerVariant.Temporary"
@@ -88,6 +117,7 @@
                      UnpaidTotalPages="_unpaidTotalPages"
                      OnUnpaidPageChanged="LoadUnpaidPageAsync"
                      @ref="_documentsPage" />
+                 }
 
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -111,10 +141,35 @@
     private const int UnpaidPageSize = 40;
     private int _unpaidPage = 1;
     private int _unpaidTotalPages;
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    [Parameter] public int? Id { get; set; }
+    private bool _initialized;
+    private int? _shownId;
+
+    // Same component for /documents and /documents/{id}: reload only when the route changes.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && _shownId == Id) return;
+        _initialized = true;
+        _shownId = Id;
+
+        _loading = true;
+        if (Id is int id)
+        {
+            try { await LoadDetail(id); }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { _detail = null; }
+        }
+        else
+        {
+            CloseDetail(); // coming back from a details page: don't reopen it in the drawer
+        }
+
+        await LoadAsync(); // lookups for the dialogs, and the unpaid list
+    }
+
     protected override void OnParametersSet()
     {
-        var shouldLock = _detail is not null;
+        // The scroll lock is for the drawer only; the details page must scroll.
+        var shouldLock = _detail is not null && Id is null;
         _ = JS.InvokeVoidAsync("document.body.classList.toggle", "drawer-scroll-lock", shouldLock);
     }
     private async Task LoadAsync()
@@ -258,6 +313,7 @@
         if (confirmed != true) return;
         await DocumentService.DeleteAsync(doc.Id);
         Snackbar.Add("Document deleted.", Severity.Success);
+        if (Id is not null) { Nav.NavigateTo("/documents"); return; }
         _detail = null;
         await LoadAsync();
         if (_selectedVesselId.HasValue)

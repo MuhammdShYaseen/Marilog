@@ -144,7 +144,7 @@ else
             await SwiftTransferService.MarkReceivedAsync(transfer.Id, receivedDate);
             Snackbar.Add("Bank receipt confirmed.", Severity.Success);
             await LoadTransfersAsync();
-            await _sharedPage.RefreshSelectedIfOpenAsync();
+            await RefreshSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -171,7 +171,7 @@ else
             await SwiftTransferService.CancelAsync(transfer.Id, reason);
             Snackbar.Add("SWIFT transfer cancelled.", Severity.Success);
             await LoadTransfersAsync();
-            await _sharedPage.RefreshSelectedIfOpenAsync();
+            await RefreshSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -205,7 +205,7 @@ else
         {
             await SwiftTransferService.UpdateChargeDetailsAsync(transfer.Id, request);
             Snackbar.Add("Charge details saved.", Severity.Success);
-            await _sharedPage.RefreshSelectedIfOpenAsync();
+             await RefreshSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -243,7 +243,7 @@ else
                 await SwiftTransferService.UpdateFeeAsync(transfer.Id, existing.Id, request);
 
             Snackbar.Add(existing is null ? "Fee added." : "Fee updated.", Severity.Success);
-            await _sharedPage.RefreshSelectedIfOpenAsync();
+                await RefreshSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -345,7 +345,7 @@ else
     async Task RefreshSelectedAsync()
     {
         if (Id is int id) await LoadTransferAsync(id);
-        else await _sharedPage.RefreshSelectedIfOpenAsync();
+            else await _sharedPage.RefreshSelectedIfOpenAsync();
     }
     async Task HandleAddClickedAsync()
     {
