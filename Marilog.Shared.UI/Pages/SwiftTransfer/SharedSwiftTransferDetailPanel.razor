@@ -49,7 +49,7 @@
                    OnClick="@(() => OnCommentsClicked.InvokeAsync((Transfer.Id, EntityType.SwiftTransfer)))">
             Comments
         </MudButton>
-
+        <FollowButton EntityType="EntityType.SwiftTransfer" EntityId="Transfer.Id" Title="@($"SWIFT {Transfer.SwiftReference}")" />
         @if (!IsCancelled)
         {
             <MudTooltip Text="@(HasPayments ? "Remove allocated payments first" : "Cancel this transfer")">

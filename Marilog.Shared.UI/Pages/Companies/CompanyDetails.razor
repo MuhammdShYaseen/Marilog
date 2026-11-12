@@ -38,7 +38,7 @@
                    OnClick="@(() => OnCommentsClicked.InvokeAsync((Company.Id, EntityType.Company)))">
             Comments
         </MudButton>
-
+        <FollowButton EntityType="EntityType.Company" EntityId="Company.Id" Title="@($"Company : {Company.Name}")" />
         @if (Company.IsActive)
         {
             <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" Style="text-transform:none"

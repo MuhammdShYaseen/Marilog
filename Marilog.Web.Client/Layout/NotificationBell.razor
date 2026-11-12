@@ -1,0 +1,65 @@
+﻿@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Web.Client.Services.Implementation
+@inject NotificationsState State
+@inject NavigationManager Nav
+@implements IDisposable
+
+<MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+    <ActivatorContent>
+        <MudBadge Content="@State.UnreadCount" Visible="@(State.UnreadCount > 0)"
+                  Color="Color.Error" Overlap="true" Max="99">
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" />
+        </MudBadge>
+    </ActivatorContent>
+    <ChildContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-4 py-2" Style="min-width:340px">
+            <MudText Typo="Typo.subtitle2">Notifications</MudText>
+            <MudSpacer />
+            @if (State.UnreadCount > 0)
+            {
+                <MudButton Variant="Variant.Text" Size="Size.Small" Style="text-transform:none"
+                           OnClick="State.MarkAllReadAsync">Mark all read</MudButton>
+            }
+        </MudStack>
+        <MudDivider />
+        @if (State.Items.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="px-4 py-3">No notifications.</MudText>
+        }
+        else
+        {
+            <div style="max-height:420px; overflow-y:auto">
+                @foreach (var n in State.Items)
+                {
+                    <MudMenuItem OnClick="@(() => OpenAsync(n))">
+                        <MudText Typo="Typo.body2" Style="@(n.ReadAt is null ? "font-weight:600" : null)">@n.Text</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@n.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</MudText>
+                    </MudMenuItem>
+                }
+            </div>
+        }
+    </ChildContent>
+</MudMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.Changed += HandleChanged;
+        State.Start();
+    }
+
+    // Read it, then open the record's page through the central resolver.
+    private async Task OpenAsync(NotificationResponse n)
+    {
+        if (n.ReadAt is null) await State.MarkReadAsync(n.Id);
+        Nav.NavigateTo($"/open/{n.EntityType}/{n.EntityId}");
+    }
+
+    private void HandleChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        State.Changed -= HandleChanged;
+        State.Stop();
+    }
+}

@@ -652,6 +652,87 @@ namespace Marilog.Infrastructure.Migrations
                     b.ToTable("SofEvents", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.NotifiEntities.Notification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DedupKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DedupKey")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "ReadAt");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.NotifiEntities.Watch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EntityGuid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityGuid");
+
+                    b.HasIndex("UserId", "EntityType", "EntityId")
+                        .IsUnique();
+
+                    b.ToTable("Watches", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.AContract", b =>
                 {
                     b.Property<int>("Id")

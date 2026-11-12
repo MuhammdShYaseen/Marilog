@@ -7,12 +7,14 @@ using Marilog.Application.Services.ApplicationServices.AuditLog;
 using Marilog.Application.Services.ApplicationServices.DocumentExtraction;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeHelppers;
 using Marilog.Application.Services.ApplicationServices.LaytimeServices.LaytimeServices;
+using Marilog.Application.Services.ApplicationServices.NotifiServices;
 using Marilog.Application.Services.ApplicationServices.SystemServices;
 using Marilog.Application.Services.ApplicationServices.UserIdenty;
 using Marilog.Application.Services.FrontendServices;
 using Marilog.Application.Services.MapService;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.MapService;
+using Marilog.Contracts.Interfaces.NotifiServices;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
@@ -137,6 +139,9 @@ namespace Marilog.Application
 
             //----DocumentExtraction--------------------------
             services.AddScoped<IDocumentExtractionService, DocumentExtractionService>();
+
+            //---Notifi------------------------------------
+            services.AddScoped<INotificationService, NotificationService>();
 
             //----Comments------------------------------------
             services.AddScoped<ICommentService, CommentService>();

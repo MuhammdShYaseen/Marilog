@@ -1,0 +1,60 @@
+@using Marilog.Contracts.DTOs.Requests.NotificationDTOs
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Components.Comments
+@inject INotificationService Notifications
+@inject ISnackbar Snackbar
+
+@* Follow / Unfollow a record: changes to it show up in the bell. *@
+<MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+           StartIcon="@(_following ? Icons.Material.Filled.NotificationsActive : Icons.Material.Outlined.NotificationsNone)"
+           Disabled="_busy"
+           OnClick="ToggleAsync">
+    @(_following ? "Following" : "Follow")
+</MudButton>
+
+@code {
+    [Parameter, EditorRequired] public EntityType EntityType { get; set; }
+    [Parameter, EditorRequired] public int EntityId { get; set; }
+    // Shown in the notification text: "Ahmad updated {Title}"
+    [Parameter] public string? Title { get; set; }
+
+    private bool _following;
+    private bool _busy;
+    private EntityType? _loadedType;
+    private int _loadedId;
+
+    // Reload only when the record changes (the same panel can show another record)
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedType == EntityType && _loadedId == EntityId) return;
+        _loadedType = EntityType;
+        _loadedId = EntityId;
+
+        try { _following = await Notifications.IsFollowingAsync(EntityType, EntityId); }
+        catch (Exception ex) { Console.WriteLine($"Follow status failed: {ex.Message}"); }
+    }
+
+    private async Task ToggleAsync()
+    {
+        _busy = true;
+        try
+        {
+            if (_following)
+                await Notifications.UnfollowAsync(EntityType, EntityId);
+            else
+                await Notifications.FollowAsync(new FollowRequest { EntityType = EntityType, EntityId = EntityId, Title = Title ?? "" });
+
+            _following = !_following;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

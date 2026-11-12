@@ -75,6 +75,7 @@ else
                            OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))">
                     Comments
                 </MudButton>
+                <FollowButton EntityType="EntityType.Document" EntityId="Document.Id" Title="@($"{Document.DocTypeName} {Document.DocNumber}".Trim())" />
                 <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Delete"
                            OnClick="() => OnDeleteClicked.InvokeAsync(Document)">

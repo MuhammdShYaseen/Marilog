@@ -121,7 +121,7 @@
                OnClick="() => OnCommentsClicked.InvokeAsync((c.ContractId, EntityType.CrewContract))">
         Comments
     </MudButton>
-
+    <FollowButton EntityType="EntityType.CrewContract" EntityId="c.ContractId" Title="@($"Crew Contract — {c.PersonFullName} · {c.VesselName}")" />
     @if (c.IsActive)
     {
         <MudButton Variant="Variant.Outlined"

@@ -70,7 +70,7 @@ namespace Marilog.Infrastructure
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
             services.AddScoped<ILogReaderService, LogReaderService>();
-
+            services.AddScoped<INotificationRepository, NotificationRepository>();
 
             //-------encrption------------------
             services.AddScoped<ISecretEncryptionService>(_ =>

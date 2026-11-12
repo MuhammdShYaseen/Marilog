@@ -24,6 +24,7 @@
         </MudText>
 
         <MudSpacer />
+        @AppBarActions
         @if (Themes.Count > 1)
         {
             <MudMenu Icon="@Icons.Material.Filled.Palette"
@@ -126,6 +127,11 @@
 
     [Parameter]
     public EventCallback OnLogout { get; set; }
+
+    
+    // Extra AppBar buttons from the host (e.g. the notifications bell)
+    [Parameter]
+    public RenderFragment? AppBarActions { get; set; }
 
     private MudTheme _mudTheme = new();
     private bool _isDark;

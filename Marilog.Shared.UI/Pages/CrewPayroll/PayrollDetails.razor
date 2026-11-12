@@ -21,6 +21,7 @@
                    Color="Color.Primary"
                    title="Comments"
                    OnClick="() => OnCommentsClicked.InvokeAsync((p.Id, EntityType.CrewPayroll))" />
+    <FollowButton EntityType="EntityType.CrewPayroll" EntityId="p.Id" Title="@($"Payroll — {p.PersonFullName} · {p.PayrollMonth:MMM yyyy}")" />
     <MudIconButton Icon="@Icons.Material.Filled.Close"
                    Size="Size.Small"
                    OnClick="OnClose" />

@@ -37,6 +37,7 @@
                    OnClick="@(() => OnCommentsClicked.InvokeAsync((Entry.Id, EntityType.InboxEntry)))">
             Comments
         </MudButton>
+        <FollowButton EntityType="EntityType.InboxEntry" EntityId="Entry.Id" Title="@($"Inbox {Entry.Number}")" />
         @if (!Entry.IsProcessed && !Entry.IsCancelled)
         {
             <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" Style="text-transform:none"

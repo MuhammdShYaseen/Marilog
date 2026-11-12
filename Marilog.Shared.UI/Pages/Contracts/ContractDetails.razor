@@ -39,7 +39,7 @@
                    OnClick="@(() => OnCommentsClicked.InvokeAsync((Contract.Id, EntityType.AContract)))">
             Comments
         </MudButton>
-
+        <FollowButton EntityType="EntityType.AContract" EntityId="Contract.Id" Title="@($"{Contract.Type} {Contract.ContractNumber}")" />
 
         <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
                    StartIcon="@Icons.Material.Filled.Timer"

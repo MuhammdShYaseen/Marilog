@@ -27,7 +27,12 @@
                   OnLogout="LogoutAsync"
                   AppSubtitle="@_CompanyName">
 
-        @Body
+        <AppBarActions>
+            <NotificationBell />
+        </AppBarActions>
+        <ChildContent>
+            @Body
+        </ChildContent>
 
     </SharedMainLayout>
 </CascadingValue>
