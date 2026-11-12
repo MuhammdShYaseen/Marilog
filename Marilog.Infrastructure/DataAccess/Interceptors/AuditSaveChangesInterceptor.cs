@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using Marilog.Application.Interfaces.UserIdentity;
+﻿using Marilog.Application.Interfaces.UserIdentity;
 using Marilog.Domain.Common;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Entities.UsersLog;

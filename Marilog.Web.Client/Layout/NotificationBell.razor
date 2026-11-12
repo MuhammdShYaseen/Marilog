@@ -4,14 +4,11 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-<MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-    <ActivatorContent>
-        <MudBadge Content="@State.UnreadCount" Visible="@(State.UnreadCount > 0)"
-                  Color="Color.Error" Overlap="true" Max="99">
-            <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" />
-        </MudBadge>
-    </ActivatorContent>
-    <ChildContent>
+<MudBadge Content="@State.UnreadCount" Visible="@(State.UnreadCount > 0)"
+          Color="Color.Error" Overlap="true" Max="99">
+    <MudMenu Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" Dense="true"
+             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+        <ChildContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-4 py-2" Style="min-width:340px">
             <MudText Typo="Typo.subtitle2">Notifications</MudText>
             <MudSpacer />
@@ -40,6 +37,7 @@
         }
     </ChildContent>
 </MudMenu>
+</MudBadge>
 
 @code {
     protected override void OnInitialized()
