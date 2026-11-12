@@ -26,6 +26,9 @@ namespace Marilog.Kernel.Enumerations
             EntityType.UserRole,
             EntityType.Comment,
             EntityType.VoyageStop,
+            EntityType.DocumentItem,
+            EntityType.VoyageCargo,
+            EntityType.VoyageContract,
         ];
 
         // Readable by every authenticated user. Only Create/Update/Delete are permissions.
@@ -101,6 +104,9 @@ namespace Marilog.Kernel.Enumerations
         public static EntityType PermissionOwner(EntityType entity) => entity switch
         {
             EntityType.VoyageStop => EntityType.Voyage,
+            EntityType.DocumentItem => EntityType.Document,
+            EntityType.VoyageCargo => EntityType.Voyage,
+            EntityType.VoyageContract => EntityType.Voyage,
             _ => entity
         };
 

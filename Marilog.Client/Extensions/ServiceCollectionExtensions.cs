@@ -5,6 +5,7 @@ using Marilog.Client.Services.EmailNotification;
 using Marilog.Client.Services.FunctionaltyServices;
 using Marilog.Client.Services.LaytimeServices;
 using Marilog.Client.Services.Logging;
+using Marilog.Client.Services.NotifiServices;
 using Marilog.Client.Services.SystemServices;
 using Marilog.Client.Services.UiServices;
 using Marilog.Client.Services.UserIdenty;
@@ -12,6 +13,7 @@ using Marilog.Client.Services.VesselPosition;
 using Marilog.Contracts.Interfaces.DataManagment;
 using Marilog.Contracts.Interfaces.FrontendServices;
 using Marilog.Contracts.Interfaces.LogService;
+using Marilog.Contracts.Interfaces.NotifiServices;
 using Marilog.Contracts.Interfaces.Services.AuditLog;
 using Marilog.Contracts.Interfaces.Services.CharterLaytimeServices;
 using Marilog.Contracts.Interfaces.Services.DocumentExtraction;
@@ -58,6 +60,8 @@ namespace Marilog.Client.Extensions
             services.AddScoped<ICommentService, CommentService>();
             services.AddScoped<IRecordLinkService, RecordLinkService>();
             //=====frontend================================================================
+            //---Notifi------------------------------------
+            services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<INavigationService, NavigationService>();
             services.AddScoped<IAppThemeService, AppThemeService>();
             //=====functionalty services===================================================

@@ -324,6 +324,9 @@
         VesselType = 47,
         Comment = 48,
         VoyageStop = 49,
+        DocumentItem = 50,
+        VoyageCargo = 51,
+        VoyageContract = 52,
         NONE = 0
     }
     public enum JobStatus

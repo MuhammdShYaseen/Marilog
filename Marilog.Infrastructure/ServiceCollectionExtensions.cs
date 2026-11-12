@@ -130,7 +130,7 @@ namespace Marilog.Infrastructure
             services.AddScoped<INotificationSchedule, NotificationSchedule>();
             services.AddSingleton<INotificationScheduleChangeNotifier, NotificationScheduleChangeNotifier>();
             services.AddHostedService<DailyNotificationBackgroundService>();
-
+            services.AddHostedService<AuditNotificationJob>();
 
             //===VesselFinder===================================================================
             services.AddMemoryCache();

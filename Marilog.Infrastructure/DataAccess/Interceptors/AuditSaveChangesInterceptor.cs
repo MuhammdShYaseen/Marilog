@@ -1,5 +1,7 @@
-﻿using Marilog.Application.Interfaces.UserIdentity;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using Marilog.Application.Interfaces.UserIdentity;
 using Marilog.Domain.Common;
+using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Entities.UsersLog;
 using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Infrastructure.Models.Identity;
@@ -84,17 +86,22 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
 
             var logs = new List<AuditLog>();
 
-            foreach (var entry in context.ChangeTracker.Entries())
+            var entries = context.ChangeTracker.Entries().ToList();
+            foreach (var entry in entries)
             {
-                if (entry.Entity is AuditLog) continue;
+                if (entry.Entity is AuditLog or CommentRead) continue;
                 if (entry.State is EntityState.Detached or EntityState.Unchanged) continue;
 
                 Guid entityId;
+                EntityType? type = null;
+                var asParentUpdate = false;
+
                 if (entry.Entity is Entity entity) entityId = entity.Guid;
                 else if (entry.Entity is User user) entityId = user.Id;
+                else if (FindParent(entries, entry) is { } parent) (entityId, type, asParentUpdate) = parent;
                 else continue;
 
-                var log = BuildLog(entry, entityId);
+                var log = BuildLog(entry, entityId, type, asParentUpdate);
                 if (log is not null) logs.Add(log);
             }
 
@@ -105,7 +112,7 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
             }
         }
 
-        private AuditLog? BuildLog(EntityEntry entry, Guid entityId)
+        private AuditLog? BuildLog(EntityEntry entry, Guid entityId, EntityType? type = null, bool asParentUpdate = false)
         {
             var properties = entry.Properties
                 .Where(p => !IsIgnored(entry, p))
@@ -146,10 +153,12 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
                     return null;
             }
 
+            // A value with no type of its own is a change to its parent
+            if (asParentUpdate) operation = AuditOperation.Update;
             var isAuthenticated = _currentUser.IsAuthenticated;
 
             return AuditLog.Create(
-                AuditEntityTypes.Resolve(entry.Metadata.ClrType),
+                type ?? AuditEntityTypes.Resolve(entry.Metadata.ClrType),
                 entityId,
                 operation,
                 isAuthenticated ? _currentUser.UserId : null,
@@ -158,6 +167,55 @@ namespace Marilog.Infrastructure.DataAccess.Interceptors
                 after);
         }
 
+        // A tracked record that isn't an Entity (a document item, a voyage stop or its cargo,
+        // an owned value like a bank account or the laytime terms) is logged under its nearest
+        // parent Entity's Guid, so the parent's history and its followers see the change.
+        // Type: the first one on the way up that EntityType names (DocumentItem, VoyageCargo...).
+        // A plain value with no type of its own is logged as an update of the parent.
+        private static (Guid Id, EntityType Type, bool AsParentUpdate)? FindParent(List<EntityEntry> entries, EntityEntry entry)
+        {
+            EntityType? childType = null;
+            var current = entry;
+
+            for (var depth = 0; depth < 5 && current is not null; depth++)
+            {
+                if (current.Entity is Entity parent)
+                    return childType is { } type
+                        ? (parent.Guid, type, false)
+                        : (parent.Guid, AuditEntityTypes.Resolve(current.Metadata.ClrType), true);
+
+                var resolved = AuditEntityTypes.Resolve(current.Metadata.ClrType);
+                if (childType is null && resolved != EntityType.NONE) childType = resolved;
+
+                current = FindPrincipal(entries, current);
+            }
+
+            return null;
+        }
+
+        // The tracked parent: the owner of an owned value, or the record whose collection holds this one.
+        private static EntityEntry? FindPrincipal(List<EntityEntry> entries, EntityEntry entry)
+        {
+            foreach (var fk in entry.Metadata.GetForeignKeys())
+            {
+                if (!fk.IsOwnership && fk.PrincipalToDependent is not { IsCollection: true }) continue;
+
+                var keyValues = fk.Properties
+                    .Select(p => entry.State == EntityState.Deleted
+                        ? entry.Property(p.Name).OriginalValue
+                        : entry.Property(p.Name).CurrentValue)
+                    .ToArray();
+                if (keyValues.Any(v => v is null)) continue;
+
+                var principal = entries.FirstOrDefault(e =>
+                    fk.PrincipalEntityType.ClrType.IsAssignableFrom(e.Metadata.ClrType)
+                    && fk.PrincipalKey.Properties.Select(p => e.Property(p.Name).CurrentValue).SequenceEqual(keyValues));
+
+                if (principal is not null) return principal;
+            }
+
+            return null;
+        }
         private static bool IsIgnored(EntityEntry entry, PropertyEntry property)
         {
             // Identity Id on a new row is a temporary value until the database assigns it
