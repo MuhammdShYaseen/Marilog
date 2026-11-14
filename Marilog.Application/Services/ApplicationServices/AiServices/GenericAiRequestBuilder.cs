@@ -22,7 +22,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
     ///
     /// Supported placeholders:
     ///   {{model}}       {{temperature}}   {{max_tokens}}
-    ///   {{stream}}      {{messages}}      {{system}}      {{prompt}}
+    ///   {{messages}}    {{system}}      {{prompt}}      ({{model}} also works inside BaseUrl)
     /// </summary>
     public sealed class GenericAiRequestBuilder : IAiRequestBuilder
     {
@@ -44,12 +44,11 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             var temperature = (context.TemperatureOverride ?? provider.DefaultTemperature)
                                 .ToString(CultureInfo.InvariantCulture);
             var maxTokens = (context.MaxTokensOverride ?? provider.MaxOutputTokens).ToString();
-            var stream = (context.StreamOverride ?? provider.SupportsStreaming).ToString().ToLower();
+            
 
             ReplaceScalarToken(root, "{{model}}", provider.ModelIdentifier);
             ReplaceScalarToken(root, "{{temperature}}", temperature);
             ReplaceScalarToken(root, "{{max_tokens}}", maxTokens);
-            ReplaceScalarToken(root, "{{stream}}", stream);
         }
 
         // ── Step 2: Content tokens (messages / system / prompt) ──
@@ -58,7 +57,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
         {
             var messages = ResolveMessages(context);
 
-            ReplaceMessagesToken(root, messages);
+            ReplaceMessagesToken(root, messages, includeSystem: !root.ToJsonString().Contains("{{system}}"));
             ReplaceSystemToken(root, messages);
             ReplacePromptToken(root, context);
         }
@@ -75,11 +74,11 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 "AiRequestContext must provide either Messages or Prompt.");
         }
 
-        private void ReplaceMessagesToken(JsonObject root, List<AiMessage> messages)
+        private void ReplaceMessagesToken(JsonObject root, List<AiMessage> messages, bool includeSystem)
         {
             // Build array excluding system messages (system is handled separately)
             var array = new JsonArray();
-            foreach (var m in messages.Where(m => m.Role != "system"))
+            foreach (var m in messages.Where(m => includeSystem || m.Role != "system"))
             {
                 array.Add(new JsonObject
                 {
@@ -96,7 +95,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             var systemContent = messages.FirstOrDefault(m => m.Role == "system")?.Content;
 
             if (systemContent is not null)
-                ReplaceScalarToken(root, "{{system}}", systemContent);
+                ReplaceScalarToken(root, "{{system}}", systemContent, asString: true);
             else
                 RemoveToken(root, "{{system}}");
         }
@@ -104,7 +103,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
         private void ReplacePromptToken(JsonObject root, AiRequestContext context)
         {
             if (!string.IsNullOrWhiteSpace(context.Prompt))
-                ReplaceScalarToken(root, "{{prompt}}", context.Prompt);
+                ReplaceScalarToken(root, "{{prompt}}", context.Prompt, asString: true);
             else
                 RemoveToken(root, "{{prompt}}");
         }
@@ -121,7 +120,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
         // ── Tree walkers ─────────────────────────────────────────
 
         /// <summary>Walks the tree replacing a string placeholder with a string value.</summary>
-        private void ReplaceScalarToken(JsonObject node, string token, string value)
+        private void ReplaceScalarToken(JsonObject node, string token, string value, bool asString = false)
         {
             foreach (var key in node.Select(k => k.Key).ToList())
             {
@@ -130,13 +129,13 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 {
                     case JsonValue v when v.ToString() == token:
                         // Detect type from value — numbers stay numbers, booleans stay booleans
-                        node[key] = DetectAndCreate(value);
+                        node[key] = asString ? JsonValue.Create(value) : DetectAndCreate(value);
                         break;
                     case JsonObject obj:
-                        ReplaceScalarToken(obj, token, value);
+                        ReplaceScalarToken(obj, token, value, asString);
                         break;
                     case JsonArray arr:                          // ← add this
-                        ReplaceScalarTokenInArray(arr, token, value);
+                        ReplaceScalarTokenInArray(arr, token, value, asString);
                         break;
                 }
             }
@@ -198,20 +197,20 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             return JsonValue.Create(value)!;
         }
 
-        private void ReplaceScalarTokenInArray(JsonArray array, string token, string value)
+        private void ReplaceScalarTokenInArray(JsonArray array, string token, string value, bool asString = false)
         {
             for (int i = 0; i < array.Count; i++)
             {
                 switch (array[i])
                 {
                     case JsonValue v when v.ToString() == token:
-                        array[i] = DetectAndCreate(value);
+                        array[i] = asString ? JsonValue.Create(value) : DetectAndCreate(value);
                         break;
                     case JsonObject obj:
-                        ReplaceScalarToken(obj, token, value);
+                        ReplaceScalarToken(obj, token, value, asString);
                         break;
                     case JsonArray nested:
-                        ReplaceScalarTokenInArray(nested, token, value);
+                        ReplaceScalarTokenInArray(nested, token, value, asString);
                         break;
                 }
             }

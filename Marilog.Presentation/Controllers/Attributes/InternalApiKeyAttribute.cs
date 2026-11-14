@@ -16,7 +16,11 @@
                 .GetRequiredService<IConfiguration>();
 
             var expectedKey = configuration["InternalServices:OcrApiKey"];
-
+            if (string.IsNullOrWhiteSpace(expectedKey))
+            {
+                context.Result = new UnauthorizedResult();
+                return;
+            }
             if (!context.HttpContext.Request.Headers.TryGetValue(HeaderName, out var providedKey))
             {
                 context.Result = new UnauthorizedResult();

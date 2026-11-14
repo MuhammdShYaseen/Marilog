@@ -16,7 +16,6 @@ namespace Marilog.Application.DTOs.Ai
         // Overrides — take priority over provider defaults
         public decimal? TemperatureOverride { get; init; }
         public int? MaxTokensOverride { get; init; }
-        public bool? StreamOverride { get; init; }
 
         /// <summary>
         /// Extra parameters merged into the final payload last,

@@ -88,7 +88,7 @@ namespace Marilog.Application
             //---AiServices----------------------------------
             services.AddScoped<IAiProviderService, AiProviderService>();
             services.AddScoped<IAiRequestBuilder, GenericAiRequestBuilder>();
-
+            services.AddScoped<IAiCompletionService, AiCompletionService>();
             //----Laytime Helpper----------------------------
             services.AddScoped<ILaytimeHelpper,LaytimeHelpper>();
             services.AddScoped<ILaytimeEngine,LaytimeEngine>();

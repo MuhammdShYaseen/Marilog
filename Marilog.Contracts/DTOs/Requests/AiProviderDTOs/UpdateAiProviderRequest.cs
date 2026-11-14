@@ -1,28 +1,23 @@
 ﻿using Marilog.Kernel.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Contracts.DTOs.Requests.AiProviderDTOs
 {
+    // Purpose is fixed at creation. Activation goes through activate/deactivate.
     public class UpdateAiProviderRequest
     {
-
         public string Name { get; set; } = default!;
         public AiProviderType ProviderType { get; set; }
-        public string RequestTemplateJson { get; set; } = default!;
         public string BaseUrl { get; set; } = default!;
         public string ModelIdentifier { get; set; } = default!;
-        public string? ApiVersion { get; set; }
-        public string? AuthHeader { get; set; }
+        public string AuthHeaderName { get; set; } = "Authorization";
+        public string? AuthPrefix { get; set; }
+        public string? ApiKey { get; set; }          // empty = keep the stored key
+        public string? ExtraHeadersJson { get; set; }
+        public string RequestTemplateJson { get; set; } = default!;
+        public string ResponseTextPath { get; set; } = default!;
         public int MaxInputTokens { get; set; }
         public int MaxOutputTokens { get; set; }
         public int ChunkOverlapTokens { get; set; }
-
         public decimal DefaultTemperature { get; set; }
-
-        public string ApiKeyName { get; set; } = default!;
-        public string ApiKeyEncrypted { get; set; } = default!;
-        public bool SupportsStreaming { get; set; }
     }
 }

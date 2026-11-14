@@ -341,13 +341,7 @@
         VoyageContract = 52,
         NONE = 0
     }
-    public enum JobStatus
-    {
-        Pending = 0,
-        Processing = 1,
-        Completed = 2,
-        Failed = 3
-    }
+    
     public enum AiProviderType
     {
         OpenAI = 1,
@@ -355,6 +349,12 @@
         AzureOpenAI = 3,
         GoogleGemini = 4,
         Ollama = 5
+    }
+
+    public enum AiProviderPurpose
+    {
+        Chat = 1,
+        Embedding = 2
     }
     public enum OperationType
     {

@@ -1,10 +1,11 @@
-﻿using Marilog.Contracts.DTOs.Requests.AiProviderDTOs;
+﻿using Marilog.Application.DTOs.Ai;
+using Marilog.Application.Interfaces.Ai;
+using Marilog.Application.Interfaces.Encryption;
+using Marilog.Contracts.DTOs.Requests.AiProviderDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Marilog.Domain.Entities.AiEntities;
 using Marilog.Domain.Interfaces.Repositories;
-using Marilog.Kernel.Enums;
-using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -13,92 +14,85 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
     public sealed class AiProviderService : IAiProviderService
     {
         private readonly IRepository<AiProvider> _repo;
+        private readonly ISecretEncryptionService _encryption;
+        private readonly IAiCompletionService _completion;
 
-        public AiProviderService(IRepository<AiProvider> repo)
+        public AiProviderService(
+            IRepository<AiProvider> repo,
+            ISecretEncryptionService encryption,
+            IAiCompletionService completion)
         {
             _repo = repo;
+            _encryption = encryption;
+            _completion = completion;
         }
 
         public async Task<IEnumerable<AiProviderResponse>> GetAllAsync(CancellationToken ct)
         {
-            var items = await _repo.Query()
+            return await _repo.Query()
                 .AsNoTracking()
+                .OrderBy(p => p.Purpose).ThenBy(p => p.Name)
                 .Select(ToResponse)
                 .ToListAsync(ct);
-
-            return items;
         }
 
         public async Task<AiProviderResponse?> GetByIdAsync(int id, CancellationToken ct)
         {
-             return await _repo.Query()
+            return await _repo.Query()
                 .AsNoTracking()
-                .Where(ai => ai.Id == id)
+                .Where(p => p.Id == id)
                 .Select(ToResponse)
-                .FirstOrDefaultAsync(x => x.Id == id, ct);
+                .FirstOrDefaultAsync(ct);
         }
 
         public async Task<AiProviderResponse> CreateAsync(CreateAiProviderRequest request, CancellationToken ct)
         {
-            var entity = AiProvider.Create
-            (
+            var entity = AiProvider.Create(
                 request.Name,
-                request.AuthHeader,
                 request.ProviderType,
+                request.Purpose,
                 request.BaseUrl,
                 request.ModelIdentifier,
+                request.AuthHeaderName,
+                request.AuthPrefix,
+                request.ExtraHeadersJson,
                 request.RequestTemplateJson,
+                request.ResponseTextPath,
                 request.MaxInputTokens,
                 request.MaxOutputTokens,
                 request.ChunkOverlapTokens,
-                request.ApiKeyName,
-                request.ApiKeyEncrypted,
-                request.ApiVersion,
-                request.DefaultTemperature,
-                request.SupportsStreaming
-            );
+                request.DefaultTemperature);
+
+            SetApiKey(entity, request.ApiKey);
 
             await _repo.AddAsync(entity, ct);
             await _repo.SaveChangesAsync(ct);
 
-            return new AiProviderResponse
-            {
-                SupportsStreaming = entity.SupportsStreaming,
-                ApiKeyName = request.ApiKeyEncrypted,
-                ApiVersion = request.ApiVersion,
-                BaseUrl = request.BaseUrl,
-                DefaultTemperature = request.DefaultTemperature,
-                ChunkOverlapTokens = request.ChunkOverlapTokens,
-                Id = entity.Id,
-                MaxInputTokens = entity.MaxInputTokens,
-                MaxOutputTokens = entity.MaxOutputTokens,
-                ModelIdentifier = request.ModelIdentifier,
-                Name = request.Name,
-                ProviderType = request.ProviderType
-            };
+            return ToResponseFunc(entity);
         }
 
         public async Task<bool> UpdateAsync(int id, UpdateAiProviderRequest request, CancellationToken ct)
         {
             var entity = await _repo.GetByIdAsync(id, ct);
             if (entity is null) return false;
-            entity.Update(request.Name,
-                          
-                          request.ProviderType,
-                          request.BaseUrl,
-                          request.ModelIdentifier,
-                          request.RequestTemplateJson,
-                          request.MaxInputTokens,
-                          request.MaxOutputTokens,
-                          request.ChunkOverlapTokens,
-                          request.ApiKeyName,
-                          request.ApiVersion,
-                          request.ApiKeyEncrypted,
-                          request.DefaultTemperature,
-                          request.SupportsStreaming,
-                          true,
-                          request.AuthHeader);
- 
+
+            entity.Update(
+                request.Name,
+                request.ProviderType,
+                request.BaseUrl,
+                request.ModelIdentifier,
+                request.AuthHeaderName,
+                request.AuthPrefix,
+                request.ExtraHeadersJson,
+                request.RequestTemplateJson,
+                request.ResponseTextPath,
+                request.MaxInputTokens,
+                request.MaxOutputTokens,
+                request.ChunkOverlapTokens,
+                request.DefaultTemperature);
+
+            SetApiKey(entity, request.ApiKey);
+
             _repo.Update(entity);
             await _repo.SaveChangesAsync(ct);
 
@@ -116,67 +110,86 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             return true;
         }
 
-        public async Task DeactiveAsync(int id, CancellationToken ct)
+        // One active provider per purpose: activating this one deactivates the current one.
+        public async Task<bool> ActivateAsync(int id, CancellationToken ct)
         {
             var entity = await _repo.GetByIdAsync(id, ct);
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity) + "not found");
+            if (entity is null) return false;
+            if (entity.IsActive) return true;
 
-            if (entity.IsActive == false)
-                return;
+            var purpose = entity.Purpose;
+            var current = await _repo.Query()
+                .Where(p => p.Purpose == purpose && p.IsActive)
+                .ToListAsync(ct);
 
-            entity.Deactivate();
-            _repo.Update(entity);
-            await _repo.SaveChangesAsync(ct);
-        }
-
-        public async Task ActivateAsync (int id, CancellationToken ct)
-        {
-            var entity = await _repo.GetByIdAsync(id, ct);
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity) + "not found");
-
-            if (entity.IsActive == true)
-                return;
+            foreach (var other in current)
+            {
+                other.Deactivate();
+                _repo.Update(other);
+            }
 
             entity.Activate();
             _repo.Update(entity);
             await _repo.SaveChangesAsync(ct);
+
+            return true;
         }
 
-        public async Task<AiProviderResponse> GetByTypeAsync(AiProviderType type, CancellationToken ct)
+        public async Task<bool> DeactivateAsync(int id, CancellationToken ct)
         {
-            var result = await _repo.Query()
-                              .AsNoTracking()
-                              .Where(p => p.ProviderType == type)
-                              .Select(ToResponse)
-                              .FirstOrDefaultAsync(ct);
-            if (result == null)
-                return new AiProviderResponse();
+            var entity = await _repo.GetByIdAsync(id, ct);
+            if (entity is null) return false;
+            if (!entity.IsActive) return true;
 
-            return result;
+            entity.Deactivate();
+            _repo.Update(entity);
+            await _repo.SaveChangesAsync(ct);
+
+            return true;
         }
-   
+
+        public Task<string> TestAsync(int id, string prompt, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(prompt))
+                throw new ArgumentException("Prompt is required.", nameof(prompt));
+
+            return _completion.CompleteAsync(id, new AiRequestContext { Prompt = prompt }, ct);
+        }
 
         //----Privates---------------------------------------------------------
 
-        private static readonly Expression<Func<AiProvider, AiProviderResponse>> ToResponse = e=> new AiProviderResponse
-        
-            {
-                Id = e.Id,
-                Name = e.Name,
-                ProviderType = e.ProviderType,
-                BaseUrl = e.BaseUrl,
-                ModelIdentifier = e.ModelIdentifier,
-                ApiVersion = e.ApiVersion,
-                MaxInputTokens = e.MaxInputTokens,
-                MaxOutputTokens = e.MaxOutputTokens,
-                ChunkOverlapTokens = e.ChunkOverlapTokens,
-                DefaultTemperature = e.DefaultTemperature,
-                ApiKeyName = e.ApiKeyName,
-                SupportsStreaming = e.SupportsStreaming,
-                RequestTemplateJson = e.RequestTemplateJson,
-                ApiKeyEncrypted = e.ApiKeyEncrypted,
-    };
+        // Empty key = keep the stored one. Only the cipher text and the last 4 characters are stored.
+        private void SetApiKey(AiProvider entity, string? apiKey)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey)) return;
+
+            var key = apiKey.Trim();
+            entity.SetApiKey(_encryption.Encrypt(key), key.Length >= 12 ? key[^4..] : null);
+        }
+
+        private static readonly Expression<Func<AiProvider, AiProviderResponse>> ToResponse = e => new AiProviderResponse
+        {
+            Id = e.Id,
+            Name = e.Name,
+            ProviderType = e.ProviderType,
+            Purpose = e.Purpose,
+            BaseUrl = e.BaseUrl,
+            ModelIdentifier = e.ModelIdentifier,
+            AuthHeaderName = e.AuthHeaderName,
+            AuthPrefix = e.AuthPrefix,
+            HasApiKey = e.ApiKeyEncrypted != null,
+            ApiKeyHint = e.ApiKeyHint,
+            ExtraHeadersJson = e.ExtraHeadersJson,
+            RequestTemplateJson = e.RequestTemplateJson,
+            ResponseTextPath = e.ResponseTextPath,
+            MaxInputTokens = e.MaxInputTokens,
+            MaxOutputTokens = e.MaxOutputTokens,
+            ChunkOverlapTokens = e.ChunkOverlapTokens,
+            DefaultTemperature = e.DefaultTemperature,
+            IsActive = e.IsActive
+        };
+
+        // Declared after ToResponse: static fields initialise in order.
+        private static readonly Func<AiProvider, AiProviderResponse> ToResponseFunc = ToResponse.Compile();
     }
 }

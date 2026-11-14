@@ -31,21 +31,21 @@ namespace Marilog.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ApiKeyEncrypted")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ApiKeyName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("ApiKeyHint")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("ApiVersion")
+                    b.Property<string>("AuthHeaderName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("AuthPrefix")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("AuthHeader")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("BaseUrl")
                         .IsRequired()
@@ -61,6 +61,9 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<decimal>("DefaultTemperature")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ExtraHeadersJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
@@ -90,12 +93,17 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<int>("ProviderType")
                         .HasColumnType("int");
 
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
                     b.Property<string>("RequestTemplateJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("SupportsStreaming")
-                        .HasColumnType("bit");
+                    b.Property<string>("ResponseTextPath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -105,9 +113,7 @@ namespace Marilog.Infrastructure.Migrations
                     b.HasIndex("Guid")
                         .IsUnique();
 
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("ProviderType");
+                    b.HasIndex("Purpose", "IsActive");
 
                     b.ToTable("AiProviders", (string)null);
                 });

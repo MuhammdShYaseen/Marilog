@@ -29,6 +29,7 @@ namespace Marilog.Kernel.Enumerations
             EntityType.DocumentItem,
             EntityType.VoyageCargo,
             EntityType.VoyageContract,
+            EntityType.AiProvider,
         ];
 
         // Readable by every authenticated user. Only Create/Update/Delete are permissions.

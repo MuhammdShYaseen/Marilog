@@ -1,4 +1,5 @@
 ﻿using Marilog.Application.EventHandlers;
+using Marilog.Application.Interfaces.Ai;
 using Marilog.Application.Interfaces.DataManagment;
 using Marilog.Application.Interfaces.DocumentExtraction;
 using Marilog.Application.Interfaces.Encryption;
@@ -31,6 +32,7 @@ using Marilog.Infrastructure.Models.Weather;
 using Marilog.Infrastructure.Persistence;
 using Marilog.Infrastructure.Repositories;
 using Marilog.Infrastructure.Services;
+using Marilog.Infrastructure.Services.Ai;
 using Marilog.Infrastructure.Services.Audit;
 using Marilog.Infrastructure.Services.DataBackup;
 using Marilog.Infrastructure.Services.DocumentExtraction;
@@ -198,6 +200,11 @@ namespace Marilog.Infrastructure
 
             //====Document Extraction=============================================================
             services.AddSingleton<IPdfWordReader, PdfPigWordReader>();
+
+
+            //========Ai==========================================================================
+            //====AI Providers======================================================================
+            services.AddHttpClient<IAiProviderClient, AiProviderClient>(c => c.Timeout = TimeSpan.FromSeconds(120));
 
             return services;
 
