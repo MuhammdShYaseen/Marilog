@@ -1967,6 +1967,9 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("Guid")
                         .HasColumnType("uniqueidentifier");
 
@@ -2018,7 +2021,7 @@ namespace Marilog.Infrastructure.Migrations
 
                     b.HasIndex("IsProcessed", "IsCancelled");
 
-                    b.HasIndex("Year", "Sequence")
+                    b.HasIndex("Direction", "Year", "Sequence")
                         .IsUnique();
 
                     b.ToTable("InboxEntries", (string)null);

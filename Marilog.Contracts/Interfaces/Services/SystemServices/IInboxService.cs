@@ -7,7 +7,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
     public interface IInboxService
     {
-        Task<string> CreateAsync(DateOnly receivedDate, InboxSource source, List<int> vesselId, string description, int? sequence = null, CancellationToken ct = default);
+        Task<string> CreateAsync(InboxDirection direction, DateOnly receivedDate, InboxSource source, List<int> vesselId, string description, int? sequence = null, CancellationToken ct = default);
         Task<List<string>> CreateRangeAsync(List<CreateInboxEntryItem> items, bool keepInputOrder = false, CancellationToken ct = default);
         Task UpdateAsync(int id, DateOnly receivedDate, InboxSource source, List<int> vesselIds, string description, CancellationToken ct = default);
         Task LinkAsync(int id, EntityType entityType, int entityId, CancellationToken ct = default);

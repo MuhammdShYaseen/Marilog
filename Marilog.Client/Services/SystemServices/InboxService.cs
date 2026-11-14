@@ -50,12 +50,12 @@ namespace Marilog.Client.Services.SystemServices
 
         // ── Commands ─────────────────────────────────────────────────────────────
 
-        public async Task<string> CreateAsync(DateOnly receivedDate, InboxSource source,
+        public async Task<string> CreateAsync(InboxDirection direction, DateOnly receivedDate, InboxSource source,
             List<int> vesselIds, string description, int? startSequence = null,
             CancellationToken ct = default)
         {
             var request = new CreateInboxEntryRequest(receivedDate, source, vesselIds,
-                description, startSequence);
+                description, startSequence, direction);
 
             var http = await _http.PostAsJsonAsync(Base, request, ct);
             await http.EnsureSuccessWithMessageAsync(ct);
@@ -122,6 +122,7 @@ namespace Marilog.Client.Services.SystemServices
             if (f.From is not null) q.Add($"from={f.From.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
             if (f.To is not null) q.Add($"to={f.To.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
             if (f.Source is not null) q.Add($"source={f.Source}");
+            if (f.Direction is not null) q.Add($"direction={f.Direction}");
             if (f.VesselId is not null) q.Add($"vesselId={f.VesselId}");
             if (f.IsProcessed is not null) q.Add($"isProcessed={(f.IsProcessed.Value ? "true" : "false")}");
             if (f.IsCancelled is not null) q.Add($"isCancelled={(f.IsCancelled.Value ? "true" : "false")}");

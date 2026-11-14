@@ -1,6 +1,12 @@
 ﻿namespace Marilog.Kernel.Enums
 {
+    //---inbox
 
+    public enum InboxDirection
+    {
+        In = 1,
+        Out = 2
+    }
 
     //---back up
     public enum BackupJobStatus

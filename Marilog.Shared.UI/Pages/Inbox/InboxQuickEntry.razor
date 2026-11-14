@@ -8,8 +8,15 @@
     <MudText Typo="Typo.subtitle2" Class="mb-2">Quick entry</MudText>
 
     <MudGrid Spacing="2">
+        <MudItem xs="6" md="1">
+            <MudSelect T="InboxDirection" @bind-Value="_direction" Label="In / Out"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="InboxDirection" Value="InboxDirection.In">IN</MudSelectItem>
+                <MudSelectItem T="InboxDirection" Value="InboxDirection.Out">OUT</MudSelectItem>
+            </MudSelect>
+        </MudItem>
         <MudItem xs="6" md="2">
-            <MudDatePicker @bind-Date="_date" Label="Received"
+            <MudDatePicker @bind-Date="_date" Label="Date"
                            DateFormat="dd/MM/yyyy"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
@@ -22,7 +29,7 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" md="3">
+        <MudItem xs="12" md="2">
             <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_vesselIds"
                        ToStringFunc="VesselName" Label="Vessels"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
@@ -67,7 +74,7 @@
 @code {
     [Parameter] public IReadOnlyDictionary<int, string> VesselNames { get; set; } = new Dictionary<int, string>();
     [Parameter, EditorRequired] public Func<CreateInboxEntryRequest, Task<string?>> OnCreate { get; set; } = default!;
-
+    [Parameter] public InboxDirection DefaultDirection { get; set; } = InboxDirection.In;
     private MudTextField<string> _descriptionField = default!;
     private DateTime? _date = DateTime.Today;
     private InboxSource _source = InboxSource.WhatsApp;
@@ -76,7 +83,16 @@
     private int? _sequence;
     private string? _lastNumber;
     private bool _saving;
+    private InboxDirection _direction = InboxDirection.In;
+    private InboxDirection? _appliedDefault;
 
+    // Follows the tab the page shows; still changeable for each entry
+    protected override void OnParametersSet()
+    {
+        if (_appliedDefault == DefaultDirection) return;
+        _appliedDefault = DefaultDirection;
+        _direction = DefaultDirection;
+    }
     private bool CanSave => !_saving && _date is not null && !string.IsNullOrWhiteSpace(_description);
 
     private string VesselName(int id) =>
@@ -91,14 +107,14 @@
     {
         if (!CanSave) return;
         _saving = true;
-        try
-        {
-            var number = await OnCreate(new CreateInboxEntryRequest(
+        try{
+                    var number = await OnCreate(new CreateInboxEntryRequest(
                 DateOnly.FromDateTime(_date!.Value),
                 _source,
                 _vesselIds.ToList(),
                 _description!.Trim(),
-                _sequence));
+                _sequence,
+                _direction));
 
             if (number is null) return;
 

@@ -9,10 +9,21 @@
 
     @* ── Title ──────────────────────────────────────────────── *@
     <div class="px-4 pt-4">
-        <MudText Typo="Typo.h6">Inbox</MudText>
+        <MudText Typo="Typo.h6">Correspondence</MudText>
         <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Incoming register · everything received, from any source
+            Incoming and outgoing register · everything received or sent, on any channel
         </MudText>
+        <div class="d-flex flex-wrap gap-1 mt-3">
+            @foreach (var (label, value, icon) in DirectionTabs)
+            {
+                <MudButton Variant="@(_direction == value ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary" Size="Size.Small" Style="text-transform:none"
+                           StartIcon="@icon"
+                           OnClick="@(() => SetDirectionAsync(value))">
+                    @label
+                </MudButton>
+            }
+        </div>
     </div>
 
     @* ── Command bar ────────────────────────────────────────── *@
@@ -40,7 +51,7 @@
 
     <div class="pa-4">
 
-        <InboxQuickEntry VesselNames="VesselNames" OnCreate="OnCreate" />
+        <InboxQuickEntry VesselNames="VesselNames" OnCreate="OnCreate" DefaultDirection="@(_direction ?? InboxDirection.In)" />
 
         @* ── Filters ── *@
         <MudGrid Spacing="2" Class="my-2">
@@ -172,9 +183,24 @@
     private DateTime? _from;
     private DateTime? _to;
     private bool _pendingOnly;
+    private InboxDirection? _direction = InboxDirection.In;
 
+    private static readonly (string Label, InboxDirection? Value, string Icon)[] DirectionTabs =
+    [
+        ("Incoming", InboxDirection.In, Icons.Material.Filled.CallReceived),
+        ("Outgoing", InboxDirection.Out, Icons.Material.Filled.CallMade),
+        ("All", null, Icons.Material.Filled.SwapVert)
+    ];
+
+    private Task SetDirectionAsync(InboxDirection? value)
+    {
+        if (_direction == value) return Task.CompletedTask;
+        _direction = value;
+        return ApplyAsync();
+    }
     private InboxEntryFilter BuildFilter(int page) => new()
     {
+        Direction = _direction,
         Page = page,
         SearchTerm = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm.Trim(),
         Source = _source,

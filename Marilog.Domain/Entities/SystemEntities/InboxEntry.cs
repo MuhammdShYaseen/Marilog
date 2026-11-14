@@ -1,11 +1,11 @@
-﻿
-using Marilog.Domain.Common;
+﻿using Marilog.Domain.Common;
 using Marilog.Kernel.Enums;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
     public class InboxEntry : Entity
     {
+        public InboxDirection Direction { get; private set; }   // fixed once created: the number depends on it
         public int Year { get; private set; }
         public int Sequence { get; private set; }
         public string Number { get; private set; } = null!;
@@ -18,10 +18,11 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         private InboxEntry() { }
 
-        public static InboxEntry Create(int year, int sequence, string number, DateOnly receivedDate,
+        public static InboxEntry Create(InboxDirection direction, int year, int sequence, string number, DateOnly receivedDate,
             InboxSource source, List<int> vesselIds, string description)
             => new()
             {
+                Direction = direction,
                 Year = year,
                 Sequence = sequence,
                 Number = number,

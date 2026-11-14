@@ -19,7 +19,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
 
         [HttpPost]
         public async Task<IActionResult> Create(CreateInboxEntryRequest request, CancellationToken ct)
-            => Ok(await _inbox.CreateAsync(request.ReceivedDate, request.Source,
+            => Ok(await _inbox.CreateAsync(request.Direction, request.ReceivedDate, request.Source,
                 request.VesselIds ?? [], request.Description, request.StartSequence, ct));
 
         [HttpPost("range")]

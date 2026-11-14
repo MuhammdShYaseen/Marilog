@@ -1,6 +1,4 @@
-﻿
-
-using Marilog.Kernel.Enums;
+﻿using Marilog.Kernel.Enums;
 
 namespace Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
 {
@@ -10,6 +8,7 @@ namespace Marilog.Contracts.DTOs.Requests.InboxEntryDTOs
         InboxSource Source,
         List<int>? VesselIds,
         string Description,
-        int? StartSequence
+        int? StartSequence,
+        InboxDirection Direction = InboxDirection.In
     );
 }

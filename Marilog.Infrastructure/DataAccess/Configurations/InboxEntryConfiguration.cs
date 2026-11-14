@@ -23,11 +23,14 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.Source)
                 .IsRequired();
 
+            builder.Property(x => x.Direction)
+                .IsRequired();
+
             // Primitive collection — stored as a JSON column (EF Core 8+)
             builder.Property(x => x.VesselIds);
 
             builder.HasIndex(x => x.Number).IsUnique();
-            builder.HasIndex(x => new { x.Year, x.Sequence }).IsUnique();
+            builder.HasIndex(x => new { x.Direction, x.Year, x.Sequence }).IsUnique();
             builder.HasIndex(x => new { x.IsProcessed, x.IsCancelled });
             builder.HasIndex(x => x.ReceivedDate);
         }

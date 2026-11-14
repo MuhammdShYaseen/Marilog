@@ -10,7 +10,7 @@
         <div>
             <MudText Typo="Typo.h6">@Entry.Number</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">
-                Inbox entry · @Entry.ReceivedDate.ToString("dd/MM/yyyy") · @Entry.Source
+                @(Entry.Direction == InboxDirection.Out ? "Outgoing" : "Incoming") · @Entry.ReceivedDate.ToString("dd/MM/yyyy") · @Entry.Source
             </MudText>
         </div>
         <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
@@ -37,7 +37,7 @@
                    OnClick="@(() => OnCommentsClicked.InvokeAsync((Entry.Id, EntityType.InboxEntry)))">
             Comments
         </MudButton>
-        <FollowButton EntityType="EntityType.InboxEntry" EntityId="Entry.Id" Title="@($"Inbox {Entry.Number}")" />
+        <FollowButton EntityType="EntityType.InboxEntry" EntityId="Entry.Id" Title="@Entry.Number" />
         @if (!Entry.IsProcessed && !Entry.IsCancelled)
         {
             <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" Style="text-transform:none"

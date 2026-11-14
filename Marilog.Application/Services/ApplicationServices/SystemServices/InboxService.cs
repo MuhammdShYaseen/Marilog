@@ -12,7 +12,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
     public class InboxService : IInboxService
     {
-        private const string Prefix = "IN";
         private const int MaxAttempts = 3;
         private readonly IRepository<InboxEntry> _entries;
         private readonly IRepository<InboxEntryLink> _links;
@@ -27,10 +26,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
 
         //==== Commands ==========================================================================================
-        public async Task<string> CreateAsync(DateOnly receivedDate, InboxSource source, List<int> vesselIds, string description, int? sequence = null, CancellationToken ct = default)
+        public async Task<string> CreateAsync(InboxDirection direction, DateOnly receivedDate, InboxSource source, List<int> vesselIds, string description, int? sequence = null, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(description))
                 throw new InvalidOperationException("Description is required.");
+
+            if (!Enum.IsDefined(direction))
+                throw new InvalidOperationException("Direction must be In or Out.");
 
             var year = receivedDate.Year;
 
@@ -39,19 +41,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 if (sequence <= 0)
                     throw new InvalidOperationException("Start must be greater than zero.");
 
-                if (await _entries.Query().AnyAsync(x => x.Year == year && x.Sequence == sequence, ct))
-                     throw new InvalidOperationException($"{Format(sequence.Value, year)} is already used.");
+                if (await _entries.Query().AnyAsync(x => x.Direction == direction && x.Year == year && x.Sequence == sequence, ct))
+                    throw new InvalidOperationException($"{Format(direction, sequence.Value, year)} is already used.");
             }
 
             for (var attempt = 1; ; attempt++)
             {
                 var next = sequence
                      ?? (await _entries.Query()
-                            .Where(x => x.Year == year)
+                            .Where(x => x.Direction == direction && x.Year == year)
                             .MaxAsync(x => (int?)x.Sequence, ct) ?? 0) + 1;
 
-                var number = Format(next, year);
-                var entry = InboxEntry.Create(year, next, number, receivedDate,
+                var number = Format(direction, next, year);
+                var entry = InboxEntry.Create(direction, year, next, number, receivedDate,
                      source, vesselIds, description.Trim());
 
                 await _entries.AddAsync(entry, ct);
@@ -80,15 +82,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (items.Any(x => x.Sequence is <= 0))
                 throw new InvalidOperationException("Manual number must be greater than zero.");
 
+            if (items.Any(x => !Enum.IsDefined(x.Direction)))
+                throw new InvalidOperationException("Direction must be In or Out.");
+
+            // Numbers run separately per direction and year
             var manual = items
                 .Where(x => x.Sequence is not null)
-                .Select(x => (Year: x.ReceivedDate.Year, Sequence: x.Sequence!.Value))
+                .Select(x => (x.Direction, Year: x.ReceivedDate.Year, Sequence: x.Sequence!.Value))
                 .ToList();
 
             var repeated = manual
                 .GroupBy(x => x)
                 .Where(g => g.Count() > 1)
-                .Select(g => Format(g.Key.Sequence, g.Key.Year))
+                .Select(g => Format(g.Key.Direction, g.Key.Sequence, g.Key.Year))
                 .ToList();
 
             if (repeated.Count > 0)
@@ -110,34 +116,35 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     var taken = await _entries.Query()
                         .Where(x => years.Contains(x.Year) && manualSequences.Contains(x.Sequence))
-                        .Select(x => new { x.Year, x.Sequence })
+                        .Select(x => new { x.Direction, x.Year, x.Sequence })
                         .ToListAsync(ct);
 
                     var conflicts = taken
-                        .Where(t => manualSet.Contains((t.Year, t.Sequence)))
-                        .Select(t => Format(t.Sequence, t.Year))
+                        .Where(t => manualSet.Contains((t.Direction, t.Year, t.Sequence)))
+                        .Select(t => Format(t.Direction, t.Sequence, t.Year))
                         .ToList();
 
                     if (conflicts.Count > 0)
                         throw new InvalidOperationException($"Already used: {string.Join(", ", conflicts)}.");
                 }
 
-                var lastByYear = await _entries.Query()
-                    .Where(x => years.Contains(x.Year))
-                    .GroupBy(x => x.Year)
-                    .Select(g => new { Year = g.Key, Max = g.Max(x => x.Sequence) })
-                    .ToDictionaryAsync(x => x.Year, x => x.Max, ct);
+                var lastByKey = (await _entries.Query()
+                        .Where(x => years.Contains(x.Year))
+                        .GroupBy(x => new { x.Direction, x.Year })
+                        .Select(g => new { g.Key.Direction, g.Key.Year, Max = g.Max(x => x.Sequence) })
+                        .ToListAsync(ct))
+                    .ToDictionary(x => (x.Direction, x.Year), x => x.Max);
 
                 // Auto numbers start after the highest of existing and manual numbers
-                foreach (var (year, sequence) in manual)
-                    lastByYear[year] = Math.Max(lastByYear.GetValueOrDefault(year), sequence);
+                foreach (var (direction, year, sequence) in manual)
+                    lastByKey[(direction, year)] = Math.Max(lastByKey.GetValueOrDefault((direction, year)), sequence);
 
                 var numbers = new string[items.Count];
                 var added = new List<InboxEntry>(items.Count);
 
                 foreach (var (item, index) in ordered)
                 {
-                    var year = item.ReceivedDate.Year;
+                    var key = (item.Direction, item.ReceivedDate.Year);
                     int sequence;
 
                     if (item.Sequence is not null)
@@ -146,12 +153,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     }
                     else
                     {
-                        sequence = lastByYear.GetValueOrDefault(year) + 1;
-                        lastByYear[year] = sequence;
+                        sequence = lastByKey.GetValueOrDefault(key) + 1;
+                        lastByKey[key] = sequence;
                     }
 
-                    var number = Format(sequence, year);
-                    var entry = InboxEntry.Create(year, sequence, number, item.ReceivedDate,
+                    var number = Format(item.Direction, sequence, key.Year);
+                    var entry = InboxEntry.Create(item.Direction, key.Year, sequence, number, item.ReceivedDate,
                         item.Source, item.VesselIds ?? [], item.Description.Trim());
 
                     await _entries.AddAsync(entry, ct);
@@ -282,6 +289,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var query = ApplySearch(_entries.Query(), filter.SearchTerm);
 
+            if (filter.Direction is not null)
+                query = query.Where(x => x.Direction == filter.Direction);
+
             if (filter.Year is not null)
                 query = query.Where(x => x.Year == filter.Year);
 
@@ -318,9 +328,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             }
             var total = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderByDescending(x => x.Year)
-                .ThenByDescending(x => x.Sequence)
+            // One direction: by number. Both: by date, since IN and OUT numbers run separately.
+            var ordered = filter.Direction is null
+                ? query.OrderByDescending(x => x.ReceivedDate).ThenByDescending(x => x.Id)
+                : query.OrderByDescending(x => x.Year).ThenByDescending(x => x.Sequence);
+
+            var items = await ordered
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .Select(ToResponse)
@@ -366,7 +379,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         //==== Privates ==========================================================================================
         private static readonly Expression<Func<InboxEntry, InboxEntryResponse>> ToResponse =
             x => new InboxEntryResponse(x.Id, x.Year, x.Sequence, x.Number, x.ReceivedDate,
-                x.Source, x.VesselIds, x.Description, x.IsProcessed, x.IsCancelled);
+             x.Source, x.VesselIds, x.Description, x.IsProcessed, x.IsCancelled, x.Direction);
         private static IQueryable<InboxEntry> ApplySearch(IQueryable<InboxEntry> query, string? searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm)) return query;
@@ -409,6 +422,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             => await _entries.Query().FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new InvalidOperationException($"Inbox entry {id} not found.");
 
-        private static string Format(int sequence, int year) => $"{Prefix}-{sequence:D4}-{year}";
+        private static string Format(InboxDirection direction, int sequence, int year)
+                => $"{(direction == InboxDirection.Out ? "OUT" : "IN")}-{sequence:D4}-{year}";
     }
 }

@@ -86,7 +86,7 @@ else
         if (x is null) return null;
 
         var desc = x.Description.Length > 60 ? x.Description[..60] + "…" : x.Description;
-        return $"Inbox {x.Number} — {desc}";
+        return $"{x.Number} — {desc}";
     }
 
     private async Task RefreshAsync(int id)
@@ -222,7 +222,7 @@ else
     private async Task<string?> CreateAsync(CreateInboxEntryRequest request)
     {
         var number = await InboxService.CreateAsync(
-            request.ReceivedDate, request.Source, request.VesselIds ?? [], request.Description, request.StartSequence);
+            request.Direction, request.ReceivedDate, request.Source, request.VesselIds ?? [], request.Description, request.StartSequence);
 
         Snackbar.Add($"{number} registered.", Severity.Success);
         await LoadAsync(_filter);
