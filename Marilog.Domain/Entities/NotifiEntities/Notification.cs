@@ -10,6 +10,7 @@ namespace Marilog.Domain.Entities.NotifiEntities
         public int EntityId { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public DateTime? ReadAt { get; private set; }
+        public DateTime? EmailedAt { get; private set; }    // set once it went out in the daily email
         public string DedupKey { get; private set; } = "";    // max 200, e.g. "audit:{logId}"
 
         private Notification() { }
@@ -25,6 +26,7 @@ namespace Marilog.Domain.Entities.NotifiEntities
             CreatedAt = DateTime.UtcNow
         };
 
+        public void MarkEmailed() => EmailedAt ??= DateTime.UtcNow;
         public void MarkRead() => ReadAt ??= DateTime.UtcNow;
     }
 }

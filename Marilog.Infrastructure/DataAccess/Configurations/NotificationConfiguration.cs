@@ -22,6 +22,8 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
                    .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             builder.Property(x => x.ReadAt)
                    .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+            builder.Property(x => x.EmailedAt)
+                   .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
         }
     }
 }

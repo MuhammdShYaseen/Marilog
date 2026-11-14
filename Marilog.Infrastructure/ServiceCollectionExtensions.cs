@@ -123,13 +123,11 @@ namespace Marilog.Infrastructure
             services.AddOcr(configuration);
 
             //=====EmailNotificationConfig====================================================
-            services.AddSingleton<INotificationRecipientStore, JsonNotificationRecipientStore>();
-            services.AddSingleton<INotificationSettingsStore, JsonNotificationSettingsStore>();
             services.AddScoped<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();
             services.AddScoped<INotificationEmailSender, NotificationEmailSender>();
             services.AddScoped<INotificationSchedule, NotificationSchedule>();
             services.AddSingleton<INotificationScheduleChangeNotifier, NotificationScheduleChangeNotifier>();
-            services.AddHostedService<DailyNotificationBackgroundService>();
+            services.AddHostedService<NotificationDigestJob>();
             services.AddHostedService<AuditNotificationJob>();
 
             //===VesselFinder===================================================================

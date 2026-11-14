@@ -18,13 +18,6 @@
     {
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
 
-            <MudTabPanel Text="Alerts" Icon="@Icons.Material.Filled.NotificationsActive">
-                <SharedNotificationAlertsPanel Settings="Settings"
-                                                IsDirty="IsSettingsDirty"
-                                                IsSaving="IsSavingSettings"
-                                                OnChanged="OnSettingsChanged"
-                                                OnSave="OnSaveSettings" />
-            </MudTabPanel>
             <MudTabPanel Text="Schedule" Icon="@Icons.Material.Filled.Schedule">
                 <SharedNotificationSchedulePanel Settings="ScheduleSettings"
                                                  IsDirty="IsScheduleDirty"
@@ -40,12 +33,7 @@
                                                      OnSave="OnSaveSender" />
             </MudTabPanel>
 
-            <MudTabPanel Text="Recipients" Icon="@Icons.Material.Filled.People">
-                <SharedNotificationRecipientsPanel Recipients="Recipients"
-                                                    OnAdd="OnAddRecipient"
-                                                    OnRename="OnRenameRecipient"
-                                                    OnRemove="OnRemoveRecipient" />
-            </MudTabPanel>
+            
 
         </MudTabs>
     }
@@ -55,21 +43,6 @@
 @code {
     [Parameter, EditorRequired]
     public bool IsLoading { get; set; }
-
-    [Parameter, EditorRequired]
-    public NotificationSettingsOptions Settings { get; set; } = default!;
-
-    [Parameter, EditorRequired]
-    public bool IsSettingsDirty { get; set; }
-
-    [Parameter, EditorRequired]
-    public bool IsSavingSettings { get; set; }
-
-    [Parameter, EditorRequired]
-    public EventCallback OnSettingsChanged { get; set; }
-
-    [Parameter, EditorRequired]
-    public EventCallback<NotificationSettingsOptions> OnSaveSettings { get; set; }
 
     [Parameter, EditorRequired]
     public NotificationSenderEmailSettingsOptions SenderSettings { get; set; } = default!;
@@ -86,18 +59,7 @@
     [Parameter, EditorRequired]
     public EventCallback<NotificationSenderEmailSettingsOptions> OnSaveSender { get; set; }
 
-    [Parameter, EditorRequired]
-    public IReadOnlyList<string> Recipients { get; set; } = Array.Empty<string>();
-
-    [Parameter, EditorRequired]
-    public EventCallback<string> OnAddRecipient { get; set; }
-
-    [Parameter, EditorRequired]
-    public EventCallback<(string CurrentEmail, string NewEmail)> OnRenameRecipient { get; set; }
-
-    [Parameter, EditorRequired]
-    public EventCallback<string> OnRemoveRecipient { get; set; }
-
+   
 
     [Parameter, EditorRequired]
     public NotificationScheduleOptions ScheduleSettings { get; set; } = default!;

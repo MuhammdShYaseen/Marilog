@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Folder Include="DTOs\Requests\EmailDTOs\" />
+    <Folder Include="DTOs\Requests\EmailNotifiConfig\" />
     <Folder Include="Interfaces\Services\CertificateService\" />
     <Folder Include="Interfaces\Services\EmailServices\" />
     <Folder Include="Interfaces\Services\OnlineCurrencyProvider\" />

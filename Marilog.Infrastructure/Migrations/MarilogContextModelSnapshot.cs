@@ -668,6 +668,9 @@ namespace Marilog.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("EmailedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("EntityId")
                         .HasColumnType("int");
 

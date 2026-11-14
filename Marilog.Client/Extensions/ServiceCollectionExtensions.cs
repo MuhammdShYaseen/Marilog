@@ -76,8 +76,6 @@ namespace Marilog.Client.Extensions
 
 
             //==EmailNotificationConfigServices==================
-            services.AddScoped<INotificationRecipientStore, EmailNotificationRecipient>();
-            services.AddScoped<INotificationSettingsStore, JsonNotificationSettingsStore>();
             services.AddScoped<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();
             services.AddScoped<INotificationSchedule, NotificationSchedule>();
 

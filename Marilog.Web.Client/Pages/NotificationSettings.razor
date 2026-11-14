@@ -4,27 +4,18 @@
 @using Marilog.Contracts.Interfaces.Services.EmailNotificationConfig
 @using Marilog.Shared.UI.Pages.EmailNotification
 @using MudBlazor
-@inject INotificationSettingsStore SettingsStore
 @inject INotificationSenderEmailSettingsStore SenderStore
-@inject INotificationRecipientStore RecipientStore
 @inject INotificationSchedule ScheduleStore
 @inject ISnackbar Snackbar
 
 <SharedNotificationSettingsPage IsLoading="_isLoading"
-                                 Settings="_settings"
-                                 IsSettingsDirty="_isSettingsDirty"
-                                 IsSavingSettings="_isSavingSettings"
-                                 OnSettingsChanged="@(() => _isSettingsDirty = true)"
-                                 OnSaveSettings="SaveSettingsAsync"
+                                
                                  SenderSettings="_senderSettings"
                                  IsSenderDirty="_isSenderDirty"
                                  IsSavingSender="_isSavingSender"
                                  OnSenderChanged="@(() => _isSenderDirty = true)"
                                  OnSaveSender="SaveSenderAsync"
-                                 Recipients="_recipients"
-                                 OnAddRecipient="AddRecipientAsync"
-                                 OnRenameRecipient="RenameRecipientAsync"
-                                 OnRemoveRecipient="RemoveRecipientAsync"
+                                
                                  ScheduleSettings="_scheduleSettings"
                                  IsScheduleDirty="_isScheduleDirty"
                                  IsSavingSchedule="_isSavingSchedule"
@@ -34,16 +25,12 @@
 @code {
     private bool _isLoading = true;
 
-    private NotificationSettingsOptions _settings = new();
+    
     private bool _isSettingsDirty;
-    private bool _isSavingSettings;
 
     private NotificationSenderEmailSettingsOptions _senderSettings = new();
     private bool _isSenderDirty;
     private bool _isSavingSender;
-
-    private IReadOnlyList<string> _recipients = Array.Empty<string>();
-
 
     private NotificationScheduleOptions _scheduleSettings = new();
     private bool _isScheduleDirty;
@@ -53,34 +40,12 @@
     {
         _isLoading = true;
 
-        _settings = await SettingsStore.GetAsync();
+
         _senderSettings = await SenderStore.GetAsync();
-        _recipients = await RecipientStore.GetAllAsync();
+
         _scheduleSettings = await ScheduleStore.GetAsync();
 
         _isLoading = false;
-    }
-
-    private async Task SaveSettingsAsync(NotificationSettingsOptions settings)
-    {
-        _isSavingSettings = true;
-        StateHasChanged();
-
-        try
-        {
-            await SettingsStore.UpdateAsync(settings);
-            _isSettingsDirty = false;
-            Snackbar.Add("Alert settings saved.", Severity.Success);
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Failed to save alert settings.", Severity.Error);
-        }
-        finally
-        {
-            _isSavingSettings = false;
-            StateHasChanged();
-        }
     }
 
     private async Task SaveSenderAsync(NotificationSenderEmailSettingsOptions settings)
@@ -105,47 +70,7 @@
         }
     }
 
-    private async Task AddRecipientAsync(string email)
-    {
-        try
-        {
-            await RecipientStore.AddAsync(email);
-            _recipients = await RecipientStore.GetAllAsync();
-            Snackbar.Add("Recipient added.", Severity.Success);
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Failed to add recipient.", Severity.Error);
-        }
-    }
-
-    private async Task RenameRecipientAsync((string CurrentEmail, string NewEmail) args)
-    {
-        try
-        {
-            await RecipientStore.UpdateAsync(args.CurrentEmail, args.NewEmail);
-            _recipients = await RecipientStore.GetAllAsync();
-            Snackbar.Add("Recipient updated.", Severity.Success);
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Failed to update recipient.", Severity.Error);
-        }
-    }
-
-    private async Task RemoveRecipientAsync(string email)
-    {
-        try
-        {
-            await RecipientStore.RemoveAsync(email);
-            _recipients = await RecipientStore.GetAllAsync();
-            Snackbar.Add("Recipient removed.", Severity.Success);
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Failed to remove recipient.", Severity.Error);
-        }
-    }
+    
 
     private async Task SaveScheduleAsync(NotificationScheduleOptions settings)
     {

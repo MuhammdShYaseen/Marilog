@@ -143,6 +143,7 @@ namespace Marilog.Application
             //---Notifi------------------------------------
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<AuditNotificationService>();
+            services.AddScoped<DueNotificationService>();
             //----Comments------------------------------------
             services.AddScoped<ICommentService, CommentService>();
             return services;
