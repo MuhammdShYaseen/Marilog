@@ -73,7 +73,7 @@ namespace Marilog.Client.Extensions
 
             //==Backup====================
             services.AddScoped<IFullBackupService, FullBackupService>();
-
+            services.AddScoped<IBackupJobService, BackupJobService>();
 
             //==EmailNotificationConfigServices==================
             services.AddScoped<INotificationSenderEmailSettingsStore, JsonNotificationSenderEmailSettingsStore>();

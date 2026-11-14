@@ -2,7 +2,13 @@
 {
 
 
-    
+    //---back up
+    public enum BackupJobStatus
+    {
+        Running = 0,
+        Ready = 1,
+        Failed = 2
+    }
 
     //Voyage after Refactor Enums
     /// <summary>Fixed on purpose — code behaviour (UI fields, cargo extensions) depends on it.</summary>

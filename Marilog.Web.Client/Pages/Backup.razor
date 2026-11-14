@@ -1,40 +1,78 @@
 ﻿@attribute [Authorize(Roles = CookieAuthStateProvider.SuperAdminRole)]
 @page "/admin/backup"
 @using Marilog.Contracts.Interfaces.DataManagment
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.DataBackup
 @inject IFullBackupService BackupService
-@inject IJSRuntime JS
-<SharedBackupPage   OnDownloadBackupClicked="DownloadBackupFile"
-                    OnUploadRestoreFileClicked="UploadRestoreFile" 
-                    FileExtension="@BackupService.FileExtension" />
+@inject IBackupJobService BackupJobs
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@implements IDisposable
 
-
+<SharedBackupPage OnDownloadBackupClicked="DownloadBackupFile"
+                  OnUploadRestoreFileClicked="UploadRestoreFile"
+                  FileExtension="@BackupService.FileExtension" />
 
 @code {
+    private readonly CancellationTokenSource _cts = new();
 
+    // The server builds the file in the background; once ready, the browser downloads it itself
+    // (its own progress bar, and the file never passes through the app's memory).
     private async Task DownloadBackupFile()
     {
-        await using var memoryStream = new MemoryStream();
+        try
+        {
+            var job = await BackupJobs.StartAsync(_cts.Token);
 
-        await BackupService.CreateBackupAsync(memoryStream);
+            while (job.Status == BackupJobStatus.Running)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), _cts.Token);
+                job = await BackupJobs.GetAsync(job.Token, _cts.Token);
+            }
 
-        var bytes = memoryStream.ToArray();
+            if (job.Status == BackupJobStatus.Failed)
+            {
+                Snackbar.Add($"Backup failed: {job.Error}", Severity.Error);
+                return;
+            }
 
-        Console.WriteLine($"Backup size: {bytes.Length} bytes");
-
-        await JS.InvokeVoidAsync(
-            "downloadFile",
-            $"marilog-full-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip",
-            "application/zip",
-            bytes);
+            Nav.NavigateTo(BackupJobs.GetDownloadUrl(job.Token), forceLoad: true);
+            Snackbar.Add($"Backup ready ({FormatSize(job.SizeBytes)}). Your browser is downloading it.", Severity.Success);
+        }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+        {
+            // Left the page: the backup keeps going on the server; coming back picks it up again
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Backup failed: {ex.Message}", Severity.Error);
+        }
     }
-
 
     private async Task UploadRestoreFile(IBrowserFile file)
     {
-        await using var stream = file.OpenReadStream(maxAllowedSize: 1024L * 1024L * 1024L);
-
-        await BackupService.RestoreBackupAsync(stream);
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 1024L * 1024L * 1024L);
+            await BackupService.RestoreBackupAsync(stream);
+            Snackbar.Add("Restore completed.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Restore failed: {ex.Message}", Severity.Error);
+        }
     }
 
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024d:F1} KB",
+        _ => $"{bytes / 1024d / 1024d:F1} MB"
+    };
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
 }
