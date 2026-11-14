@@ -61,6 +61,31 @@ namespace Marilog.Presentation.Controllers.NotifiControllers
             return NoContent();
         }
 
+        [HttpPost("records/{type}/{id:int}/mark-read")]
+        public async Task<IActionResult> MarkRecordRead(EntityType type, int id, CancellationToken ct)
+        {
+            await _service.MarkRecordReadAsync(type, id, ct);
+            return NoContent();
+        }
+
+        // ── My follows ───────────────────────────────────────────
+
+        [HttpGet("watches")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<WatchResponse>>>> GetMyWatches(CancellationToken ct)
+        {
+            var result = await _service.GetMyWatchesAsync(await ReadableTypesAsync(ct), ct);
+            return Ok(ApiResponse<IReadOnlyList<WatchResponse>>.Ok(result));
+        }
+
+        [HttpGet("records/{type}/{id:int}")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<NotificationResponse>>>> GetHistory(EntityType type, int id, CancellationToken ct)
+        {
+            if (await CheckReadAsync(type) is { } denied) return denied;
+
+            var result = await _service.GetHistoryAsync(type, id, ct);
+            return Ok(ApiResponse<IReadOnlyList<NotificationResponse>>.Ok(result));
+        }
+
         // ── Follow ───────────────────────────────────────────────
 
         [HttpGet("watch/{type}/{id:int}")]

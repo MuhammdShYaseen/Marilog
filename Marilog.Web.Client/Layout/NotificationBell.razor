@@ -12,6 +12,8 @@
         <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-4 py-2" Style="min-width:340px">
             <MudText Typo="Typo.subtitle2">Notifications</MudText>
             <MudSpacer />
+                <MudButton Variant="Variant.Text" Size="Size.Small" Style="text-transform:none"
+                           Href="/follows">My follows</MudButton>
             @if (State.UnreadCount > 0)
             {
                 <MudButton Variant="Variant.Text" Size="Size.Small" Style="text-transform:none"

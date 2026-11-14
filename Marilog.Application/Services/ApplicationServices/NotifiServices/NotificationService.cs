@@ -12,7 +12,7 @@ namespace Marilog.Application.Services.ApplicationServices.NotifiServices
     public class NotificationService : INotificationService
     {
         private const int ListSize = 50;
-
+        private const int HistorySize = 200;
         private readonly INotificationRepository _repo;
         private readonly ICurrentUserService _currentUser;
 
@@ -104,6 +104,78 @@ namespace Marilog.Application.Services.ApplicationServices.NotifiServices
             await _repo.SaveChangesAsync(ct);
         }
 
+        public async Task MarkRecordReadAsync(EntityType type, int id, CancellationToken ct = default)
+        {
+            var userId = UserId;
+            var unread = await _repo.Notifications()
+                .Where(n => n.UserId == userId && n.EntityType == type && n.EntityId == id && n.ReadAt == null)
+                .ToListAsync(ct);
+
+            if (unread.Count == 0) return;
+            foreach (var n in unread) n.MarkRead();
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        // ── My follows ────────────────────────────────────────────
+
+        public async Task<IReadOnlyList<WatchResponse>> GetMyWatchesAsync(IReadOnlyCollection<EntityType>? readableTypes = null, CancellationToken ct = default)
+        {
+            var userId = UserId;
+            var watches = await _repo.Watches()
+                .AsNoTracking()
+                .Where(w => w.UserId == userId)
+                .ToListAsync(ct);
+
+            if (readableTypes is not null)
+                watches = watches.Where(w => readableTypes.Contains(w.EntityType)).ToList();
+
+            // Unread count and last activity per record
+            var stats = await Mine(readableTypes)
+                .GroupBy(n => new { n.EntityType, n.EntityId })
+                .Select(g => new
+                {
+                    g.Key.EntityType,
+                    g.Key.EntityId,
+                    Unread = g.Count(n => n.ReadAt == null),
+                    Last = g.Max(n => n.CreatedAt)
+                })
+                .ToListAsync(ct);
+
+            return watches
+                .Select(w =>
+                {
+                    var s = stats.FirstOrDefault(x => x.EntityType == w.EntityType && x.EntityId == w.EntityId);
+                    return new WatchResponse
+                    {
+                        EntityType = w.EntityType,
+                        EntityId = w.EntityId,
+                        Title = w.Title,
+                        FollowedAt = w.CreatedAt,
+                        LastActivityAt = s?.Last,
+                        UnreadCount = s?.Unread ?? 0
+                    };
+                })
+                .OrderByDescending(w => w.LastActivityAt ?? w.FollowedAt)
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<NotificationResponse>> GetHistoryAsync(EntityType type, int id, CancellationToken ct = default)
+        {
+            return await Mine(null)
+                .Where(n => n.EntityType == type && n.EntityId == id)
+                .OrderByDescending(n => n.Id)
+                .Take(HistorySize)
+                .Select(n => new NotificationResponse
+                {
+                    Id = n.Id,
+                    Text = n.Text,
+                    EntityType = n.EntityType,
+                    EntityId = n.EntityId,
+                    CreatedAt = n.CreatedAt,
+                    ReadAt = n.ReadAt
+                })
+                .ToListAsync(ct);
+        }
         // The user's notifications, limited to the types they can read (null = no limit).
         private IQueryable<Notification> Mine(IReadOnlyCollection<EntityType>? readableTypes)
         {

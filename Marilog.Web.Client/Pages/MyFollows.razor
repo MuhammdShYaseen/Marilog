@@ -1,0 +1,221 @@
+﻿@page "/follows"
+<PageTitle>My follows</PageTitle>
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.NotifiServices
+@using Marilog.Web.Client.Services.Implementation
+@inject INotificationService Notifications
+@inject NotificationsState State
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">My follows</MudText>
+    </MudStack>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_watches.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">
+            You don't follow any record yet. Open a record and press <b>Follow</b> to get its changes, payments and due dates here.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+
+            @* ── Followed records ── *@
+            <MudItem xs="12" md="5">
+                <MudPaper Outlined="true" Class="follows-list">
+                    @foreach (var w in _watches)
+                    {
+                        <div class="follow-row @(_selected == w ? "selected" : null)" @onclick="() => SelectAsync(w)">
+                            <div style="flex:1; min-width:0">
+                                <MudText Typo="Typo.body2" Style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">@w.Title</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @(w.LastActivityAt is { } last ? $"Last change {Local(last)}" : $"Followed {Local(w.FollowedAt)}")
+                                </MudText>
+                            </div>
+                            @if (w.UnreadCount > 0)
+                            {
+                                <span class="follow-count">@w.UnreadCount</span>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            @* ── History of the selected record ── *@
+            <MudItem xs="12" md="7">
+                @if (_selected is null)
+                {
+                    <MudPaper Outlined="true" Class="pa-6">
+                        <MudText Color="Color.Secondary">Select a record to see what changed on it.</MudText>
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+                            <div style="flex:1; min-width:200px">
+                                <MudText Typo="Typo.h6">@_selected.Title</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Following since @Local(_selected.FollowedAt)</MudText>
+                            </div>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.OpenInNew" OnClick="Open">Open</MudButton>
+                            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.NotificationsOff" Disabled="_busy"
+                                       OnClick="UnfollowAsync">Unfollow</MudButton>
+                        </div>
+
+                        <MudDivider Class="my-3" />
+
+                        @if (_historyLoading)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                        }
+                        else if (_history.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No changes since you followed it.</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var n in _history)
+                            {
+                                <div class="follow-entry">
+                                    <span class="follow-dot @(n.ReadAt is null ? "new" : null)"></span>
+                                    <div style="flex:1; min-width:0">
+                                        <MudText Typo="Typo.body2" Style="@(n.ReadAt is null ? "font-weight:600" : null)">@Detail(n.Text)</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@Local(n.CreatedAt)</MudText>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </MudPaper>
+                }
+            </MudItem>
+
+        </MudGrid>
+    }
+
+</MudStack>
+
+<style>
+    .follows-list { max-height: calc(100vh - 220px); overflow-y: auto; }
+    .follow-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 16px; cursor: pointer;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        border-left: 3px solid transparent;
+    }
+    .follow-row:last-child { border-bottom: none; }
+    .follow-row:hover { background: var(--mud-palette-action-default-hover); }
+    .follow-row.selected { background: var(--mud-palette-action-default-hover); border-left-color: var(--mud-palette-primary); }
+    .follow-count {
+        min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+        background: var(--mud-palette-error); color: var(--mud-palette-error-text);
+        font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .follow-entry { display: flex; gap: 12px; padding: 8px 0; }
+    .follow-dot {
+        width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex-shrink: 0;
+        background: var(--mud-palette-lines-default);
+    }
+    .follow-dot.new { background: var(--mud-palette-primary); }
+</style>
+
+@code {
+    private List<WatchResponse> _watches = [];
+    private WatchResponse? _selected;
+    private IReadOnlyList<NotificationResponse> _history = [];
+    private bool _loading = true;
+    private bool _historyLoading;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _watches = (await Notifications.GetMyWatchesAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // Show the record's history, then mark it read so the bell catches up
+    private async Task SelectAsync(WatchResponse w)
+    {
+        _selected = w;
+        _history = [];
+        _historyLoading = true;
+
+        try
+        {
+            var history = await Notifications.GetHistoryAsync(w.EntityType, w.EntityId);
+            if (_selected != w) return;   // another record was clicked meanwhile
+            _history = history;
+
+            if (w.UnreadCount > 0)
+            {
+                await Notifications.MarkRecordReadAsync(w.EntityType, w.EntityId);
+                w.UnreadCount = 0;
+                await State.RefreshAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (_selected == w) _historyLoading = false;
+        }
+    }
+
+    private async Task UnfollowAsync()
+    {
+        if (_selected is not { } w) return;
+
+        _busy = true;
+        try
+        {
+            await Notifications.UnfollowAsync(w.EntityType, w.EntityId);
+            _watches.Remove(w);
+            _selected = null;
+            _history = [];
+            Snackbar.Add($"Unfollowed {w.Title}.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Open() => Nav.NavigateTo($"/open/{_selected!.EntityType}/{_selected.EntityId}");
+
+    // The record's title is already on top: drop it from each line
+    private string Detail(string text)
+    {
+        var title = _selected!.Title;
+        if (text.StartsWith(title + ": ", StringComparison.Ordinal)) return text[(title.Length + 2)..];
+        if (text.StartsWith(title + " — ", StringComparison.Ordinal)) return text[(title.Length + 3)..];
+        return text;
+    }
+
+    private static string Local(DateTime utc) => utc.ToLocalTime().ToString("dd MMM yyyy HH:mm");
+}

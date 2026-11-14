@@ -61,5 +61,26 @@ namespace Marilog.Client.Services.NotifiServices
             var httpResponse = await _http.PostAsync($"{Base}/mark-all-read", null, ct);
             await httpResponse.EnsureSuccessWithMessageAsync(ct);
         }
+
+
+        public async Task MarkRecordReadAsync(EntityType type, int id, CancellationToken ct = default)
+        {
+            var httpResponse = await _http.PostAsync($"{Base}/records/{(int)type}/{id}/mark-read", null, ct);
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        // ── My follows ───────────────────────────────────────────────────────
+
+        public async Task<IReadOnlyList<WatchResponse>> GetMyWatchesAsync(IReadOnlyCollection<EntityType>? readableTypes = null, CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<WatchResponse>>>($"{Base}/watches", ct);
+            return response?.Data ?? Array.Empty<WatchResponse>();
+        }
+
+        public async Task<IReadOnlyList<NotificationResponse>> GetHistoryAsync(EntityType type, int id, CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<NotificationResponse>>>($"{Base}/records/{(int)type}/{id}", ct);
+            return response?.Data ?? Array.Empty<NotificationResponse>();
+        }
     }
 }
