@@ -31,7 +31,8 @@ namespace Marilog.Domain.Entities.AiEntities
 
         public string RequestTemplateJson { get; private set; } = default!;
         public string ResponseTextPath { get; private set; } = default!;
-
+        // Text path inside each streamed chunk, e.g. "choices.0.delta.content". Null = no streaming.
+        public string? StreamTextPath { get; private set; }
         public int MaxInputTokens { get; private set; }
         public int MaxOutputTokens { get; private set; }
         public int ChunkOverlapTokens { get; private set; }
@@ -51,6 +52,7 @@ namespace Marilog.Domain.Entities.AiEntities
             string? extraHeadersJson,
             string requestTemplateJson,
             string responseTextPath,
+            string? streamTextPath,
             int maxInputTokens,
             int maxOutputTokens,
             int chunkOverlapTokens,
@@ -59,8 +61,8 @@ namespace Marilog.Domain.Entities.AiEntities
             var provider = new AiProvider { Purpose = purpose, IsActive = false };
 
             provider.Update(name, providerType, baseUrl, modelIdentifier, authHeaderName, authPrefix,
-                extraHeadersJson, requestTemplateJson, responseTextPath,
-                maxInputTokens, maxOutputTokens, chunkOverlapTokens, defaultTemperature);
+                            extraHeadersJson, requestTemplateJson, responseTextPath, streamTextPath,
+                            maxInputTokens, maxOutputTokens, chunkOverlapTokens, defaultTemperature);
 
             return provider;
         }
@@ -76,6 +78,7 @@ namespace Marilog.Domain.Entities.AiEntities
             string? extraHeadersJson,
             string requestTemplateJson,
             string responseTextPath,
+            string? streamTextPath,
             int maxInputTokens,
             int maxOutputTokens,
             int chunkOverlapTokens,
@@ -93,12 +96,15 @@ namespace Marilog.Domain.Entities.AiEntities
             if (extraHeadersJson is not null)
                 EnsureHeaders(extraHeadersJson);
 
+            streamTextPath = string.IsNullOrWhiteSpace(streamTextPath) ? null : streamTextPath.Trim();
+            if (streamTextPath is not null && !requestTemplateJson.Contains("{{stream}}"))
+                throw new ArgumentException("A streaming provider needs \"{{stream}}\" in RequestTemplateJson.", nameof(StreamTextPath));
             if (maxInputTokens <= 0 || maxOutputTokens <= 0 || chunkOverlapTokens < 0)
                 throw new ArgumentException("Token limits must be positive.", nameof(MaxOutputTokens));
 
             if (defaultTemperature is < 0 or > 2)
                 throw new ArgumentException("Temperature must be between 0 and 2.", nameof(DefaultTemperature));
-
+            StreamTextPath = streamTextPath;
             Name = Required(name, nameof(Name));
             ProviderType = providerType;
             BaseUrl = baseUrl;

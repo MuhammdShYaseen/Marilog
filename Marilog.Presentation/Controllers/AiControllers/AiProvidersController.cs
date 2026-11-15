@@ -3,6 +3,7 @@ using Marilog.Contracts.DTOs.Requests.AiProviderDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.AiProviderServices;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Marilog.Presentation.Controllers.AiControllers
 {
@@ -77,6 +78,18 @@ namespace Marilog.Presentation.Controllers.AiControllers
             return Ok(ApiResponse<string>.Ok(text));
         }
 
+        // Same as test, streamed as Server-Sent Events: one "data: <json string>" line per chunk.
+        [HttpPost("{id:int}/test-stream")]
+        public async Task TestStream(int id, TestAiProviderRequest request, CancellationToken ct)
+        {
+            Response.ContentType = "text/event-stream";
+
+            await foreach (var text in _service.TestStreamAsync(id, request.Prompt, ct))
+            {
+                await Response.WriteAsync($"data: {JsonSerializer.Serialize(text)}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
+        }
         [HttpDelete("{id:int}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken ct)
         {

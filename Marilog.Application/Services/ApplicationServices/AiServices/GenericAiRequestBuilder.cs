@@ -22,15 +22,15 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
     ///
     /// Supported placeholders:
     ///   {{model}}       {{temperature}}   {{max_tokens}}
-    ///   {{messages}}    {{system}}      {{prompt}}      ({{model}} also works inside BaseUrl)
+    ///   {{stream}}      {{messages}}    {{system}}      {{prompt}}      ({{model}} also works inside BaseUrl)
     /// </summary>
     public sealed class GenericAiRequestBuilder : IAiRequestBuilder
     {
-        public string Build(AiProvider provider, AiRequestContext context)
+        public string Build(AiProvider provider, AiRequestContext context, bool stream = false)
         {
             var root = ParseTemplate(provider.RequestTemplateJson);
 
-            ReplaceCoreTokens(root, provider, context);
+            ReplaceCoreTokens(root, provider, context, stream);
             ReplaceContentTokens(root, context);
             ApplyAdditional(root, context);
 
@@ -39,7 +39,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
 
         // ── Step 1: Core scalar tokens ───────────────────────────
 
-        private void ReplaceCoreTokens(JsonObject root, AiProvider provider, AiRequestContext context)
+        private void ReplaceCoreTokens(JsonObject root, AiProvider provider, AiRequestContext context, bool stream)
         {
             var temperature = (context.TemperatureOverride ?? provider.DefaultTemperature)
                                 .ToString(CultureInfo.InvariantCulture);
@@ -49,6 +49,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             ReplaceScalarToken(root, "{{model}}", provider.ModelIdentifier);
             ReplaceScalarToken(root, "{{temperature}}", temperature);
             ReplaceScalarToken(root, "{{max_tokens}}", maxTokens);
+            ReplaceScalarToken(root, "{{stream}}", stream ? "true" : "false");
         }
 
         // ── Step 2: Content tokens (messages / system / prompt) ──

@@ -6,5 +6,8 @@ namespace Marilog.Application.Interfaces.Ai
     public interface IAiProviderClient
     {
         Task<string> SendAsync(AiProvider provider, string? apiKey, string body, CancellationToken ct);
+
+        // Posts with the stream flag on and yields each text chunk at StreamTextPath.
+        IAsyncEnumerable<string> StreamAsync(AiProvider provider, string? apiKey, string body, CancellationToken ct);
     }
 }

@@ -27,6 +27,7 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.ExtraHeadersJson).HasColumnType("nvarchar(max)");
             builder.Property(x => x.RequestTemplateJson).IsRequired().HasColumnType("nvarchar(max)");
             builder.Property(x => x.ResponseTextPath).IsRequired().HasMaxLength(200);
+            builder.Property(x => x.StreamTextPath).HasMaxLength(200);
 
             builder.Property(x => x.MaxInputTokens).IsRequired();
             builder.Property(x => x.MaxOutputTokens).IsRequired();

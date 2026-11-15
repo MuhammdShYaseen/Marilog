@@ -58,6 +58,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 request.ExtraHeadersJson,
                 request.RequestTemplateJson,
                 request.ResponseTextPath,
+                request.StreamTextPath,
                 request.MaxInputTokens,
                 request.MaxOutputTokens,
                 request.ChunkOverlapTokens,
@@ -86,6 +87,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
                 request.ExtraHeadersJson,
                 request.RequestTemplateJson,
                 request.ResponseTextPath,
+                request.StreamTextPath,
                 request.MaxInputTokens,
                 request.MaxOutputTokens,
                 request.ChunkOverlapTokens,
@@ -156,6 +158,14 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             return _completion.CompleteAsync(id, new AiRequestContext { Prompt = prompt }, ct);
         }
 
+        public IAsyncEnumerable<string> TestStreamAsync(int id, string prompt, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(prompt))
+                throw new ArgumentException("Prompt is required.", nameof(prompt));
+
+            return _completion.StreamAsync(id, new AiRequestContext { Prompt = prompt }, ct);
+        }
+
         //----Privates---------------------------------------------------------
 
         // Empty key = keep the stored one. Only the cipher text and the last 4 characters are stored.
@@ -182,6 +192,7 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
             ExtraHeadersJson = e.ExtraHeadersJson,
             RequestTemplateJson = e.RequestTemplateJson,
             ResponseTextPath = e.ResponseTextPath,
+            StreamTextPath = e.StreamTextPath,
             MaxInputTokens = e.MaxInputTokens,
             MaxOutputTokens = e.MaxOutputTokens,
             ChunkOverlapTokens = e.ChunkOverlapTokens,

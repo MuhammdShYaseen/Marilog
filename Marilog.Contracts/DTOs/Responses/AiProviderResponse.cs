@@ -18,6 +18,7 @@ namespace Marilog.Contracts.DTOs.Responses
         public string? ExtraHeadersJson { get; set; }
         public string RequestTemplateJson { get; set; } = default!;
         public string ResponseTextPath { get; set; } = default!;
+        public string? StreamTextPath { get; set; }
         public int MaxInputTokens { get; set; }
         public int MaxOutputTokens { get; set; }
         public int ChunkOverlapTokens { get; set; }

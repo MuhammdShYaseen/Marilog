@@ -13,5 +13,6 @@ namespace Marilog.Contracts.Interfaces.Services.AiProviderServices
         Task<bool> ActivateAsync(int id, CancellationToken ct);
         Task<bool> DeactivateAsync(int id, CancellationToken ct);
         Task<string> TestAsync(int id, string prompt, CancellationToken ct);
+        IAsyncEnumerable<string> TestStreamAsync(int id, string prompt, CancellationToken ct);
     }
 }

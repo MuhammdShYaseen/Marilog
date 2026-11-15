@@ -11,5 +11,10 @@ namespace Marilog.Application.Interfaces.Ai
 
         // One provider by id, active or not (testing before activation).
         Task<string> CompleteAsync(int providerId, AiRequestContext context, CancellationToken ct);
+
+
+        // Same as CompleteAsync, but the answer arrives piece by piece.
+        IAsyncEnumerable<string> StreamAsync(AiProviderPurpose purpose, AiRequestContext context, CancellationToken ct);
+        IAsyncEnumerable<string> StreamAsync(int providerId, AiRequestContext context, CancellationToken ct);
     }
 }

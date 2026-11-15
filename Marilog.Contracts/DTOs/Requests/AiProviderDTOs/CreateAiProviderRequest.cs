@@ -19,5 +19,6 @@ namespace Marilog.Contracts.DTOs.Requests.AiProviderDTOs
         public int MaxOutputTokens { get; set; } = 2000;
         public int ChunkOverlapTokens { get; set; } = 200;
         public decimal DefaultTemperature { get; set; } = 0.1m;
+        public string? StreamTextPath { get; set; }
     }
 }

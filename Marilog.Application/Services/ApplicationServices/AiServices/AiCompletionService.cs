@@ -5,6 +5,7 @@ using Marilog.Domain.Entities.AiEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace Marilog.Application.Services.ApplicationServices.AiServices
 {
@@ -29,32 +30,57 @@ namespace Marilog.Application.Services.ApplicationServices.AiServices
 
         public async Task<string> CompleteAsync(AiProviderPurpose purpose, AiRequestContext context, CancellationToken ct)
         {
-            var provider = await _repo.Query()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Purpose == purpose && p.IsActive, ct)
-                ?? throw new InvalidOperationException($"No active AI provider is set for {purpose}.");
-
-            return await SendAsync(provider, context, ct);
+            var provider = await GetActiveAsync(purpose, ct);
+            return await _client.SendAsync(provider, DecryptKey(provider), _builder.Build(provider, context), ct);
         }
 
         public async Task<string> CompleteAsync(int providerId, AiRequestContext context, CancellationToken ct)
         {
-            var provider = await _repo.Query()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == providerId, ct)
-                ?? throw new KeyNotFoundException($"AI provider {providerId} not found.");
+            var provider = await GetByIdAsync(providerId, ct);
+            return await _client.SendAsync(provider, DecryptKey(provider), _builder.Build(provider, context), ct);
+        }
 
-            return await SendAsync(provider, context, ct);
+        public async IAsyncEnumerable<string> StreamAsync(
+            AiProviderPurpose purpose, AiRequestContext context, [EnumeratorCancellation] CancellationToken ct)
+        {
+            var provider = await GetActiveAsync(purpose, ct);
+
+            await foreach (var text in Stream(provider, context, ct))
+                yield return text;
+        }
+
+        public async IAsyncEnumerable<string> StreamAsync(
+            int providerId, AiRequestContext context, [EnumeratorCancellation] CancellationToken ct)
+        {
+            var provider = await GetByIdAsync(providerId, ct);
+
+            await foreach (var text in Stream(provider, context, ct))
+                yield return text;
         }
 
         //----Privates---------------------------------------------------------
 
-        private Task<string> SendAsync(AiProvider provider, AiRequestContext context, CancellationToken ct)
+        private IAsyncEnumerable<string> Stream(AiProvider provider, AiRequestContext context, CancellationToken ct)
         {
-            var apiKey = provider.ApiKeyEncrypted is null ? null : _encryption.Decrypt(provider.ApiKeyEncrypted);
-            var body = _builder.Build(provider, context);
+            if (provider.StreamTextPath is null)
+                throw new InvalidOperationException($"AI provider '{provider.Name}' has no StreamTextPath, so it can't stream.");
 
-            return _client.SendAsync(provider, apiKey, body, ct);
+            return _client.StreamAsync(provider, DecryptKey(provider), _builder.Build(provider, context, stream: true), ct);
         }
+
+        private async Task<AiProvider> GetActiveAsync(AiProviderPurpose purpose, CancellationToken ct)
+            => await _repo.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Purpose == purpose && p.IsActive, ct)
+                ?? throw new InvalidOperationException($"No active AI provider is set for {purpose}.");
+
+        private async Task<AiProvider> GetByIdAsync(int providerId, CancellationToken ct)
+            => await _repo.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == providerId, ct)
+                ?? throw new KeyNotFoundException($"AI provider {providerId} not found.");
+
+        private string? DecryptKey(AiProvider provider)
+            => provider.ApiKeyEncrypted is null ? null : _encryption.Decrypt(provider.ApiKeyEncrypted);
     }
 }
