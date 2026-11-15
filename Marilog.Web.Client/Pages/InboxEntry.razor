@@ -226,6 +226,7 @@ else
 
         Snackbar.Add($"{number} registered.", Severity.Success);
         await LoadAsync(_filter);
+        StateHasChanged();
         return number;
     }
 
