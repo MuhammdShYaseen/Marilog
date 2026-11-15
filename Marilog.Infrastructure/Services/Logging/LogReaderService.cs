@@ -1,6 +1,6 @@
-﻿using Marilog.Application.DTOs.LogDTOs;
-using Marilog.Application.Interfaces.LogService;
-using Marilog.Domain.ReadModels;
+﻿using Marilog.Contracts.DTOs.LogDTOs;
+using Marilog.Contracts.Interfaces.LogService;
+using Marilog.Contracts.Models;
 using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
 

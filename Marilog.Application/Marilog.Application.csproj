@@ -21,6 +21,7 @@
   <ItemGroup>
     <Folder Include="DTOs\OCR\" />
     <Folder Include="Interfaces\EmailNotificationConfig\" />
+    <Folder Include="Interfaces\LogService\" />
     <Folder Include="Interfaces\NumberingStart\" />
     <Folder Include="Services\ApplicationServices\FunctionaltyServices\" />
   </ItemGroup>

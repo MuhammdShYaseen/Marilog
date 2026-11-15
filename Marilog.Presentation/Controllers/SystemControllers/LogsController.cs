@@ -1,7 +1,7 @@
-﻿using Marilog.Application.DTOs.LogDTOs;
-using Marilog.Application.Interfaces.LogService;
+﻿using Marilog.Contracts.DTOs.LogDTOs;
+using Marilog.Contracts.Interfaces.LogService;
 using Microsoft.AspNetCore.Mvc;
-using Serilog.Core;
+
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
