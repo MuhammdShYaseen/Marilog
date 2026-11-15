@@ -105,12 +105,6 @@ namespace Marilog.Presentation
                             .Get<UrlsOptions>()
                             ?? throw new InvalidOperationException("Urls configuration is missing.");
 
-                        var apiKeys = builder.Configuration
-                                .GetSection("InternalApiKeys")
-                                .Get<InternalApiKeysOptions>()
-                                ?? throw new InvalidOperationException("InternalApiKeys configuration is missing.");
-
-
                         policy
                             .WithOrigins(urls.Frontend.TrimEnd('/'))
                             .AllowAnyHeader()

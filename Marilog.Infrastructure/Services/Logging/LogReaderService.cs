@@ -2,9 +2,6 @@
 using Marilog.Application.Interfaces.LogService;
 using Marilog.Domain.ReadModels;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Marilog.Infrastructure.Services
@@ -32,7 +29,7 @@ namespace Marilog.Infrastructure.Services
 
         public LogReaderService(IConfiguration config)
         {
-            _logDirectory = config["Logging:Directory"] ?? "Logs";
+            _logDirectory = config["LogFiles:Directory"] ?? "Logs";
         }
 
         public Task<IReadOnlyList<string>> GetAvailableFilesAsync(CancellationToken ct = default)

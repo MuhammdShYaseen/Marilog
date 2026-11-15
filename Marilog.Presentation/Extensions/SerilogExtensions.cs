@@ -11,7 +11,7 @@ namespace Marilog.Presentation.Extensions
             {
                 var appName = ctx.HostingEnvironment.ApplicationName;
                 var env = ctx.HostingEnvironment.EnvironmentName;
-                var logDir = ctx.Configuration["Logging:Directory"] ?? "Logs";
+                var logDir = ctx.Configuration["LogFiles:Directory"] ?? "Logs";
 
                 config
                     .MinimumLevel.Information()

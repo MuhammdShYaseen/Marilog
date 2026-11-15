@@ -99,7 +99,6 @@ namespace Marilog.Infrastructure
 
             //options
             services.Configure<UrlsOptions>(configuration.GetSection("Urls"));
-            services.Configure<InternalApiKeysOptions>(configuration.GetSection("InternalApiKeys"));
 
             //backup
             services.AddScoped<IDatabaseBackupService>(sp =>

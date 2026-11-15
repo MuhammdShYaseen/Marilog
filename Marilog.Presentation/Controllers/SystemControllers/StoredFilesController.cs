@@ -8,7 +8,6 @@ using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Infrastructure.Models.Identity;
 using Marilog.Kernel.Enumerations;
 using Marilog.Kernel.Enums;
-using Marilog.Presentation.Controllers.Attributes;
 using Marilog.Presentation.PresentationDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -177,15 +176,7 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return NoContent();
         }
 
-        [InternalApiKey]
-        [HttpPut("{id:guid}/ocr-content")]
-        public async Task<IActionResult> UpdateOcrContent(Guid id, [FromBody] UpdateOcrContentRequest request, CancellationToken ct)
-        {
-            await _service.UpdateContentFromOCRAsync(id, request.Content, request.ThumbnailPath, ct);
-
-            return NoContent();
-        }
-
+       
         [Authorize]
         [HttpPut("{id:int}/user-content")]
         public async Task<IActionResult> UpdateContent(int id, [FromBody] string content, CancellationToken ct)
