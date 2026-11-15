@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using Serilog.Core;
 using Serilog.Events;
 namespace Marilog.Presentation.Extensions
 {
@@ -10,8 +11,7 @@ namespace Marilog.Presentation.Extensions
             {
                 var appName = ctx.HostingEnvironment.ApplicationName;
                 var env = ctx.HostingEnvironment.EnvironmentName;
-                var logPath = ctx.Configuration["Logging:FilePath"]
-                              ?? "Logs/marilog-.log";
+                var logDir = ctx.Configuration["Logging:Directory"] ?? "Logs";
 
                 config
                     .MinimumLevel.Information()
@@ -29,7 +29,7 @@ namespace Marilog.Presentation.Extensions
 
                     // ── Rolling file — one file per day, keep 30 days ─────────────
                     .WriteTo.File(
-                        path: logPath,
+                       path: Path.Combine(logDir, "marilog-.log"),
                         rollingInterval: RollingInterval.Day,
                         retainedFileCountLimit: 30,
                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
@@ -37,7 +37,7 @@ namespace Marilog.Presentation.Extensions
 
                     // ── Separate error log ────────────────────────────────────────
                     .WriteTo.File(
-                        path: "Logs/errors-.log",
+                        path: Path.Combine(logDir, "errors-.log"),
                         rollingInterval: RollingInterval.Day,
                         retainedFileCountLimit: 90,
                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}",

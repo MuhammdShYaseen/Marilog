@@ -32,7 +32,7 @@ namespace Marilog.Infrastructure.Services
 
         public LogReaderService(IConfiguration config)
         {
-            _logDirectory = config["Logging:Directory"] ?? "logs";
+            _logDirectory = config["Logging:Directory"] ?? "Logs";
         }
 
         public Task<IReadOnlyList<string>> GetAvailableFilesAsync(CancellationToken ct = default)
@@ -115,6 +115,54 @@ namespace Marilog.Infrastructure.Services
             return new LogReadResult(items, materialized.Count, page, pageSize, stats);
         }
 
+        public Task DeleteFileAsync(string fileName, CancellationToken ct = default)
+        {
+            var name = Path.GetFileName(fileName);
+            var path = Path.Combine(_logDirectory, name);
+
+            if (!name.EndsWith(".log", StringComparison.OrdinalIgnoreCase) || !File.Exists(path))
+                throw new KeyNotFoundException($"Log file '{name}' was not found.");
+
+            if (IsInUse(name))
+                throw new InvalidOperationException("Today's log files are still being written and can't be deleted until tomorrow.");
+
+            TryDelete(path, throwOnFailure: true);
+            return Task.CompletedTask;
+        }
+
+        public Task<int> DeleteOldFilesAsync(CancellationToken ct = default)
+        {
+            if (!Directory.Exists(_logDirectory))
+                return Task.FromResult(0);
+
+            var deleted = 0;
+            foreach (var path in Directory.GetFiles(_logDirectory, "*.log"))
+            {
+                if (!IsInUse(Path.GetFileName(path)) && TryDelete(path, throwOnFailure: false))
+                    deleted++;
+            }
+
+            return Task.FromResult(deleted);
+        }
+
+        // Serilog puts the local date in each day's file name (marilog-20261115.log); today's files are open for writing.
+        private static bool IsInUse(string fileName)
+            => fileName.Contains(DateTime.Now.ToString("yyyyMMdd"), StringComparison.Ordinal);
+
+        private static bool TryDelete(string path, bool throwOnFailure)
+        {
+            try
+            {
+                File.Delete(path);
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                if (throwOnFailure)
+                    throw new InvalidOperationException($"Could not delete '{Path.GetFileName(path)}': {ex.Message}");
+                return false;
+            }
+        }
         // ── Private helpers ────────────────────────────────────────
 
         private string? ResolveFile(string? fileName)

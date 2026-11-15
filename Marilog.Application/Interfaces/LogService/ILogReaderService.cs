@@ -1,7 +1,4 @@
 ﻿using Marilog.Application.DTOs.LogDTOs;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marilog.Application.Interfaces.LogService
 {
@@ -9,6 +6,8 @@ namespace Marilog.Application.Interfaces.LogService
     {
         Task<LogReadResult> QueryAsync(LogQuery query, CancellationToken ct = default);
         Task<IReadOnlyList<string>> GetAvailableFilesAsync(CancellationToken ct = default);
+        Task DeleteFileAsync(string fileName, CancellationToken ct = default);
+        Task<int> DeleteOldFilesAsync(CancellationToken ct = default);
     }
 
 }

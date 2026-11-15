@@ -1,13 +1,14 @@
 ﻿using Marilog.Application.DTOs.LogDTOs;
 using Marilog.Application.Interfaces.LogService;
 using Microsoft.AspNetCore.Mvc;
+using Serilog.Core;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
     [ApiController]
     [Route("api/logs")]
     [Produces("application/json")]
-    public sealed class LogsController(ILogReaderService logReader) : ControllerBase
+    public sealed class LogsController(ILogReaderService logReader, ILogger<LogsController> logger) : ControllerBase
     {
         // GET /api/logs?levels=ERR,WRN&search=KeyNotFound&page=1&pageSize=50
         [HttpGet]
@@ -39,6 +40,25 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             var result = await logReader.QueryAsync(
                 new LogQuery { FileName = fileName, PageSize = 500 }, ct);
             return Ok(result.Stats);
+        }
+
+
+        // DELETE /api/logs/files/{fileName}  ← today's files are refused
+        [HttpDelete("files/{fileName}")]
+        public async Task<IActionResult> DeleteFile(string fileName, CancellationToken ct)
+        {
+            await logReader.DeleteFileAsync(fileName, ct);
+            logger.LogWarning("Log file {File} deleted by {User}", fileName, User.Identity?.Name);
+            return NoContent();
+        }
+
+        // DELETE /api/logs/files  ← every file except today's
+        [HttpDelete("files")]
+        public async Task<IActionResult> DeleteOldFiles(CancellationToken ct)
+        {
+            var count = await logReader.DeleteOldFilesAsync(ct);
+            logger.LogWarning("{Count} old log files deleted by {User}", count, User.Identity?.Name);
+            return Ok(count);
         }
     }
 }

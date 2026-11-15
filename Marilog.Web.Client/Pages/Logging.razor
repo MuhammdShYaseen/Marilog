@@ -6,7 +6,8 @@
 @namespace Marilog.Web.Client
 
 @inject Marilog.Contracts.Interfaces.LogService.ILogReaderService LogService
-
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @* ── Stats Bar ─────────────────────────────────────────────────────────────── *@
 @if (_stats is not null)
 {
@@ -143,6 +144,19 @@
                            StartIcon="@Icons.Material.Filled.Clear"
                            OnClick="ClearFilters">
                     Clear
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           Disabled="@(_selectedFile is null)"
+                           OnClick="ConfirmDeleteFileAsync">
+                    Delete file
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.DeleteSweep"
+                           OnClick="ConfirmDeleteOldAsync">
+                    Delete old logs
                 </MudButton>
                 <MudSpacer />
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Style="align-self:center">
@@ -530,7 +544,40 @@
         _currentPage = page;
         await LoadAsync();
     }
+    
+    private async Task ConfirmDeleteFileAsync()
+    {
+        if (_selectedFile is null) return;
 
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete log file", $"Delete '{_selectedFile}' permanently?",
+            yesText: "Delete", cancelText: "Back");
+        if (confirmed != true) return;
+
+        await LogService.DeleteFileAsync(_selectedFile);
+        Snackbar.Add($"{_selectedFile} deleted.", Severity.Success);
+        await ReloadFilesAsync(null);
+    }
+
+    private async Task ConfirmDeleteOldAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete old logs", "Delete every log file except today's? This can't be undone.",
+            yesText: "Delete", cancelText: "Back");
+        if (confirmed != true) return;
+
+        var count = await LogService.DeleteOldFilesAsync();
+        Snackbar.Add($"{count} log file(s) deleted.", Severity.Success);
+        await ReloadFilesAsync(_selectedFile);
+    }
+
+    private async Task ReloadFilesAsync(string? keep)
+    {
+        _files = await LogService.GetAvailableFilesAsync();
+        _selectedFile = keep is not null && _files.Contains(keep) ? keep : null;
+        _currentPage = 1;
+        await LoadAsync();
+    }
     private void OnRowClick(DataGridRowClickEventArgs<LogEntry> args)
     {
         _selected    = args.Item;

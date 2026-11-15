@@ -32,6 +32,20 @@ namespace Marilog.Client.Services.Logging
             return await _http.GetCheckedAsync<LogStats>(url, ct);
         }
 
+
+        public async Task DeleteFileAsync(string fileName, CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/files/{Uri.EscapeDataString(fileName)}", ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+        }
+
+        public async Task<int> DeleteOldFilesAsync(CancellationToken ct = default)
+        {
+            var http = await _http.DeleteAsync($"{Base}/files", ct);
+            await http.EnsureSuccessWithMessageAsync(ct);
+            return await http.Content.ReadFromJsonAsync<int>(ct);
+        }
+
         // ── Private ───────────────────────────────────────────────────────────────
         private static string BuildQueryString(LogQuery q)
         {

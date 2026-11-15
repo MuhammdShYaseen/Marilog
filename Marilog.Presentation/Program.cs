@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Events;
 namespace Marilog.Presentation
 {
     public class Program
@@ -24,6 +25,9 @@ namespace Marilog.Presentation
                 .AddInfrastructure(builder.Configuration)
                 .AddApplication()
                 .AddApiServices();
+            // A failing background job (map tiles, OCR, notifications) must never stop the whole API.
+            builder.Services.Configure<HostOptions>(o =>
+                o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
             builder.Services
                 .AddAuthentication(IdentityConstants.ApplicationScheme)
                 .AddIdentityCookies();
@@ -134,6 +138,11 @@ namespace Marilog.Presentation
             app.UseSerilogRequestLogging(opts =>
             {
                 opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.000}ms";
+                // Map tiles load in hundreds per screen: keep them out of the log files.
+                opts.GetLevel = (ctx, _, ex) =>
+                    ex is not null || ctx.Response.StatusCode >= 500 ? LogEventLevel.Error
+                    : ctx.Request.Path.StartsWithSegments("/api/map-tiles") ? LogEventLevel.Verbose
+                    : LogEventLevel.Information;
             });
             if (app.Environment.IsDevelopment())
             {
