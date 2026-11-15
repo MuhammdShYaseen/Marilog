@@ -13,6 +13,7 @@ using Marilog.Presentation.PresentationDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 
 namespace Marilog.Presentation.Controllers.SystemControllers
 {
@@ -23,6 +24,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
     [Route("api/StoredFiles")]
     public class StoredFilesController : ControllerBase
     {
+        // Only these types may open inside the browser. Anything else is sent as a download,
+        // so an uploaded file can never run as a web page on the API's address.
+        private static readonly HashSet<string> InlineSafeTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "application/pdf", "image/png", "image/jpeg", "image/gif", "image/bmp", "image/webp", "text/plain"
+        };
         private readonly IStoredFileService _service;
         private readonly IStoredFileOwnerReader _owners;
         private readonly IAuthorizationService _authorization;
@@ -96,13 +103,17 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             if (file is null)
                 return NotFound();
 
-            if (inline)
+            Response.Headers.XContentTypeOptions = "nosniff";
+            var isSafe = InlineSafeTypes.Contains(file.ContentType);
+
+            if (inline && isSafe)
             {
-                Response.Headers.Append("Content-Disposition", $"inline; filename=\"{file.OriginalFileName}\"");
+                Response.Headers.ContentDisposition =
+                    new ContentDispositionHeaderValue("inline") { FileNameStar = file.OriginalFileName }.ToString();
                 return File(stream, file.ContentType);
             }
 
-            return File(stream, file.ContentType, file.OriginalFileName);
+            return File(stream, isSafe ? file.ContentType : "application/octet-stream", file.OriginalFileName);
         }
 
         [Authorize]

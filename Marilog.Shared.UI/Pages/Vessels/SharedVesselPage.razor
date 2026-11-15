@@ -4,11 +4,16 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Vessels
 
-<MudPaper Class="pa-4" Elevation="2">
+<MudPaper Class="pa-4" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-2">Vessels</MudText>
 
-    @* ── Toolbar ── *@
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-        <MudText Typo="Typo.h6">Vessels</MudText>
+    <div class="d-flex align-center gap-1 mb-3 pb-1"
+         style="border-bottom:1px solid var(--mud-palette-lines-default);">
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OnAddClicked">
+            New vessel
+        </MudButton>
         <MudSpacer />
         <MudTextField @bind-Value="_search"
                       Placeholder="Search..."
@@ -17,15 +22,8 @@
                       Immediate="true"
                       Variant="Variant.Outlined"
                       Margin="Margin.Dense"
-                      Class="mr-2"
-                      Style="max-width:220px" />
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="OnAddClicked">
-            New
-        </MudButton>
-    </MudStack>
+                      Style="max-width:250px" />
+    </div>
 
     @* ── Summary Chips ── *@
     <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">

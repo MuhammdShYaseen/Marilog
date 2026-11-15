@@ -4,11 +4,8 @@
 @using MudBlazor
 @inject NavigationManager Navigation
 
-<MudPaper Class="pa-4" Elevation="2">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Color="Color.Primary" />
-        <MudText Typo="Typo.h6">Vessel Certificates</MudText>
-    </MudStack>
+<MudPaper Class="pa-4" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-2">Vessel Certificates</MudText>
 
     <VesselCertificatesPanel OnVesselClicked="OpenVessel" />
 </MudPaper>
