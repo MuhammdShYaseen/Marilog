@@ -484,6 +484,14 @@
         Expense = 2  //مصروفات
     }
 
+
+    public enum DocumentPaymentStatus
+    {
+        Unpaid = 0,
+        PartiallyPaid = 1,
+        Paid = 2
+    }
+
     //=====Swift-=====
     public enum SwiftTransferStatus
     {

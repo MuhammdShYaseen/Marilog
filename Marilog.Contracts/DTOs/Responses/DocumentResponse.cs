@@ -25,7 +25,11 @@ namespace Marilog.Contracts.DTOs.Responses
         public decimal TotalPaid { get; set; }
         public decimal RemainingBalance { get; set; }
         public bool IsFullyPaid { get; set; }
-
+        /// <summary>The only place this rule lives. Built on IsFullyPaid so it always agrees with the domain guards.</summary>
+        public DocumentPaymentStatus PaymentStatus =>
+            IsFullyPaid ? DocumentPaymentStatus.Paid
+            : TotalPaid > 0 ? DocumentPaymentStatus.PartiallyPaid
+            : DocumentPaymentStatus.Unpaid;
         public string? Reference { get; set; }
         public int? ParentDocumentId { get; set; }
         public bool IsActive { get; set; }

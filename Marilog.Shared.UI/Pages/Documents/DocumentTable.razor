@@ -172,25 +172,32 @@
                 </CellTemplate>
             </TemplateColumn>
 
-            <TemplateColumn Title="Status" SortBy="x => x.IsFullyPaid"
+            <TemplateColumn Title="Status" SortBy="x => x.PaymentStatus"
                             HeaderStyle="width:100px; overflow:hidden" CellStyle="width:100px; overflow:hidden">
                 <CellTemplate>
-                    <MudChip T="string"
-                             Icon="@(context.Item.Side == FinancialSide.None ? Icons.Material.Filled.RemoveCircle
-                                                                    : context.Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle
-                                                                        : Icons.Material.Filled.Schedule)"
-                             Color="@(context.Item.Side == FinancialSide.None ? Color.Default
-                                                                    : context.Item.IsFullyPaid ? Color.Success : Color.Warning)"
-                             Size="Size.Small"
-                             Variant="Variant.Filled">
-
-                        @(context.Item.Side == FinancialSide.None
-                            ? "None"
-                            : context.Item.IsFullyPaid
-                                ? "Paid"
-                                : "Upaid")
-
+                    @{
+                        var payStatus = DocumentStatusDisplay.Payment(context.Item);
+                    }
+                    <MudChip T="string" Icon="@payStatus.Icon" Color="@payStatus.Color"
+                             Size="Size.Small" Variant="Variant.Filled">
+                        @payStatus.Text
                     </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Due" SortBy="x => x.DocDue"
+                            HeaderStyle="width:120px; overflow:hidden" CellStyle="width:120px; overflow:hidden">
+                <CellTemplate>
+                    @if (DocumentStatusDisplay.Due(context.Item) is { } due)
+                    {
+                        <MudTooltip Text="@context.Item.DocDue?.ToString("dd MMM yyyy")">
+                            <MudText Typo="Typo.body2" Color="@due.Color" Style="font-weight:600">@due.Text</MudText>
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
                 </CellTemplate>
             </TemplateColumn>
 
@@ -239,6 +246,7 @@
                     <col style="width:110px" />
                     <col style="width:110px" />
                     <col style="width:100px" />
+                    <col style="width:120px" />
                     <col style="width:120px" />
                 </colgroup>
                 <tbody>
@@ -297,7 +305,7 @@
     // Must match the number of <th> in <Columns> above, in the same order.
     // These are ALSO the fallback widths used before JS attaches.
     private static readonly int[] DefaultColumnWidths =
-        [48, 220, 150, 120, 160, 110, 90, 110, 110, 110, 100, 120];
+                [48, 220, 150, 120, 160, 110, 90, 110, 110, 110, 100, 120, 120];
 
     private const int MinColumnWidth = 60;
 
@@ -497,17 +505,24 @@
                 min-width: var(--col-12-width, 120px) !important;
                 max-width: var(--col-12-width, 120px) !important;
             }
-
+            
+            .wa-doc-grid thead th:nth-child(13),
+            .wa-doc-grid tbody > tr.mud-table-row > td:nth-child(13),
+            .wa-tree-table td:nth-child(13) {
+                width: var(--col-13-width, 120px) !important;
+                min-width: var(--col-13-width, 120px) !important;
+                max-width: var(--col-13-width, 120px) !important;
+            }
             /* Total table width now follows the live sum of resized columns
            (computed in JS), falling back to the original 1448px sum. */
             .wa-doc-grid table {
-                min-width: var(--doc-grid-total-width, 1448px);
-                width: var(--doc-grid-total-width, 1448px);
+                min-width: var(--doc-grid-total-width, 1568px);
+                width: var(--doc-grid-total-width, 1568px);
             }
 
     .wa-tree-table {
-        min-width: var(--doc-grid-total-width, 1448px);
-        width: var(--doc-grid-total-width, 1448px);
+        min-width: var(--doc-grid-total-width, 1568px);
+        width: var(--doc-grid-total-width, 1568px);
     }
 
         .wa-doc-grid .mud-table-cell,

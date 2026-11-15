@@ -74,20 +74,28 @@
         </MudText>
     </MudTd>
 
+    @{
+        var payStatus = DocumentStatusDisplay.Payment(Item);
+    }
     <MudTd Style="width:100px; overflow:hidden">
-        <MudChip T="string"
-                 Icon="@(Item.Side == FinancialSide.None ? Icons.Material.Filled.RemoveCircle 
-                            : Item.IsFullyPaid ? Icons.Material.Filled.CheckCircle: Icons.Material.Filled.Schedule)"
-                 Color="@(Item.Side == FinancialSide.None ? Color.Default
-                            : Item.IsFullyPaid ? Color.Success : Color.Warning)"
-                 Size="Size.Small"
-                 Variant="Variant.Filled">
-
-            @(Item.Side == FinancialSide.None? "None" : Item.IsFullyPaid ? "Paid" : "Upaid")
-
+        <MudChip T="string" Icon="@payStatus.Icon" Color="@payStatus.Color"
+                 Size="Size.Small" Variant="Variant.Filled">
+            @payStatus.Text
         </MudChip>
     </MudTd>
 
+    <MudTd Style="width:120px; overflow:hidden">
+        @if (DocumentStatusDisplay.Due(Item) is { } due)
+        {
+            <MudTooltip Text="@Item.DocDue?.ToString("dd MMM yyyy")">
+                <MudText Typo="Typo.body2" Color="@due.Color" Style="font-weight:600">@due.Text</MudText>
+            </MudTooltip>
+        }
+        else
+        {
+            <span>—</span>
+        }
+    </MudTd>
     <MudTd Style="width:120px; overflow:hidden">
         <MudStack Row="true" Spacing="1" Class="flex-nowrap">
             <MudTooltip Text="Edit">

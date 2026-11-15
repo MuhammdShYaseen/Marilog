@@ -29,9 +29,10 @@ else
                 }
                 else
                 {
-                    <MudChip T="string" Color="@(Document.IsFullyPaid ? Color.Success : Color.Warning)"
+                    var payStatus = DocumentStatusDisplay.Payment(Document); 
+                    <MudChip T="string" Icon="@payStatus.Icon" Color="@payStatus.Color"
                              Size="Size.Small" Variant="Variant.Filled" Class="ma-0">
-                        @(Document.IsFullyPaid ? "Fully paid" : "Unpaid")
+                        @payStatus.Text
                     </MudChip>
                 }
 

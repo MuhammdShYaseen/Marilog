@@ -1,6 +1,7 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Shared.UI.Components.Fleet
+@using Marilog.Shared.UI.Pages.Documents
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Dashboard
 
@@ -343,13 +344,15 @@
             <MudTh>Date</MudTh>
             <MudTh Class="text-right">Amount</MudTh>
             <MudTh Class="text-right">Outstanding</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Due</MudTh>
         </HeaderContent>
 
         <RowTemplate>
 
             @if (context.IsGroupHeader)
             {
-                <MudTd ColSpan="6" Class="pa-0">
+                <MudTd ColSpan="8" Class="pa-0">
                     <div class="az-group">
 
                         <div class="d-flex justify-space-between align-center flex-wrap gap-3">
@@ -460,6 +463,27 @@
                     else
                     {
                         <span class="az-settled">Settled</span>
+                    }
+                </MudTd>
+                
+                var payStatus = DocumentStatusDisplay.Payment(context.Document);
+                <MudTd>
+                    <MudChip T="string" Icon="@payStatus.Icon" Color="@payStatus.Color"
+                             Size="Size.Small" Variant="Variant.Filled">
+                        @payStatus.Text
+                    </MudChip>
+                </MudTd>
+
+                <MudTd>
+                    @if (DocumentStatusDisplay.Due(context.Document) is { } due)
+                    {
+                        <MudTooltip Text="@context.Document.DocDue?.ToString("dd MMM yyyy")">
+                            <MudText Typo="Typo.body2" Color="@due.Color" Style="font-weight:600">@due.Text</MudText>
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <span>—</span>
                     }
                 </MudTd>
             }
