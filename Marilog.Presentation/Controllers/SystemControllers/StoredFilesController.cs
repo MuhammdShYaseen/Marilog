@@ -145,6 +145,12 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return stream is null ? NotFound() : File(stream, "image/png");
         }
 
+        // POST api/StoredFiles/reprocess-old  ← super admin; one-off: text + preview for files uploaded before previews existed
+        [Authorize(Policy = AuthPolicies.SuperAdmin)]
+        [HttpPost("reprocess-old")]
+        public async Task<IActionResult> ReprocessOld(CancellationToken ct)
+            => Ok(ApiResponse<int>.Ok(await _service.ReprocessOldFilesAsync(ct)));
+
         // ── Commands ─────────────────────────────────────────────────────────
 
         [Authorize]

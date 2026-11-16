@@ -1,5 +1,7 @@
 ﻿
+using Marilog.Application.Interfaces.OCR;
 using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.OCR;
 using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.Infrastructure;
@@ -19,12 +21,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private readonly IRepository<StoredFile> _repoStoredFile;
         private readonly IRepository<StoredFolder> _repoStoredFolder;
         private readonly IFileStorageProvider _storage;
-
-        public StoredFileService(IRepository<StoredFile> repository, IRepository<StoredFolder> folderRepository, IFileStorageProvider storage)
+        private readonly IOcrStarter _ocrStarter;
+        public StoredFileService(IRepository<StoredFile> repository, IRepository<StoredFolder> folderRepository,
+     IFileStorageProvider storage, IOcrStarter ocrStarter)
         {
             _repoStoredFile = repository;
             _repoStoredFolder = folderRepository;
             _storage = storage;
+            _ocrStarter = ocrStarter;
         }
         // ── Mapping ─────────────────────────────────────────────────────────
         private static readonly Expression<Func<StoredFile, StoredFileResponse>> ToResponse = f => new StoredFileResponse
@@ -197,6 +201,32 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             {
                 return null; // not an office file, or the OCR job hasn't finished yet
             }
+        }
+
+
+        /// <summary>
+        /// Queues Word/Excel/PowerPoint/txt files and images that never got text (uploaded before previews existed).
+        /// Their processing never touches the original — it only adds "{file}.html" or "{file}.pdf" next to it.
+        /// PDFs are skipped: OCRmyPDF rewrites a PDF in place, and they were already processed on upload.
+        /// </summary>
+        public async Task<int> ReprocessOldFilesAsync(CancellationToken ct = default)
+        {
+            string[] extensions = [".docx", ".xlsx", ".pptx", ".txt", ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"];
+
+            var files = await _repoStoredFile.Query()
+                .AsNoTracking()
+                .Where(f => f.Content == null)
+                .Select(f => new { f.Guid, f.RelativePath })
+                .ToListAsync(ct);
+
+            var queued = 0;
+            foreach (var file in files.Where(f => extensions.Contains(Path.GetExtension(f.RelativePath).ToLowerInvariant())))
+            {
+                if (await _ocrStarter.StartOcr(new OcrRequest { DocumentId = file.Guid, FilePath = file.RelativePath }, ct))
+                    queued++;
+            }
+
+            return queued;
         }
         // ── Commands ─────────────────────────────────────────────────────────
 

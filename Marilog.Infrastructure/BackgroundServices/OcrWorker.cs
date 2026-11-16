@@ -14,7 +14,7 @@ namespace Marilog.Infrastructure.BackgroundServices
         private readonly ILogger<OcrWorker> _logger;
         private readonly OcrQueue _queue;
         private readonly IServiceScopeFactory _scopeFactory;
-
+        private readonly SemaphoreSlim _gate = new(2);
         public OcrWorker(
             ILogger<OcrWorker> logger,
             OcrQueue queue,
@@ -31,8 +31,13 @@ namespace Marilog.Infrastructure.BackgroundServices
 
             await foreach (var request in _queue.Reader.ReadAllAsync(ct))
             {
-                // لا ننتظر — نعالج في الخلفية
-                _ = ProcessAsync(request, CancellationToken.None);
+                // At most 2 files at once, so a big batch (e.g. reprocessing old files) can't overload the server.
+                await _gate.WaitAsync(ct);
+                _ = Task.Run(async () =>
+                {
+                    try { await ProcessAsync(request, CancellationToken.None); }
+                    finally { _gate.Release(); }
+                });
             }
         }
 

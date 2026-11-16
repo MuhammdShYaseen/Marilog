@@ -68,6 +68,11 @@ namespace Marilog.Client.Services.SystemServices
         // Previews open through the stream URL (?inline=true); nothing on the client calls this.
         public Task<Stream?> GetPreviewStreamAsync(int id, CancellationToken ct = default)
             => throw new NotSupportedException("Previews are opened through the stream URL.");
+
+
+        // Maintenance action, run once from Swagger (POST api/StoredFiles/reprocess-old).
+        public Task<int> ReprocessOldFilesAsync(CancellationToken ct = default)
+            => throw new NotSupportedException("Run it from Swagger: POST api/StoredFiles/reprocess-old.");
         // ── Commands ─────────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable<UploadFileRequest> requests, CancellationToken ct = default)
