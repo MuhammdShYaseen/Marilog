@@ -120,6 +120,18 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 Response.Headers.ContentSecurityPolicy = "sandbox; default-src 'none'; style-src 'unsafe-inline'";
                 return File(preview, "text/html; charset=utf-8");
             }
+
+            // Inline request with nothing to show (old file, still processing, or a type with no preview):
+            // say so inside the panel instead of starting a download.
+            if (inline)
+            {
+                await stream.DisposeAsync();
+                Response.Headers.ContentSecurityPolicy = "sandbox; default-src 'none'; style-src 'unsafe-inline'";
+                return Content(
+                    "<p style=\"font-family:sans-serif;color:#666;margin:16px\">No preview yet. " +
+                    "The file may still be processing, or it was uploaded before previews existed. Use Download.</p>",
+                    "text/html; charset=utf-8");
+            }
             return File(stream, isSafe ? file.ContentType : "application/octet-stream", file.OriginalFileName);
         }
 
