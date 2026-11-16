@@ -177,6 +177,27 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return await _storage.ReadAsync(thumbnailPath, ct);
         }
 
+
+        public async Task<Stream?> GetPreviewStreamAsync(int id, CancellationToken ct = default)
+        {
+            var relativePath = await _repoStoredFile.Query()
+                .AsNoTracking()
+                .Where(f => f.Id == id)
+                .Select(f => f.RelativePath)
+                .FirstOrDefaultAsync(ct);
+
+            if (relativePath is null)
+                return null;
+
+            try
+            {
+                return await _storage.ReadAsync(relativePath + ".html", ct);
+            }
+            catch (FileNotFoundException)
+            {
+                return null; // not an office file, or the OCR job hasn't finished yet
+            }
+        }
         // ── Commands ─────────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable <UploadFileRequest> requests,
@@ -236,7 +257,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ?? throw new ArgumentNullException(nameof(StoredFile) + id.ToString());
 
             await _storage.DeleteAsync(file.RelativePath, ct);
-
+            await _storage.DeleteAsync(file.RelativePath + ".html", ct);  // preview of Word/Excel/PowerPoint/txt (no-op if none)
+            await _storage.DeleteAsync(file.RelativePath + ".pdf", ct);   // PDF copy of an image (no-op if none)
+            if (file.ThumbnailRelativePath is not null)
+                await _storage.DeleteAsync(file.ThumbnailRelativePath, ct);
             _repoStoredFile.HardDelete(file);
             await _repoStoredFile.SaveChangesAsync(ct);
         }

@@ -1,7 +1,5 @@
-﻿
-using Marilog.Contracts.DTOs.OCR;
-using Marilog.Domain.Entities.SystemEntities;
-using Marilog.Domain.Interfaces.Repositories;
+﻿using Marilog.Contracts.DTOs.OCR;
+using Marilog.Infrastructure.Services.OCR;
 using Marilog.Infrastructure.Interfaces.OCR;
 using Marilog.Infrastructure.Models.OCR;
 using Marilog.Infrastructure.Queues.OCR;
@@ -59,35 +57,65 @@ namespace Marilog.Infrastructure.BackgroundServices
                 KeepOriginalBackup = true
             };
 
-            //var success = await _pdfConverter.EnsurePdfAsync(request.FilePath, ct);
-            //if (success != null)
-            //{
-
-                
+            // Word/Excel/PowerPoint/txt: read the text directly and keep an HTML copy for the preview panel ("{file}.html").
+            if (OfficeContentExtractor.CanRead(request.FilePath))
+            {
                 try
                 {
-                    result = await _pdfService.ProcessAsync(inputPdfPath: request.FilePath, outputPdfPath: request.FilePath, ocrOptions, ct: ct);
+                    var (text, html) = OfficeContentExtractor.Read(request.FilePath);
+                    await File.WriteAllTextAsync(request.FilePath + ".html", html, ct);
+
+                    if (!string.IsNullOrWhiteSpace(text))
+                        await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, text, null, ct);
                 }
                 catch (Exception ex)
                 {
-
-                    _logger.LogError(ex, "OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
-                    return;
+                    _logger.LogError(ex, "Reading office file failed | DocumentId: {Id}", request.DocumentId);
                 }
+                return;
+            }
 
-                var extractedContent = _pdfDirectText.ExtractText(request.FilePath, ct);
-                var thumbnailPath = await _pdfThumbnail.GenerateAsync(request.FilePath);
-                if (!string.IsNullOrWhiteSpace(extractedContent))
-                {
-                    await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, thumbnailPath, ct);
-                }
-                else
-                {
-                    _logger.LogError("extracted content failed | DocumentId: {Id}", request.DocumentId);
-                }
+            // PDFs as they are; images get a PDF copy next to them ("{file}.pdf") for OCRmyPDF.
+            string? pdfPath;
+            try
+            {
+                pdfPath = await _pdfConverter.EnsurePdfAsync(request.FilePath, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Image to PDF failed | DocumentId: {Id}", request.DocumentId);
+                return;
+            }
 
-                await CleanupAsync(request.FilePath, request.DocumentId, _compressionService);
-            //}
+            if (pdfPath is null)
+            {
+                _logger.LogWarning("No text extraction for this file type | DocumentId: {Id} | File: {File}",
+                    request.DocumentId, Path.GetFileName(request.FilePath));
+                return;
+            }
+
+            try
+            {
+                result = await _pdfService.ProcessAsync(inputPdfPath: pdfPath, outputPdfPath: pdfPath, ocrOptions, ct: ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "OCR pipelines failed | DocumentId: {Id}", request.DocumentId);
+                return;
+            }
+
+            var extractedContent = _pdfDirectText.ExtractText(pdfPath, ct);
+            var thumbnailPath = await _pdfThumbnail.GenerateAsync(pdfPath);
+            if (!string.IsNullOrWhiteSpace(extractedContent))
+            {
+                await _callbackService.NotifyOcrCompletedAsync(request.DocumentId, extractedContent, thumbnailPath, ct);
+            }
+            else
+            {
+                _logger.LogError("extracted content failed | DocumentId: {Id}", request.DocumentId);
+            }
+
+            await CleanupAsync(pdfPath, request.DocumentId, _compressionService);
         }
 
         private async Task CleanupAsync(string filePath, Guid documentId, IPdfCompressionService _compressionService)

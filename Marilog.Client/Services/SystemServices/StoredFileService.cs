@@ -65,6 +65,9 @@ namespace Marilog.Client.Services.SystemServices
             return await _http.GetStreamAsync($"{Base}/{id}/thumbnailStream", ct);
         }
 
+        // Previews open through the stream URL (?inline=true); nothing on the client calls this.
+        public Task<Stream?> GetPreviewStreamAsync(int id, CancellationToken ct = default)
+            => throw new NotSupportedException("Previews are opened through the stream URL.");
         // ── Commands ─────────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable<UploadFileRequest> requests, CancellationToken ct = default)

@@ -59,6 +59,7 @@ namespace Marilog.Infrastructure.Services.OCR
             // --skip-text: لا يلمس الصفحات النصية، تماماً زي منطق PageAnalyzer عندك
             // --rasterizer pypdfium: يتجنب الاعتماد على Ghostscript AGPL في خطوة الرندرة
             psi.ArgumentList.Add("--skip-text");
+            psi.ArgumentList.Add("--rotate-pages");   // fixes sideways/upside-down pages (phone photos)
             psi.ArgumentList.Add("-l");
             psi.ArgumentList.Add(options.Languages); // "eng+ara" — نفس صيغة Tesseract الحالية
             psi.ArgumentList.Add("--rasterizer");

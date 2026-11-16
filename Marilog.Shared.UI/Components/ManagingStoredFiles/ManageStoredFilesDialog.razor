@@ -607,7 +607,7 @@
             return PreviewKind.Audio;
 
         if (type is "application/pdf" or "text/plain" or "application/json" or "application/xml" or "text/xml"
-            || ext is ".pdf" or ".txt" or ".log" or ".json" or ".xml")
+         || ext is ".pdf" or ".txt" or ".log" or ".json" or ".xml" or ".docx" or ".xlsx" or ".pptx")
             return PreviewKind.Frame;
 
         return PreviewKind.None;

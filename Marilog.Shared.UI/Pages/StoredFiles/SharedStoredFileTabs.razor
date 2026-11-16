@@ -108,5 +108,13 @@
         }
     }
 
-    bool IsPdf() => string.Equals(File.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+    // PDFs, images and txt open as they are; Word/Excel/PowerPoint show the HTML copy the OCR job makes.
+    bool IsPdf()
+    {
+        var type = File.ContentType ?? string.Empty;
+        var ext = System.IO.Path.GetExtension(File.OriginalFileName).ToLowerInvariant();
+        return type.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
+            || type.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+            || ext is ".txt" or ".docx" or ".xlsx" or ".pptx";
+    }
 }

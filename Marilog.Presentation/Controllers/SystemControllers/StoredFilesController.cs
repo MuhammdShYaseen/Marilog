@@ -112,6 +112,14 @@ namespace Marilog.Presentation.Controllers.SystemControllers
                 return File(stream, file.ContentType);
             }
 
+            // Word/Excel/PowerPoint: show the HTML copy the OCR job builds next to the file.
+            if (inline && await _service.GetPreviewStreamAsync(id, ct) is { } preview)
+            {
+                await stream.DisposeAsync();
+                // Marilog builds this page with every value HTML-encoded; the sandbox blocks scripts as a second guard.
+                Response.Headers.ContentSecurityPolicy = "sandbox; default-src 'none'; style-src 'unsafe-inline'";
+                return File(preview, "text/html; charset=utf-8");
+            }
             return File(stream, isSafe ? file.ContentType : "application/octet-stream", file.OriginalFileName);
         }
 

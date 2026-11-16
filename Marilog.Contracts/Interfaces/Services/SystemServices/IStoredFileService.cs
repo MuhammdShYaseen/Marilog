@@ -14,6 +14,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<StoredFileResponse>> GetByTagsAsync(IReadOnlyList<string> tags, List<EntityType>? entityTypes, CancellationToken ct = default);
         Task<Stream> GetFileStreamAsync(int id, CancellationToken ct = default);
         Task<Stream?> GetThumbnailStreamAsync(int id, CancellationToken ct = default);
+        Task<Stream?> GetPreviewStreamAsync(int id, CancellationToken ct = default);
 
         // Commands
         Task<IReadOnlyList<StoredFileResponse>> UploadAsync(IEnumerable<UploadFileRequest> requests, CancellationToken ct = default);
