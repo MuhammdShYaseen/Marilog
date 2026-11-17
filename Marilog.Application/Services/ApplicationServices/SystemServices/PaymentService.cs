@@ -168,7 +168,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             var documentsQuery = _repo.Query()
                 .AsNoTracking()
-                .Where(p => p.IsActive && (p.Side == FinancialSide.Revenue || p.Side == FinancialSide.Expense));
+                .Where(p => p.IsActive && p.Side != FinancialSide.None);
 
             // ─── فلترة الكيانات (على مستوى المستند) ──────────────────────────────
             if (options.VesselId.HasValue)
@@ -188,8 +188,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             if (options.Side.HasValue)
                 documentsQuery = documentsQuery.Where(p => p.Side == options.Side.Value);
-            else 
-                documentsQuery = documentsQuery.Where(p => p.Side == FinancialSide.Revenue || p.Side == FinancialSide.Expense);
 
             // ─── النزول لمستوى الدفعة الفعلي — هون المفتاح ───────────────────────
             var paymentsQuery = documentsQuery.SelectMany(
@@ -252,7 +250,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToListAsync(ct);
 
-            var payments = rows
+            var allPayments = rows
                 .Select(r => new PaymentReportRow
                 {
                     PaymentId = r.PaymentId,
@@ -281,10 +279,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 })
                 .ToList();
 
+            // Operating payments feed every total and summary below; asset payments only feed the Investing line.
+            var payments = allPayments.Where(p => p.Side is FinancialSide.Revenue or FinancialSide.Expense).ToList();
+            var assetPayments = allPayments.Where(p => p.Side is FinancialSide.AssetPurchase or FinancialSide.AssetSale).ToList();
             // ─── الموقع المالي الفعلي (cash basis) ───────────────────────────────
             var cashIn = payments.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase);
             var cashOut = payments.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase);
             var netCashFlow = cashIn - cashOut;
+
+            // Asset payments: shown on their own line, never added to Cash In / Cash Out / Net.
+            var investingIn = assetPayments.Where(p => p.Side == FinancialSide.AssetSale).Sum(p => p.PaidAmountBase);
+            var investingOut = assetPayments.Where(p => p.Side == FinancialSide.AssetPurchase).Sum(p => p.PaidAmountBase);
+
 
             var monthlySummary = payments
                 .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
@@ -378,6 +384,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 CashIn = cashIn,
                 CashOut = cashOut,
                 NetCashFlow = netCashFlow,
+                InvestingIn = investingIn,
+                InvestingOut = investingOut,
                 MonthlySummary = monthlySummary,
                 MethodSummary = methodSummary,
                 VesselSummary = vesselSummary,

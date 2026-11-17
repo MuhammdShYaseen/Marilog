@@ -76,7 +76,7 @@
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
-                    @foreach (var item in Enum.GetValues<FinancialSide>())
+                    @foreach (var item in new[] { FinancialSide.Revenue, FinancialSide.Expense })
                     {
                         <MudSelectItem T="FinancialSide?" Value="@item">@item.ToString()</MudSelectItem>
                     }
@@ -225,6 +225,21 @@
                     <div class="wa-rpt-card-sub">Cash In &minus; Cash Out</div>
                 </div>
             </MudItem>
+            @if (_paymentReport.InvestingIn != 0 || _paymentReport.InvestingOut != 0)
+            {
+                <MudItem xs="12">
+                    <div class="wa-rpt-card">
+                        <div class="wa-rpt-card-label">Assets (Investing) — not included above</div>
+                        <div class="wa-rpt-card-value">
+                            <span class="wa-rpt-pos">+@($"{_paymentReport.InvestingIn:N2}")</span>
+                            &nbsp;/&nbsp;
+                            <span class="wa-rpt-neg">−@($"{_paymentReport.InvestingOut:N2}")</span>
+                            <span class="wa-rpt-card-unit">@_paymentReport.BaseCurrencyCode</span>
+                        </div>
+                        <div class="wa-rpt-card-sub">Asset sales in / asset purchases out — kept out of Cash In, Cash Out and Net</div>
+                    </div>
+                </MudItem>
+            }
         </MudGrid>
 
         @* 2. By Payment Method ──────────────────────────────── *@

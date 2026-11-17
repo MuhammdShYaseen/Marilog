@@ -10,6 +10,8 @@ namespace Marilog.Contracts.DTOs.Reports.PaymentReports
         public decimal CashIn { get; set; }
         public decimal CashOut { get; set; }
         public decimal NetCashFlow { get; set; }
+        public decimal InvestingIn { get; set; }   // asset sales — not part of CashIn/NetCashFlow
+        public decimal InvestingOut { get; set; }  // asset purchases — not part of CashOut/NetCashFlow
         public List<MonthlyPaymentSummary> MonthlySummary { get; set; } = [];
         public List<PaymentMethodSummary> MethodSummary { get; set; } = [];
         public List<VesselPaymentSummary> VesselSummary { get; set; } = [];
