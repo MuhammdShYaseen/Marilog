@@ -50,7 +50,7 @@ namespace Marilog.Web.Client.Services.Implementation
                 if (prefill is not null)
                     parameters["Prefill"] = prefill;
 
-                var dialog = await dialogService.ShowAsync<DocumentFormDialog>("New Document", parameters);
+                var dialog = await dialogService.ShowAsync<DocumentCreateWizard>("New Document", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
                 var result = await dialog.Result;
                 if (result is null || result.Canceled || result.Data is null) return null;
 

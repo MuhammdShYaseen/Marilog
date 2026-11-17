@@ -63,7 +63,8 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
 
         //---Reports------------------------------------------------------------------
         Task<DocumentReport> GetFilteredDocsReportAsync(DocumentFilterOptions options, CancellationToken ct = default);
+        Task<PagedResponse<DocumentResponse>> GetFilteredAssetsAsync(DocumentFilterOptions options, PagedRequest request, CancellationToken ct = default);
 
-        
+
     }
 }

@@ -1,0 +1,118 @@
+@* SharedAssetsPage.razor *@
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Documents
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Assets
+
+<MudPaper Class="pa-4" Elevation="0">
+    <MudText Typo="Typo.h5" Class="mb-2">Assets</MudText>
+
+    <div class="d-flex align-center gap-1 mb-3 pb-1"
+         style="border-bottom:1px solid var(--mud-palette-lines-default);">
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OnAddClicked">
+            New asset
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="OnRefreshClicked">
+            Refresh
+        </MudButton>
+        <MudSpacer />
+        <MudTextField T="string"
+                      Value="_search"
+                      ValueChanged="OnSearchChanged"
+                      Placeholder="Search by number or reference..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      DebounceInterval="400"
+                      Immediate="true"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Style="max-width:250px" />
+    </div>
+
+    <div class="d-flex align-center gap-3 mb-3 flex-wrap">
+        <MudSelect T="FinancialSide?"
+                   Value="_side"
+                   ValueChanged="OnSideChanged"
+                   Label="Type"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Dense="true"
+                   Style="max-width:200px">
+            <MudSelectItem T="FinancialSide?" Value="@((FinancialSide?)null)">All</MudSelectItem>
+            <MudSelectItem T="FinancialSide?" Value="@((FinancialSide?)FinancialSide.AssetPurchase)">Purchase</MudSelectItem>
+            <MudSelectItem T="FinancialSide?" Value="@((FinancialSide?)FinancialSide.AssetSale)">Sale</MudSelectItem>
+        </MudSelect>
+
+        <MudSelect T="int?"
+                   Value="_vesselId"
+                   ValueChanged="OnVesselChanged"
+                   Label="Vessel"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Dense="true"
+                   Clearable="true"
+                   Style="max-width:250px">
+            @foreach (var v in Vessels)
+            {
+                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSwitch T="bool"
+                   Value="_unpaidOnly"
+                   ValueChanged="OnUnpaidOnlyChanged"
+                   Color="Color.Primary"
+                   Label="Unpaid only" />
+    </div>
+
+    <DocumentTable Items="Items"
+                   GridStorageKey="wa-asset-grid-widths"
+                   OnRowClick="OnAssetSelected"
+                   OnEditClicked="OnAssetSelected"
+                   OnDeleteClicked="OnDeleteClicked"
+                   OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                   CurrentPage="CurrentPage"
+                   TotalPages="TotalPages"
+                   OnPageChanged="OnPageChanged" />
+</MudPaper>
+
+@code {
+    [Parameter] public IReadOnlyList<DocumentResponse> Items { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalPages { get; set; }
+
+    [Parameter] public EventCallback OnAddClicked { get; set; }
+    [Parameter] public EventCallback OnRefreshClicked { get; set; }
+    [Parameter] public EventCallback<DocumentResponse> OnAssetSelected { get; set; }
+    [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+    /// <summary>Raised when any filter or the search text changes; the host reloads from page 1.</summary>
+    [Parameter] public EventCallback<(DocumentFilterOptions Options, string? Search)> OnFilterChanged { get; set; }
+
+    private FinancialSide? _side;
+    private int? _vesselId;
+    private bool _unpaidOnly;
+    private string? _search;
+
+    private Task OnSideChanged(FinancialSide? value) { _side = value; return RaiseFilterAsync(); }
+    private Task OnVesselChanged(int? value) { _vesselId = value; return RaiseFilterAsync(); }
+    private Task OnUnpaidOnlyChanged(bool value) { _unpaidOnly = value; return RaiseFilterAsync(); }
+    private Task OnSearchChanged(string? value) { _search = value; return RaiseFilterAsync(); }
+
+    private Task RaiseFilterAsync() =>
+        OnFilterChanged.InvokeAsync((new DocumentFilterOptions
+        {
+            Side = _side,
+            VesselId = _vesselId,
+            UnpaidOnly = _unpaidOnly
+        }, _search));
+}

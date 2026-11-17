@@ -109,6 +109,26 @@ namespace Marilog.Client.Services.SystemServices
             };
         }
 
+
+        public async Task<PagedResponse<DocumentResponse>> GetFilteredAssetsAsync(
+            DocumentFilterOptions options, PagedRequest request, CancellationToken ct = default)
+        {
+            var url = $"{Base}/assets?page={request.Page}&pageSize={request.PageSize}";
+
+            var filters = BuildDocumentQueryString(options).TrimStart('?');
+            if (filters.Length > 0)
+                url += "&" + filters;
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                url += $"&searchTerm={Uri.EscapeDataString(request.SearchTerm)}";
+
+            return await _http.GetCheckedAsync<PagedResponse<DocumentResponse>>(url, ct) ?? new PagedResponse<DocumentResponse>
+            {
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalPages = 0
+            };
+        }
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default)
         {
             var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/{parentDocumentId}/children", ct);
@@ -304,6 +324,9 @@ namespace Marilog.Client.Services.SystemServices
 
             if (options.ToDate.HasValue)
                 parts.Add($"toDate={options.ToDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+
+            if (options.VoyageId.HasValue)
+                parts.Add($"voyageId={options.VoyageId.Value}");
 
             if (options.Side.HasValue)
                 parts.Add($"side={options.Side.Value}");

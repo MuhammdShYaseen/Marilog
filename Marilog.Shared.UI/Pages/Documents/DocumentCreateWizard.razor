@@ -1,0 +1,527 @@
+@* DocumentCreateWizard.razor — step-by-step "new document": type → parties → amount → review *@
+@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">New Document</MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        @* ── Steps ── *@
+        <div class="d-flex align-center gap-2 mb-4 pb-2"
+             style="border-bottom:1px solid var(--mud-palette-lines-default);">
+            @for (var i = 0; i < StepTitles.Length; i++)
+            {
+                var index = i;
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@(index <= _step ? Color.Primary : Color.Default)"
+                         Variant="@(index == _step ? Variant.Filled : Variant.Outlined)">
+                    @($"{index + 1}. {StepTitles[index]}")
+                </MudChip>
+            }
+        </div>
+
+        @if (_step == 0)
+        {
+            @* ── 1. Type ── *@
+            <MudText Typo="Typo.subtitle2" Class="mb-2">What is this document?</MudText>
+
+            <MudRadioGroup T="FinancialSide?" Value="_side" ValueChanged="OnSideChanged">
+                @foreach (var option in SideOptions)
+                {
+                    <div>
+                        <MudRadio T="FinancialSide?" Value="@((FinancialSide?)option.Side)" Color="Color.Primary" Dense="true">
+                            <span style="font-weight:600">@option.Title</span>
+                            <span style="opacity:.7"> — @option.Hint</span>
+                        </MudRadio>
+                    </div>
+                }
+            </MudRadioGroup>
+
+            <MudAutocomplete T="int"
+                             @bind-Value="_docTypeId"
+                             Label="Document Type"
+                             Required="true"
+                             Class="mt-4"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense"
+                             ToStringFunc="@(id => DocTypes.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                             SearchFunc="@SearchDocTypes"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="true" />
+        }
+        else if (_step == 1)
+        {
+            @* ── 2. Parties ── *@
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_supplierId"
+                                     Label="@SupplierLabel"
+                                     Required="@IsMoneyOut"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => CompanyName(id) ?? "")"
+                                     SearchFunc="@SearchCompanies"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_buyerId"
+                                     Label="@BuyerLabel"
+                                     Required="@IsMoneyIn"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => CompanyName(id) ?? "")"
+                                     SearchFunc="@SearchCompanies"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     Value="_vesselId"
+                                     ValueChanged="OnVesselChanged"
+                                     Label="Vessel"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => Vessels.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                     SearchFunc="@SearchVessels"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_voyageId"
+                                     Label="Voyage"
+                                     Disabled="@(!_vesselId.HasValue)"
+                                     HelperText="@(_vesselId.HasValue ? null : "Pick a vessel first")"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => _voyages.FirstOrDefault(x => x.VoyageId == id)?.VoyageNumber ?? "")"
+                                     SearchFunc="@SearchVoyages"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_portId"
+                                     Label="Port"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => Ports.FirstOrDefault(x => x.Id == id)?.Name ?? "")"
+                                     SearchFunc="@SearchPorts"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_parentDocumentId"
+                                     Label="Parent Document"
+                                     Disabled="@(!_vesselId.HasValue)"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => ParentLabel(id))"
+                                     SearchFunc="@SearchParentDocuments"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+            </MudGrid>
+        }
+        else if (_step == 2)
+        {
+            @* ── 3. Amount & dates ── *@
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string"
+                                  Value="_docNumber"
+                                  ValueChanged="OnDocNumberChanged"
+                                  Label="Document Number"
+                                  Required="true"
+                                  Error="@_isDocNumberDuplicate"
+                                  ErrorText="@_docNumberErrorText"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int"
+                                     @bind-Value="_currencyId"
+                                     Label="Currency"
+                                     Required="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => Currencies.FirstOrDefault(x => x.Id == id)?.Code ?? "")"
+                                     SearchFunc="@SearchCurrencies"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_docDateTime"
+                                   Label="Document Date"
+                                   Editable="true"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_docDueDateTime"
+                                   Label="Due Date"
+                                   Editable="true"
+                                   Clearable="true"
+                                   MinDate="_docDateTime"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="_totalAmount"
+                                     Label="Total Amount"
+                                     Required="true"
+                                     Min="0"
+                                     Format="N2"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  @bind-Value="_reference"
+                                  Label="Reference"
+                                  Lines="3"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            @* ── 4. Review ── *@
+            <MudAlert Severity="@(_side == FinancialSide.None ? Severity.Warning : Severity.Info)" Dense="true" Class="mb-3">
+                @ReviewSentence()
+            </MudAlert>
+
+            <MudSimpleTable Dense="true" Elevation="0" Outlined="true">
+                <tbody>
+                    @foreach (var (label, value) in ReviewRows())
+                    {
+                        <tr>
+                            <td style="width:35%; opacity:.7">@label</td>
+                            <td style="font-weight:600">@value</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudSpacer />
+        @if (_step > 0)
+        {
+            <MudButton Variant="Variant.Text" OnClick="Back">Back</MudButton>
+        }
+        @if (_step < StepTitles.Length - 1)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!CanGoNext)" OnClick="NextAsync">
+                Next
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+    [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+    [Parameter] public Func<int, Task<IReadOnlyList<DocumentResponse>>>? GetDocsByVessel { get; set; }
+    [Parameter] public Func<int, Task<IReadOnlyList<VoyageResponse>>>? GetVoyagesByVessel { get; set; }
+    [Parameter] public Func<string, Task<DocumentResponse>>? GetDocByNumber { get; set; }
+    [Parameter] public CreateDocumentRequest? Prefill { get; set; }
+
+    private static readonly string[] StepTitles = ["Type", "Parties", "Amount", "Review"];
+
+    private static readonly (FinancialSide Side, string Title, string Hint)[] SideOptions =
+    [
+        (FinancialSide.Expense,       "Expense",        "we pay a supplier for goods or a service"),
+        (FinancialSide.Revenue,       "Revenue",        "a client pays us (freight, hire, demurrage…)"),
+        (FinancialSide.AssetPurchase, "Asset purchase", "buying a vessel or a share in one — kept out of P&L"),
+        (FinancialSide.AssetSale,     "Asset sale",     "selling a vessel or a share — kept out of P&L"),
+        (FinancialSide.None,          "No money",       "a document with no payment (letter, certificate, statement)"),
+    ];
+
+    private int _step;
+
+    private FinancialSide? _side;
+    private int _docTypeId;
+    private int? _supplierId;
+    private int? _buyerId;
+    private int? _vesselId;
+    private int? _voyageId;
+    private int? _portId;
+    private int? _parentDocumentId;
+    private string? _docNumber;
+    private int _currencyId;
+    private decimal _totalAmount;
+    private string? _reference;
+    private DateOnly? _docDate;
+    private DateOnly? _docDue;
+
+    private bool _isDocNumberDuplicate;
+    private string? _docNumberErrorText;
+
+    private IReadOnlyList<DocumentResponse> _vesselDocs = [];
+    private IReadOnlyList<VoyageResponse> _voyages = [];
+
+    private DateTime? _docDateTime
+    {
+        get => _docDate?.ToDateTime(TimeOnly.MinValue);
+        set => _docDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+    }
+
+    private DateTime? _docDueDateTime
+    {
+        get => _docDue?.ToDateTime(TimeOnly.MinValue);
+        set => _docDue = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+    }
+
+    // Money out → the other party is the supplier. Money in → the other party is the buyer.
+    private bool IsMoneyOut => _side is FinancialSide.Expense or FinancialSide.AssetPurchase;
+    private bool IsMoneyIn => _side is FinancialSide.Revenue or FinancialSide.AssetSale;
+
+    private string SupplierLabel => IsMoneyOut ? "Supplier (who we pay)" : IsMoneyIn ? "Supplier (our company)" : "Supplier";
+    private string BuyerLabel => IsMoneyIn ? "Buyer (who pays us)" : IsMoneyOut ? "Buyer (our company)" : "Buyer";
+
+    private bool CanGoNext => _step switch
+    {
+        0 => _side.HasValue && _docTypeId > 0,
+        1 => IsMoneyOut ? _supplierId.HasValue : IsMoneyIn ? _buyerId.HasValue : true,
+        2 => !string.IsNullOrWhiteSpace(_docNumber) && _docDate is not null && _currencyId > 0 && _totalAmount > 0,
+        _ => true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _docDate = DateOnly.FromDateTime(DateTime.Today);
+        if (Prefill is null) return;
+
+        _side = Prefill.Side == FinancialSide.None ? null : Prefill.Side;
+        _docTypeId = Prefill.DocTypeId;
+        _docNumber = Prefill.DocNumber;
+        _currencyId = Prefill.CurrencyId;
+        _totalAmount = Prefill.TotalAmount;
+        _reference = Prefill.Reference;
+        _portId = Prefill.PortId;
+        _docDue = Prefill.DocDue;
+        if (Prefill.DocDate != default) _docDate = Prefill.DocDate;
+
+        if (Prefill.VesselId.HasValue)
+        {
+            await OnVesselChanged(Prefill.VesselId);
+            _voyageId = Prefill.VoyageId;
+            _parentDocumentId = Prefill.ParentDocumentId;
+        }
+
+        if (Prefill.SupplierId.HasValue || Prefill.BuyerId.HasValue)
+        {
+            _supplierId = Prefill.SupplierId;
+            _buyerId = Prefill.BuyerId;
+        }
+        else if (_side.HasValue)
+        {
+            OnSideChanged(_side);
+        }
+    }
+
+    // Changing the type resets the parties: the other party is cleared, ours is filled in.
+    private void OnSideChanged(FinancialSide? side)
+    {
+        _side = side;
+        var own = Companies.FirstOrDefault(c => c.IsOwn)?.Id;
+
+        if (IsMoneyOut) { _supplierId = null; _buyerId = own; }
+        else if (IsMoneyIn) { _buyerId = null; _supplierId = own; }
+    }
+
+    private async Task OnVesselChanged(int? vesselId)
+    {
+        _vesselId = vesselId;
+        _voyageId = null;
+        _parentDocumentId = null;
+
+        _vesselDocs = vesselId.HasValue && GetDocsByVessel is not null ? await GetDocsByVessel(vesselId.Value) : [];
+        _voyages = vesselId.HasValue && GetVoyagesByVessel is not null ? await GetVoyagesByVessel(vesselId.Value) : [];
+    }
+
+    private void OnDocNumberChanged(string? value)
+    {
+        _docNumber = value;
+        _isDocNumberDuplicate = false;
+        _docNumberErrorText = null;
+    }
+
+    private async Task NextAsync()
+    {
+        if (_step == 2)
+        {
+            _isDocNumberDuplicate = await IsDocNumberDuplicateAsync();
+            _docNumberErrorText = _isDocNumberDuplicate ? "Document number already exists." : null;
+            if (_isDocNumberDuplicate) return;
+        }
+
+        _step++;
+    }
+
+    private void Back() => _step--;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new CreateDocumentRequest
+        {
+            DocNumber = _docNumber!.Trim(),
+            DocTypeId = _docTypeId,
+            Side = _side ?? FinancialSide.None,
+            DocDate = _docDate!.Value,
+            DocDue = _docDue,
+            CurrencyId = _currencyId,
+            TotalAmount = _totalAmount,
+            SupplierId = _supplierId,
+            BuyerId = _buyerId,
+            VesselId = _vesselId,
+            VoyageId = _voyageId,
+            PortId = _portId,
+            ParentDocumentId = _parentDocumentId,
+            Reference = _reference,
+        }));
+
+    private async Task<bool> IsDocNumberDuplicateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_docNumber) || GetDocByNumber is null)
+            return false;
+
+        try
+        {
+            return await GetDocByNumber(_docNumber.Trim()) is not null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // ── Review ───────────────────────────────────────────────────────────────
+
+    private string ReviewSentence()
+    {
+        var amount = $"{_totalAmount:N2} {Currencies.FirstOrDefault(c => c.Id == _currencyId)?.Code}";
+        var vessel = VesselName() is { } v ? $", on {v}" : "";
+        var due = _docDue is { } d ? $", due {d:dd MMM yyyy}" : "";
+
+        return _side switch
+        {
+            FinancialSide.Expense => $"Expense of {amount} to {CompanyName(_supplierId)}{vessel}{due}.",
+            FinancialSide.AssetPurchase => $"Asset purchase of {amount} from {CompanyName(_supplierId)}{vessel}{due}. Kept out of P&L.",
+            FinancialSide.Revenue => $"Revenue of {amount} from {CompanyName(_buyerId)}{vessel}{due}.",
+            FinancialSide.AssetSale => $"Asset sale of {amount} to {CompanyName(_buyerId)}{vessel}{due}. Kept out of P&L.",
+            _ => $"Document with no money movement{vessel}. It can't take payments."
+        };
+    }
+
+    private IEnumerable<(string Label, string Value)> ReviewRows()
+    {
+        (string, string?)[] rows =
+        [
+            ("Type", SideOptions.FirstOrDefault(o => o.Side == _side).Title),
+            ("Document type", DocTypes.FirstOrDefault(x => x.Id == _docTypeId)?.Name),
+            ("Number", _docNumber),
+            ("Date", _docDate?.ToString("dd MMM yyyy")),
+            ("Due", _docDue?.ToString("dd MMM yyyy")),
+            ("Amount", $"{_totalAmount:N2} {Currencies.FirstOrDefault(c => c.Id == _currencyId)?.Code}"),
+            ("Supplier", CompanyName(_supplierId)),
+            ("Buyer", CompanyName(_buyerId)),
+            ("Vessel", VesselName()),
+            ("Voyage", _voyages.FirstOrDefault(x => x.VoyageId == _voyageId)?.VoyageNumber),
+            ("Port", Ports.FirstOrDefault(x => x.Id == _portId)?.Name),
+            ("Parent document", _parentDocumentId.HasValue ? ParentLabel(_parentDocumentId) : null),
+            ("Reference", _reference),
+        ];
+
+        return rows.Where(r => !string.IsNullOrWhiteSpace(r.Item2)).Select(r => (r.Item1, r.Item2!));
+    }
+
+    private string? CompanyName(int? id) => Companies.FirstOrDefault(x => x.Id == id)?.Name;
+    private string? VesselName() => Vessels.FirstOrDefault(x => x.Id == _vesselId)?.Name;
+
+    private string ParentLabel(int? id) =>
+        _vesselDocs.FirstOrDefault(x => x.Id == id) is { } d
+            ? $"{d.DocNumber} — {d.TotalAmount:N2} {d.CurrencyCode}"
+            : "";
+
+    // ── Autocomplete searches ────────────────────────────────────────────────
+
+    private Task<IEnumerable<int>> SearchDocTypes(string value, CancellationToken token)
+        => Task.FromResult(DocTypes
+            .Where(x => string.IsNullOrEmpty(value) || x.Name!.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Id));
+
+    private Task<IEnumerable<int>> SearchCurrencies(string value, CancellationToken token)
+        => Task.FromResult(Currencies
+            .Where(x => string.IsNullOrEmpty(value) || x.Code.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Id));
+
+    private Task<IEnumerable<int?>> SearchCompanies(string value, CancellationToken token)
+        => Task.FromResult(Companies
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchVessels(string value, CancellationToken token)
+        => Task.FromResult(Vessels
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchPorts(string value, CancellationToken token)
+        => Task.FromResult(Ports
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+
+    private Task<IEnumerable<int?>> SearchVoyages(string value, CancellationToken token)
+        => Task.FromResult(_voyages
+            .Where(x => string.IsNullOrEmpty(value) || x.VoyageNumber.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.VoyageId));
+
+    private Task<IEnumerable<int?>> SearchParentDocuments(string value, CancellationToken token)
+        => Task.FromResult(_vesselDocs
+            .Where(x => string.IsNullOrEmpty(value) || x.DocNumber.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+}

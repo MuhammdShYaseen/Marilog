@@ -1,4 +1,5 @@
 ﻿using Marilog.Contracts.Common;
+using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -123,6 +124,13 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         { 
             return Ok(await _service.GetUnpaidPagedAsync(request, treeView, ct)); 
         }
+
+
+        // GET api/documents/assets?page=1&pageSize=20&side=AssetPurchase&vesselId=3 ...
+        [HttpGet("assets")]
+        public async Task<ActionResult<PagedResponse<DocumentResponse>>> GetFilteredAssets(
+            [FromQuery] DocumentFilterOptions options, [FromQuery] PagedRequest request, CancellationToken ct = default)
+            => Ok(await _service.GetFilteredAssetsAsync(options, request, ct));
 
         [HttpGet("{id:int}/children")]
         public async Task<ActionResult<IReadOnlyList<DocumentResponse>>> GetChildren(int id, CancellationToken ct)

@@ -1052,6 +1052,92 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 BaseCurrencyCode = await GetBaseCurrencyCode(ct),
             };
         }
+
+
+        // ══ Assets ════════════════════════════════════════════════════════════════
+        // Asset documents only (AssetPurchase / AssetSale), newest first, one page at a time.
+        // Same filters as the documents report; Side narrows to purchases or sales only.
+        public async Task<PagedResponse<DocumentResponse>> GetFilteredAssetsAsync(
+            DocumentFilterOptions options, PagedRequest request, CancellationToken ct = default)
+        {
+            var query = _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .Where(x => x.Side == FinancialSide.AssetPurchase || x.Side == FinancialSide.AssetSale);
+
+            if (options.Side is FinancialSide.AssetPurchase or FinancialSide.AssetSale)
+                query = query.Where(x => x.Side == options.Side.Value);
+
+            if (options.SupplierId.HasValue)
+                query = query.Where(x => x.SupplierId == options.SupplierId.Value);
+
+            if (options.BuyerId.HasValue)
+                query = query.Where(x => x.BuyerId == options.BuyerId.Value);
+
+            if (options.VesselId.HasValue)
+                query = query.Where(x => x.VesselId == options.VesselId.Value);
+
+            if (options.VoyageId.HasValue)
+                query = query.Where(x => x.VoyageId == options.VoyageId.Value);
+
+            if (options.DocTypeId.HasValue)
+                query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
+
+            if (options.UnpaidOnly)
+                query = query.Where(x =>
+                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
+                    < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
+
+            // Same date rules as the documents report: a range wins, then LastDays, then Year/Month.
+            if (options.FromDate.HasValue || options.ToDate.HasValue)
+            {
+                if (options.FromDate.HasValue)
+                    query = query.Where(x => x.DocDate >= options.FromDate.Value);
+
+                if (options.ToDate.HasValue)
+                    query = query.Where(x => x.DocDate <= options.ToDate.Value);
+            }
+            else if (options.LastDays.HasValue)
+            {
+                var since = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-options.LastDays.Value));
+                query = query.Where(x => x.DocDate >= since);
+            }
+            else
+            {
+                if (options.Year.HasValue)
+                    query = query.Where(x => x.DocDate.Year == options.Year.Value);
+
+                if (options.Month.HasValue)
+                    query = query.Where(x => x.DocDate.Month == options.Month.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.Trim();
+                query = query.Where(x => x.DocNumber.Contains(term) || (x.Reference != null && x.Reference.Contains(term)));
+            }
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(x => x.DocDate)
+                .ThenByDescending(x => x.Id)
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(ToResponse())
+                .ToListAsync(ct);
+
+            await ApplyBaseRateAsync(items, ct);
+
+            return new PagedResponse<DocumentResponse>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize)
+            };
+        }
         // Lists, searches and reports show operating documents only; assets (vessel purchase/sale) are kept out.
         private IQueryable<Document> Operating() =>
             _repo.Query().Where(x => x.Side != FinancialSide.AssetPurchase && x.Side != FinancialSide.AssetSale);
