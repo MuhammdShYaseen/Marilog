@@ -480,8 +480,10 @@
     public enum FinancialSide
     {
         None = 0,
-        Revenue = 1, //مدخول
-        Expense = 2  //مصروفات
+        Revenue = 1,
+        Expense = 2,
+        AssetPurchase = 3,   // شراء أصل: المصاري طالعة (شراء باخرة، عربون، عمولة شراء)
+        AssetSale = 4        // بيع أصل: المصاري داخلة (بيع باخرة أو حصة منها)
     }
 
 

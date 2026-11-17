@@ -168,7 +168,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             var documentsQuery = _repo.Query()
                 .AsNoTracking()
-                .Where(p => p.IsActive && p.Side != FinancialSide.None);
+                .Where(p => p.IsActive && (p.Side == FinancialSide.Revenue || p.Side == FinancialSide.Expense));
 
             // ─── فلترة الكيانات (على مستوى المستند) ──────────────────────────────
             if (options.VesselId.HasValue)
@@ -188,6 +188,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             if (options.Side.HasValue)
                 documentsQuery = documentsQuery.Where(p => p.Side == options.Side.Value);
+            else 
+                documentsQuery = documentsQuery.Where(p => p.Side == FinancialSide.Revenue || p.Side == FinancialSide.Expense);
 
             // ─── النزول لمستوى الدفعة الفعلي — هون المفتاح ───────────────────────
             var paymentsQuery = documentsQuery.SelectMany(
@@ -280,8 +282,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
 
             // ─── الموقع المالي الفعلي (cash basis) ───────────────────────────────
-            var cashIn = payments.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase);
-            var cashOut = payments.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase);
+            var cashIn = payments.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase);
+            var cashOut = payments.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase);
             var netCashFlow = cashIn - cashOut;
 
             var monthlySummary = payments
@@ -290,10 +292,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
-                    CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
-                    CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
-                    NetCashFlow = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase)
-                                - g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
+                    CashIn = g.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase),
+                    CashOut = g.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase),
+                    NetCashFlow = g.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase)
+                                - g.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase),
                     Count = g.Count(),
                 })
                 .OrderBy(m => m.Year).ThenBy(m => m.Month)
@@ -305,8 +307,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     Method = g.Key.ToString(),
                     TotalBase = g.Sum(p => p.PaidAmountBase),
-                    CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
-                    CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
+                    CashIn = g.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase),
+                    CashOut = g.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase),
                     Count = g.Count(),
                 })
                 .OrderByDescending(m => m.TotalBase)
@@ -319,10 +321,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     VesselId = g.Key,
                     VesselName = g.First().VesselName ?? string.Empty,
-                    CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
-                    CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
-                    NetCashFlow = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase)
-                                - g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
+                    CashIn = g.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase),
+                    CashOut = g.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase),
+                    NetCashFlow = g.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase)
+                                - g.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase),
                     Count = g.Count(),
                 })
                 .OrderByDescending(v => v.CashIn + v.CashOut)
@@ -361,8 +363,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 {
                     VoyageId = g.Key,
                     VoyageNumber = g.First().VoyageNumber ?? string.Empty,
-                    CashIn = g.Where(p => p.Side == FinancialSide.Revenue).Sum(p => p.PaidAmountBase),
-                    CashOut = g.Where(p => p.Side == FinancialSide.Expense).Sum(p => p.PaidAmountBase),
+                    CashIn = g.Where(p => IsCashIn(p.Side)).Sum(p => p.PaidAmountBase),
+                    CashOut = g.Where(p => IsCashOut(p.Side)).Sum(p => p.PaidAmountBase),
                     Count = g.Count(),
                 })
                 .OrderByDescending(v => v.CashIn + v.CashOut)
@@ -423,5 +425,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                    .Include(x => x.Payments)
                    .FirstOrDefaultAsync(x => x.Id == id, ct)
                ?? throw new KeyNotFoundException($"Document {id} not found.");
+
+
+        // Money in: revenue and asset sales. Money out: expenses and asset purchases.
+        private static bool IsCashIn(FinancialSide side) => side is FinancialSide.Revenue or FinancialSide.AssetSale;
+        private static bool IsCashOut(FinancialSide side) => side is FinancialSide.Expense or FinancialSide.AssetPurchase;
     }
 }

@@ -47,7 +47,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Distinct()
                 .ToArray();
 
-            var docs = await _repo.Query()
+            var docs = await Operating()
                 .AsNoTracking()
                 .Where(x => x.IsActive && tokens.All(t => x.SearchVector.Contains(t)))
                 .OrderByDescending(x => x.DocDate)
@@ -140,7 +140,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetBySupplierAsync(
             int supplierId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.SupplierId == supplierId && x.IsActive)
                 .OrderByDescending(x => x.DocDate)
@@ -158,7 +158,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<IReadOnlyList<DocumentResponse>> GetByBuyerAsync(int buyerId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.BuyerId == buyerId && x.IsActive)
                 .OrderByDescending(x => x.DocDate)
@@ -177,7 +177,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetByVesselAsync(
             int vesselId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.VesselId == vesselId && x.IsActive)
                 .OrderByDescending(x => x.DocDate)
@@ -196,7 +196,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetLastAddedAsync(
             int days, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.CreatedAt >= DateTime.Today.AddDays(-days) && x.IsActive)
                 .OrderByDescending(x => x.DocDate)
@@ -215,7 +215,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetByVoyageAsync(
             int voyageId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(v => v.VoyageId == voyageId)
                 .Select(ToResponse())
@@ -233,7 +233,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(
             int docTypeId, bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.DocTypeId == docTypeId && x.IsActive)
                 .OrderByDescending(x => x.DocDate)
@@ -252,7 +252,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(
             bool treeView = false, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.IsActive &&
                             x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
@@ -271,7 +271,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         }
         public async Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default)
         {
-            var unpaid = _repo.Query()
+            var unpaid = Operating()
                 .AsNoTracking()
                 .Where(x => x.IsActive &&
                             x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
@@ -344,7 +344,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(
             int parentDocumentId, CancellationToken ct = default)
         {
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .Where(x => x.ParentDocumentId == parentDocumentId)
                 .OrderBy(x => x.DocDate)
@@ -359,7 +359,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             CancellationToken ct = default)
         {
             // ── Query واحدة تجلب كل المستندات ────────────────────────────────────
-            var result = await _repo.Query()
+            var result = await Operating()
                 .AsNoTracking()
                 .OrderBy(x => x.DocDate)
                 .Select(ToResponseFully())
@@ -661,7 +661,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Select(i => i.Id)
                 .FirstOrDefaultAsync(ct);
 
-            var query = _repo.Query()
+            var query = Operating()
                 .AsNoTracking()
                 .Include(i => i.Items)
                 .Include(v => v.Vessel)
@@ -779,7 +779,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Include(ve => ve.Vessel)
                 .Include(p => p.Port)
                 .Where(x => x.IsActive)
-                .Where(x => x.Side != FinancialSide.None);
+                .Where(x => x.Side == FinancialSide.Revenue || x.Side == FinancialSide.Expense);
 
             // ─── فلترة ───────────────────────────────────────────────────────────
             if (options.SupplierId.HasValue)
@@ -799,6 +799,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             if (options.Side.HasValue)
                 query = query.Where(x => x.Side == options.Side.Value);
+            else 
+                query = query.Where(x => x.Side == FinancialSide.Revenue || x.Side == FinancialSide.Expense);
 
             if (options.UnpaidOnly == true)
                 query = query.Where(x =>
@@ -1050,7 +1052,9 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 BaseCurrencyCode = await GetBaseCurrencyCode(ct),
             };
         }
-
+        // Lists, searches and reports show operating documents only; assets (vessel purchase/sale) are kept out.
+        private IQueryable<Document> Operating() =>
+            _repo.Query().Where(x => x.Side != FinancialSide.AssetPurchase && x.Side != FinancialSide.AssetSale);
         // ══ Private — data access helpers ═════════════════════════════════════════
 
         private async Task<Document> GetOrThrowAsync(int id, CancellationToken ct)
