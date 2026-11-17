@@ -7,7 +7,7 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            @(Document is null ? "Create Document" : "Edit Document")
+            Edit Document
         </MudText>
     </TitleContent>
 
@@ -17,13 +17,14 @@
 
             <MudItem xs="12" sm="6">
                 <MudTextField T="string"
-                @bind-Value="_DocNumber"
-                Label="Document Number"
-                Required="true"
-                Variant="Variant.Outlined"
-                Error="@_isDocNumberDuplicate"
-                ErrorText="@_docNumberErrorText"
-                Margin="Margin.Dense" />
+                              Value="_DocNumber"
+                              ValueChanged="OnDocNumberChanged"
+                              Label="Document Number"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Error="@_isDocNumberDuplicate"
+                              ErrorText="@_docNumberErrorText"
+                              Margin="Margin.Dense" />
             </MudItem>
 
             <MudItem xs="12" sm="6">
@@ -264,7 +265,7 @@
 
     [CascadingParameter]private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter]public DocumentResponse? Document { get; set; }
+    [Parameter, EditorRequired] public DocumentResponse Document { get; set; } = default!;
     [Parameter] public VoyageResponse? Voyage { get; set; }
 
     [Parameter]public IReadOnlyList<CurrencyResponse> Currencies { get; set; }   = [];
@@ -361,9 +362,6 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Document is null)
-            return;
-
         _DocNumber = Document.DocNumber;
         _TotalAmount = Document.TotalAmount;
         _Reference = Document.Reference;
@@ -386,17 +384,7 @@
             AllVoyages = await GetVoyagesByVessel(Document.VesselId.Value);
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (Document is not null || Prefill is null)
-            return;
-
-        _docDate = Prefill.DocDate;
-        _Reference = Prefill.Reference;
-
-        if (Prefill.VesselId.HasValue)
-            await OnVesselChanged(Prefill.VesselId);
-    }
+    
 
     private void Cancel()
     {
@@ -404,54 +392,29 @@
     }
 
 
-    private async void Submit()
+    private async Task Submit()
     {
-        if (Document is null)
+        _isDocNumberDuplicate = await IsDocNumberDuplicateAsync();
+        _docNumberErrorText = _isDocNumberDuplicate ? "Document number already exists." : null;
+        if (_isDocNumberDuplicate) return;
+
+        MudDialog.Close(DialogResult.Ok(new UpdateDocumentRequest
         {
-            _isDocNumberDuplicate = await IsDocNumberDuplicateAsync();
-            if (_isDocNumberDuplicate)
-            {
-                _docNumberErrorText = "Document number already exists.";
-                return;
-            }
-            MudDialog.Close(DialogResult.Ok(new CreateDocumentRequest
-            {
-                 DocDate = _docDate!.Value,
-                 DocDue = _docDue,
-                 SupplierId = _SupplierId,
-                 VesselId = _VesselId,
-                 CurrencyId = _CurrencyId,
-                 BuyerId = _BuyerId,
-                 DocNumber = _DocNumber ?? "NONE",
-                 DocTypeId = _DocTypeId,
-                 ParentDocumentId = _ParentDocumentId,
-                 PortId = _PortId,
-                 Reference = _Reference,
-                 TotalAmount = _TotalAmount,
-                 Side = _Side ?? 0,
-                 VoyageId = _VoyageId,
-            }));
-        }
-        else
-        {
-            MudDialog.Close(DialogResult.Ok(new UpdateDocumentRequest
-            {
-                DocDate = _docDate!.Value,
-                DocDue = _docDue,
-                SupplierId = _SupplierId,
-                VesselId = _VesselId,
-                CurrencyId = _CurrencyId,
-                BuyerId = _BuyerId,
-                DocNumber = _DocNumber ?? "NON",
-                DocTypeId = _DocTypeId,
-                ParentDocumentId = _ParentDocumentId,
-                PortId = _PortId,
-                Reference = _Reference,
-                TotalAmount = _TotalAmount,
-                Side = _Side ?? 0,
-                VoyageId = _VoyageId,
-            }));
-        }
+            DocDate = _docDate!.Value,
+            DocDue = _docDue,
+            SupplierId = _SupplierId,
+            VesselId = _VesselId,
+            CurrencyId = _CurrencyId,
+            BuyerId = _BuyerId,
+            DocNumber = _DocNumber!,
+            DocTypeId = _DocTypeId,
+            ParentDocumentId = _ParentDocumentId,
+            PortId = _PortId,
+            Reference = _Reference,
+            TotalAmount = _TotalAmount,
+            Side = _Side ?? 0,
+            VoyageId = _VoyageId,
+        }));
     }
 
 
@@ -503,10 +466,11 @@
             .Select(x => (int?)x.VoyageId));
 
 
-    private async Task CheckDocNumberDuplicate(FocusEventArgs args)
+    private void OnDocNumberChanged(string? value)
     {
-        _isDocNumberDuplicate = await IsDocNumberDuplicateAsync();
-        _docNumberErrorText = _isDocNumberDuplicate ? "Document number already exists." : null;
+        _DocNumber = value;
+        _isDocNumberDuplicate = false;
+        _docNumberErrorText = null;
     }
 
     private async Task<bool> IsDocNumberDuplicateAsync()
