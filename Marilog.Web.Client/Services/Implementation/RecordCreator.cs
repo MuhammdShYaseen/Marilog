@@ -1,8 +1,10 @@
-﻿using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
+﻿
+using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
-using Marilog.Web.Client.Services.Interfaces;
 using Marilog.Shared.UI.Pages.Documents;
+using Marilog.Shared.UI.Pages.SwiftTransfer;
+using Marilog.Web.Client.Services.Interfaces;
 using MudBlazor;
 
 namespace Marilog.Web.Client.Services.Implementation
@@ -16,7 +18,9 @@ namespace Marilog.Web.Client.Services.Implementation
     ICompanyService companyService,
     IDocumentTypeService docTypeService,
     ICurrencyService currencyService,
-    IPortService portService) : IRecordCreator
+    IPortService portService,
+    ISwiftTransferService swiftTransferService,
+    IBankService bankService) : IRecordCreator
     {
         public Task<int?> CreateAdjustmentAsync(int documentId, CancellationToken ct = default)
         {
@@ -69,9 +73,46 @@ namespace Marilog.Web.Client.Services.Implementation
             throw new NotImplementedException();
         }
 
-        public Task<int?> CreateSwiftTransferAsync(CreateSwiftTransferRequest? prefill = null, CancellationToken ct = default)
+        public async Task<int?> CreateSwiftTransferAsync(CreateSwiftTransferRequest? prefill = null, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var companies = companyService.GetActiveAsync();
+                var banks = bankService.GetAllActiveAsync();
+                var currencies = currencyService.GetActiveAsync();
+
+                await Task.WhenAll(companies, banks, currencies);
+
+                var parameters = new DialogParameters
+                {
+                    ["Companies"] = companies.Result,
+                    ["Banks"] = banks.Result,
+                    ["Currencies"] = currencies.Result,
+                    ["GetByReference"] = async (string reference) => await swiftTransferService.GetByReferenceAsync(reference)
+                };
+
+                if (prefill is not null)
+                    parameters["Prefill"] = prefill;
+
+                var dialog = await dialogService.ShowAsync<SwiftCreateWizard>("New SWIFT Transfer", parameters,
+                    new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+                var result = await dialog.Result;
+                if (result is null || result.Canceled || result.Data is null) return null;
+
+                var r = (CreateSwiftTransferRequest)result.Data;
+                var created = await swiftTransferService.CreateAsync(
+                    r.SwiftReference, r.TransactionDate, r.CurrencyId, r.Amount,
+                    r.SenderCompanyId, r.ReceiverCompanyId, r.SenderBankId, r.ReceiverBankId,
+                    r.PaymentReference, r.RawMessage, ct);
+
+                snackbar.Add($"SWIFT transfer {created.SwiftReference} created.", Severity.Success);
+                return created.Id;
+            }
+            catch (Exception ex)
+            {
+                snackbar.Add(ex.Message, Severity.Error);
+                return null;
+            }
         }
     }
 }

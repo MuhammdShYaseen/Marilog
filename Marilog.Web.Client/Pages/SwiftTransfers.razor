@@ -20,6 +20,7 @@
 @inject IManageStoredFiles ManageStoredFiles
 @inject IManageComments ManageComments
 @inject NavigationManager Nav
+@inject IRecordCreator RecordCreator
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host. Only file with @page and the only file that references
    the concrete client services. Loads reference data (companies/banks/
@@ -349,28 +350,7 @@ else
     }
     async Task HandleAddClickedAsync()
     {
-        var parameters = new DialogParameters<SwiftTransferEditDialog>
-        {
-            { x => x.Existing, null },
-            { x => x.Companies, _companies },
-            { x => x.Banks, _banks },
-            { x => x.Currencies, _currencies },
-            { x => x.OnCreateAsync, CreateAsync },
-            { x => x.OnUpdateAsync, UpdateAsync }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true,
-            Position = DialogPosition.Center
-        };
-
-        var dialog = await DialogService.ShowAsync<SwiftTransferEditDialog>("New SWIFT Transfer", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
+        if (await RecordCreator.CreateSwiftTransferAsync() is not null)
             await LoadTransfersAsync();
     }
 
@@ -382,7 +362,6 @@ else
             { x => x.Companies, _companies },
             { x => x.Banks, _banks },
             { x => x.Currencies, _currencies },
-            { x => x.OnCreateAsync, CreateAsync },
             { x => x.OnUpdateAsync, UpdateAsync }
         };
 
@@ -431,20 +410,7 @@ else
 
     // ── Delegates wired into the dialog (rule 2/3: only this host touches the service) ──
 
-    Task<SwiftTransferResponse> CreateAsync(CreateSwiftTransferRequest request, CancellationToken ct) =>
-        SwiftTransferService.CreateAsync(
-            request.SwiftReference,
-            request.TransactionDate,
-            request.CurrencyId,
-            request.Amount,
-            request.SenderCompanyId,
-            request.ReceiverCompanyId,
-            request.SenderBankId,
-            request.ReceiverBankId,
-            request.PaymentReference,
-            request.RawMessage,
-            ct);
-
+  
     async Task<bool> UpdateAsync(int id, UpdateSwiftTransferRequest request, CancellationToken ct)
     {
         await SwiftTransferService.UpdateAsync(

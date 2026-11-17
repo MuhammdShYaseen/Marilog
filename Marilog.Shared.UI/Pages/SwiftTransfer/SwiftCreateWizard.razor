@@ -1,0 +1,358 @@
+@* SwiftCreateWizard.razor — step-by-step "new SWIFT": direction → parties → amount → review *@
+@using Marilog.Contracts.DTOs.Requests.SwiftTransferDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.SwiftTransfer
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" />
+            New SWIFT Transfer
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        @* ── Steps ── *@
+        <div class="d-flex align-center gap-2 mb-4 pb-2"
+             style="border-bottom:1px solid var(--mud-palette-lines-default);">
+            @for (var i = 0; i < StepTitles.Length; i++)
+            {
+                var index = i;
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@(index <= _step ? Color.Primary : Color.Default)"
+                         Variant="@(index == _step ? Variant.Filled : Variant.Outlined)">
+                    @($"{index + 1}. {StepTitles[index]}")
+                </MudChip>
+            }
+        </div>
+
+        @if (_step == 0)
+        {
+            @* ── 1. Direction ── *@
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Which way is the money going?</MudText>
+
+            <MudRadioGroup T="bool?" Value="_incoming" ValueChanged="OnDirectionChanged">
+                <div>
+                    <MudRadio T="bool?" Value="@((bool?)true)" Color="Color.Primary" Dense="true">
+                        <span style="font-weight:600">Incoming</span>
+                        <span style="opacity:.7"> — a client sends money to us</span>
+                    </MudRadio>
+                </div>
+                <div>
+                    <MudRadio T="bool?" Value="@((bool?)false)" Color="Color.Primary" Dense="true">
+                        <span style="font-weight:600">Outgoing</span>
+                        <span style="opacity:.7"> — we send money to a supplier</span>
+                    </MudRadio>
+                </div>
+            </MudRadioGroup>
+        }
+        else if (_step == 1)
+        {
+            @* ── 2. Parties ── *@
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_senderCompanyId"
+                                     Label="@(_incoming == true ? "Sender (who pays us)" : "Sender (our company)")"
+                                     Required="true"
+                                     Clearable="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => CompanyName(id) ?? "")"
+                                     SearchFunc="@SearchCompanies"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="int?"
+                                     @bind-Value="_receiverCompanyId"
+                                     Label="@(_incoming == true ? "Receiver (our company)" : "Receiver (who we pay)")"
+                                     Required="true"
+                                     Clearable="true"
+                                     Error="@SameCompany"
+                                     ErrorText="Sender and receiver can't be the same company."
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="@(id => CompanyName(id) ?? "")"
+                                     SearchFunc="@SearchCompanies"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Sender Bank" @bind-Value="_senderBankId" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var bank in Banks)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)bank.BankId)">@bank.BankName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Receiver Bank" @bind-Value="_receiverBankId" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var bank in Banks)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)bank.BankId)">@bank.BankName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        }
+        else if (_step == 2)
+        {
+            @* ── 3. Amount ── *@
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string"
+                                  Value="_swiftReference"
+                                  ValueChanged="OnReferenceChanged"
+                                  Label="SWIFT Reference"
+                                  Required="true"
+                                  Error="@_isReferenceDuplicate"
+                                  ErrorText="This SWIFT reference already exists."
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_transactionDateTime"
+                                   Label="Transaction Date"
+                                   Editable="true"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Label="Currency" @bind-Value="_currencyId" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var currency in Currencies)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)currency.Id)">@currency.Code — @currency.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" Label="Amount" @bind-Value="_amount"
+                                     Required="true" Min="0.01m" Format="N2"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Payment Reference" @bind-Value="_paymentReference"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Raw Message" @bind-Value="_rawMessage" Lines="4"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            @* ── 4. Review ── *@
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">@ReviewSentence()</MudAlert>
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                Sender, receiver, SWIFT reference and date can't be changed after saving.
+            </MudAlert>
+
+            <MudSimpleTable Dense="true" Elevation="0" Outlined="true">
+                <tbody>
+                    @foreach (var (label, value) in ReviewRows())
+                    {
+                        <tr>
+                            <td style="width:35%; opacity:.7">@label</td>
+                            <td style="font-weight:600">@value</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudSpacer />
+        @if (_step > 0)
+        {
+            <MudButton Variant="Variant.Text" OnClick="Back">Back</MudButton>
+        }
+        @if (_step < StepTitles.Length - 1)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!CanGoNext)" OnClick="NextAsync">
+                Next
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+    [Parameter] public IReadOnlyList<BankResponse> Banks { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public Func<string, Task<SwiftTransferResponse?>>? GetByReference { get; set; }
+    [Parameter] public CreateSwiftTransferRequest? Prefill { get; set; }
+
+    private static readonly string[] StepTitles = ["Direction", "Parties", "Amount", "Review"];
+
+    private int _step;
+
+    private bool? _incoming;
+    private int? _senderCompanyId;
+    private int? _receiverCompanyId;
+    private int? _senderBankId;
+    private int? _receiverBankId;
+    private string? _swiftReference;
+    private DateTime? _transactionDateTime = DateTime.Today;
+    private int? _currencyId;
+    private decimal _amount;
+    private string? _paymentReference;
+    private string? _rawMessage;
+
+    private bool _isReferenceDuplicate;
+
+    private int? OwnCompanyId => Companies.FirstOrDefault(c => c.IsOwn)?.Id;
+
+    private bool SameCompany =>
+        _senderCompanyId.HasValue && _senderCompanyId == _receiverCompanyId;
+
+    // Both companies are required: a saved SWIFT can't have its parties changed later.
+    private bool CanGoNext => _step switch
+    {
+        0 => _incoming.HasValue,
+        1 => _senderCompanyId.HasValue && _receiverCompanyId.HasValue && !SameCompany,
+        2 => !string.IsNullOrWhiteSpace(_swiftReference) && _transactionDateTime.HasValue
+             && _currencyId.HasValue && _amount > 0,
+        _ => true
+    };
+
+    protected override void OnInitialized()
+    {
+        if (Prefill is null) return;
+
+        _swiftReference = Prefill.SwiftReference;
+        if (Prefill.TransactionDate != default)
+            _transactionDateTime = Prefill.TransactionDate.ToDateTime(TimeOnly.MinValue);
+        _currencyId = Prefill.CurrencyId > 0 ? Prefill.CurrencyId : null;
+        _amount = Prefill.Amount;
+        _senderCompanyId = Prefill.SenderCompanyId;
+        _receiverCompanyId = Prefill.ReceiverCompanyId;
+        _senderBankId = Prefill.SenderBankId;
+        _receiverBankId = Prefill.ReceiverBankId;
+        _paymentReference = Prefill.PaymentReference;
+        _rawMessage = Prefill.RawMessage;
+
+        if (OwnCompanyId is { } own)
+            _incoming = _receiverCompanyId == own ? true : _senderCompanyId == own ? false : null;
+    }
+
+    // Changing the direction resets the companies: the other side is cleared, ours is filled in.
+    private void OnDirectionChanged(bool? incoming)
+    {
+        _incoming = incoming;
+
+        if (incoming == true) { _senderCompanyId = null; _receiverCompanyId = OwnCompanyId; }
+        else if (incoming == false) { _receiverCompanyId = null; _senderCompanyId = OwnCompanyId; }
+    }
+
+    private void OnReferenceChanged(string? value)
+    {
+        _swiftReference = value;
+        _isReferenceDuplicate = false;
+    }
+
+    private async Task NextAsync()
+    {
+        if (_step == 2)
+        {
+            _isReferenceDuplicate = await IsReferenceDuplicateAsync();
+            if (_isReferenceDuplicate) return;
+        }
+
+        _step++;
+    }
+
+    private void Back() => _step--;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() =>
+        MudDialog.Close(DialogResult.Ok(new CreateSwiftTransferRequest
+        {
+            SwiftReference = _swiftReference!.Trim(),
+            TransactionDate = DateOnly.FromDateTime(_transactionDateTime!.Value),
+            CurrencyId = _currencyId!.Value,
+            Amount = _amount,
+            SenderCompanyId = _senderCompanyId,
+            ReceiverCompanyId = _receiverCompanyId,
+            SenderBankId = _senderBankId,
+            ReceiverBankId = _receiverBankId,
+            PaymentReference = _paymentReference,
+            RawMessage = _rawMessage
+        }));
+
+    private async Task<bool> IsReferenceDuplicateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_swiftReference) || GetByReference is null)
+            return false;
+
+        try
+        {
+            return await GetByReference(_swiftReference.Trim()) is not null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // ── Review ───────────────────────────────────────────────────────────────
+
+    private string ReviewSentence()
+    {
+        var amount = $"{_amount:N2} {Currencies.FirstOrDefault(c => c.Id == _currencyId)?.Code}";
+        var direction = _incoming == true ? "Incoming" : "Outgoing";
+        return $"{direction} SWIFT of {amount} from {CompanyName(_senderCompanyId)} " +
+               $"to {CompanyName(_receiverCompanyId)}, dated {_transactionDateTime:dd MMM yyyy}.";
+    }
+
+    private IEnumerable<(string Label, string Value)> ReviewRows()
+    {
+        (string, string?)[] rows =
+        [
+            ("Direction", _incoming == true ? "Incoming" : "Outgoing"),
+            ("SWIFT reference", _swiftReference),
+            ("Date", _transactionDateTime?.ToString("dd MMM yyyy")),
+            ("Amount", $"{_amount:N2} {Currencies.FirstOrDefault(c => c.Id == _currencyId)?.Code}"),
+            ("Sender", CompanyName(_senderCompanyId)),
+            ("Sender bank", Banks.FirstOrDefault(b => b.BankId == _senderBankId)?.BankName),
+            ("Receiver", CompanyName(_receiverCompanyId)),
+            ("Receiver bank", Banks.FirstOrDefault(b => b.BankId == _receiverBankId)?.BankName),
+            ("Payment reference", _paymentReference),
+        ];
+
+        return rows.Where(r => !string.IsNullOrWhiteSpace(r.Item2)).Select(r => (r.Item1, r.Item2!));
+    }
+
+    private string? CompanyName(int? id) => Companies.FirstOrDefault(x => x.Id == id)?.Name;
+
+    private Task<IEnumerable<int?>> SearchCompanies(string value, CancellationToken token)
+        => Task.FromResult(Companies
+            .Where(x => string.IsNullOrEmpty(value) || x.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (int?)x.Id));
+}
