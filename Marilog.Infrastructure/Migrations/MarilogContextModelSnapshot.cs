@@ -1908,6 +1908,56 @@ namespace Marilog.Infrastructure.Migrations
                     b.ToTable("document_items", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FontFamily")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLandscape")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("PageSize")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("DocumentTemplates", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentType", b =>
                 {
                     b.Property<int>("Id")
@@ -4321,6 +4371,80 @@ namespace Marilog.Infrastructure.Migrations
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentTemplate", b =>
+                {
+                    b.OwnsMany("Marilog.Domain.Entities.SystemEntities.DocumentTemplateElement", "Elements", b1 =>
+                        {
+                            b1.Property<int>("DocumentTemplateId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAddOrUpdate();
+
+                            b1.Property<int>("Align");
+
+                            b1.Property<bool>("Bold");
+
+                            b1.Property<bool>("Border");
+
+                            b1.Property<float>("FontSize");
+
+                            b1.Property<float>("Height");
+
+                            b1.Property<string>("ImageDataUrl");
+
+                            b1.Property<int>("Key");
+
+                            b1.Property<int>("PageScope");
+
+                            b1.Property<string>("Text");
+
+                            b1.Property<float>("Width");
+
+                            b1.Property<float>("X");
+
+                            b1.Property<float>("Y");
+
+                            b1.HasKey("DocumentTemplateId", "__synthesizedOrdinal");
+
+                            b1.ToTable("DocumentTemplates");
+
+                            b1
+                                .ToJson("Elements")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DocumentTemplateId");
+
+                            b1.OwnsMany("Marilog.Domain.Entities.SystemEntities.DocumentTemplateColumn", "Columns", b2 =>
+                                {
+                                    b2.Property<int>("DocumentTemplateElementDocumentTemplateId");
+
+                                    b2.Property<int>("DocumentTemplateElement__synthesizedOrdinal");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAddOrUpdate();
+
+                                    b2.Property<int>("Key");
+
+                                    b2.Property<string>("Title")
+                                        .IsRequired();
+
+                                    b2.Property<float>("Width");
+
+                                    b2.HasKey("DocumentTemplateElementDocumentTemplateId", "DocumentTemplateElement__synthesizedOrdinal", "__synthesizedOrdinal");
+
+                                    b2.ToTable("DocumentTemplates");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("DocumentTemplateElementDocumentTemplateId", "DocumentTemplateElement__synthesizedOrdinal");
+                                });
+
+                            b1.Navigation("Columns");
+                        });
+
+                    b.Navigation("Elements");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.InboxEntryLink", b =>

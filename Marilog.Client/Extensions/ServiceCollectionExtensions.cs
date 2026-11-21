@@ -58,6 +58,7 @@ namespace Marilog.Client.Extensions
             services.AddScoped<ICargoTypeService, CargoTypeService>();
             services.AddScoped<IVesselTypeService, VesselTypeService>();
             services.AddScoped<ICommentService, CommentService>();
+            services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
             services.AddScoped<IRecordLinkService, RecordLinkService>();
             //=====frontend================================================================
             //---Notifi------------------------------------

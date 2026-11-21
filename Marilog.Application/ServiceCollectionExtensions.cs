@@ -146,6 +146,8 @@ namespace Marilog.Application
             services.AddScoped<DueNotificationService>();
             //----Comments------------------------------------
             services.AddScoped<ICommentService, CommentService>();
+            //----Document Templates--------------------------
+            services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
             return services;
         }
     }

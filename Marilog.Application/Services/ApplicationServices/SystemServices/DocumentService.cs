@@ -1472,6 +1472,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 PortId = x.PortId,
                 PortName = x.Port != null ? x.Port.PortName : null,
                 VoyageId = x.VoyageId,
+                VoyageNumber = x.Voyage != null ? x.Voyage.VoyageNumber : null,
                 CurrencyId = x.CurrencyId,
                 CurrencyCode = x.Currency.CurrencyCode,
 

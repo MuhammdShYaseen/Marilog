@@ -2,6 +2,7 @@
 using Marilog.Application.Interfaces.Ai;
 using Marilog.Application.Interfaces.DataManagment;
 using Marilog.Application.Interfaces.DocumentExtraction;
+using Marilog.Application.Interfaces.DocumentTemplates;
 using Marilog.Application.Interfaces.Encryption;
 using Marilog.Application.Interfaces.Events;
 using Marilog.Application.Interfaces.MapTiles;
@@ -179,6 +180,7 @@ namespace Marilog.Infrastructure
 
             //=====Qpdf==============================================================================
             services.AddScoped<IPdfFileGeneratorService, PdfFileGeneratorService>();
+            services.AddSingleton<IDocumentTemplateRenderer, DocumentTemplateRenderer>();
 
 
             //====ExchangeOnlineService==============================================================

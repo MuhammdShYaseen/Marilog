@@ -47,7 +47,8 @@ namespace Marilog.Kernel.Enumerations
             EntityType.Company,
             EntityType.Bank,
             EntityType.Vessel,
-            EntityType.Port
+            EntityType.Port,
+            EntityType.DocumentTemplate
         ];
 
         // Ticking Create or Update on one side auto-ticks Read on the other, in both directions.
@@ -162,7 +163,8 @@ namespace Marilog.Kernel.Enumerations
                 EntityType.ContractType,
                 EntityType.ContractRole,
                 EntityType.AppTheme,
-                EntityType.NavItem
+                EntityType.NavItem,
+                EntityType.DocumentTemplate
             })
         ];
 

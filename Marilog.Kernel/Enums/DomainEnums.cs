@@ -339,6 +339,7 @@
         DocumentItem = 50,
         VoyageCargo = 51,
         VoyageContract = 52,
+        DocumentTemplate = 53,
         NONE = 0
     }
     
@@ -502,6 +503,59 @@
         Cancelled = 3
     }
 
+    //=====Document templates=====
+    public enum TemplatePageSize
+    {
+        A4 = 1,
+        Letter = 2
+    }
+
+    // Everything the user can put on a template page: a Document field, the items table, fixed text or an image.
+    public enum TemplateElementKey
+    {
+        StaticText = 1,
+        Image = 2,
+        ItemsTable = 3,
+
+        DocNumber = 10,
+        DocType = 11,
+        DocDate = 12,
+        DocDue = 13,
+        Reference = 14,
+        Supplier = 15,
+        Buyer = 16,
+        Vessel = 17,
+        Port = 18,
+        Voyage = 19,
+        Currency = 20,
+        TotalAmount = 21,
+        AdjustmentsTotal = 22,
+        NetAmount = 23
+    }
+
+    public enum TemplateColumnKey
+    {
+        ProductName = 1,
+        Quantity = 2,
+        Unit = 3,
+        UnitPrice = 4,
+        LineTotal = 5
+    }
+
+    // Which pages an element prints on when the items run over several pages.
+    public enum TemplatePageScope
+    {
+        All = 0,
+        First = 1,
+        Last = 2
+    }
+
+    public enum TemplateTextAlign
+    {
+        Left = 0,
+        Center = 1,
+        Right = 2
+    }
     public class DomainEnums
     {
     }
