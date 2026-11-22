@@ -4384,9 +4384,13 @@ namespace Marilog.Infrastructure.Migrations
 
                             b1.Property<int>("Align");
 
+                            b1.Property<string>("Background");
+
                             b1.Property<bool>("Bold");
 
                             b1.Property<bool>("Border");
+
+                            b1.Property<string>("Color");
 
                             b1.Property<float>("FontSize");
 

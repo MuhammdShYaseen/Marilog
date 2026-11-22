@@ -31,5 +31,9 @@ namespace Marilog.Kernel.Rules
             TemplateColumnKey.LineTotal => "Amount",
             _ => key.ToString()
         };
+
+        // "#RRGGBB" — what the browser colour picker gives and QuestPDF reads.
+        public static bool IsHexColor(string? value)
+            => value is { Length: 7 } && value[0] == '#' && value.Skip(1).All(Uri.IsHexDigit);
     }
 }

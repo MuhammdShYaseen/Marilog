@@ -73,6 +73,12 @@ namespace Marilog.Domain.Entities.SystemEntities
         public TemplateTextAlign Align { get; private set; }
         public bool Border { get; private set; }
 
+        // "#RRGGBB". Text and border colour, null = black. For the items table: the header row text.
+        public string? Color { get; private set; }
+
+        // "#RRGGBB" fill, null = transparent. For the items table: the header row background.
+        public string? Background { get; private set; }
+
         // StaticText only
         public string? Text { get; private set; }
 
@@ -87,8 +93,8 @@ namespace Marilog.Domain.Entities.SystemEntities
 
         public static DocumentTemplateElement Create(TemplateElementKey key, TemplatePageScope pageScope,
             float x, float y, float width, float height, float fontSize, bool bold,
-            TemplateTextAlign align, bool border, string? text, string? imageDataUrl,
-            List<DocumentTemplateColumn>? columns)
+            TemplateTextAlign align, bool border, string? color, string? background,
+            string? text, string? imageDataUrl, List<DocumentTemplateColumn>? columns)
             => new()
             {
                 Key = key,
@@ -101,6 +107,8 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Bold = bold,
                 Align = align,
                 Border = border,
+                Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim(),
+                Background = string.IsNullOrWhiteSpace(background) ? null : background.Trim(),
                 Text = key == TemplateElementKey.StaticText ? text : null,
                 ImageDataUrl = key == TemplateElementKey.Image ? imageDataUrl?.Trim() : null,
                 Columns = key == TemplateElementKey.ItemsTable ? columns ?? [] : []
@@ -123,6 +131,12 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             if (FontSize < DocumentTemplateRules.MinFontSize || FontSize > DocumentTemplateRules.MaxFontSize)
                 throw new ArgumentException($"{Key}: font size must be between {DocumentTemplateRules.MinFontSize} and {DocumentTemplateRules.MaxFontSize}.");
+
+            if (Color is not null && !DocumentTemplateRules.IsHexColor(Color))
+                throw new ArgumentException($"{Key}: colour must look like #RRGGBB.");
+
+            if (Background is not null && !DocumentTemplateRules.IsHexColor(Background))
+                throw new ArgumentException($"{Key}: background colour must look like #RRGGBB.");
 
             switch (Key)
             {

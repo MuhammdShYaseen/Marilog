@@ -147,7 +147,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             => (elements ?? [])
                 .Select(e => DocumentTemplateElement.Create(
                     e.Key, e.PageScope, e.X, e.Y, e.Width, e.Height, e.FontSize, e.Bold,
-                    e.Align, e.Border, e.Text, e.ImageDataUrl,
+                    e.Align, e.Border, e.Color, e.Background, e.Text, e.ImageDataUrl,
                     (e.Columns ?? []).Select(c => DocumentTemplateColumn.Create(c.Key, c.Width, c.Title)).ToList()))
                 .ToList();
 
@@ -171,6 +171,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Bold = e.Bold,
                 Align = e.Align,
                 Border = e.Border,
+                Color = e.Color,
+                Background = e.Background,
                 Text = e.Text,
                 ImageDataUrl = e.ImageDataUrl,
                 Columns = e.Columns.Select(c => new DocumentTemplateColumnDto

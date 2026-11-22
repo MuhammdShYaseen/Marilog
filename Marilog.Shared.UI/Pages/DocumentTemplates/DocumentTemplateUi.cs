@@ -13,6 +13,8 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
         public const float BoxPadding = 2;
         public const float BorderWidth = 0.75f;
 
+        public const string DefaultTextColor = "#000000";
+        public const string DefaultFill = "#E0E0E0";   // first colour offered when a background is switched on
         public static readonly int[] Zooms = [75, 100, 125, 150];
 
         // Document fields offered in the palette, in display order.

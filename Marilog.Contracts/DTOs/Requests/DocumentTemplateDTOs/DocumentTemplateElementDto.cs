@@ -16,7 +16,8 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs
         public bool Bold { get; set; }
         public TemplateTextAlign Align { get; set; }
         public bool Border { get; set; }
-
+        public string? Color { get; set; }                // "#RRGGBB", null = black (items table: header text)
+        public string? Background { get; set; }           // "#RRGGBB", null = transparent (items table: header row)
         public string? Text { get; set; }                 // StaticText
         public string? ImageDataUrl { get; set; }         // Image: "data:image/png;base64,..."
         public List<DocumentTemplateColumnDto> Columns { get; set; } = [];   // ItemsTable

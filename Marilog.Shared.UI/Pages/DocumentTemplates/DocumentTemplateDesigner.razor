@@ -4,6 +4,7 @@
 @using Marilog.Kernel.Rules
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.DocumentTemplates
 @implements IAsyncDisposable
@@ -138,7 +139,7 @@
                                     <tr>
                                         @foreach (var column in element.Columns)
                                         {
-                                            <th style="@ColumnStyle(element, column)">@ColumnTitle(column)</th>
+                                            <th style="@HeaderStyle(element, column)">@ColumnTitle(column)</th>
                                         }
                                     </tr>
                                 </thead>
@@ -207,6 +208,23 @@
 
                 <MudSwitch T="bool" @bind-Value="el.Border"
                            Label="@(el.Key == TemplateElementKey.ItemsTable ? "Grid lines" : "Border")" Color="Color.Primary" />
+
+                var isTable = el.Key == TemplateElementKey.ItemsTable;
+                <div class="dt-section-title">@(isTable ? "Header row colours" : "Colours")</div>
+                <div class="dt-color-row">
+                    <span>@(isTable ? "Header text" : el.Key == TemplateElementKey.Image ? "Border" : "Text and border")</span>
+                    <input type="color" value="@(el.Color ?? DocumentTemplateUi.DefaultTextColor)"
+                           @oninput="@(e => el.Color = e.Value?.ToString())" />
+                </div>
+                <div class="dt-color-row">
+                    <MudSwitch T="bool" Value="@(el.Background is not null)"
+                               ValueChanged="@(on => el.Background = on ? DocumentTemplateUi.DefaultFill : null)"
+                               Label="@(isTable ? "Header background" : "Background")" Color="Color.Primary" />
+                    @if (el.Background is not null)
+                    {
+                        <input type="color" value="@el.Background" @oninput="@(e => el.Background = e.Value?.ToString())" />
+                    }
+                </div>
 
                 @if (el.Key == TemplateElementKey.ItemsTable)
                 {
@@ -492,10 +510,28 @@
     .dt-col-width {
         max-width: 80px;
     }
-    
+
     .dt-hidden-input {
         display: none;
     }
+
+    .dt-color-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 36px;
+        font-size: 14px;
+    }
+
+        .dt-color-row input[type=color] {
+            width: 44px;
+            height: 28px;
+            padding: 0;
+            border: 1px solid var(--mud-palette-lines-default);
+            background: none;
+            cursor: pointer;
+        }
 </style>
 
 @code {
@@ -554,8 +590,25 @@
         => "dt-box" + (index == _selected ? " dt-selected" : "") + (e.Border && e.Key != TemplateElementKey.ItemsTable ? " dt-bordered" : "");
 
     private string BoxStyle(DocumentTemplateElementDto e)
-        => $"left:{Px(e.X)};top:{Px(e.Y)};width:{Px(e.Width)};height:{Px(e.Height)};" +
-           $"font-size:{Px(e.FontSize)};font-weight:{(e.Bold ? 700 : 400)};";
+    {
+        var style = $"left:{Px(e.X)};top:{Px(e.Y)};width:{Px(e.Width)};height:{Px(e.Height)};" +
+                    $"font-size:{Px(e.FontSize)};font-weight:{(e.Bold ? 700 : 400)};";
+
+        // The items table uses its colours on the header row only (see HeaderStyle).
+        if (e.Key == TemplateElementKey.ItemsTable) return style;
+
+        var color = e.Color ?? DocumentTemplateUi.DefaultTextColor;
+        style += $"color:{color};border-color:{color};";
+        if (e.Background is { } fill) style += $"background-color:{fill};";
+        return style;
+    }
+
+    private string HeaderStyle(DocumentTemplateElementDto table, DocumentTemplateColumnDto column)
+    {
+        var style = ColumnStyle(table, column) + $"color:{table.Color ?? DocumentTemplateUi.DefaultTextColor};";
+        if (table.Background is { } fill) style += $"background-color:{fill};";
+        return style;
+    }
 
     private string ColumnStyle(DocumentTemplateElementDto table, DocumentTemplateColumnDto column)
     {

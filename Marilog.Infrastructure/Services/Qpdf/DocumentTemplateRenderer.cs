@@ -152,7 +152,8 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 .PaddingTop(e.Y)
                 .Width(e.Width)
                 .Height(e.Height)
-                .Element(x => e.Border ? x.Border(0.75f).BorderColor(Colors.Black).Padding(BoxPadding) : x);
+                .Element(x => e.Background is { } fill ? x.Background(Color.FromHex(fill)) : x)
+                .Element(x => e.Border ? x.Border(0.75f).BorderColor(TextColor(e)).Padding(BoxPadding) : x);
 
             if (e.Key == TemplateElementKey.Image)
             {
@@ -166,10 +167,14 @@ namespace Marilog.Infrastructure.Services.Qpdf
             box.ScaleToFit().Text(text =>
             {
                 AlignText(text, e.Align);
-                var span = text.Span(value).FontSize(e.FontSize);
+                var span = text.Span(value).FontSize(e.FontSize).FontColor(TextColor(e));
                 if (e.Bold) span.Bold();
             });
         }
+
+        // Black unless the user picked a colour.
+        private static Color TextColor(DocumentTemplateElementDto e)
+            => e.Color is { } color ? Color.FromHex(color) : Colors.Black;
 
         // Draws its content on the last page only. TotalPages is known in QuestPDF's final pass.
         private sealed class LastPageOnly(Action<IContainer> content) : IDynamicComponent
@@ -195,18 +200,20 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         columns.RelativeColumn(column.Width);
                 });
 
-                // Repeated at the top of every page the table continues on.
+                // Repeated at the top of every page the table continues on. The element's colours style this row.
                 table.Header(header =>
                 {
                     foreach (var column in e.Columns)
                     {
                         header.Cell()
+                            .Element(c => e.Background is { } fill ? c.Background(Color.FromHex(fill)) : c)
                             .Element(c => e.Border ? c.Border(0.5f).BorderColor(Colors.Black) : c.BorderBottom(0.75f).BorderColor(Colors.Black))
                             .PaddingVertical(3).PaddingHorizontal(4)
                             .Text(text =>
                             {
                                 AlignColumn(text, column.Key);
-                                text.Span(column.Title ?? DocumentTemplateRules.DefaultColumnTitle(column.Key)).FontSize(e.FontSize).Bold();
+                                text.Span(column.Title ?? DocumentTemplateRules.DefaultColumnTitle(column.Key))
+                                    .FontSize(e.FontSize).Bold().FontColor(TextColor(e));
                             });
                     }
                 });
