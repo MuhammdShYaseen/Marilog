@@ -1,0 +1,156 @@
+﻿@page "/document-templates/new"
+@page "/document-templates/{Id:int}"
+<PageTitle>Template Designer</PageTitle>
+@using Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.DocumentTemplates
+@inject IDocumentTemplateService TemplateService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for the template designer. Loads the template (or starts
+   a blank one) and the bundled fonts, then saves and previews through
+   IDocumentTemplateService. All editing happens inside DocumentTemplateDesigner.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+@if (_model is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <DocumentTemplateDesigner Model="_model"
+                              Fonts="_fonts"
+                              IsBusy="_busy"
+                              OnBackClicked="@(() => Nav.NavigateTo("/document-templates"))"
+                              OnSaveClicked="SaveAsync"
+                              OnPreviewClicked="PreviewAsync" />
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    SaveDocumentTemplateRequest? _model;
+    IReadOnlyList<TemplateFontResponse> _fonts = [];
+    bool _busy;
+    bool _initialized;
+    int? _shownId;
+
+    // Same component for /new and /{id}: load only when the route really changes
+    // (after the first save we move from /new to /{id} without reloading).
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && _shownId == Id) return;
+        _initialized = true;
+        _shownId = Id;
+
+        try
+        {
+            if (_fonts.Count == 0)
+                _fonts = await TemplateService.GetFontsAsync();
+
+            if (Id is not int id)
+            {
+                _model = new SaveDocumentTemplateRequest
+                {
+                    FontFamily = _fonts.FirstOrDefault()?.Family ?? "Noto Sans"
+                };
+                return;
+            }
+
+            var template = await TemplateService.GetByIdAsync(id);
+            if (template is null)
+            {
+                Snackbar.Add($"Template {id} was not found.", Severity.Warning);
+                Nav.NavigateTo("/document-templates");
+                return;
+            }
+
+            _model = new SaveDocumentTemplateRequest
+            {
+                Name = template.Name,
+                PageSize = template.PageSize,
+                IsLandscape = template.IsLandscape,
+                FontFamily = template.FontFamily,
+                Elements = template.Elements
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load the template: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task SaveAsync()
+    {
+        if (_model is null) return;
+
+        if (string.IsNullOrWhiteSpace(_model.Name))
+        {
+            Snackbar.Add("Give the template a name first.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            if (Id is int id)
+            {
+                await TemplateService.UpdateAsync(id, _model);
+                Snackbar.Add("Template saved.", Severity.Success);
+            }
+            else
+            {
+                var created = await TemplateService.CreateAsync(_model);
+                Snackbar.Add("Template created.", Severity.Success);
+
+                _shownId = created.Id; // keep the design on screen, don't reload it
+                Nav.NavigateTo($"/document-templates/{created.Id}", replace: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Renders the current design with sample values; nothing is saved.
+    async Task PreviewAsync()
+    {
+        if (_model is null) return;
+
+        _busy = true;
+        try
+        {
+            var request = new PreviewDocumentTemplateRequest
+            {
+                Template = new SaveDocumentTemplateRequest
+                {
+                    Name = string.IsNullOrWhiteSpace(_model.Name) ? "Preview" : _model.Name,
+                    PageSize = _model.PageSize,
+                    IsLandscape = _model.IsLandscape,
+                    FontFamily = _model.FontFamily,
+                    Elements = _model.Elements
+                }
+            };
+
+            var bytes = await TemplateService.PreviewAsync(request);
+            await JS.InvokeVoidAsync("marilogDownload.downloadBytes", "template_preview.pdf", "application/pdf", Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

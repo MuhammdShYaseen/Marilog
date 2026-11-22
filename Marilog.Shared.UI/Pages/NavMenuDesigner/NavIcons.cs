@@ -56,7 +56,23 @@ namespace Marilog.Shared.UI.Pages.NavMenuDesigner
             ["Timeline"] = Icons.Material.Filled.Timeline,
             ["Tune"] = Icons.Material.Filled.Tune,
             ["AdminPanelSettings"] = Icons.Material.Filled.AdminPanelSettings,
-            ["Category"] = Icons.Material.Filled.Category
+            ["Category"] = Icons.Material.Filled.Category,
+
+            // ── Menu restructure (Nov 2026) ──────────────────────────────────────
+            ["Paid"] = Icons.Material.Filled.Paid,
+            ["Invoice"] = Icons.Material.Filled.RequestQuote,
+            ["BusinessCenter"] = Icons.Material.Filled.BusinessCenter,
+            ["DesignServices"] = Icons.Material.Filled.DesignServices,
+            ["Handshake"] = Icons.Material.Filled.Handshake,
+            ["Contract"] = Icons.Material.Filled.HistoryEdu,
+            ["Sailing"] = Icons.Material.Filled.Sailing,
+            ["Hourglass"] = Icons.Material.Filled.HourglassBottom,
+            ["Anchor"] = Icons.Material.Filled.Anchor,
+            ["Certificate"] = Icons.Material.Filled.WorkspacePremium,
+            ["CurrencyExchange"] = Icons.Material.Filled.CurrencyExchange,
+            ["MilitaryTech"] = Icons.Material.Filled.MilitaryTech,
+            ["ListAlt"] = Icons.Material.Filled.ListAlt,
+            ["History"] = Icons.Material.Filled.History
         };
 
         public static IReadOnlyList<string> Names { get; } =

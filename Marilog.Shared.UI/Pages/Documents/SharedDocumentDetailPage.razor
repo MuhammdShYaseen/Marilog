@@ -76,6 +76,20 @@ else
                            OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))">
                     Comments
                 </MudButton>
+                @if (Templates is not null)
+                {
+                    <MudMenu Label="Export PDF" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                             Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Dense="true">
+                        @if (Templates.Count == 0)
+                        {
+                            <MudMenuItem Disabled="true">No templates yet — design one in Document Templates</MudMenuItem>
+                        }
+                        @foreach (var template in Templates)
+                        {
+                            <MudMenuItem OnClick="() => OnExportPdfClicked.InvokeAsync((Document, template.Id))">@template.Name</MudMenuItem>
+                        }
+                    </MudMenu>
+                }
                 <FollowButton EntityType="EntityType.Document" EntityId="Document.Id" Title="@($"{Document.DocTypeName} {Document.DocNumber}".Trim())" />
                 <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Delete"
@@ -570,6 +584,10 @@ else
     [Parameter] public EventCallback OnBackClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnEditClicked { get; set; }
     [Parameter] public EventCallback<DocumentResponse> OnDeleteClicked { get; set; }
+    
+    // Export PDF menu: shown only when the host passes the template list.
+    [Parameter] public IReadOnlyList<DocumentTemplateSummaryResponse>? Templates { get; set; }
+    [Parameter] public EventCallback<(DocumentResponse Doc, int TemplateId)> OnExportPdfClicked { get; set; }
 
     [Parameter] public EventCallback<DocumentResponse> OnAddItemClicked { get; set; }
     [Parameter] public EventCallback<(int DocumentId, DocumentItemResponse Item)> OnEditItemClicked { get; set; }

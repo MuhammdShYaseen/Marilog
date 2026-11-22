@@ -32,6 +32,7 @@
 @inject IManageStoredFiles ManageStoredFiles
 @inject IManageComments ManageComments
 @inject IDocumentExtractionService ExtractionService
+@inject IDocumentTemplateService TemplateService
 @inject NavigationManager Nav
 @if (_loading)
 {
@@ -55,7 +56,9 @@
                                   OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
                                   OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
                                   OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, DocumentLabel(arg.entityId)))"
-                                  OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))" />
+                                  OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))"
+                                  Templates="_templates"
+                                  OnExportPdfClicked="ExportWithTemplateAsync" />
     }
     else if (!_loading)
     {
@@ -87,6 +90,8 @@ else
                                   OnAddAdjustmentClicked="OpenAddAdjustmentDialog"
                                   OnEditAdjustmentClicked="OpenEditAdjustmentDialog"
                                   OnRemoveAdjustmentClicked="ConfirmRemoveAdjustment"
+                                  Templates="_templates"
+                                  OnExportPdfClicked="ExportWithTemplateAsync"
                                   OnCommentsClicked="@(arg => ManageComments.OpenCommentsDialogAsync(arg, DocumentLabel(arg.entityId)))"
                                   OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg, DocumentLabel(arg.entityId)))" />
     }
@@ -132,6 +137,7 @@ else
     private IReadOnlyList<CurrencyResponse> _currencies = [];
     private IReadOnlyList<PortResponse> _ports = [];
     private IReadOnlyList<SwiftTransferResponse> _swifts = [];
+    private IReadOnlyList<DocumentTemplateSummaryResponse> _templates = [];
     private DocumentResponse? _detail;
     private bool _loading = true;
     private int? _selectedVesselId;
@@ -203,6 +209,7 @@ else
             _docTypes = t4.Result;
             _currencies = t5.Result;
             _ports = t6.Result;
+            _templates = await TemplateService.GetAllAsync();
         }
         catch (Exception ex)
         {
@@ -447,7 +454,21 @@ else
         _documentsPage?.SetDocumentReport(report);
     }
 
-
+    
+    // Export PDF menu on a document: renders the chosen template with this document's data.
+    private async Task ExportWithTemplateAsync((DocumentResponse Doc, int TemplateId) args)
+    {
+        try
+        {
+            var bytes = await TemplateService.ExportAsync(args.TemplateId, args.Doc.Id);
+            var fileName = string.Concat(args.Doc.DocNumber.Select(c => "\\/:*?\"<>|".Contains(c) ? '_' : c)) + ".pdf";
+            await JS.InvokeVoidAsync("marilogDownload.downloadBytes", fileName, "application/pdf", Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
 
     private async Task HandleExportPdfAsync((DocumentReport report, string title, string fileName) args)
     {

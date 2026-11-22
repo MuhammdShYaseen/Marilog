@@ -1,0 +1,65 @@
+﻿@page "/document-templates"
+<PageTitle>Document Templates</PageTitle>
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Shared.UI.Pages.DocumentTemplates
+@inject IDocumentTemplateService TemplateService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+@* ────────────────────────────────────────────────────────────────────────────
+   Thin Platform host for the templates list. New and Edit open the designer
+   page; only this file and the designer host touch IDocumentTemplateService.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<SharedDocumentTemplatesPage Items="@_templates"
+                             IsLoading="@_isLoading"
+                             OnAddClicked="@(() => Nav.NavigateTo("/document-templates/new"))"
+                             OnEditClicked="@(t => Nav.NavigateTo($"/document-templates/{t.Id}"))"
+                             OnDeleteClicked="@HandleDeleteClickedAsync" />
+
+@code {
+    IReadOnlyList<DocumentTemplateSummaryResponse> _templates = [];
+    bool _isLoading;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    async Task LoadAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _templates = await TemplateService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load templates: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    async Task HandleDeleteClickedAsync(DocumentTemplateSummaryResponse template)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Template",
+            $"Delete template '{template.Name}'? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        try
+        {
+            await TemplateService.DeleteAsync(template.Id);
+            Snackbar.Add("Template deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete template: {ex.Message}", Severity.Error);
+        }
+    }
+}

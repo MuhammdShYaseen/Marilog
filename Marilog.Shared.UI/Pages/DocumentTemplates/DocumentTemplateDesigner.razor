@@ -1,0 +1,785 @@
+@using Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Kernel.Rules
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.DocumentTemplates
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+@* ────────────────────────────────────────────────────────────────────────────
+   DocumentTemplateDesigner
+   Edits the template passed in Model, in place. A blank page with boxes on it:
+   drag a field from the palette onto the page (or click it), then move and
+   resize the box with the mouse or the arrow keys (Shift = 10 pt).
+   Dragging and resizing run in templateDesigner.js; the final position comes
+   back here in PDF points. No service calls: save and preview go to the host.
+   ──────────────────────────────────────────────────────────────────────── *@
+
+<div class="dt-root">
+
+    @* ── Toolbar ─────────────────────────────────────────────── *@
+    <div class="dt-toolbar">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" OnClick="OnBackClicked" />
+
+        <MudTextField T="string" @bind-Value="Model.Name" Label="Template name" Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Immediate="true" MaxLength="100" Class="dt-name" />
+
+        <MudSelect T="TemplatePageSize" Value="Model.PageSize" ValueChanged="SetPageSize" Label="Page"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="dt-small-select">
+            <MudSelectItem Value="TemplatePageSize.A4">A4</MudSelectItem>
+            <MudSelectItem Value="TemplatePageSize.Letter">Letter</MudSelectItem>
+        </MudSelect>
+
+        <MudSwitch T="bool" Value="Model.IsLandscape" ValueChanged="SetLandscape" Label="Landscape" Color="Color.Primary" />
+
+        <MudSelect T="string" @bind-Value="Model.FontFamily" Label="Font"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="dt-font-select">
+            @foreach (var family in FontFamilies)
+            {
+                <MudSelectItem Value="@family">@family</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="int" @bind-Value="_zoom" Label="Zoom"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="dt-small-select">
+            @foreach (var zoom in DocumentTemplateUi.Zooms)
+            {
+                <MudSelectItem Value="@zoom">@($"{zoom}%")</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSwitch T="bool" @bind-Value="_showFieldNames" Label="Field names" Color="Color.Primary" />
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Preview" Disabled="IsBusy"
+                   OnClick="OnPreviewClicked">
+            Preview PDF
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Save" Disabled="IsBusy"
+                   OnClick="OnSaveClicked">
+            Save
+        </MudButton>
+    </div>
+
+    <div class="dt-body">
+
+        @* ── Palette ─────────────────────────────────────────── *@
+        <div class="dt-palette">
+            <div class="dt-section-title">Document fields</div>
+            @foreach (var key in DocumentTemplateUi.Fields)
+            {
+                <div class="dt-palette-item" draggable="true" data-palette-key="@((int)key)"
+                     @onclick="() => AddElement(key)">
+                    @DocumentTemplateUi.Label(key)
+                </div>
+            }
+
+            <div class="dt-section-title">Layout</div>
+            <div class="dt-palette-item" draggable="true" data-palette-key="@((int)TemplateElementKey.StaticText)"
+                 @onclick="() => AddElement(TemplateElementKey.StaticText)">
+                <MudIcon Icon="@Icons.Material.Filled.TextFields" Size="Size.Small" /> Fixed text
+            </div>
+
+            @if (HasItemsTable)
+            {
+                <div class="dt-palette-item dt-disabled" title="A template can have only one items table">
+                    <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small" /> Items table
+                </div>
+            }
+            else
+            {
+                <div class="dt-palette-item" draggable="true" data-palette-key="@((int)TemplateElementKey.ItemsTable)"
+                     @onclick="() => AddElement(TemplateElementKey.ItemsTable)">
+                    <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small" /> Items table
+                </div>
+            }
+
+            @* A label around a hidden file input opens the file picker by itself, with no script. *@
+            <label class="dt-palette-item">
+                <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" /> Image (logo, stamp, letterhead)
+                <InputFile OnChange="OnNewImagePicked" accept=".png,.jpg,.jpeg,.webp" class="dt-hidden-input" />
+            </label>
+
+            <div class="dt-hint">
+                Drag onto the page, or click to add.<br />
+                Arrow keys move the selected box (Shift = 10 pt), Delete removes it.
+            </div>
+        </div>
+
+        @* ── Page ────────────────────────────────────────────── *@
+        <div class="dt-canvas">
+            <div class="dt-page" @ref="_page" tabindex="0" style="@PageStyle">
+                @for (var i = 0; i < Model.Elements.Count; i++)
+                {
+                    var index = i;
+                    var element = Model.Elements[i];
+
+                    <div class="@BoxClass(index, element)" style="@BoxStyle(element)"
+                         data-el-index="@index"
+                         data-x="@DocumentTemplateUi.Css(element.X)" data-y="@DocumentTemplateUi.Css(element.Y)"
+                         data-w="@DocumentTemplateUi.Css(element.Width)" data-h="@DocumentTemplateUi.Css(element.Height)"
+                         title="@($"{DocumentTemplateUi.Label(element.Key)} · {DocumentTemplateUi.ScopeLabel(element.PageScope)}")">
+
+                        @if (element.Key == TemplateElementKey.Image)
+                        {
+                            <img class="dt-img" src="@element.ImageDataUrl" draggable="false" alt="" />
+                        }
+                        else if (element.Key == TemplateElementKey.ItemsTable)
+                        {
+                            <table class="@(element.Border ? "dt-table dt-table-grid" : "dt-table")">
+                                <thead>
+                                    <tr>
+                                        @foreach (var column in element.Columns)
+                                        {
+                                            <th style="@ColumnStyle(element, column)">@ColumnTitle(column)</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in DocumentTemplateUi.SampleItems)
+                                    {
+                                        <tr>
+                                            @foreach (var column in element.Columns)
+                                            {
+                                                <td style="@ColumnStyle(element, column)">@DocumentTemplateUi.SampleCell(column.Key, row)</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="dt-text" style="text-align:@TextAlign(element.Align)">@BoxText(element)</div>
+                        }
+
+                        @if (index == _selected)
+                        {
+                            <div class="dt-resize" data-resize="1"></div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ── Properties ──────────────────────────────────────── *@
+        <div class="dt-props">
+            @if (Selected is { } el)
+            {
+                <div class="dt-section-title">@DocumentTemplateUi.Label(el.Key)</div>
+
+                <div class="dt-grid2">
+                    <MudNumericField T="float" Value="el.X" ValueChanged="@(v => SetBox(el, v, el.Y, el.Width, el.Height))"
+                                     Label="X (pt)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudNumericField T="float" Value="el.Y" ValueChanged="@(v => SetBox(el, el.X, v, el.Width, el.Height))"
+                                     Label="Y (pt)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudNumericField T="float" Value="el.Width" ValueChanged="@(v => SetBox(el, el.X, el.Y, v, el.Height))"
+                                     Label="Width (pt)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudNumericField T="float" Value="el.Height" ValueChanged="@(v => SetBox(el, el.X, el.Y, el.Width, v))"
+                                     Label="Height (pt)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+
+                @if (el.Key != TemplateElementKey.Image)
+                {
+                    <div class="dt-grid2">
+                        <MudNumericField T="float" @bind-Value="el.FontSize" Label="Font size"
+                                         Min="DocumentTemplateRules.MinFontSize" Max="DocumentTemplateRules.MaxFontSize"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        @if (el.Key != TemplateElementKey.ItemsTable)
+                        {
+                            <MudSelect T="TemplateTextAlign" @bind-Value="el.Align" Label="Align"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                <MudSelectItem Value="TemplateTextAlign.Left">Left</MudSelectItem>
+                                <MudSelectItem Value="TemplateTextAlign.Center">Center</MudSelectItem>
+                                <MudSelectItem Value="TemplateTextAlign.Right">Right</MudSelectItem>
+                            </MudSelect>
+                        }
+                    </div>
+                    <MudSwitch T="bool" @bind-Value="el.Bold" Label="Bold" Color="Color.Primary" />
+                }
+
+                <MudSwitch T="bool" @bind-Value="el.Border"
+                           Label="@(el.Key == TemplateElementKey.ItemsTable ? "Grid lines" : "Border")" Color="Color.Primary" />
+
+                @if (el.Key == TemplateElementKey.ItemsTable)
+                {
+                    <MudText Typo="Typo.caption" Class="dt-note">
+                        The items table continues on a new page when it runs out of room, in the same place.
+                    </MudText>
+                }
+                else
+                {
+                    <MudSelect T="TemplatePageScope" @bind-Value="el.PageScope" Label="Prints on"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                        <MudSelectItem Value="TemplatePageScope.All">@DocumentTemplateUi.ScopeLabel(TemplatePageScope.All)</MudSelectItem>
+                        <MudSelectItem Value="TemplatePageScope.First">@DocumentTemplateUi.ScopeLabel(TemplatePageScope.First)</MudSelectItem>
+                        <MudSelectItem Value="TemplatePageScope.Last">@DocumentTemplateUi.ScopeLabel(TemplatePageScope.Last)</MudSelectItem>
+                    </MudSelect>
+                }
+
+                @if (el.Key == TemplateElementKey.StaticText)
+                {
+                    <MudTextField T="string" @bind-Value="el.Text" Label="Text" Lines="4" Immediate="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                }
+
+                @if (el.Key == TemplateElementKey.Image)
+                {
+                    <label class="dt-palette-item">
+                        <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" /> Replace image
+                        <InputFile OnChange="OnReplaceImagePicked" accept=".png,.jpg,.jpeg,.webp" class="dt-hidden-input" />
+                    </label>
+                }
+
+                @if (el.Key == TemplateElementKey.ItemsTable)
+                {
+                    <div class="dt-section-title">Columns</div>
+                    @foreach (var key in Enum.GetValues<TemplateColumnKey>())
+                    {
+                        var columnKey = key;
+                        var column = el.Columns.FirstOrDefault(c => c.Key == columnKey);
+
+                        <div class="dt-column-row">
+                            <MudCheckBox T="bool" Value="@(column is not null)" ValueChanged="@(on => ToggleColumn(el, columnKey, on))"
+                                         Dense="true" Color="Color.Primary" />
+                            @if (column is not null)
+                            {
+                                <MudTextField T="string" @bind-Value="column.Title" Label="Title" Immediate="true"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudNumericField T="float" @bind-Value="column.Width" Label="Width" Min="0.1f" Step="0.5f"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Class="dt-col-width" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @DocumentTemplateRules.DefaultColumnTitle(columnKey)
+                                </MudText>
+                            }
+                        </div>
+                    }
+                    <MudText Typo="Typo.caption" Class="dt-note">Widths are relative to each other.</MudText>
+                }
+
+                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Class="mt-2"
+                           StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteSelected">
+                    Remove from page
+                </MudButton>
+            }
+            else
+            {
+                <div class="dt-section-title">Properties</div>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Select a box on the page to change its size, font, border and the pages it prints on.
+                </MudText>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .dt-root {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - var(--mud-appbar-height, 64px));
+        background-color: var(--mud-palette-background);
+    }
+
+    .dt-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background-color: var(--mud-palette-surface);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+        .dt-toolbar .mud-input-control {
+            margin-top: 0;
+        }
+
+        .dt-toolbar .mud-button-root {
+            text-transform: none;
+        }
+
+    .dt-name {
+        max-width: 260px;
+    }
+
+    .dt-small-select {
+        max-width: 110px;
+    }
+
+    .dt-font-select {
+        max-width: 200px;
+    }
+
+    .dt-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .dt-palette,
+    .dt-props {
+        overflow-y: auto;
+        padding: 8px 12px;
+        background-color: var(--mud-palette-surface);
+    }
+
+    .dt-palette {
+        width: 220px;
+        border-right: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .dt-props {
+        width: 300px;
+        border-left: 1px solid var(--mud-palette-lines-default);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .dt-section-title {
+        margin: 10px 0 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .dt-palette-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        margin-bottom: 2px;
+        font-size: 13px;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 2px;
+        cursor: grab;
+        user-select: none;
+    }
+
+        .dt-palette-item:hover {
+            background-color: var(--mud-palette-action-default-hover);
+        }
+
+        .dt-palette-item.dt-disabled {
+            cursor: not-allowed;
+            color: var(--mud-palette-text-disabled);
+        }
+
+    .dt-hint,
+    .dt-note {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .dt-canvas {
+        flex: 1;
+        overflow: auto;
+        padding: 24px;
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    /* The page is always white with black text, whatever the app theme: it shows the printed result. */
+    .dt-page {
+        position: relative;
+        margin: 0 auto;
+        background: #fff;
+        color: #000;
+        box-shadow: 0 0 0 1px var(--mud-palette-lines-default);
+        user-select: none;
+        touch-action: none;
+        outline: none;
+        line-height: normal;
+    }
+
+    .dt-box {
+        position: absolute;
+        box-sizing: border-box;
+        overflow: hidden;
+        cursor: move;
+        outline: 1px dashed #b0b0b0;
+    }
+
+        .dt-box.dt-selected {
+            outline: 2px solid var(--mud-palette-primary);
+            overflow: visible;
+            z-index: 1;
+        }
+
+        .dt-box.dt-bordered {
+            border: calc(0.75 * var(--pt)) solid #000;
+            padding: calc(2 * var(--pt));
+        }
+
+    .dt-text {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .dt-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+    }
+
+    .dt-resize {
+        position: absolute;
+        right: -5px;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        background: var(--mud-palette-primary);
+        border: 1px solid #fff;
+        cursor: nwse-resize;
+    }
+
+    .dt-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+        .dt-table th,
+        .dt-table td {
+            padding: calc(3 * var(--pt)) calc(4 * var(--pt));
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .dt-table th {
+            font-weight: 700;
+            border-bottom: calc(0.75 * var(--pt)) solid #000;
+        }
+
+        .dt-table td {
+            border-bottom: calc(0.25 * var(--pt)) solid #bdbdbd;
+        }
+
+        .dt-table.dt-table-grid th,
+        .dt-table.dt-table-grid td {
+            border: calc(0.5 * var(--pt)) solid #000;
+        }
+
+    .dt-grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .dt-column-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .dt-col-width {
+        max-width: 80px;
+    }
+    
+    .dt-hidden-input {
+        display: none;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public SaveDocumentTemplateRequest Model { get; set; } = new();
+    [Parameter] public IReadOnlyList<TemplateFontResponse> Fonts { get; set; } = [];
+    [Parameter] public bool IsBusy { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnBackClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnSaveClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnPreviewClicked { get; set; }
+
+    private ElementReference _page;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<DocumentTemplateDesigner>? _selfRef;
+    private string? _configuredKey;
+    private int _fontsLoadedCount;
+
+    private int _selected = -1;
+    private int _zoom = 100;
+    private bool _showFieldNames;
+
+    // ── Derived values ───────────────────────────────────────
+
+    private (float Width, float Height) PageSize => DocumentTemplateRules.PageSize(Model.PageSize, Model.IsLandscape);
+
+    private float Scale => DocumentTemplateUi.PxPerPt(_zoom);
+
+    private DocumentTemplateElementDto? Selected =>
+        _selected >= 0 && _selected < Model.Elements.Count ? Model.Elements[_selected] : null;
+
+    private bool HasItemsTable => Model.Elements.Any(e => e.Key == TemplateElementKey.ItemsTable);
+
+    private IEnumerable<string> FontFamilies
+    {
+        get
+        {
+            var families = Fonts.Select(f => f.Family).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (!string.IsNullOrWhiteSpace(Model.FontFamily) && !families.Contains(Model.FontFamily, StringComparer.OrdinalIgnoreCase))
+                families.Insert(0, Model.FontFamily);
+            return families;
+        }
+    }
+
+    // --pt is the number of CSS pixels per point; the stylesheet uses it for borders and paddings.
+    private string PageStyle
+    {
+        get
+        {
+            var (width, height) = PageSize;
+            return $"width:{Px(width)};height:{Px(height)};--pt:{DocumentTemplateUi.Css(Scale)}px;" +
+                   $"font-family:'{Model.FontFamily}','Noto Sans Arabic',sans-serif;";
+        }
+    }
+
+    private string BoxClass(int index, DocumentTemplateElementDto e)
+        => "dt-box" + (index == _selected ? " dt-selected" : "") + (e.Border && e.Key != TemplateElementKey.ItemsTable ? " dt-bordered" : "");
+
+    private string BoxStyle(DocumentTemplateElementDto e)
+        => $"left:{Px(e.X)};top:{Px(e.Y)};width:{Px(e.Width)};height:{Px(e.Height)};" +
+           $"font-size:{Px(e.FontSize)};font-weight:{(e.Bold ? 700 : 400)};";
+
+    private string ColumnStyle(DocumentTemplateElementDto table, DocumentTemplateColumnDto column)
+    {
+        var total = table.Columns.Sum(c => Math.Max(c.Width, 0.1f));
+        var percent = Math.Max(column.Width, 0.1f) / total * 100f;
+        var align = DocumentTemplateUi.IsNumberColumn(column.Key) ? "right" : "left";
+        return $"width:{DocumentTemplateUi.Css(percent)}%;text-align:{align};";
+    }
+
+    private static string ColumnTitle(DocumentTemplateColumnDto column)
+        => string.IsNullOrWhiteSpace(column.Title) ? DocumentTemplateRules.DefaultColumnTitle(column.Key) : column.Title;
+
+    private string BoxText(DocumentTemplateElementDto e) => e.Key switch
+    {
+        TemplateElementKey.StaticText => e.Text ?? string.Empty,
+        _ when _showFieldNames => $"[{DocumentTemplateUi.Label(e.Key)}]",
+        _ => DocumentTemplateUi.SampleValue(e.Key)
+    };
+
+    private static string TextAlign(TemplateTextAlign align) => align switch
+    {
+        TemplateTextAlign.Center => "center",
+        TemplateTextAlign.Right => "right",
+        _ => "left"
+    };
+
+    private string Px(float points) => $"{DocumentTemplateUi.Css(points * Scale)}px";
+
+    // ── Editing ──────────────────────────────────────────────
+
+    private void AddElement(TemplateElementKey key)
+    {
+        // A click drops new boxes in a short cascade near the top-left, so they don't hide each other.
+        var offset = 20f * (Model.Elements.Count % 10);
+        AddElementAt(key, 40f + offset, 40f + offset);
+    }
+
+    private void AddElementAt(TemplateElementKey key, float x, float y)
+    {
+        if (key == TemplateElementKey.ItemsTable && HasItemsTable) return;
+
+        var (width, height) = PageSize;
+        Model.Elements.Add(DocumentTemplateUi.NewElement(key, x, y, width, height));
+        _selected = Model.Elements.Count - 1;
+    }
+
+    private void SetBox(DocumentTemplateElementDto e, float x, float y, float width, float height)
+    {
+        var (pageWidth, pageHeight) = PageSize;
+        e.Width = DocumentTemplateUi.Clamp(width, DocumentTemplateRules.MinElementSize, pageWidth);
+        e.Height = DocumentTemplateUi.Clamp(height, DocumentTemplateRules.MinElementSize, pageHeight);
+        e.X = DocumentTemplateUi.Clamp(x, 0, pageWidth - e.Width);
+        e.Y = DocumentTemplateUi.Clamp(y, 0, pageHeight - e.Height);
+    }
+
+    private void SetPageSize(TemplatePageSize size)
+    {
+        Model.PageSize = size;
+        KeepAllInside();
+    }
+
+    private void SetLandscape(bool landscape)
+    {
+        Model.IsLandscape = landscape;
+        KeepAllInside();
+    }
+
+    private void KeepAllInside()
+    {
+        var (width, height) = PageSize;
+        foreach (var element in Model.Elements)
+            DocumentTemplateUi.KeepInside(element, width, height);
+    }
+
+    private void DeleteSelected()
+    {
+        if (Selected is null) return;
+        Model.Elements.RemoveAt(_selected);
+        _selected = -1;
+    }
+
+    private void ToggleColumn(DocumentTemplateElementDto table, TemplateColumnKey key, bool on)
+    {
+        var existing = table.Columns.FirstOrDefault(c => c.Key == key);
+
+        if (on && existing is null)
+        {
+            var column = DocumentTemplateUi.DefaultColumns().First(c => c.Key == key);
+            // Keep the columns in their natural order (description first, amount last).
+            var position = table.Columns.Count(c => c.Key < key);
+            table.Columns.Insert(position, column);
+        }
+        else if (!on && existing is not null)
+        {
+            if (table.Columns.Count == 1)
+            {
+                Snackbar.Add("The items table needs at least one column.", Severity.Warning);
+                return;
+            }
+            table.Columns.Remove(existing);
+        }
+    }
+
+    // ── Images ───────────────────────────────────────────────
+
+    private async Task OnNewImagePicked(InputFileChangeEventArgs args)
+    {
+        var dataUrl = await ReadImageAsync(args.File);
+        if (dataUrl is null) return;
+
+        AddElement(TemplateElementKey.Image);
+        Model.Elements[^1].ImageDataUrl = dataUrl;
+    }
+
+    private async Task OnReplaceImagePicked(InputFileChangeEventArgs args)
+    {
+        var dataUrl = await ReadImageAsync(args.File);
+        if (dataUrl is null || Selected is not { Key: TemplateElementKey.Image } image) return;
+
+        image.ImageDataUrl = dataUrl;
+    }
+
+    private async Task<string?> ReadImageAsync(IBrowserFile? file)
+    {
+        if (file is null) return null;
+
+        if (file.Size > DocumentTemplateRules.MaxImageBytes)
+        {
+            Snackbar.Add($"The image must not exceed {DocumentTemplateRules.MaxImageBytes / 1024 / 1024} MB.", Severity.Warning);
+            return null;
+        }
+
+        await using var stream = file.OpenReadStream(DocumentTemplateRules.MaxImageBytes);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+
+        var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/png" : file.ContentType;
+        return $"data:{contentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+    }
+
+    // ── Called from templateDesigner.js ──────────────────────
+
+    [JSInvokable]
+    public void OnElementSelected(int index)
+    {
+        _selected = index >= 0 && index < Model.Elements.Count ? index : -1;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnElementChanged(int index, float x, float y, float width, float height)
+    {
+        if (index < 0 || index >= Model.Elements.Count) return;
+        SetBox(Model.Elements[index], x, y, width, height);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnPaletteDropped(int key, float x, float y)
+    {
+        if (!Enum.IsDefined(typeof(TemplateElementKey), key)) return;
+        AddElementAt((TemplateElementKey)key, x, y);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnNudge(float dx, float dy)
+    {
+        if (Selected is not { } e) return;
+        SetBox(e, e.X + dx, e.Y + dy, e.Width, e.Height);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnDeleteSelected()
+    {
+        DeleteSelected();
+        StateHasChanged();
+    }
+
+    // ── JS wiring ────────────────────────────────────────────
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            // bump ?v= whenever templateDesigner.js changes, so the browser doesn't serve a cached copy
+            _module = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Marilog.Shared.UI/js/templateDesigner.js?v=2");
+            await _module.InvokeVoidAsync("attach", _page, _selfRef);
+        }
+
+        if (_module is null) return;
+
+        var (width, height) = PageSize;
+        var key = $"{Scale}|{width}|{height}";
+        if (key != _configuredKey)
+        {
+            _configuredKey = key;
+            await _module.InvokeVoidAsync("configure", _page, Scale, width, height);
+        }
+
+        // Fonts usually arrive after the first render.
+        if (Fonts.Count != _fontsLoadedCount)
+        {
+            _fontsLoadedCount = Fonts.Count;
+            await _module.InvokeVoidAsync("loadFonts",
+                Fonts.Select(f => new { family = f.Family, url = f.Url, weight = f.Weight, italic = f.IsItalic }).ToList());
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("detach");
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+
+        _selfRef?.Dispose();
+    }
+}
