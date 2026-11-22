@@ -169,23 +169,37 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 document.Payments = (await _documentService.GetWithPaymentsAsync(documentId, false, ct))?.Payments ?? [];
 
             var extra = await _documents.Query()
-                .AsNoTracking()
-                .Where(d => d.Id == documentId)
-                .Select(d => new
-                {
-                    Supplier = d.Supplier == null ? null : new TemplateCompany(
-                        d.Supplier.Address,
-                        d.Supplier.Country == null ? null : d.Supplier.Country.CountryName,
-                        d.Supplier.RegistrationNumber,
-                        d.Supplier.ContactName),
-                    Buyer = d.Buyer == null ? null : new TemplateCompany(
-                        d.Buyer.Address,
-                        d.Buyer.Country == null ? null : d.Buyer.Country.CountryName,
-                        d.Buyer.RegistrationNumber,
-                        d.Buyer.ContactName),
-                    d.Currency.CurrencyName
-                })
-                .FirstOrDefaultAsync(ct);
+    .AsNoTracking()
+    .Where(d => d.Id == documentId)
+    .Select(d => new
+    {
+        Supplier = d.Supplier == null ? null : new TemplateCompany(
+            d.Supplier.Address,
+            d.Supplier.Country == null ? null : d.Supplier.Country.CountryName,
+            d.Supplier.RegistrationNumber,
+            d.Supplier.ContactName,
+            d.Supplier.Emails.OrderByDescending(e => e.IsPrimary).Select(e => e.Address).FirstOrDefault(),
+            d.Supplier.Phones.OrderByDescending(p => p.IsPrimary).Select(p => p.Number).FirstOrDefault(),
+            d.Supplier.BankAccounts
+                .OrderByDescending(b => b.CurrencyId == d.CurrencyId)
+                .ThenByDescending(b => b.IsPrimary)
+                .Select(b => new TemplateBankAccount(b.BankName, b.AccountHolderName, b.IBAN, b.SwiftCode))
+                .FirstOrDefault()),
+        Buyer = d.Buyer == null ? null : new TemplateCompany(
+            d.Buyer.Address,
+            d.Buyer.Country == null ? null : d.Buyer.Country.CountryName,
+            d.Buyer.RegistrationNumber,
+            d.Buyer.ContactName,
+            d.Buyer.Emails.OrderByDescending(e => e.IsPrimary).Select(e => e.Address).FirstOrDefault(),
+            d.Buyer.Phones.OrderByDescending(p => p.IsPrimary).Select(p => p.Number).FirstOrDefault(),
+            d.Buyer.BankAccounts
+                .OrderByDescending(b => b.CurrencyId == d.CurrencyId)
+                .ThenByDescending(b => b.IsPrimary)
+                .Select(b => new TemplateBankAccount(b.BankName, b.AccountHolderName, b.IBAN, b.SwiftCode))
+                .FirstOrDefault()),
+        d.Currency.CurrencyName
+    })
+    .FirstOrDefaultAsync(ct);
 
             return new DocumentTemplateData
             {

@@ -38,7 +38,10 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.SupplierAddress,
                 TemplateElementKey.SupplierCountry,
                 TemplateElementKey.SupplierRegistrationNumber,
-                TemplateElementKey.SupplierContactName
+                TemplateElementKey.SupplierContactName,
+                TemplateElementKey.SupplierEmail,
+                TemplateElementKey.SupplierPhone,
+                TemplateElementKey.SupplierBankDetails
             ]),
             ("Buyer",
             [
@@ -46,7 +49,10 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.BuyerAddress,
                 TemplateElementKey.BuyerCountry,
                 TemplateElementKey.BuyerRegistrationNumber,
-                TemplateElementKey.BuyerContactName
+                TemplateElementKey.BuyerContactName,
+                TemplateElementKey.BuyerEmail,
+                TemplateElementKey.BuyerPhone,
+                TemplateElementKey.BuyerBankDetails
             ]),
             ("Amounts",
             [
@@ -100,6 +106,12 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateElementKey.BuyerContactName => "Buyer contact",
             TemplateElementKey.AmountInWords => "Net amount in words",
             TemplateElementKey.PageNumber => "Page number",
+            TemplateElementKey.SupplierEmail => "Supplier email",
+            TemplateElementKey.SupplierPhone => "Supplier phone",
+            TemplateElementKey.SupplierBankDetails => "Supplier bank details",
+            TemplateElementKey.BuyerEmail => "Buyer email",
+            TemplateElementKey.BuyerPhone => "Buyer phone",
+            TemplateElementKey.BuyerBankDetails => "Buyer bank details",
             _ => key.ToString()
         };
 
@@ -142,6 +154,12 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.BuyerContactName => "Buyer Contact",
                 TemplateElementKey.AmountInWords => "Twelve Thousand US Dollars",
                 TemplateElementKey.PageNumber => "Page 1 of 1",
+                TemplateElementKey.SupplierEmail => "accounts@supplier.com",
+                TemplateElementKey.SupplierPhone => "+971 4 000 0000",
+                TemplateElementKey.SupplierBankDetails => "Bank: Sample Bank\nAccount name: Supplier Company\nIBAN: AE00 0000 0000 0000 0000 000\nSWIFT: SAMPAEAD",
+                TemplateElementKey.BuyerEmail => "accounts@buyer.com",
+                TemplateElementKey.BuyerPhone => "+231 00 000 000",
+                TemplateElementKey.BuyerBankDetails => "Bank: Buyer Bank\nAccount name: Buyer Company\nIBAN: LR00 0000 0000 0000 0000\nSWIFT: BUYBLRLM",
                 _ => string.Empty
             };
         }
@@ -218,6 +236,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.SupplierAddress or TemplateElementKey.BuyerAddress => (200f, 40f),
                 TemplateElementKey.AmountInWords => (350f, 18f),
                 TemplateElementKey.PageNumber => (100f, 18f),
+                TemplateElementKey.SupplierBankDetails or TemplateElementKey.BuyerBankDetails => (230f, 60f),
                 _ => (150f, 18f)
             };
 

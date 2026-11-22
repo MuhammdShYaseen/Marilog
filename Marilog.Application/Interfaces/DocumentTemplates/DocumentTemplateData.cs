@@ -11,5 +11,10 @@ namespace Marilog.Application.Interfaces.DocumentTemplates
         public string? CurrencyName { get; init; }     // e.g. "US Dollar", for the amount in words
     }
 
-    public sealed record TemplateCompany(string? Address, string? Country, string? RegistrationNumber, string? ContactName);
+    // Email, phone and bank account: the primary one, or the first if none is marked primary.
+    // The bank account in the document's currency comes first, so the invoice shows where to pay that currency.
+    public sealed record TemplateCompany(string? Address, string? Country, string? RegistrationNumber, string? ContactName,
+        string? Email, string? Phone, TemplateBankAccount? BankAccount);
+
+    public sealed record TemplateBankAccount(string BankName, string? AccountHolderName, string Iban, string? SwiftCode);
 }

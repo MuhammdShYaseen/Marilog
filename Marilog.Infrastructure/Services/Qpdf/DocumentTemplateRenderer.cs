@@ -305,11 +305,31 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 TemplateElementKey.BuyerCountry => data.Buyer?.Country ?? string.Empty,
                 TemplateElementKey.BuyerRegistrationNumber => data.Buyer?.RegistrationNumber ?? string.Empty,
                 TemplateElementKey.BuyerContactName => data.Buyer?.ContactName ?? string.Empty,
+                TemplateElementKey.SupplierEmail => data.Supplier?.Email ?? string.Empty,
+                TemplateElementKey.SupplierPhone => data.Supplier?.Phone ?? string.Empty,
+                TemplateElementKey.SupplierBankDetails => BankDetails(data.Supplier?.BankAccount),
+                TemplateElementKey.BuyerEmail => data.Buyer?.Email ?? string.Empty,
+                TemplateElementKey.BuyerPhone => data.Buyer?.Phone ?? string.Empty,
+                TemplateElementKey.BuyerBankDetails => BankDetails(data.Buyer?.BankAccount),
                 TemplateElementKey.AmountInWords => AmountInWords.Write(d.NetAmount, d.CurrencyCode, data.CurrencyName),
                 _ => string.Empty
             };
         }
+        // One line each; lines with no value are left out.
+        private static string BankDetails(TemplateBankAccount? account)
+        {
+            if (account is null) return string.Empty;
 
+            string?[] lines =
+            [
+                $"Bank: {account.BankName}",
+                string.IsNullOrWhiteSpace(account.AccountHolderName) ? null : $"Account name: {account.AccountHolderName}",
+                $"IBAN: {account.Iban}",
+                string.IsNullOrWhiteSpace(account.SwiftCode) ? null : $"SWIFT: {account.SwiftCode}"
+            ];
+
+            return string.Join("\n", lines.Where(l => l is not null));
+        }
         private static string ItemCell(TemplateColumnKey key, DocumentItemResponse item) => key switch
         {
             TemplateColumnKey.ProductName => item.ProductName,
@@ -371,8 +391,12 @@ namespace Marilog.Infrastructure.Services.Qpdf
         private static DocumentTemplateData SampleData() => new()
         {
             Document = SampleDocument(),
-            Supplier = new TemplateCompany("Street 1, Business Bay, Dubai", "United Arab Emirates", "REG-0001", "Supplier Contact"),
-            Buyer = new TemplateCompany("Street 2, Port Area, Monrovia", "Liberia", "REG-0002", "Buyer Contact"),
+            Supplier = new TemplateCompany("Street 1, Business Bay, Dubai", "United Arab Emirates", "REG-0001", "Supplier Contact",
+                "accounts@supplier.com", "+971 4 000 0000",
+                new TemplateBankAccount("Sample Bank", "Supplier Company", "AE00 0000 0000 0000 0000 000", "SAMPAEAD")),
+            Buyer = new TemplateCompany("Street 2, Port Area, Monrovia", "Liberia", "REG-0002", "Buyer Contact",
+                "accounts@buyer.com", "+231 00 000 000",
+                new TemplateBankAccount("Buyer Bank", "Buyer Company", "LR00 0000 0000 0000 0000", "BUYBLRLM")),
             CurrencyName = "US Dollar"
         };
 

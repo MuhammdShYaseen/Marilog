@@ -545,7 +545,14 @@
         // Net amount written out, e.g. "Twelve Thousand US Dollars and Fifty Cents"
         AmountInWords = 34,
         // "Page X of Y"
-        PageNumber = 35
+        PageNumber = 35,
+        // Supplier and buyer contact and bank, from their Company records
+        SupplierEmail = 36,
+        SupplierPhone = 37,
+        SupplierBankDetails = 38,
+        BuyerEmail = 39,
+        BuyerPhone = 40,
+        BuyerBankDetails = 41
     }
 
     public enum TemplateColumnKey
