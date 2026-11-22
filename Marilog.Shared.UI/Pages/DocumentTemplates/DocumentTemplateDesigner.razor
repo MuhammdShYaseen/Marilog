@@ -72,17 +72,18 @@
     <div class="dt-body">
 
         @* ── Palette ─────────────────────────────────────────── *@
-        @foreach (var (title, keys) in DocumentTemplateUi.FieldGroups)
-        {
-            <div class="dt-section-title">@title</div>
-            foreach (var key in keys)
+        <div class="dt-palette">
+            @foreach (var (title, keys) in DocumentTemplateUi.FieldGroups)
             {
-                <div class="dt-palette-item" draggable="true" data-palette-key="@((int)key)"
-                     @onclick="() => AddElement(key)">
-                    @DocumentTemplateUi.Label(key)
-                </div>
+                <div class="dt-section-title">@title</div>
+                foreach (var key in keys)
+                {
+                    <div class="dt-palette-item" draggable="true" data-palette-key="@((int)key)"
+                         @onclick="() => AddElement(key)">
+                        @DocumentTemplateUi.Label(key)
+                    </div>
+                }
             }
-        }
 
             <div class="dt-section-title">Layout</div>
             <div class="dt-palette-item" draggable="true" data-palette-key="@((int)TemplateElementKey.StaticText)"
@@ -312,6 +313,7 @@
             }
         </div>
     </div>
+ </div>
 
 <style>
     .dt-root {
