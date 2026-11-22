@@ -22,6 +22,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
     //  continues the table in the same box, repeating its header row.
     //  PageScope decides whether an element prints on every page, the first or the last.
     //  The payments table is a fixed box like a field: it doesn't continue on a new page.
+    //  The page number is a text box whose numbers QuestPDF fills in on every page.
     // ═══════════════════════════════════════════════════════════════════════
     public sealed class DocumentTemplateRenderer : IDocumentTemplateRenderer
     {
@@ -76,11 +77,11 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
         // ── Render ───────────────────────────────────────────────
 
-        public byte[] Render(DocumentTemplateResponse template, DocumentResponse? document, IReadOnlyDictionary<int, byte[]> images)
+        public byte[] Render(DocumentTemplateResponse template, DocumentTemplateData? input, IReadOnlyDictionary<int, byte[]> images)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            var data = document ?? SampleDocument();
+            var data = input ?? SampleData();
             var (pageWidth, pageHeight) = DocumentTemplateRules.PageSize(template.PageSize, template.IsLandscape);
 
             // The chosen font first; the bundled Noto fonts after it cover Arabic and any missing glyph.
@@ -115,7 +116,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         page.MarginTop(table.Y);
                         page.MarginRight(Math.Max(0, pageWidth - table.X - table.Width));
                         page.MarginBottom(Math.Max(0, pageHeight - table.Y - table.Height));
-                        page.Content().Element(c => ComposeTable(c, table, data.Items, ItemCell));
+                        page.Content().Element(c => ComposeTable(c, table, data.Document.Items, ItemCell));
                     });
                 }).GeneratePdf();
             }
@@ -129,7 +130,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
         // ── Boxes (fields, fixed text, images) ───────────────────
 
-        private static void ComposeBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentResponse data)
+        private static void ComposeBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentTemplateData data)
         {
             switch (e.PageScope)
             {
@@ -149,7 +150,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
             }
         }
 
-        private static void DrawBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentResponse data)
+        private static void DrawBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentTemplateData data)
         {
             var area = container
                 .PaddingLeft(e.X)
@@ -161,8 +162,8 @@ namespace Marilog.Infrastructure.Services.Qpdf
             // Payments are few; ScaleToFit only shrinks the table when there are more than the box holds.
             if (e.Key == TemplateElementKey.PaymentsTable)
             {
-                if (data.Payments.Count > 0)
-                    area.ScaleToFit().Element(c => ComposeTable(c, e, data.Payments, PaymentCell));
+                if (data.Document.Payments.Count > 0)
+                    area.ScaleToFit().Element(c => ComposeTable(c, e, data.Document.Payments, PaymentCell));
                 return;
             }
 
@@ -178,15 +179,34 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 return;
             }
 
+            // QuestPDF writes the numbers itself on each page.
+            if (e.Key == TemplateElementKey.PageNumber)
+            {
+                box.ScaleToFit().Text(text =>
+                {
+                    AlignText(text, e.Align);
+                    Style(text.Span("Page "), e);
+                    Style(text.CurrentPageNumber(), e);
+                    Style(text.Span(" of "), e);
+                    Style(text.TotalPages(), e);
+                });
+                return;
+            }
+
             var value = e.Key == TemplateElementKey.StaticText ? e.Text ?? string.Empty : FieldValue(e.Key, data);
 
             // Normally the text fits the box as designed; ScaleToFit only shrinks it when a value is longer than expected.
             box.ScaleToFit().Text(text =>
             {
                 AlignText(text, e.Align);
-                var span = text.Span(value).FontSize(e.FontSize).FontColor(TextColor(e));
-                if (e.Bold) span.Bold();
+                Style(text.Span(value), e);
             });
+        }
+
+        private static void Style(TextSpanDescriptor span, DocumentTemplateElementDto e)
+        {
+            span.FontSize(e.FontSize).FontColor(TextColor(e));
+            if (e.Bold) span.Bold();
         }
 
         // Black unless the user picked a colour.
@@ -256,26 +276,39 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
         // ── Values ───────────────────────────────────────────────
 
-        private static string FieldValue(TemplateElementKey key, DocumentResponse d) => key switch
+        private static string FieldValue(TemplateElementKey key, DocumentTemplateData data)
         {
-            TemplateElementKey.DocNumber => d.DocNumber,
-            TemplateElementKey.DocType => d.DocTypeName ?? string.Empty,
-            TemplateElementKey.DocDate => FormatDate(d.DocDate),
-            TemplateElementKey.DocDue => d.DocDue is { } due ? FormatDate(due) : string.Empty,
-            TemplateElementKey.Reference => d.Reference ?? string.Empty,
-            TemplateElementKey.Supplier => d.SupplierName ?? string.Empty,
-            TemplateElementKey.Buyer => d.BuyerName ?? string.Empty,
-            TemplateElementKey.Vessel => d.VesselName ?? string.Empty,
-            TemplateElementKey.Port => d.PortName ?? string.Empty,
-            TemplateElementKey.Voyage => d.VoyageNumber ?? string.Empty,
-            TemplateElementKey.Currency => d.CurrencyCode,
-            TemplateElementKey.TotalAmount => FormatMoney(d.TotalAmount),
-            TemplateElementKey.AdjustmentsTotal => FormatMoney(d.AdjustmentsTotal),
-            TemplateElementKey.NetAmount => FormatMoney(d.NetAmount),
-            TemplateElementKey.TotalPaid => FormatMoney(d.TotalPaid),
-            TemplateElementKey.RemainingBalance => FormatMoney(d.RemainingBalance),
-            _ => string.Empty
-        };
+            var d = data.Document;
+            return key switch
+            {
+                TemplateElementKey.DocNumber => d.DocNumber,
+                TemplateElementKey.DocType => d.DocTypeName ?? string.Empty,
+                TemplateElementKey.DocDate => FormatDate(d.DocDate),
+                TemplateElementKey.DocDue => d.DocDue is { } due ? FormatDate(due) : string.Empty,
+                TemplateElementKey.Reference => d.Reference ?? string.Empty,
+                TemplateElementKey.Supplier => d.SupplierName ?? string.Empty,
+                TemplateElementKey.Buyer => d.BuyerName ?? string.Empty,
+                TemplateElementKey.Vessel => d.VesselName ?? string.Empty,
+                TemplateElementKey.Port => d.PortName ?? string.Empty,
+                TemplateElementKey.Voyage => d.VoyageNumber ?? string.Empty,
+                TemplateElementKey.Currency => d.CurrencyCode,
+                TemplateElementKey.TotalAmount => FormatMoney(d.TotalAmount),
+                TemplateElementKey.AdjustmentsTotal => FormatMoney(d.AdjustmentsTotal),
+                TemplateElementKey.NetAmount => FormatMoney(d.NetAmount),
+                TemplateElementKey.TotalPaid => FormatMoney(d.TotalPaid),
+                TemplateElementKey.RemainingBalance => FormatMoney(d.RemainingBalance),
+                TemplateElementKey.SupplierAddress => data.Supplier?.Address ?? string.Empty,
+                TemplateElementKey.SupplierCountry => data.Supplier?.Country ?? string.Empty,
+                TemplateElementKey.SupplierRegistrationNumber => data.Supplier?.RegistrationNumber ?? string.Empty,
+                TemplateElementKey.SupplierContactName => data.Supplier?.ContactName ?? string.Empty,
+                TemplateElementKey.BuyerAddress => data.Buyer?.Address ?? string.Empty,
+                TemplateElementKey.BuyerCountry => data.Buyer?.Country ?? string.Empty,
+                TemplateElementKey.BuyerRegistrationNumber => data.Buyer?.RegistrationNumber ?? string.Empty,
+                TemplateElementKey.BuyerContactName => data.Buyer?.ContactName ?? string.Empty,
+                TemplateElementKey.AmountInWords => AmountInWords.Write(d.NetAmount, d.CurrencyCode, data.CurrencyName),
+                _ => string.Empty
+            };
+        }
 
         private static string ItemCell(TemplateColumnKey key, DocumentItemResponse item) => key switch
         {
@@ -335,6 +368,14 @@ namespace Marilog.Infrastructure.Services.Qpdf
         }
 
         // Fills the fields when the designer previews without picking a real document.
+        private static DocumentTemplateData SampleData() => new()
+        {
+            Document = SampleDocument(),
+            Supplier = new TemplateCompany("Street 1, Business Bay, Dubai", "United Arab Emirates", "REG-0001", "Supplier Contact"),
+            Buyer = new TemplateCompany("Street 2, Port Area, Monrovia", "Liberia", "REG-0002", "Buyer Contact"),
+            CurrencyName = "US Dollar"
+        };
+
         private static DocumentResponse SampleDocument()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);

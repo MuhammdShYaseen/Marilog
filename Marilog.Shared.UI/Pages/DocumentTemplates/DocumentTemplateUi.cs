@@ -17,25 +17,50 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
         public const string DefaultFill = "#E0E0E0";   // first colour offered when a background is switched on
         public static readonly int[] Zooms = [75, 100, 125, 150];
 
-        // Document fields offered in the palette, in display order.
-        public static readonly TemplateElementKey[] Fields =
+        // Fields offered in the palette, by group, in display order.
+        public static readonly (string Title, TemplateElementKey[] Keys)[] FieldGroups =
         [
-            TemplateElementKey.DocNumber,
-            TemplateElementKey.DocType,
-            TemplateElementKey.DocDate,
-            TemplateElementKey.DocDue,
-            TemplateElementKey.Reference,
-            TemplateElementKey.Supplier,
-            TemplateElementKey.Buyer,
-            TemplateElementKey.Vessel,
-            TemplateElementKey.Port,
-            TemplateElementKey.Voyage,
-            TemplateElementKey.Currency,
-            TemplateElementKey.TotalAmount,
-            TemplateElementKey.AdjustmentsTotal,
-            TemplateElementKey.NetAmount,
-            TemplateElementKey.TotalPaid,
-            TemplateElementKey.RemainingBalance
+            ("Document fields",
+            [
+                TemplateElementKey.DocNumber,
+                TemplateElementKey.DocType,
+                TemplateElementKey.DocDate,
+                TemplateElementKey.DocDue,
+                TemplateElementKey.Reference,
+                TemplateElementKey.Vessel,
+                TemplateElementKey.Port,
+                TemplateElementKey.Voyage,
+                TemplateElementKey.Currency
+            ]),
+            ("Supplier",
+            [
+                TemplateElementKey.Supplier,
+                TemplateElementKey.SupplierAddress,
+                TemplateElementKey.SupplierCountry,
+                TemplateElementKey.SupplierRegistrationNumber,
+                TemplateElementKey.SupplierContactName
+            ]),
+            ("Buyer",
+            [
+                TemplateElementKey.Buyer,
+                TemplateElementKey.BuyerAddress,
+                TemplateElementKey.BuyerCountry,
+                TemplateElementKey.BuyerRegistrationNumber,
+                TemplateElementKey.BuyerContactName
+            ]),
+            ("Amounts",
+            [
+                TemplateElementKey.TotalAmount,
+                TemplateElementKey.AdjustmentsTotal,
+                TemplateElementKey.NetAmount,
+                TemplateElementKey.TotalPaid,
+                TemplateElementKey.RemainingBalance,
+                TemplateElementKey.AmountInWords
+            ]),
+            ("Page",
+            [
+                TemplateElementKey.PageNumber
+            ])
         ];
 
         // CSS pixels per PDF point at a zoom level (100% = real size on a 96 dpi screen).
@@ -65,6 +90,16 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateElementKey.NetAmount => "Net amount",
             TemplateElementKey.TotalPaid => "Total paid",
             TemplateElementKey.RemainingBalance => "Balance due",
+            TemplateElementKey.SupplierAddress => "Supplier address",
+            TemplateElementKey.SupplierCountry => "Supplier country",
+            TemplateElementKey.SupplierRegistrationNumber => "Supplier registration no.",
+            TemplateElementKey.SupplierContactName => "Supplier contact",
+            TemplateElementKey.BuyerAddress => "Buyer address",
+            TemplateElementKey.BuyerCountry => "Buyer country",
+            TemplateElementKey.BuyerRegistrationNumber => "Buyer registration no.",
+            TemplateElementKey.BuyerContactName => "Buyer contact",
+            TemplateElementKey.AmountInWords => "Net amount in words",
+            TemplateElementKey.PageNumber => "Page number",
             _ => key.ToString()
         };
 
@@ -97,6 +132,16 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.NetAmount => "12,000.00",
                 TemplateElementKey.TotalPaid => "7,000.00",
                 TemplateElementKey.RemainingBalance => "5,000.00",
+                TemplateElementKey.SupplierAddress => "Street 1, Business Bay, Dubai",
+                TemplateElementKey.SupplierCountry => "United Arab Emirates",
+                TemplateElementKey.SupplierRegistrationNumber => "REG-0001",
+                TemplateElementKey.SupplierContactName => "Supplier Contact",
+                TemplateElementKey.BuyerAddress => "Street 2, Port Area, Monrovia",
+                TemplateElementKey.BuyerCountry => "Liberia",
+                TemplateElementKey.BuyerRegistrationNumber => "REG-0002",
+                TemplateElementKey.BuyerContactName => "Buyer Contact",
+                TemplateElementKey.AmountInWords => "Twelve Thousand US Dollars",
+                TemplateElementKey.PageNumber => "Page 1 of 1",
                 _ => string.Empty
             };
         }
@@ -128,14 +173,15 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
 
         public static bool IsNumberColumn(TemplateColumnKey key) => DocumentTemplateRules.IsNumberColumn(key);
 
-        // Totals belong on the last page, the document number and date on every page, the rest on the first.
+        // Totals belong on the last page, the document number, date and page number on every page, the rest on the first.
         public static TemplatePageScope DefaultScope(TemplateElementKey key) => key switch
         {
             TemplateElementKey.TotalAmount or TemplateElementKey.AdjustmentsTotal or TemplateElementKey.NetAmount
                 or TemplateElementKey.TotalPaid or TemplateElementKey.RemainingBalance or TemplateElementKey.PaymentsTable
+                or TemplateElementKey.AmountInWords
                 => TemplatePageScope.Last,
             TemplateElementKey.DocNumber or TemplateElementKey.DocDate
-                or TemplateElementKey.StaticText or TemplateElementKey.Image
+                or TemplateElementKey.StaticText or TemplateElementKey.Image or TemplateElementKey.PageNumber
                 => TemplatePageScope.All,
             _ => TemplatePageScope.First
         };
@@ -169,6 +215,9 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.Image => (150f, 80f),
                 TemplateElementKey.ItemsTable => (pageWidth - 80f, 300f),
                 TemplateElementKey.PaymentsTable => (pageWidth - 80f, 90f),
+                TemplateElementKey.SupplierAddress or TemplateElementKey.BuyerAddress => (200f, 40f),
+                TemplateElementKey.AmountInWords => (350f, 18f),
+                TemplateElementKey.PageNumber => (100f, 18f),
                 _ => (150f, 18f)
             };
 

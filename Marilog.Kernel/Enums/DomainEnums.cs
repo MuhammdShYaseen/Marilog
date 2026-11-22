@@ -532,7 +532,20 @@
         AdjustmentsTotal = 22,
         NetAmount = 23,
         TotalPaid = 24,
-        RemainingBalance = 25
+        RemainingBalance = 25,
+        // Supplier and buyer details, from their Company records
+        SupplierAddress = 26,
+        SupplierCountry = 27,
+        SupplierRegistrationNumber = 28,
+        SupplierContactName = 29,
+        BuyerAddress = 30,
+        BuyerCountry = 31,
+        BuyerRegistrationNumber = 32,
+        BuyerContactName = 33,
+        // Net amount written out, e.g. "Twelve Thousand US Dollars and Fifty Cents"
+        AmountInWords = 34,
+        // "Page X of Y"
+        PageNumber = 35
     }
 
     public enum TemplateColumnKey

@@ -16,14 +16,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class DocumentTemplateService : IDocumentTemplateService
     {
         private readonly IRepository<DocumentTemplate> _repo;
+        private readonly IRepository<Document> _documents;
         private readonly IDocumentService _documentService;
         private readonly IStoredFileService _storedFiles;
         private readonly IDocumentTemplateRenderer _renderer;
 
-        public DocumentTemplateService(IRepository<DocumentTemplate> repository,
+        public DocumentTemplateService(IRepository<DocumentTemplate> repository, IRepository<Document> documents,
             IDocumentService documentService, IStoredFileService storedFiles, IDocumentTemplateRenderer renderer)
         {
             _repo = repository;
+            _documents = documents;
             _documentService = documentService;
             _storedFiles = storedFiles;
             _renderer = renderer;
@@ -132,10 +134,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var template = await GetByIdAsync(templateId, ct)
                 ?? throw new KeyNotFoundException($"There is no document template with ID: {templateId}");
 
-            var document = await GetDocumentAsync(documentId, template.Elements, ct);
+            var data = await GetDataAsync(documentId, template.Elements, ct);
 
             var images = await LoadImagesAsync(template.Elements, ct);
-            return _renderer.Render(template, document, images);
+            return _renderer.Render(template, data, images);
         }
 
         public async Task<byte[]> PreviewAsync(PreviewDocumentTemplateRequest request, CancellationToken ct = default)
@@ -147,16 +149,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             // Built through the entity so the preview follows exactly the same rules as saving. Nothing is stored or uploaded.
             var template = Build(design);
 
-            DocumentResponse? document = null;
+            DocumentTemplateData? data = null;
             if (request.DocumentId is { } documentId)
-                document = await GetDocumentAsync(documentId, design.Elements, ct);
+                data = await GetDataAsync(documentId, design.Elements, ct);
 
             // From the design, not the entity: the entity doesn't keep the data URL of a picture that isn't saved yet.
             var images = await LoadImagesAsync(design.Elements, ct);
-            return _renderer.Render(ToResponse(template), document, images);
+            return _renderer.Render(ToResponse(template), data, images);
         }
+
         // Items always; payments only when the template shows them (a second query).
-        private async Task<DocumentResponse> GetDocumentAsync(int documentId, List<DocumentTemplateElementDto> elements, CancellationToken ct)
+        // Plus the supplier/buyer details and the currency name, which DocumentResponse doesn't carry (one small query).
+        private async Task<DocumentTemplateData> GetDataAsync(int documentId, List<DocumentTemplateElementDto> elements, CancellationToken ct)
         {
             var document = await _documentService.GetWithItemsAsync(documentId, false, ct)
                 ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
@@ -164,7 +168,32 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (elements.Any(e => e.Key == TemplateElementKey.PaymentsTable))
                 document.Payments = (await _documentService.GetWithPaymentsAsync(documentId, false, ct))?.Payments ?? [];
 
-            return document;
+            var extra = await _documents.Query()
+                .AsNoTracking()
+                .Where(d => d.Id == documentId)
+                .Select(d => new
+                {
+                    Supplier = d.Supplier == null ? null : new TemplateCompany(
+                        d.Supplier.Address,
+                        d.Supplier.Country == null ? null : d.Supplier.Country.CountryName,
+                        d.Supplier.RegistrationNumber,
+                        d.Supplier.ContactName),
+                    Buyer = d.Buyer == null ? null : new TemplateCompany(
+                        d.Buyer.Address,
+                        d.Buyer.Country == null ? null : d.Buyer.Country.CountryName,
+                        d.Buyer.RegistrationNumber,
+                        d.Buyer.ContactName),
+                    d.Currency.CurrencyName
+                })
+                .FirstOrDefaultAsync(ct);
+
+            return new DocumentTemplateData
+            {
+                Document = document,
+                Supplier = extra?.Supplier,
+                Buyer = extra?.Buyer,
+                CurrencyName = extra?.CurrencyName
+            };
         }
         // ── Images ───────────────────────────────────────────────
 

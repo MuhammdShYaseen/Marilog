@@ -5,7 +5,8 @@ namespace Marilog.Application.Interfaces.DocumentTemplates
 
     public interface IDocumentTemplateRenderer
     {
-        byte[] Render(DocumentTemplateResponse template, DocumentResponse? document, IReadOnlyDictionary<int, byte[]> images);
+        // data = null → sample values (designer preview without a document).
+        byte[] Render(DocumentTemplateResponse template, DocumentTemplateData? data, IReadOnlyDictionary<int, byte[]> images);
         IReadOnlyList<TemplateFontResponse> GetFonts();
         string? GetFontFilePath(string fileName);
     }
