@@ -516,7 +516,7 @@
         StaticText = 1,
         Image = 2,
         ItemsTable = 3,
-
+        PaymentsTable = 4,
         DocNumber = 10,
         DocType = 11,
         DocDate = 12,
@@ -530,7 +530,9 @@
         Currency = 20,
         TotalAmount = 21,
         AdjustmentsTotal = 22,
-        NetAmount = 23
+        NetAmount = 23,
+        TotalPaid = 24,
+        RemainingBalance = 25
     }
 
     public enum TemplateColumnKey
@@ -539,7 +541,13 @@
         Quantity = 2,
         Unit = 3,
         UnitPrice = 4,
-        LineTotal = 5
+        LineTotal = 5,
+        // Payments table
+        PaymentDate = 20,
+        PaymentMethod = 21,
+        PaymentReference = 22,
+        PaymentNote = 23,
+        PaidAmount = 24
     }
 
     // Which pages an element prints on when the items run over several pages.

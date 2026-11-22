@@ -2,8 +2,7 @@
 
 namespace Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs
 {
-    // One box on the template page. Used both ways (request and response) so the designer can edit it in place.
-    // Positions and sizes are in PDF points from the page's top-left corner.
+   
     public class DocumentTemplateElementDto
     {
         public TemplateElementKey Key { get; set; }

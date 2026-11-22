@@ -50,6 +50,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (elements.Count(e => e.Key == TemplateElementKey.ItemsTable) > 1)
                 throw new ArgumentException("A template can have only one items table.", nameof(elements));
 
+            if (elements.Count(e => e.Key == TemplateElementKey.PaymentsTable) > 1)
+                throw new ArgumentException("A template can have only one payments table.", nameof(elements));
+
             Name = name.Trim();
             PageSize = pageSize;
             IsLandscape = isLandscape;
@@ -85,7 +88,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         // Image only: the picture is a StoredFile (EntityType.DocumentTemplate); the template keeps only its ID.
         public int? StoredFileId { get; private set; }
 
-        // ItemsTable only
+        // ItemsTable and PaymentsTable only
         public List<DocumentTemplateColumn> Columns { get; private set; } = [];
 
         private DocumentTemplateElement() { }
@@ -110,7 +113,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Background = string.IsNullOrWhiteSpace(background) ? null : background.Trim(),
                 Text = key == TemplateElementKey.StaticText ? text : null,
                 StoredFileId = key == TemplateElementKey.Image ? storedFileId : null,
-                Columns = key == TemplateElementKey.ItemsTable ? columns ?? [] : []
+                Columns = DocumentTemplateRules.IsTable(key) ? columns ?? [] : []
             };
 
         internal void Validate(float pageWidth, float pageHeight)
@@ -146,13 +149,12 @@ namespace Marilog.Domain.Entities.SystemEntities
                     ValidateImage();
                     break;
 
-                case TemplateElementKey.ItemsTable:
+                case TemplateElementKey.ItemsTable or TemplateElementKey.PaymentsTable:
                     ValidateColumns();
                     break;
             }
         }
 
-        // Returns the raw image bytes of an Image element.
         // Checking that the picture exists is the service's job: it uploads new pictures before saving.
         private void ValidateImage()
         {
@@ -163,17 +165,18 @@ namespace Marilog.Domain.Entities.SystemEntities
         private void ValidateColumns()
         {
             if (Columns.Count == 0)
-                throw new ArgumentException("The items table needs at least one column.");
+                throw new ArgumentException($"{Key}: the table needs at least one column.");
 
-            if (Columns.Any(c => !Enum.IsDefined(c.Key) || c.Width <= 0))
-                throw new ArgumentException("Items table: every column needs a known field and a width above zero.");
+            var allowed = DocumentTemplateRules.ColumnsFor(Key);
+            if (Columns.Any(c => !allowed.Contains(c.Key) || c.Width <= 0))
+                throw new ArgumentException($"{Key}: every column needs a field of this table and a width above zero.");
 
             if (Columns.GroupBy(c => c.Key).Any(g => g.Count() > 1))
-                throw new ArgumentException("Items table: a column can appear only once.");
+                throw new ArgumentException($"{Key}: a column can appear only once.");
         }
     }
 
-    // Owned by DocumentTemplateElement (items table only). Width is relative to the other columns.
+    // Owned by DocumentTemplateElement (items and payments tables). Width is relative to the other columns.
     public class DocumentTemplateColumn
     {
         public TemplateColumnKey Key { get; private set; }

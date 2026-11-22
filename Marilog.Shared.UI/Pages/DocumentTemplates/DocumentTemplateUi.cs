@@ -33,7 +33,9 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateElementKey.Currency,
             TemplateElementKey.TotalAmount,
             TemplateElementKey.AdjustmentsTotal,
-            TemplateElementKey.NetAmount
+            TemplateElementKey.NetAmount,
+            TemplateElementKey.TotalPaid,
+            TemplateElementKey.RemainingBalance
         ];
 
         // CSS pixels per PDF point at a zoom level (100% = real size on a 96 dpi screen).
@@ -46,6 +48,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateElementKey.StaticText => "Fixed text",
             TemplateElementKey.Image => "Image",
             TemplateElementKey.ItemsTable => "Items table",
+            TemplateElementKey.PaymentsTable => "Payments table",
             TemplateElementKey.DocNumber => "Document number",
             TemplateElementKey.DocType => "Document type",
             TemplateElementKey.DocDate => "Date",
@@ -60,6 +63,8 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateElementKey.TotalAmount => "Total amount",
             TemplateElementKey.AdjustmentsTotal => "Adjustments",
             TemplateElementKey.NetAmount => "Net amount",
+            TemplateElementKey.TotalPaid => "Total paid",
+            TemplateElementKey.RemainingBalance => "Balance due",
             _ => key.ToString()
         };
 
@@ -90,35 +95,44 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.TotalAmount => "12,500.00",
                 TemplateElementKey.AdjustmentsTotal => "-500.00",
                 TemplateElementKey.NetAmount => "12,000.00",
+                TemplateElementKey.TotalPaid => "7,000.00",
+                TemplateElementKey.RemainingBalance => "5,000.00",
                 _ => string.Empty
             };
         }
 
-        // Sample item lines for the items table preview: ProductName, Quantity, Unit, UnitPrice, LineTotal.
-        public static readonly string[][] SampleItems =
+        // Sample lines for the table previews, one value per column in DocumentTemplateRules.ColumnsFor order.
+        // Items: ProductName, Quantity, Unit, UnitPrice, LineTotal.
+        private static readonly string[][] SampleItems =
         [
             ["Freight", "1", "LS", "10,000.00", "10,000.00"],
             ["Demurrage", "2.5", "Days", "800.00", "2,000.00"],
             ["Port expenses", "1", "LS", "500.00", "500.00"]
         ];
 
-        public static string SampleCell(TemplateColumnKey key, string[] row) => key switch
-        {
-            TemplateColumnKey.ProductName => row[0],
-            TemplateColumnKey.Quantity => row[1],
-            TemplateColumnKey.Unit => row[2],
-            TemplateColumnKey.UnitPrice => row[3],
-            TemplateColumnKey.LineTotal => row[4],
-            _ => string.Empty
-        };
+        // Payments: PaymentDate, PaymentMethod, PaymentReference, PaymentNote, PaidAmount.
+        private static readonly string[][] SamplePayments =
+        [
+            [DateTime.Today.AddDays(-10).ToString("dd MMM yyyy", CultureInfo.InvariantCulture), "SWIFT", "SWIFT-0001", "Advance", "5,000.00"],
+            [DateTime.Today.AddDays(-2).ToString("dd MMM yyyy", CultureInfo.InvariantCulture), "Cash on board", "", "Cash to Master", "2,000.00"]
+        ];
 
-        public static bool IsNumberColumn(TemplateColumnKey key)
-            => key is TemplateColumnKey.Quantity or TemplateColumnKey.UnitPrice or TemplateColumnKey.LineTotal;
+        public static string[][] SampleRows(TemplateElementKey table)
+            => table == TemplateElementKey.PaymentsTable ? SamplePayments : SampleItems;
+
+        public static string SampleCell(TemplateElementKey table, TemplateColumnKey key, string[] row)
+        {
+            var index = Array.IndexOf(DocumentTemplateRules.ColumnsFor(table), key);
+            return index >= 0 && index < row.Length ? row[index] : string.Empty;
+        }
+
+        public static bool IsNumberColumn(TemplateColumnKey key) => DocumentTemplateRules.IsNumberColumn(key);
 
         // Totals belong on the last page, the document number and date on every page, the rest on the first.
         public static TemplatePageScope DefaultScope(TemplateElementKey key) => key switch
         {
             TemplateElementKey.TotalAmount or TemplateElementKey.AdjustmentsTotal or TemplateElementKey.NetAmount
+                or TemplateElementKey.TotalPaid or TemplateElementKey.RemainingBalance or TemplateElementKey.PaymentsTable
                 => TemplatePageScope.Last,
             TemplateElementKey.DocNumber or TemplateElementKey.DocDate
                 or TemplateElementKey.StaticText or TemplateElementKey.Image
@@ -126,14 +140,25 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             _ => TemplatePageScope.First
         };
 
-        public static List<DocumentTemplateColumnDto> DefaultColumns() =>
-        [
-            new() { Key = TemplateColumnKey.ProductName, Width = 4, Title = DocumentTemplateRules.DefaultColumnTitle(TemplateColumnKey.ProductName) },
-            new() { Key = TemplateColumnKey.Quantity, Width = 1, Title = DocumentTemplateRules.DefaultColumnTitle(TemplateColumnKey.Quantity) },
-            new() { Key = TemplateColumnKey.Unit, Width = 1, Title = DocumentTemplateRules.DefaultColumnTitle(TemplateColumnKey.Unit) },
-            new() { Key = TemplateColumnKey.UnitPrice, Width = 1.5f, Title = DocumentTemplateRules.DefaultColumnTitle(TemplateColumnKey.UnitPrice) },
-            new() { Key = TemplateColumnKey.LineTotal, Width = 1.5f, Title = DocumentTemplateRules.DefaultColumnTitle(TemplateColumnKey.LineTotal) }
-        ];
+        // All columns of a table with their starting widths.
+        public static List<DocumentTemplateColumnDto> DefaultColumns(TemplateElementKey table)
+            => DocumentTemplateRules.ColumnsFor(table)
+                .Select(key => new DocumentTemplateColumnDto
+                {
+                    Key = key,
+                    Width = DefaultColumnWidth(key),
+                    Title = DocumentTemplateRules.DefaultColumnTitle(key)
+                })
+                .ToList();
+
+        private static float DefaultColumnWidth(TemplateColumnKey key) => key switch
+        {
+            TemplateColumnKey.ProductName => 4,
+            TemplateColumnKey.Quantity or TemplateColumnKey.Unit => 1,
+            TemplateColumnKey.PaymentReference => 2,
+            TemplateColumnKey.PaymentNote => 2.5f,
+            _ => 1.5f
+        };
 
         // A new element with a sensible size, placed at (x, y) and kept inside the page.
         public static DocumentTemplateElementDto NewElement(TemplateElementKey key, float x, float y, float pageWidth, float pageHeight)
@@ -143,6 +168,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.StaticText => (200f, 40f),
                 TemplateElementKey.Image => (150f, 80f),
                 TemplateElementKey.ItemsTable => (pageWidth - 80f, 300f),
+                TemplateElementKey.PaymentsTable => (pageWidth - 80f, 90f),
                 _ => (150f, 18f)
             };
 
@@ -152,9 +178,9 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 PageScope = DefaultScope(key),
                 Width = Math.Min(width, pageWidth),
                 Height = Math.Min(height, pageHeight),
-                FontSize = key == TemplateElementKey.ItemsTable ? 9 : 10,
+                FontSize = DocumentTemplateRules.IsTable(key) ? 9 : 10,
                 Text = key == TemplateElementKey.StaticText ? "Text" : null,
-                Columns = key == TemplateElementKey.ItemsTable ? DefaultColumns() : []
+                Columns = DocumentTemplateRules.IsTable(key) ? DefaultColumns(key) : []
             };
 
             element.X = Clamp(x, 0, pageWidth - element.Width);

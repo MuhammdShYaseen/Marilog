@@ -88,18 +88,21 @@
                 <MudIcon Icon="@Icons.Material.Filled.TextFields" Size="Size.Small" /> Fixed text
             </div>
 
-            @if (HasItemsTable)
+            @foreach (var (key, icon) in Tables)
             {
-                <div class="dt-palette-item dt-disabled" title="A template can have only one items table">
-                    <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small" /> Items table
-                </div>
-            }
-            else
-            {
-                <div class="dt-palette-item" draggable="true" data-palette-key="@((int)TemplateElementKey.ItemsTable)"
-                     @onclick="() => AddElement(TemplateElementKey.ItemsTable)">
-                    <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small" /> Items table
-                </div>
+                if (Has(key))
+                {
+                    <div class="dt-palette-item dt-disabled" title="@($"A template can have only one {DocumentTemplateUi.Label(key).ToLowerInvariant()}")">
+                        <MudIcon Icon="@icon" Size="Size.Small" /> @DocumentTemplateUi.Label(key)
+                    </div>
+                }
+                else
+                {
+                    <div class="dt-palette-item" draggable="true" data-palette-key="@((int)key)"
+                         @onclick="() => AddElement(key)">
+                        <MudIcon Icon="@icon" Size="Size.Small" /> @DocumentTemplateUi.Label(key)
+                    </div>
+                }
             }
 
             @* A label around a hidden file input opens the file picker by itself, with no script. *@
@@ -132,7 +135,7 @@
                         {
                             <img class="dt-img" src="@ImageSource(element)" draggable="false" alt="" />
                         }
-                        else if (element.Key == TemplateElementKey.ItemsTable)
+                        else if (DocumentTemplateRules.IsTable(element.Key))
                         {
                             <table class="@(element.Border ? "dt-table dt-table-grid" : "dt-table")">
                                 <thead>
@@ -144,12 +147,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var row in DocumentTemplateUi.SampleItems)
+                                    @foreach (var row in DocumentTemplateUi.SampleRows(element.Key))
                                     {
                                         <tr>
                                             @foreach (var column in element.Columns)
                                             {
-                                                <td style="@ColumnStyle(element, column)">@DocumentTemplateUi.SampleCell(column.Key, row)</td>
+                                                <td style="@ColumnStyle(element, column)">@DocumentTemplateUi.SampleCell(element.Key, column.Key, row)</td>
                                             }
                                         </tr>
                                     }
@@ -193,7 +196,7 @@
                         <MudNumericField T="float" @bind-Value="el.FontSize" Label="Font size"
                                          Min="DocumentTemplateRules.MinFontSize" Max="DocumentTemplateRules.MaxFontSize"
                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        @if (el.Key != TemplateElementKey.ItemsTable)
+                        @if (!DocumentTemplateRules.IsTable(el.Key))
                         {
                             <MudSelect T="TemplateTextAlign" @bind-Value="el.Align" Label="Align"
                                        Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
@@ -207,9 +210,9 @@
                 }
 
                 <MudSwitch T="bool" @bind-Value="el.Border"
-                           Label="@(el.Key == TemplateElementKey.ItemsTable ? "Grid lines" : "Border")" Color="Color.Primary" />
+                           Label="@(DocumentTemplateRules.IsTable(el.Key) ? "Grid lines" : "Border")" Color="Color.Primary" />
 
-                var isTable = el.Key == TemplateElementKey.ItemsTable;
+                var isTable = DocumentTemplateRules.IsTable(el.Key);
                 <div class="dt-section-title">@(isTable ? "Header row colours" : "Colours")</div>
                 <div class="dt-color-row">
                     <span>@(isTable ? "Header text" : el.Key == TemplateElementKey.Image ? "Border" : "Text and border")</span>
@@ -242,6 +245,14 @@
                     </MudSelect>
                 }
 
+                @if (el.Key == TemplateElementKey.PaymentsTable)
+                {
+                    <MudText Typo="Typo.caption" Class="dt-note">
+                        Shows the document's payments inside this box. If there are more than fit, the table shrinks.
+                        A document with no payments prints nothing here.
+                    </MudText>
+                }
+
                 @if (el.Key == TemplateElementKey.StaticText)
                 {
                     <MudTextField T="string" @bind-Value="el.Text" Label="Text" Lines="4" Immediate="true"
@@ -256,10 +267,10 @@
                     </label>
                 }
 
-                @if (el.Key == TemplateElementKey.ItemsTable)
+                @if (isTable)
                 {
                     <div class="dt-section-title">Columns</div>
-                    @foreach (var key in Enum.GetValues<TemplateColumnKey>())
+                    @foreach (var key in DocumentTemplateRules.ColumnsFor(el.Key))
                     {
                         var columnKey = key;
                         var column = el.Columns.FirstOrDefault(c => c.Key == columnKey);
@@ -538,7 +549,7 @@
     [Parameter, EditorRequired] public SaveDocumentTemplateRequest Model { get; set; } = new();
     [Parameter] public IReadOnlyList<TemplateFontResponse> Fonts { get; set; } = [];
     [Parameter] public bool IsBusy { get; set; }
-    
+
     // Address of a saved picture (StoredFile ID → stream URL). Only the host knows the API base address.
     [Parameter, EditorRequired] public Func<int, string> ImageUrl { get; set; } = _ => string.Empty;
 
@@ -565,7 +576,14 @@
     private DocumentTemplateElementDto? Selected =>
         _selected >= 0 && _selected < Model.Elements.Count ? Model.Elements[_selected] : null;
 
-    private bool HasItemsTable => Model.Elements.Any(e => e.Key == TemplateElementKey.ItemsTable);
+    // The tables offered in the palette; a template can have one of each.
+    private static readonly (TemplateElementKey Key, string Icon)[] Tables =
+    [
+        (TemplateElementKey.ItemsTable, Icons.Material.Filled.TableRows),
+        (TemplateElementKey.PaymentsTable, Icons.Material.Filled.Payments)
+    ];
+
+    private bool Has(TemplateElementKey key) => Model.Elements.Any(e => e.Key == key);
 
     private IEnumerable<string> FontFamilies
     {
@@ -590,15 +608,15 @@
     }
 
     private string BoxClass(int index, DocumentTemplateElementDto e)
-        => "dt-box" + (index == _selected ? " dt-selected" : "") + (e.Border && e.Key != TemplateElementKey.ItemsTable ? " dt-bordered" : "");
+        => "dt-box" + (index == _selected ? " dt-selected" : "") + (e.Border && !DocumentTemplateRules.IsTable(e.Key) ? " dt-bordered" : "");
 
     private string BoxStyle(DocumentTemplateElementDto e)
     {
         var style = $"left:{Px(e.X)};top:{Px(e.Y)};width:{Px(e.Width)};height:{Px(e.Height)};" +
                     $"font-size:{Px(e.FontSize)};font-weight:{(e.Bold ? 700 : 400)};";
 
-        // The items table uses its colours on the header row only (see HeaderStyle).
-        if (e.Key == TemplateElementKey.ItemsTable) return style;
+        // Tables use their colours on the header row only (see HeaderStyle).
+        if (DocumentTemplateRules.IsTable(e.Key)) return style;
 
         var color = e.Color ?? DocumentTemplateUi.DefaultTextColor;
         style += $"color:{color};border-color:{color};";
@@ -651,7 +669,7 @@
 
     private void AddElementAt(TemplateElementKey key, float x, float y)
     {
-        if (key == TemplateElementKey.ItemsTable && HasItemsTable) return;
+        if (DocumentTemplateRules.IsTable(key) && Has(key)) return;
 
         var (width, height) = PageSize;
         Model.Elements.Add(DocumentTemplateUi.NewElement(key, x, y, width, height));
@@ -699,7 +717,7 @@
 
         if (on && existing is null)
         {
-            var column = DocumentTemplateUi.DefaultColumns().First(c => c.Key == key);
+            var column = DocumentTemplateUi.DefaultColumns(table.Key).First(c => c.Key == key);
             // Keep the columns in their natural order (description first, amount last).
             var position = table.Columns.Count(c => c.Key < key);
             table.Columns.Insert(position, column);
@@ -708,7 +726,7 @@
         {
             if (table.Columns.Count == 1)
             {
-                Snackbar.Add("The items table needs at least one column.", Severity.Warning);
+                Snackbar.Add("The table needs at least one column.", Severity.Warning);
                 return;
             }
             table.Columns.Remove(existing);
@@ -738,12 +756,13 @@
     private async Task<string?> ReadImageAsync(IBrowserFile? file)
     {
         if (file is null) return null;
-        
+
         if (file.ContentType is not ("image/png" or "image/jpeg"))
         {
             Snackbar.Add("Pick a PNG or JPEG image.", Severity.Warning);
             return null;
         }
+
         if (file.Size > DocumentTemplateRules.MaxImageBytes)
         {
             Snackbar.Add($"The image must not exceed {DocumentTemplateRules.MaxImageBytes / 1024 / 1024} MB.", Severity.Warning);
@@ -756,6 +775,7 @@
 
         return $"data:{file.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
     }
+
     // A new picture shows from its data URL until saved, a saved one from StoredFiles.
     private string? ImageSource(DocumentTemplateElementDto e)
         => e.ImageDataUrl ?? (e.StoredFileId is { } fileId ? ImageUrl(fileId) : null);

@@ -132,8 +132,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var template = await GetByIdAsync(templateId, ct)
                 ?? throw new KeyNotFoundException($"There is no document template with ID: {templateId}");
 
-            var document = await _documentService.GetWithItemsAsync(documentId, false, ct)
-                ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
+            var document = await GetDocumentAsync(documentId, template.Elements, ct);
 
             var images = await LoadImagesAsync(template.Elements, ct);
             return _renderer.Render(template, document, images);
@@ -150,14 +149,23 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             DocumentResponse? document = null;
             if (request.DocumentId is { } documentId)
-                document = await _documentService.GetWithItemsAsync(documentId, false, ct)
-                    ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
+                document = await GetDocumentAsync(documentId, design.Elements, ct);
 
             // From the design, not the entity: the entity doesn't keep the data URL of a picture that isn't saved yet.
             var images = await LoadImagesAsync(design.Elements, ct);
             return _renderer.Render(ToResponse(template), document, images);
         }
+        // Items always; payments only when the template shows them (a second query).
+        private async Task<DocumentResponse> GetDocumentAsync(int documentId, List<DocumentTemplateElementDto> elements, CancellationToken ct)
+        {
+            var document = await _documentService.GetWithItemsAsync(documentId, false, ct)
+                ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
 
+            if (elements.Any(e => e.Key == TemplateElementKey.PaymentsTable))
+                document.Payments = (await _documentService.GetWithPaymentsAsync(documentId, false, ct))?.Payments ?? [];
+
+            return document;
+        }
         // ── Images ───────────────────────────────────────────────
 
         // Every image needs a new picture or one of this template's own files

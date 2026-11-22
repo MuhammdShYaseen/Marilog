@@ -21,6 +21,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
     //  the items run out of room QuestPDF adds a page with the same background and
     //  continues the table in the same box, repeating its header row.
     //  PageScope decides whether an element prints on every page, the first or the last.
+    //  The payments table is a fixed box like a field: it doesn't continue on a new page.
     // ═══════════════════════════════════════════════════════════════════════
     public sealed class DocumentTemplateRenderer : IDocumentTemplateRenderer
     {
@@ -114,7 +115,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         page.MarginTop(table.Y);
                         page.MarginRight(Math.Max(0, pageWidth - table.X - table.Width));
                         page.MarginBottom(Math.Max(0, pageHeight - table.Y - table.Height));
-                        page.Content().Element(c => ComposeItemsTable(c, table, data.Items));
+                        page.Content().Element(c => ComposeTable(c, table, data.Items, ItemCell));
                     });
                 }).GeneratePdf();
             }
@@ -150,11 +151,22 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
         private static void DrawBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentResponse data)
         {
-            var box = container
+            var area = container
                 .PaddingLeft(e.X)
                 .PaddingTop(e.Y)
                 .Width(e.Width)
-                .Height(e.Height)
+                .Height(e.Height);
+
+            // Its colours style the header row, like the items table. No payments = nothing printed.
+            // Payments are few; ScaleToFit only shrinks the table when there are more than the box holds.
+            if (e.Key == TemplateElementKey.PaymentsTable)
+            {
+                if (data.Payments.Count > 0)
+                    area.ScaleToFit().Element(c => ComposeTable(c, e, data.Payments, PaymentCell));
+                return;
+            }
+
+            var box = area
                 .Element(x => e.Background is { } fill ? x.Background(Color.FromHex(fill)) : x)
                 .Element(x => e.Border ? x.Border(0.75f).BorderColor(TextColor(e)).Padding(BoxPadding) : x);
 
@@ -193,9 +205,10 @@ namespace Marilog.Infrastructure.Services.Qpdf
             };
         }
 
-        // ── Items table ──────────────────────────────────────────
+        // ── Tables (items, payments) ─────────────────────────────
 
-        private static void ComposeItemsTable(IContainer container, DocumentTemplateElementDto e, List<DocumentItemResponse> items)
+        private static void ComposeTable<T>(IContainer container, DocumentTemplateElementDto e, List<T> rows,
+            Func<TemplateColumnKey, T, string> cell)
         {
             container.Table(table =>
             {
@@ -205,7 +218,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         columns.RelativeColumn(column.Width);
                 });
 
-                // Repeated at the top of every page the table continues on. The element's colours style this row.
+                // Repeated at the top of every page the items table continues on. The element's colours style this row.
                 table.Header(header =>
                 {
                     foreach (var column in e.Columns)
@@ -223,7 +236,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
                     }
                 });
 
-                foreach (var item in items)
+                foreach (var row in rows)
                 {
                     foreach (var column in e.Columns)
                     {
@@ -233,7 +246,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
                             .Text(text =>
                             {
                                 AlignColumn(text, column.Key);
-                                var span = text.Span(CellValue(column.Key, item)).FontSize(e.FontSize);
+                                var span = text.Span(cell(column.Key, row)).FontSize(e.FontSize);
                                 if (e.Bold) span.Bold();
                             });
                     }
@@ -259,10 +272,12 @@ namespace Marilog.Infrastructure.Services.Qpdf
             TemplateElementKey.TotalAmount => FormatMoney(d.TotalAmount),
             TemplateElementKey.AdjustmentsTotal => FormatMoney(d.AdjustmentsTotal),
             TemplateElementKey.NetAmount => FormatMoney(d.NetAmount),
+            TemplateElementKey.TotalPaid => FormatMoney(d.TotalPaid),
+            TemplateElementKey.RemainingBalance => FormatMoney(d.RemainingBalance),
             _ => string.Empty
         };
 
-        private static string CellValue(TemplateColumnKey key, DocumentItemResponse item) => key switch
+        private static string ItemCell(TemplateColumnKey key, DocumentItemResponse item) => key switch
         {
             TemplateColumnKey.ProductName => item.ProductName,
             TemplateColumnKey.Quantity => item.Quantity.ToString("#,##0.###", Invariant),
@@ -270,6 +285,30 @@ namespace Marilog.Infrastructure.Services.Qpdf
             TemplateColumnKey.UnitPrice => FormatMoney(item.UnitPrice),
             TemplateColumnKey.LineTotal => FormatMoney(item.LineTotal),
             _ => string.Empty
+        };
+
+        private static string PaymentCell(TemplateColumnKey key, PaymentResponse payment) => key switch
+        {
+            TemplateColumnKey.PaymentDate => FormatDate(payment.PaymentDate),
+            TemplateColumnKey.PaymentMethod => MethodLabel(payment.PaymentMethod),
+            TemplateColumnKey.PaymentReference => payment.SwiftTransfer?.SwiftReference
+                                                  ?? payment.SwiftTransfer?.PaymentReference ?? string.Empty,
+            TemplateColumnKey.PaymentNote => payment.Discreption ?? string.Empty,
+            TemplateColumnKey.PaidAmount => FormatMoney(payment.PaidAmount),
+            _ => string.Empty
+        };
+
+        private static string MethodLabel(PaymentMethod method) => method switch
+        {
+            PaymentMethod.CashOnBoard => "Cash on board",
+            PaymentMethod.CashAtOffice => "Cash at office",
+            PaymentMethod.BankTransfer => "Bank transfer",
+            PaymentMethod.Swift => "SWIFT",
+            PaymentMethod.Cash => "Cash",
+            PaymentMethod.Cheque => "Cheque",
+            PaymentMethod.CreditBalance => "Credit balance",
+            PaymentMethod.CreditCard => "Credit card",
+            _ => "Other"
         };
 
         private static string FormatDate(DateOnly date) => date.ToString("dd MMM yyyy", Invariant);
@@ -289,7 +328,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
         // Numbers right, text left.
         private static void AlignColumn(TextDescriptor text, TemplateColumnKey key)
         {
-            if (key is TemplateColumnKey.Quantity or TemplateColumnKey.UnitPrice or TemplateColumnKey.LineTotal)
+            if (DocumentTemplateRules.IsNumberColumn(key))
                 text.AlignRight();
             else
                 text.AlignLeft();
@@ -316,6 +355,21 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 TotalAmount = 12_500m,
                 AdjustmentsTotal = -500m,
                 NetAmount = 12_000m,
+                TotalPaid = 7_000m,
+                RemainingBalance = 5_000m,
+                Payments =
+                [
+                    new PaymentResponse
+                    {
+                        PaymentDate = today.AddDays(-10), PaymentMethod = PaymentMethod.Swift, PaidAmount = 5_000m,
+                        Discreption = "Advance", SwiftTransfer = new SwiftTransferResponse { SwiftReference = "SWIFT-0001" }
+                    },
+                    new PaymentResponse
+                    {
+                        PaymentDate = today.AddDays(-2), PaymentMethod = PaymentMethod.CashOnBoard, PaidAmount = 2_000m,
+                        Discreption = "Cash to Master", SwiftTransfer = null
+                    }
+                ],
                 Items =
                 [
                     new DocumentItemResponse { ProductName = "Freight", Quantity = 1, Unit = "LS", UnitPrice = 10_000m, LineTotal = 10_000m },
