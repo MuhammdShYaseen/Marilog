@@ -1,5 +1,6 @@
 // Document template designer: move and resize boxes on the page, drop palette items onto it,
-// nudge the selected box with the arrow keys, and load the template fonts into the browser.
+// nudge the selected box with the arrow keys, pass the Ctrl shortcuts (duplicate, undo, redo) to .NET,
+// and load the template fonts into the browser.
 //
 // The page is drawn at `scale` CSS pixels per PDF point. Everything sent back to .NET is in points,
 // rounded to whole points. While a box is being dragged it moves here in the browser only;
@@ -22,7 +23,7 @@ export function attach(page, dotnetRef) {
         pageWidth: 0,
         pageHeight: 0,
         drag: null,
-        grab: null 
+        grab: null
     };
 
     // ── Select, move, resize ─────────────────────────────────────────────
@@ -94,9 +95,25 @@ export function attach(page, dotnetRef) {
     };
 
     // ── Keyboard (only while the page itself has focus) ─────────────────
+    // A text field keeps its own Ctrl+Z, because then the page doesn't have focus.
 
     s.onKeyDown = e => {
         if (e.target !== page) return;
+
+        if (e.ctrlKey || e.metaKey) {
+            const key = e.key.toLowerCase();
+            let method = null;
+
+            if (key === 'z' && !e.shiftKey) method = 'OnUndo';
+            else if (key === 'y' || (key === 'z' && e.shiftKey)) method = 'OnRedo';
+            else if (key === 'd') method = 'OnDuplicateSelected';   // also stops the browser's "bookmark this page"
+
+            if (method) {
+                e.preventDefault();
+                dotnetRef.invokeMethodAsync(method);
+            }
+            return;
+        }
 
         const step = e.shiftKey ? 10 : 1;
         const moves = {

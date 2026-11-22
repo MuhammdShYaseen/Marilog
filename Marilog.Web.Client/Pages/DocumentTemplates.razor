@@ -17,6 +17,7 @@
                              IsLoading="@_isLoading"
                              OnAddClicked="@(() => Nav.NavigateTo("/document-templates/new"))"
                              OnEditClicked="@(t => Nav.NavigateTo($"/document-templates/{t.Id}"))"
+                             OnDuplicateClicked="@HandleDuplicateClickedAsync"
                              OnDeleteClicked="@HandleDeleteClickedAsync" />
 
 @code {
@@ -41,7 +42,19 @@
             _isLoading = false;
         }
     }
-
+    async Task HandleDuplicateClickedAsync(DocumentTemplateSummaryResponse template)
+    {
+        try
+        {
+            var copy = await TemplateService.DuplicateAsync(template.Id);
+            Snackbar.Add($"Copied as '{copy.Name}'.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to copy template: {ex.Message}", Severity.Error);
+        }
+    }
     async Task HandleDeleteClickedAsync(DocumentTemplateSummaryResponse template)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(

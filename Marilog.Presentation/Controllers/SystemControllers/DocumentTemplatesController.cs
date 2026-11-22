@@ -82,6 +82,16 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<bool>.Ok(true, "Template deleted successfully."));
         }
 
+        // A POST on "{id}/..." counts as Update by convention; a copy is a new template, so it needs Create.
+        [RequirePermission(EntityType.DocumentTemplate, PermissionAction.Create)]
+        [HttpPost("{id:int}/duplicate")]
+        public async Task<ActionResult<ApiResponse<DocumentTemplateResponse>>> Duplicate(int id, CancellationToken ct)
+        {
+            var result = await _service.DuplicateAsync(id, ct);
+
+            return CreatedAtAction(nameof(GetById), new { id = result.Id },
+                ApiResponse<DocumentTemplateResponse>.Ok(result, $"Template copied as '{result.Name}'."));
+        }
         // ── PDF ──────────────────────────────────────────────────
 
         [RequirePermission(EntityType.Document, PermissionAction.Read)]

@@ -59,7 +59,14 @@ namespace Marilog.Client.Services.SystemServices
             var response = await httpResponse.Content.ReadFromJsonAsync<ApiResponse<DocumentTemplateResponse>>(cancellationToken: ct);
             return response?.Data ?? throw new InvalidOperationException("Template update failed.");
         }
+        public async Task<DocumentTemplateResponse> DuplicateAsync(int id, CancellationToken ct = default)
+        {
+            var httpResponse = await _http.PostAsync($"{Base}/{id}/duplicate", content: null, ct);
+            await httpResponse.EnsureSuccessWithMessageAsync(ct);
 
+            var response = await httpResponse.Content.ReadFromJsonAsync<ApiResponse<DocumentTemplateResponse>>(cancellationToken: ct);
+            return response?.Data ?? throw new InvalidOperationException("Template copy failed.");
+        }
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var httpResponse = await _http.DeleteAsync($"{Base}/{id}", ct);

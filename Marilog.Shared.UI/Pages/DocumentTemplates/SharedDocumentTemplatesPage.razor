@@ -35,10 +35,14 @@
             <MudTd DataLabel="Page">@PageLabel(context)</MudTd>
             <MudTd DataLabel="Last changed">@(context.UpdatedAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm") ?? "—")</MudTd>
             <MudTd Style="text-align:right">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                               onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               onclick="@(EventCallback.Factory.Create(this, () => OnDeleteClicked.InvokeAsync(context)))" />
+                <MudTooltip Text="Edit">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   onclick="@(EventCallback.Factory.Create(this, () => OnEditClicked.InvokeAsync(context)))" />
+                </MudTooltip>
+                <MudTooltip Text="Make a copy">
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                   onclick="@(EventCallback.Factory.Create(this, () => OnDuplicateClicked.InvokeAsync(context)))" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
@@ -56,6 +60,7 @@
 
     [Parameter, EditorRequired] public EventCallback OnAddClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<DocumentTemplateSummaryResponse> OnEditClicked { get; set; }
+    [Parameter, EditorRequired] public EventCallback<DocumentTemplateSummaryResponse> OnDuplicateClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback<DocumentTemplateSummaryResponse> OnDeleteClicked { get; set; }
 
     private static string PageLabel(DocumentTemplateSummaryResponse t)

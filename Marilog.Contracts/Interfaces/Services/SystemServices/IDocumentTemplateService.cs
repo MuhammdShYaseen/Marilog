@@ -13,6 +13,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         // ── Commands ──────────────────────────────────────────────────────────────
         Task<DocumentTemplateResponse> CreateAsync(SaveDocumentTemplateRequest request, CancellationToken ct = default);
         Task<DocumentTemplateResponse> UpdateAsync(int id, SaveDocumentTemplateRequest request, CancellationToken ct = default);
+        Task<DocumentTemplateResponse> DuplicateAsync(int id, CancellationToken ct = default);
         Task DeleteAsync(int id, CancellationToken ct = default);
 
         // ── PDF ───────────────────────────────────────────────────────────────────

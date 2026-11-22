@@ -55,6 +55,16 @@
 
         <MudSwitch T="bool" @bind-Value="_showFieldNames" Label="Field names" Color="Color.Primary" />
 
+        <MudTooltip Text="Undo (Ctrl+Z)">
+            <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" Disabled="!_history.CanUndo" OnClick="Undo" />
+        </MudTooltip>
+        <MudTooltip Text="Redo (Ctrl+Y)">
+            <MudIconButton Icon="@Icons.Material.Filled.Redo" Size="Size.Small" Disabled="!_history.CanRedo" OnClick="Redo" />
+        </MudTooltip>
+        <MudTooltip Text="Duplicate the selected box (Ctrl+D)">
+            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Disabled="!CanDuplicate" OnClick="DuplicateSelected" />
+        </MudTooltip>
+
         <MudSpacer />
 
         <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
@@ -115,8 +125,8 @@
             </label>
 
             <div class="dt-hint">
-                Drag onto the page, or click to add.<br />
-                Arrow keys move the selected box (Shift = 10 pt), Delete removes it.
+                Arrow keys move the selected box (Shift = 10 pt), Delete removes it,
+                Ctrl+D duplicates it. Ctrl+Z / Ctrl+Y undo and redo.
             </div>
         </div>
 
@@ -299,10 +309,16 @@
                     <MudText Typo="Typo.caption" Class="dt-note">Widths are relative to each other.</MudText>
                 }
 
-                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Class="mt-2"
-                           StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteSelected">
-                    Remove from page
-                </MudButton>
+                <div class="d-flex flex-wrap gap-1 mt-2">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.ContentCopy" Disabled="!CanDuplicate" OnClick="DuplicateSelected">
+                        Duplicate
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteSelected">
+                        Remove from page
+                    </MudButton>
+                </div>
             }
             else
             {
@@ -570,6 +586,17 @@
     private int _zoom = 100;
     private bool _showFieldNames;
 
+    
+    private readonly DocumentTemplateHistory _history = new();
+
+    // The history compares the design before each render, so no edit has to report itself (see DocumentTemplateHistory).
+    protected override void OnParametersSet() => _history.Track(Model);
+
+    protected override bool ShouldRender()
+    {
+        _history.Track(Model);
+        return true;
+    }
     // ── Derived values ───────────────────────────────────────
 
     private (float Width, float Height) PageSize => DocumentTemplateRules.PageSize(Model.PageSize, Model.IsLandscape);
@@ -687,7 +714,43 @@
         e.X = DocumentTemplateUi.Clamp(x, 0, pageWidth - e.Width);
         e.Y = DocumentTemplateUi.Clamp(y, 0, pageHeight - e.Height);
     }
+    // Tables can't be copied: a template has one of each.
+    private bool CanDuplicate => Selected is { } e && !DocumentTemplateRules.IsTable(e.Key);
 
+    // A copy 10 pt down and to the right, selected so it can be moved straight away.
+    private void DuplicateSelected()
+    {
+        if (Selected is not { } source) return;
+
+        if (DocumentTemplateRules.IsTable(source.Key))
+        {
+            Snackbar.Add("A template can have only one of each table.", Severity.Warning);
+            return;
+        }
+
+        var copy = DocumentTemplateHistory.CloneElement(source);
+        var (width, height) = PageSize;
+        copy.X = DocumentTemplateUi.Clamp(source.X + 10, 0, width - copy.Width);
+        copy.Y = DocumentTemplateUi.Clamp(source.Y + 10, 0, height - copy.Height);
+
+        Model.Elements.Add(copy);
+        _selected = Model.Elements.Count - 1;
+    }
+
+    private void Undo()
+    {
+        if (_history.Undo(Model)) KeepSelectionValid();
+    }
+
+    private void Redo()
+    {
+        if (_history.Redo(Model)) KeepSelectionValid();
+    }
+
+    private void KeepSelectionValid()
+    {
+        if (_selected >= Model.Elements.Count) _selected = -1;
+    }
     private void SetPageSize(TemplatePageSize size)
     {
         Model.PageSize = size;
@@ -807,7 +870,26 @@
         AddElementAt((TemplateElementKey)key, x, y);
         StateHasChanged();
     }
+    [JSInvokable]
+    public void OnUndo()
+    {
+        Undo();
+        StateHasChanged();
+    }
 
+    [JSInvokable]
+    public void OnRedo()
+    {
+        Redo();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnDuplicateSelected()
+    {
+        DuplicateSelected();
+        StateHasChanged();
+    }
     [JSInvokable]
     public void OnNudge(float dx, float dy)
     {
@@ -832,7 +914,7 @@
             _selfRef = DotNetObjectReference.Create(this);
             // bump ?v= whenever templateDesigner.js changes, so the browser doesn't serve a cached copy
             _module = await JS.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Marilog.Shared.UI/js/templateDesigner.js?v=2");
+                "import", "./_content/Marilog.Shared.UI/js/templateDesigner.js?v=3");
             await _module.InvokeVoidAsync("attach", _page, _selfRef);
         }
 

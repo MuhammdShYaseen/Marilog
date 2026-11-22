@@ -113,6 +113,49 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return ToResponse(template);
         }
 
+        // A new template with the same design, named "<name> (copy)".
+        // The copy gets its own picture files, so changing or deleting one template never touches the other's pictures.
+        public async Task<DocumentTemplateResponse> DuplicateAsync(int id, CancellationToken ct = default)
+        {
+            var source = await GetByIdAsync(id, ct)
+                ?? throw new KeyNotFoundException($"There is no document template with ID: {id}");
+
+            foreach (var e in source.Elements.Where(e => e.Key == TemplateElementKey.Image && e.StoredFileId is not null))
+            {
+                var file = await _storedFiles.GetByIdAsync(e.StoredFileId!.Value, ct);
+                var bytes = await ReadImageFileAsync(e.StoredFileId.Value, ct);
+                if (file is null || bytes is null)
+                    throw new InvalidOperationException(
+                        "A picture of this template is missing. Open the template, replace the picture, then copy it.");
+
+                // Sent as a new picture: CreateAsync uploads it as the copy's own file.
+                e.ImageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+                e.StoredFileId = null;
+            }
+
+            return await CreateAsync(new SaveDocumentTemplateRequest
+            {
+                Name = await CopyNameAsync(source.Name, ct),
+                PageSize = source.PageSize,
+                IsLandscape = source.IsLandscape,
+                FontFamily = source.FontFamily,
+                Elements = source.Elements
+            }, ct);
+        }
+
+        // "Invoice (copy)", then "Invoice (copy 2)", ... within the 100-character name limit.
+        private async Task<string> CopyNameAsync(string name, CancellationToken ct)
+        {
+            var taken = (await _repo.Query().AsNoTracking().Select(t => t.Name).ToListAsync(ct))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            for (var n = 1; ; n++)
+            {
+                var suffix = n == 1 ? " (copy)" : $" (copy {n})";
+                var candidate = name[..Math.Min(name.Length, 100 - suffix.Length)] + suffix;
+                if (!taken.Contains(candidate)) return candidate;
+            }
+        }
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var template = await _repo.GetByIdAsync(id, ct)
