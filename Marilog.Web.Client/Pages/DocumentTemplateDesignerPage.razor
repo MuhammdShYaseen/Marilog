@@ -9,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject HttpClient Http
 
 @* ────────────────────────────────────────────────────────────────────────────
    Thin Platform host for the template designer. Loads the template (or starts
@@ -25,6 +26,7 @@ else
     <DocumentTemplateDesigner Model="_model"
                               Fonts="_fonts"
                               IsBusy="_busy"
+                              ImageUrl="@(fileId => $"{Http.BaseAddress}api/StoredFiles/{fileId}/stream?inline=true")"
                               OnBackClicked="@(() => Nav.NavigateTo("/document-templates"))"
                               OnSaveClicked="SaveAsync"
                               OnPreviewClicked="PreviewAsync" />
@@ -99,12 +101,14 @@ else
         {
             if (Id is int id)
             {
-                await TemplateService.UpdateAsync(id, _model);
+                var saved = await TemplateService.UpdateAsync(id, _model);
+                _model.Elements = saved.Elements;   // new pictures now have their file IDs
                 Snackbar.Add("Template saved.", Severity.Success);
             }
             else
             {
                 var created = await TemplateService.CreateAsync(_model);
+                _model.Elements = created.Elements;   // new pictures now have their file IDs
                 Snackbar.Add("Template created.", Severity.Success);
 
                 _shownId = created.Id; // keep the design on screen, don't reload it

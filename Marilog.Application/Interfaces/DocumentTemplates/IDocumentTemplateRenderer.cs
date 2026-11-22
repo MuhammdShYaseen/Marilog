@@ -5,8 +5,8 @@ namespace Marilog.Application.Interfaces.DocumentTemplates
     // Implemented in Infrastructure with QuestPDF.
     public interface IDocumentTemplateRenderer
     {
-        // document == null → sample values (designer preview without a real document).
-        byte[] Render(DocumentTemplateResponse template, DocumentResponse? document);
+        // images: picture bytes by the element's index in template.Elements (the service loads them from StoredFiles).
+        byte[] Render(DocumentTemplateResponse template, DocumentResponse? document, IReadOnlyDictionary<int, byte[]> images);
 
         // Fonts bundled in Resources/Fonts. Url is relative to the API base address.
         IReadOnlyList<TemplateFontResponse> GetFonts();

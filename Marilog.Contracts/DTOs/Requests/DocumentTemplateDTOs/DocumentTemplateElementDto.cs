@@ -19,7 +19,9 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs
         public string? Color { get; set; }                // "#RRGGBB", null = black (items table: header text)
         public string? Background { get; set; }           // "#RRGGBB", null = transparent (items table: header row)
         public string? Text { get; set; }                 // StaticText
-        public string? ImageDataUrl { get; set; }         // Image: "data:image/png;base64,..."
+        public int? StoredFileId { get; set; }            // Image: the saved picture (StoredFiles)
+        public string? ImageDataUrl { get; set; }         // Image: a new picture picked in the designer, not saved yet.
+                                                          // Uploaded to StoredFiles on save; never stored in the template.         // Image: "data:image/png;base64,..."
         public List<DocumentTemplateColumnDto> Columns { get; set; } = [];   // ItemsTable
     }
 

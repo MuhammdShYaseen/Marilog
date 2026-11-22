@@ -1,24 +1,31 @@
 ﻿using Marilog.Application.Interfaces.DocumentTemplates;
 using Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs;
+using Marilog.Contracts.DTOs.Requests.StoregFileDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
+using Marilog.Kernel.Rules;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
 {
+    // Template pictures live in StoredFiles (EntityType.DocumentTemplate, EntityId = template ID).
+    // The designer sends a new picture as a data URL; it is uploaded on save and the template keeps only its file ID.
     public class DocumentTemplateService : IDocumentTemplateService
     {
         private readonly IRepository<DocumentTemplate> _repo;
         private readonly IDocumentService _documentService;
+        private readonly IStoredFileService _storedFiles;
         private readonly IDocumentTemplateRenderer _renderer;
 
         public DocumentTemplateService(IRepository<DocumentTemplate> repository,
-            IDocumentService documentService, IDocumentTemplateRenderer renderer)
+            IDocumentService documentService, IStoredFileService storedFiles, IDocumentTemplateRenderer renderer)
         {
             _repo = repository;
             _documentService = documentService;
+            _storedFiles = storedFiles;
             _renderer = renderer;
         }
 
@@ -59,11 +66,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             EnsureFontExists(request.FontFamily);
             await EnsureNameIsFreeAsync(request.Name, null, ct);
 
-            var template = DocumentTemplate.Create(request.Name, request.PageSize, request.IsLandscape,
-                request.FontFamily, ToElements(request.Elements));
+            request.Elements ??= [];
+            EnsureImagesHaveFiles(request.Elements, ownFileIds: []);
+            Build(request);   // checks the whole design before anything is uploaded
 
+            var uploaded = await UploadNewImagesAsync(request, templateId: null, ct);
+
+            var template = Build(request);
             await _repo.AddAsync(template, ct);
             await _repo.SaveChangesAsync(ct);
+
+            // The template had no ID when its pictures were uploaded.
+            foreach (var fileId in uploaded)
+                await _storedFiles.UpdateEntityLinkAsync(fileId, EntityType.DocumentTemplate, template.Id, ct);
 
             return ToResponse(template);
         }
@@ -76,10 +91,22 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             EnsureFontExists(request.FontFamily);
             await EnsureNameIsFreeAsync(request.Name, id, ct);
 
+            request.Elements ??= [];
+            var ownFileIds = await GetFileIdsAsync(id, ct);
+            EnsureImagesHaveFiles(request.Elements, ownFileIds);
+            Build(request);   // checks the whole design before anything is uploaded
+
+            await UploadNewImagesAsync(request, id, ct);
+
             template.Update(request.Name, request.PageSize, request.IsLandscape,
                 request.FontFamily, ToElements(request.Elements));
 
             await _repo.SaveChangesAsync(ct);
+
+            // Pictures removed or replaced in the designer.
+            var used = request.Elements.Select(e => e.StoredFileId).OfType<int>().ToHashSet();
+            foreach (var fileId in ownFileIds.Where(f => !used.Contains(f)))
+                await _storedFiles.DeleteAsync(fileId, ct);
 
             return ToResponse(template);
         }
@@ -89,8 +116,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var template = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException($"There is no document template with ID: {id}");
 
+            var ownFileIds = await GetFileIdsAsync(id, ct);
+
             _repo.HardDelete(template);
             await _repo.SaveChangesAsync(ct);
+
+            foreach (var fileId in ownFileIds)
+                await _storedFiles.DeleteAsync(fileId, ct);
         }
 
         // ── PDF ──────────────────────────────────────────────────
@@ -103,25 +135,147 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var document = await _documentService.GetWithItemsAsync(documentId, false, ct)
                 ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
 
-            return _renderer.Render(template, document);
+            var images = await LoadImagesAsync(template.Elements, ct);
+            return _renderer.Render(template, document, images);
         }
 
         public async Task<byte[]> PreviewAsync(PreviewDocumentTemplateRequest request, CancellationToken ct = default)
         {
             var design = request.Template;
+            design.Elements ??= [];
             EnsureFontExists(design.FontFamily);
 
-            // Built through the entity so the preview follows exactly the same rules as saving. Nothing is stored.
-            var template = DocumentTemplate.Create(design.Name, design.PageSize, design.IsLandscape,
-                design.FontFamily, ToElements(design.Elements));
+            // Built through the entity so the preview follows exactly the same rules as saving. Nothing is stored or uploaded.
+            var template = Build(design);
 
             DocumentResponse? document = null;
             if (request.DocumentId is { } documentId)
                 document = await _documentService.GetWithItemsAsync(documentId, false, ct)
                     ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
 
-            return _renderer.Render(ToResponse(template), document);
+            // From the design, not the entity: the entity doesn't keep the data URL of a picture that isn't saved yet.
+            var images = await LoadImagesAsync(design.Elements, ct);
+            return _renderer.Render(ToResponse(template), document, images);
         }
+
+        // ── Images ───────────────────────────────────────────────
+
+        // Every image needs a new picture or one of this template's own files
+        // (so a template can't point at somebody's file from another record).
+        private static void EnsureImagesHaveFiles(List<DocumentTemplateElementDto> elements, IReadOnlyCollection<int> ownFileIds)
+        {
+            foreach (var e in elements.Where(e => e.Key == TemplateElementKey.Image && string.IsNullOrWhiteSpace(e.ImageDataUrl)))
+            {
+                if (e.StoredFileId is not { } fileId)
+                    throw new ArgumentException("An image box has no picture. Pick one or remove the box.");
+
+                if (!ownFileIds.Contains(fileId))
+                    throw new ArgumentException($"Picture file {fileId} doesn't belong to this template.");
+            }
+        }
+
+        // Uploads the new pictures (data URLs) to StoredFiles and swaps each for its file ID. Returns the new file IDs.
+        private async Task<List<int>> UploadNewImagesAsync(SaveDocumentTemplateRequest request, int? templateId, CancellationToken ct)
+        {
+            // Decode all of them first, so a bad picture fails before anything is uploaded.
+            var pending = request.Elements
+                .Where(e => e.Key == TemplateElementKey.Image && !string.IsNullOrWhiteSpace(e.ImageDataUrl))
+                .Select(e => (Element: e, Image: DecodeImage(e.ImageDataUrl!)))
+                .ToList();
+
+            var uploaded = new List<int>();
+            foreach (var (element, image) in pending)
+            {
+                using var stream = new MemoryStream(image.Bytes);
+
+                var files = await _storedFiles.UploadAsync(
+                [
+                    new UploadFileRequest
+                    {
+                        FileStream = stream,
+                        FileName = $"{request.Name.Trim()} - image{image.Extension}",
+                        ContentType = image.ContentType,
+                        Size = image.Bytes.Length,
+                        EntityType = EntityType.DocumentTemplate,
+                        EntityId = templateId
+                    }
+                ], ct);
+
+                element.StoredFileId = files.Single().Id;
+                element.ImageDataUrl = null;
+                uploaded.Add(files.Single().Id);
+            }
+
+            return uploaded;
+        }
+
+        // Picture bytes by element index, for the renderer. A missing file just leaves its box empty.
+        private async Task<Dictionary<int, byte[]>> LoadImagesAsync(List<DocumentTemplateElementDto> elements, CancellationToken ct)
+        {
+            var images = new Dictionary<int, byte[]>();
+
+            for (var i = 0; i < elements.Count; i++)
+            {
+                var e = elements[i];
+                if (e.Key != TemplateElementKey.Image) continue;
+
+                if (!string.IsNullOrWhiteSpace(e.ImageDataUrl))       // preview of a picture that isn't saved yet
+                    images[i] = DecodeImage(e.ImageDataUrl).Bytes;
+                else if (e.StoredFileId is { } fileId && await ReadImageFileAsync(fileId, ct) is { } bytes)
+                    images[i] = bytes;
+            }
+
+            return images;
+        }
+
+        private async Task<byte[]?> ReadImageFileAsync(int fileId, CancellationToken ct)
+        {
+            var file = await _storedFiles.GetByIdAsync(fileId, ct);
+            if (file is null || file.EntityType != EntityType.DocumentTemplate)
+                return null;
+
+            await using var stream = await _storedFiles.GetFileStreamAsync(fileId, ct);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory, ct);
+            return memory.ToArray();
+        }
+
+        // "data:image/png;base64,...." → bytes. PNG and JPEG only: both StoredFiles and the PDF accept them.
+        private static (byte[] Bytes, string ContentType, string Extension) DecodeImage(string dataUrl)
+        {
+            var comma = dataUrl.IndexOf(',');
+            var header = comma > 0 ? dataUrl[..comma].Trim().ToLowerInvariant() : string.Empty;
+
+            var (contentType, extension) = header switch
+            {
+                "data:image/png;base64" => ("image/png", ".png"),
+                "data:image/jpeg;base64" or "data:image/jpg;base64" => ("image/jpeg", ".jpg"),
+                _ => throw new ArgumentException("The picture must be a PNG or JPEG image.")
+            };
+
+            byte[] bytes;
+            try
+            {
+                bytes = Convert.FromBase64String(dataUrl[(comma + 1)..]);
+            }
+            catch (FormatException)
+            {
+                throw new ArgumentException("The picture data is not valid.");
+            }
+
+            if (bytes.Length == 0)
+                throw new ArgumentException("The picture is empty.");
+
+            if (bytes.Length > DocumentTemplateRules.MaxImageBytes)
+                throw new ArgumentException($"A picture must not exceed {DocumentTemplateRules.MaxImageBytes / 1024 / 1024} MB.");
+
+            return (bytes, contentType, extension);
+        }
+
+        private async Task<List<int>> GetFileIdsAsync(int templateId, CancellationToken ct)
+            => (await _storedFiles.GetByEntityIdAsync(templateId, EntityType.DocumentTemplate, ct))
+                .Select(f => f.Id)
+                .ToList();
 
         // ── Private Helpers ──────────────────────────────────────
 
@@ -143,11 +297,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 throw new InvalidOperationException($"A template named '{trimmed}' already exists.");
         }
 
+        private static DocumentTemplate Build(SaveDocumentTemplateRequest r)
+            => DocumentTemplate.Create(r.Name, r.PageSize, r.IsLandscape, r.FontFamily, ToElements(r.Elements));
+
         private static List<DocumentTemplateElement> ToElements(List<DocumentTemplateElementDto>? elements)
             => (elements ?? [])
                 .Select(e => DocumentTemplateElement.Create(
                     e.Key, e.PageScope, e.X, e.Y, e.Width, e.Height, e.FontSize, e.Bold,
-                    e.Align, e.Border, e.Color, e.Background, e.Text, e.ImageDataUrl,
+                    e.Align, e.Border, e.Color, e.Background, e.Text, e.StoredFileId,
                     (e.Columns ?? []).Select(c => DocumentTemplateColumn.Create(c.Key, c.Width, c.Title)).ToList()))
                 .ToList();
 
@@ -174,7 +331,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Color = e.Color,
                 Background = e.Background,
                 Text = e.Text,
-                ImageDataUrl = e.ImageDataUrl,
+                StoredFileId = e.StoredFileId,
                 Columns = e.Columns.Select(c => new DocumentTemplateColumnDto
                 {
                     Key = c.Key,

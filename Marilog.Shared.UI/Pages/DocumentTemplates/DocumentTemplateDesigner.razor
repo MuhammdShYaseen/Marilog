@@ -105,7 +105,7 @@
             @* A label around a hidden file input opens the file picker by itself, with no script. *@
             <label class="dt-palette-item">
                 <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" /> Image (logo, stamp, letterhead)
-                <InputFile OnChange="OnNewImagePicked" accept=".png,.jpg,.jpeg,.webp" class="dt-hidden-input" />
+                <InputFile OnChange="OnNewImagePicked" accept=".png,.jpg,.jpeg" class="dt-hidden-input" />
             </label>
 
             <div class="dt-hint">
@@ -130,7 +130,7 @@
 
                         @if (element.Key == TemplateElementKey.Image)
                         {
-                            <img class="dt-img" src="@element.ImageDataUrl" draggable="false" alt="" />
+                            <img class="dt-img" src="@ImageSource(element)" draggable="false" alt="" />
                         }
                         else if (element.Key == TemplateElementKey.ItemsTable)
                         {
@@ -252,7 +252,7 @@
                 {
                     <label class="dt-palette-item">
                         <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" /> Replace image
-                        <InputFile OnChange="OnReplaceImagePicked" accept=".png,.jpg,.jpeg,.webp" class="dt-hidden-input" />
+                        <InputFile OnChange="OnReplaceImagePicked" accept=".png,.jpg,.jpeg" class="dt-hidden-input" />
                     </label>
                 }
 
@@ -538,6 +538,9 @@
     [Parameter, EditorRequired] public SaveDocumentTemplateRequest Model { get; set; } = new();
     [Parameter] public IReadOnlyList<TemplateFontResponse> Fonts { get; set; } = [];
     [Parameter] public bool IsBusy { get; set; }
+    
+    // Address of a saved picture (StoredFile ID → stream URL). Only the host knows the API base address.
+    [Parameter, EditorRequired] public Func<int, string> ImageUrl { get; set; } = _ => string.Empty;
 
     [Parameter, EditorRequired] public EventCallback OnBackClicked { get; set; }
     [Parameter, EditorRequired] public EventCallback OnSaveClicked { get; set; }
@@ -729,12 +732,18 @@
         if (dataUrl is null || Selected is not { Key: TemplateElementKey.Image } image) return;
 
         image.ImageDataUrl = dataUrl;
+        image.StoredFileId = null;   // the old file is deleted when the template is saved
     }
 
     private async Task<string?> ReadImageAsync(IBrowserFile? file)
     {
         if (file is null) return null;
-
+        
+        if (file.ContentType is not ("image/png" or "image/jpeg"))
+        {
+            Snackbar.Add("Pick a PNG or JPEG image.", Severity.Warning);
+            return null;
+        }
         if (file.Size > DocumentTemplateRules.MaxImageBytes)
         {
             Snackbar.Add($"The image must not exceed {DocumentTemplateRules.MaxImageBytes / 1024 / 1024} MB.", Severity.Warning);
@@ -745,9 +754,11 @@
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory);
 
-        var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/png" : file.ContentType;
-        return $"data:{contentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+        return $"data:{file.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
     }
+    // A new picture shows from its data URL until saved, a saved one from StoredFiles.
+    private string? ImageSource(DocumentTemplateElementDto e)
+        => e.ImageDataUrl ?? (e.StoredFileId is { } fileId ? ImageUrl(fileId) : null);
 
     // ── Called from templateDesigner.js ──────────────────────
 

@@ -4396,11 +4396,11 @@ namespace Marilog.Infrastructure.Migrations
 
                             b1.Property<float>("Height");
 
-                            b1.Property<string>("ImageDataUrl");
-
                             b1.Property<int>("Key");
 
                             b1.Property<int>("PageScope");
+
+                            b1.Property<int?>("StoredFileId");
 
                             b1.Property<string>("Text");
 

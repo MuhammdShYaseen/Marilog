@@ -82,9 +82,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         // StaticText only
         public string? Text { get; private set; }
 
-        // Image only: a data URL ("data:image/png;base64,...") — the browser shows it as is, the PDF decodes it.
-        [AuditIgnore]
-        public string? ImageDataUrl { get; private set; }
+        // Image only: the picture is a StoredFile (EntityType.DocumentTemplate); the template keeps only its ID.
+        public int? StoredFileId { get; private set; }
 
         // ItemsTable only
         public List<DocumentTemplateColumn> Columns { get; private set; } = [];
@@ -94,7 +93,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         public static DocumentTemplateElement Create(TemplateElementKey key, TemplatePageScope pageScope,
             float x, float y, float width, float height, float fontSize, bool bold,
             TemplateTextAlign align, bool border, string? color, string? background,
-            string? text, string? imageDataUrl, List<DocumentTemplateColumn>? columns)
+            string? text, int? storedFileId, List<DocumentTemplateColumn>? columns)
             => new()
             {
                 Key = key,
@@ -110,7 +109,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim(),
                 Background = string.IsNullOrWhiteSpace(background) ? null : background.Trim(),
                 Text = key == TemplateElementKey.StaticText ? text : null,
-                ImageDataUrl = key == TemplateElementKey.Image ? imageDataUrl?.Trim() : null,
+                StoredFileId = key == TemplateElementKey.Image ? storedFileId : null,
                 Columns = key == TemplateElementKey.ItemsTable ? columns ?? [] : []
             };
 
@@ -154,31 +153,11 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
 
         // Returns the raw image bytes of an Image element.
-        public byte[] GetImageBytes()
-        {
-            var comma = ImageDataUrl?.IndexOf(',') ?? -1;
-            if (comma < 0)
-                throw new ArgumentException("Image data is not a valid data URL.");
-
-            try
-            {
-                return Convert.FromBase64String(ImageDataUrl![(comma + 1)..]);
-            }
-            catch (FormatException)
-            {
-                throw new ArgumentException("Image data is not valid base64.");
-            }
-        }
-
+        // Checking that the picture exists is the service's job: it uploads new pictures before saving.
         private void ValidateImage()
         {
-            if (string.IsNullOrWhiteSpace(ImageDataUrl)
-                || !ImageDataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
-                || !ImageDataUrl.Contains(";base64,", StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException("Image data must be a base64 image data URL.");
-
-            if (GetImageBytes().Length > DocumentTemplateRules.MaxImageBytes)
-                throw new ArgumentException($"Image must not exceed {DocumentTemplateRules.MaxImageBytes / 1024 / 1024} MB.");
+            if (StoredFileId is <= 0)
+                throw new ArgumentException("Image: invalid picture file.");
         }
 
         private void ValidateColumns()

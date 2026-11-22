@@ -75,7 +75,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
         // ── Render ───────────────────────────────────────────────
 
-        public byte[] Render(DocumentTemplateResponse template, DocumentResponse? document)
+        public byte[] Render(DocumentTemplateResponse template, DocumentResponse? document, IReadOnlyDictionary<int, byte[]> images)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
@@ -86,7 +86,10 @@ namespace Marilog.Infrastructure.Services.Qpdf
             string[] fonts = [template.FontFamily, .. PdfFonts.Families];
 
             var table = template.Elements.FirstOrDefault(e => e.Key == TemplateElementKey.ItemsTable);
-            var boxes = template.Elements.Where(e => e.Key != TemplateElementKey.ItemsTable).ToList();
+            var boxes = template.Elements
+                .Select((e, index) => (Element: e, Image: images.GetValueOrDefault(index)))
+                .Where(b => b.Element.Key != TemplateElementKey.ItemsTable)
+                .ToList();
 
             try
             {
@@ -102,7 +105,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         {
                             layers.PrimaryLayer();
                             foreach (var box in boxes)
-                                layers.Layer().Element(c => ComposeBox(c, box, data));
+                                layers.Layer().Element(c => ComposeBox(c, box.Element, box.Image, data));
                         });
 
                         if (table is null) return;
@@ -125,27 +128,27 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
         // ── Boxes (fields, fixed text, images) ───────────────────
 
-        private static void ComposeBox(IContainer container, DocumentTemplateElementDto e, DocumentResponse data)
+        private static void ComposeBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentResponse data)
         {
             switch (e.PageScope)
             {
                 case TemplatePageScope.First:
-                    DrawBox(container.ShowIf(ctx => ctx.PageNumber == 1), e, data);
+                    DrawBox(container.ShowIf(ctx => ctx.PageNumber == 1), e, image, data);
                     break;
 
                 // Not ShowIf: QuestPDF keeps the drawing from its first pass, when the page count is still unknown,
                 // so a "last page" ShowIf never shows. A dynamic component is drawn again in the final pass.
                 case TemplatePageScope.Last:
-                    container.Dynamic(new LastPageOnly(c => DrawBox(c, e, data)));
+                    container.Dynamic(new LastPageOnly(c => DrawBox(c, e, image, data)));
                     break;
 
                 default:
-                    DrawBox(container, e, data);
+                    DrawBox(container, e, image, data);
                     break;
             }
         }
 
-        private static void DrawBox(IContainer container, DocumentTemplateElementDto e, DocumentResponse data)
+        private static void DrawBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentResponse data)
         {
             var box = container
                 .PaddingLeft(e.X)
@@ -157,7 +160,9 @@ namespace Marilog.Infrastructure.Services.Qpdf
 
             if (e.Key == TemplateElementKey.Image)
             {
-                box.Image(ImageBytes(e.ImageDataUrl)).FitArea();
+                // No picture (e.g. its file was deleted): leave the box empty instead of failing the export.
+                if (image is { Length: > 0 })
+                    box.Image(image).FitArea();
                 return;
             }
 
@@ -288,12 +293,6 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 text.AlignRight();
             else
                 text.AlignLeft();
-        }
-
-        private static byte[] ImageBytes(string? dataUrl)
-        {
-            var comma = dataUrl?.IndexOf(',') ?? -1;
-            return comma < 0 ? [] : Convert.FromBase64String(dataUrl![(comma + 1)..]);
         }
 
         // Fills the fields when the designer previews without picking a real document.
