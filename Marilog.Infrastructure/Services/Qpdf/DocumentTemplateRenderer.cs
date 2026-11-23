@@ -84,8 +84,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
             var data = input ?? SampleData();
             var (pageWidth, pageHeight) = DocumentTemplateRules.PageSize(template.PageSize, template.IsLandscape);
 
-            // The chosen font first; the bundled Noto fonts after it cover Arabic and any missing glyph.
-            string[] fonts = [template.FontFamily, .. PdfFonts.Families];
+            string[] fonts = FontsFor(template.FontFamily);
 
             var table = template.Elements.FirstOrDefault(e => e.Key == TemplateElementKey.ItemsTable);
             var boxes = template.Elements
@@ -116,7 +115,9 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         page.MarginTop(table.Y);
                         page.MarginRight(Math.Max(0, pageWidth - table.X - table.Width));
                         page.MarginBottom(Math.Max(0, pageHeight - table.Y - table.Height));
-                        page.Content().Element(c => ComposeTable(c, table, data.Document.Items, ItemCell));
+                        page.Content()
+                            .DefaultTextStyle(x => x.FontFamily(FontsFor(table.FontFamily ?? template.FontFamily)))
+                            .Element(c => ComposeTable(c, table, data.Document.Items, ItemCell));
                     });
                 }).GeneratePdf();
             }
@@ -127,7 +128,8 @@ namespace Marilog.Infrastructure.Services.Qpdf
                     "make the items box taller or its font smaller.");
             }
         }
-
+        // The chosen font first; the bundled Noto fonts after it cover Arabic and any missing glyph.
+        private static string[] FontsFor(string family) => [family, .. PdfFonts.Families];
         // ── Boxes (fields, fixed text, images) ───────────────────
 
         private static void ComposeBox(IContainer container, DocumentTemplateElementDto e, byte[]? image, DocumentTemplateData data)

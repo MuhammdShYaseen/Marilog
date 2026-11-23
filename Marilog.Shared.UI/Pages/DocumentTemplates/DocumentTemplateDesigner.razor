@@ -37,7 +37,7 @@
 
         <MudSwitch T="bool" Value="Model.IsLandscape" ValueChanged="SetLandscape" Label="Landscape" Color="Color.Primary" />
 
-        <MudSelect T="string" @bind-Value="Model.FontFamily" Label="Font"
+        <MudSelect T="string" @bind-Value="Model.FontFamily" Label="Template font"
                    Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="dt-font-select">
             @foreach (var family in FontFamilies)
             {
@@ -220,6 +220,16 @@
                             </MudSelect>
                         }
                     </div>
+                    <MudSelect T="string" Value="@(el.FontFamily ?? "")"
+                               ValueChanged="@(v => el.FontFamily = string.IsNullOrEmpty(v) ? null : v)"
+                               ToStringFunc="@(v => string.IsNullOrEmpty(v) ? $"Template font ({Model.FontFamily})" : v)"
+                               Label="Font" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                        <MudSelectItem Value="@("")">Template font (@Model.FontFamily)</MudSelectItem>
+                        @foreach (var family in FontFamilies)
+                        {
+                            <MudSelectItem Value="@family">@family</MudSelectItem>
+                        }
+                    </MudSelect>
                     <MudSwitch T="bool" @bind-Value="el.Bold" Label="Bold" Color="Color.Primary" />
                 }
 
@@ -589,7 +599,7 @@
     private IJSObjectReference? _module;
     private DotNetObjectReference<DocumentTemplateDesigner>? _selfRef;
     private string? _configuredKey;
-    private int _fontsLoadedCount;
+    private string? _fontsLoadedKey;
 
     private int _selected = -1;
     private int _zoom = 100;
@@ -635,7 +645,14 @@
             return families;
         }
     }
-
+    private HashSet<string> UsedFontFamilies()
+    {
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(Model.FontFamily)) used.Add(Model.FontFamily);
+        foreach (var e in Model.Elements)
+            if (!string.IsNullOrWhiteSpace(e.FontFamily)) used.Add(e.FontFamily);
+        return used;
+    }
     // --pt is the number of CSS pixels per point; the stylesheet uses it for borders and paddings.
     private string PageStyle
     {
@@ -655,6 +672,8 @@
         var style = $"left:{Px(e.X)};top:{Px(e.Y)};width:{Px(e.Width)};height:{Px(e.Height)};" +
                     $"font-size:{Px(e.FontSize)};font-weight:{(e.Bold ? 700 : 400)};";
 
+        if (!string.IsNullOrWhiteSpace(e.FontFamily))
+            style += $"font-family:'{e.FontFamily}','Noto Sans Arabic',sans-serif;";
         // Tables use their colours on the header row only (see HeaderStyle).
         if (DocumentTemplateRules.IsTable(e.Key)) return style;
 
@@ -938,12 +957,17 @@
             await _module.InvokeVoidAsync("configure", _page, Scale, width, height);
         }
 
-        // Fonts usually arrive after the first render.
-        if (Fonts.Count != _fontsLoadedCount)
+        // Only the fonts the page uses: the template's font and the boxes' own fonts.
+        // Checked after every render, because fonts arrive after the first one and a box can switch font at any time.
+        // The script skips files it already loaded.
+        var used = UsedFontFamilies();
+        var fontsKey = $"{Fonts.Count}|{string.Join("|", used.Order(StringComparer.OrdinalIgnoreCase))}";
+        if (fontsKey != _fontsLoadedKey)
         {
-            _fontsLoadedCount = Fonts.Count;
+            _fontsLoadedKey = fontsKey;
             await _module.InvokeVoidAsync("loadFonts",
-                Fonts.Select(f => new { family = f.Family, url = f.Url, weight = f.Weight, italic = f.IsItalic }).ToList());
+                Fonts.Where(f => used.Contains(f.Family))
+                     .Select(f => new { family = f.Family, url = f.Url, weight = f.Weight, italic = f.IsItalic }).ToList());
         }
     }
 

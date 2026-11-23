@@ -75,6 +75,9 @@ namespace Marilog.Domain.Entities.SystemEntities
         public float Width { get; private set; }
         public float Height { get; private set; }
         public float FontSize { get; private set; }
+
+        // The box's own font; null = the template's font. Not used by images.
+        public string? FontFamily { get; private set; }
         public bool Bold { get; private set; }
         public TemplateTextAlign Align { get; private set; }
         public bool Border { get; private set; }
@@ -98,7 +101,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         private DocumentTemplateElement() { }
 
         public static DocumentTemplateElement Create(TemplateElementKey key, TemplatePageScope pageScope,
-            float x, float y, float width, float height, float fontSize, bool bold,
+            float x, float y, float width, float height, float fontSize, string? fontFamily, bool bold,
             TemplateTextAlign align, bool border, string? color, string? background,
             string? text, int? storedFileId, List<DocumentTemplateColumn>? columns)
             => new()
@@ -110,6 +113,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                 Width = width,
                 Height = height,
                 FontSize = fontSize,
+                FontFamily = key == TemplateElementKey.Image || string.IsNullOrWhiteSpace(fontFamily) ? null : fontFamily.Trim(),
                 Bold = bold,
                 Align = align,
                 Border = border,
@@ -137,6 +141,9 @@ namespace Marilog.Domain.Entities.SystemEntities
 
             if (FontSize < DocumentTemplateRules.MinFontSize || FontSize > DocumentTemplateRules.MaxFontSize)
                 throw new ArgumentException($"{Key}: font size must be between {DocumentTemplateRules.MinFontSize} and {DocumentTemplateRules.MaxFontSize}.");
+
+            if (FontFamily is { Length: > 100 })
+                throw new ArgumentException($"{Key}: font name must not exceed 100 characters.");
 
             if (Color is not null && !DocumentTemplateRules.IsHexColor(Color))
                 throw new ArgumentException($"{Key}: colour must look like #RRGGBB.");

@@ -113,7 +113,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             Y = e.Y,
             Width = e.Width,
             Height = e.Height,
-            FontSize = e.FontSize,
+            FontFamily = e.FontFamily,
             Bold = e.Bold,
             Align = e.Align,
             Border = e.Border,
@@ -138,7 +138,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 sb.Append('\u001E')
                   .Append((int)e.Key).Append(Sep).Append((int)e.PageScope).Append(Sep)
                   .Append(e.X).Append(Sep).Append(e.Y).Append(Sep).Append(e.Width).Append(Sep).Append(e.Height).Append(Sep)
-                  .Append(e.FontSize).Append(Sep).Append(e.Bold).Append(Sep).Append((int)e.Align).Append(Sep).Append(e.Border).Append(Sep)
+                  .Append(e.FontSize).Append(Sep).Append(e.FontFamily).Append(Sep).Append(e.Bold).Append(Sep).Append((int)e.Align).Append(Sep).Append(e.Border).Append(Sep)
                   .Append(e.Color).Append(Sep).Append(e.Background).Append(Sep).Append(e.Text).Append(Sep)
                   .Append(e.StoredFileId).Append(Sep)
                   .Append(e.ImageDataUrl is null ? 0 : RuntimeHelpers.GetHashCode(e.ImageDataUrl));

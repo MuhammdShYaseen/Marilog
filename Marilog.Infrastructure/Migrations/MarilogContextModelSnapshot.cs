@@ -4392,6 +4392,8 @@ namespace Marilog.Infrastructure.Migrations
 
                             b1.Property<string>("Color");
 
+                            b1.Property<string>("FontFamily");
+
                             b1.Property<float>("FontSize");
 
                             b1.Property<float>("Height");

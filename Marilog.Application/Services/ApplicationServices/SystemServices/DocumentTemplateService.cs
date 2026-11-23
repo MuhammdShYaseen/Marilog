@@ -65,7 +65,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         public async Task<DocumentTemplateResponse> CreateAsync(SaveDocumentTemplateRequest request, CancellationToken ct = default)
         {
-            EnsureFontExists(request.FontFamily);
+            EnsureFontsExist(request);
             await EnsureNameIsFreeAsync(request.Name, null, ct);
 
             request.Elements ??= [];
@@ -90,7 +90,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             var template = await _repo.GetByIdAsync(id, ct)
                 ?? throw new KeyNotFoundException($"There is no document template with ID: {id}");
 
-            EnsureFontExists(request.FontFamily);
+            EnsureFontsExist(request);
             await EnsureNameIsFreeAsync(request.Name, id, ct);
 
             request.Elements ??= [];
@@ -187,7 +187,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var design = request.Template;
             design.Elements ??= [];
-            EnsureFontExists(design.FontFamily);
+            EnsureFontsExist(design);
 
             // Built through the entity so the preview follows exactly the same rules as saving. Nothing is stored or uploaded.
             var template = Build(design);
@@ -384,7 +384,19 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 || !_renderer.GetFonts().Any(f => f.Family.Equals(family.Trim(), StringComparison.OrdinalIgnoreCase)))
                 throw new ArgumentException($"Font '{family}' is not one of the fonts bundled with Marilog.");
         }
+        // The template's font, plus each box's own font.
+        private void EnsureFontsExist(SaveDocumentTemplateRequest r)
+        {
+            EnsureFontExists(r.FontFamily);
 
+            var own = (r.Elements ?? [])
+                .Select(e => e.FontFamily)
+                .Where(f => !string.IsNullOrWhiteSpace(f))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var family in own)
+                EnsureFontExists(family);
+        }
         private async Task EnsureNameIsFreeAsync(string? name, int? exceptId, CancellationToken ct)
         {
             var trimmed = name?.Trim() ?? string.Empty;
@@ -402,7 +414,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         private static List<DocumentTemplateElement> ToElements(List<DocumentTemplateElementDto>? elements)
             => (elements ?? [])
                 .Select(e => DocumentTemplateElement.Create(
-                    e.Key, e.PageScope, e.X, e.Y, e.Width, e.Height, e.FontSize, e.Bold,
+                    e.Key, e.PageScope, e.X, e.Y, e.Width, e.Height, e.FontSize, e.FontFamily, e.Bold,
                     e.Align, e.Border, e.Color, e.Background, e.Text, e.StoredFileId,
                     (e.Columns ?? []).Select(c => DocumentTemplateColumn.Create(c.Key, c.Width, c.Title)).ToList()))
                 .ToList();
@@ -423,7 +435,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Y = e.Y,
                 Width = e.Width,
                 Height = e.Height,
-                FontSize = e.FontSize,
+                FontFamily = e.FontFamily,
                 Bold = e.Bold,
                 Align = e.Align,
                 Border = e.Border,

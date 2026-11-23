@@ -12,6 +12,7 @@ namespace Marilog.Contracts.DTOs.Requests.DocumentTemplateDTOs
         public float Width { get; set; }
         public float Height { get; set; }
         public float FontSize { get; set; } = 10;
+        public string? FontFamily { get; set; }           // null = the template's font
         public bool Bold { get; set; }
         public TemplateTextAlign Align { get; set; }
         public bool Border { get; set; }
