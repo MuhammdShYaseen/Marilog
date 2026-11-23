@@ -517,6 +517,7 @@
         Image = 2,
         ItemsTable = 3,
         PaymentsTable = 4,
+        AdjustmentsTable = 5,
         DocNumber = 10,
         DocType = 11,
         DocDate = 12,
@@ -567,7 +568,11 @@
         PaymentMethod = 21,
         PaymentReference = 22,
         PaymentNote = 23,
-        PaidAmount = 24
+        PaidAmount = 24,
+        // Adjustments table
+        AdjustmentDate = 30,
+        AdjustmentReason = 31,
+        AdjustmentAmount = 32
     }
 
     // Which pages an element prints on when the items run over several pages.

@@ -21,7 +21,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
     //  the items run out of room QuestPDF adds a page with the same background and
     //  continues the table in the same box, repeating its header row.
     //  PageScope decides whether an element prints on every page, the first or the last.
-    //  The payments table is a fixed box like a field: it doesn't continue on a new page.
+    //  The payments and adjustments tables are fixed boxes like a field: they don't continue on a new page.
     //  The page number is a text box whose numbers QuestPDF fills in on every page.
     // ═══════════════════════════════════════════════════════════════════════
     public sealed class DocumentTemplateRenderer : IDocumentTemplateRenderer
@@ -167,6 +167,15 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 return;
             }
 
+
+            // Same as payments: no adjustments = nothing printed.
+            if (e.Key == TemplateElementKey.AdjustmentsTable)
+            {
+                if (data.Document.Adjustments.Count > 0)
+                    area.ScaleToFit().Element(c => ComposeTable(c, e, data.Document.Adjustments, AdjustmentCell));
+                return;
+            }
+
             var box = area
                 .Element(x => e.Background is { } fill ? x.Background(Color.FromHex(fill)) : x)
                 .Element(x => e.Border ? x.Border(0.75f).BorderColor(TextColor(e)).Padding(BoxPadding) : x);
@@ -225,7 +234,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
             };
         }
 
-        // ── Tables (items, payments) ─────────────────────────────
+        // ── Tables (items, payments, adjustments) ────────────────
 
         private static void ComposeTable<T>(IContainer container, DocumentTemplateElementDto e, List<T> rows,
             Func<TemplateColumnKey, T, string> cell)
@@ -351,6 +360,14 @@ namespace Marilog.Infrastructure.Services.Qpdf
             _ => string.Empty
         };
 
+        // The amount keeps its sign: a discount prints as -500.00.
+        private static string AdjustmentCell(TemplateColumnKey key, AdjustmentResponse adjustment) => key switch
+        {
+            TemplateColumnKey.AdjustmentDate => FormatDate(adjustment.AdjustmentDate),
+            TemplateColumnKey.AdjustmentReason => adjustment.Reason ?? string.Empty,
+            TemplateColumnKey.AdjustmentAmount => FormatMoney(adjustment.Amount),
+            _ => string.Empty
+        };
         private static string MethodLabel(PaymentMethod method) => method switch
         {
             PaymentMethod.CashOnBoard => "Cash on board",
@@ -434,6 +451,11 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         PaymentDate = today.AddDays(-2), PaymentMethod = PaymentMethod.CashOnBoard, PaidAmount = 2_000m,
                         Discreption = "Cash to Master", SwiftTransfer = null
                     }
+                ],
+                Adjustments =
+                [
+                    new AdjustmentResponse { AdjustmentDate = today.AddDays(-5), Reason = "Extra port dues", Amount = 300m },
+                    new AdjustmentResponse { AdjustmentDate = today.AddDays(-3), Reason = "Discount", Amount = -800m }
                 ],
                 Items =
                 [

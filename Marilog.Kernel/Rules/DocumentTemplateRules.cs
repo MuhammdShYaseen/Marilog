@@ -23,7 +23,7 @@ namespace Marilog.Kernel.Rules
         }
 
         public static bool IsTable(TemplateElementKey key)
-            => key is TemplateElementKey.ItemsTable or TemplateElementKey.PaymentsTable;
+                => key is TemplateElementKey.ItemsTable or TemplateElementKey.PaymentsTable or TemplateElementKey.AdjustmentsTable;
 
         // The columns each table can show, in their natural order.
         public static TemplateColumnKey[] ColumnsFor(TemplateElementKey table) => table switch
@@ -38,13 +38,17 @@ namespace Marilog.Kernel.Rules
                 TemplateColumnKey.PaymentDate, TemplateColumnKey.PaymentMethod, TemplateColumnKey.PaymentReference,
                 TemplateColumnKey.PaymentNote, TemplateColumnKey.PaidAmount
             ],
+            TemplateElementKey.AdjustmentsTable =>
+            [
+                TemplateColumnKey.AdjustmentDate, TemplateColumnKey.AdjustmentReason, TemplateColumnKey.AdjustmentAmount
+            ],
             _ => []
         };
 
         // Numbers are right-aligned in the designer and the PDF.
         public static bool IsNumberColumn(TemplateColumnKey key)
             => key is TemplateColumnKey.Quantity or TemplateColumnKey.UnitPrice
-                or TemplateColumnKey.LineTotal or TemplateColumnKey.PaidAmount;
+                  or TemplateColumnKey.LineTotal or TemplateColumnKey.PaidAmount or TemplateColumnKey.AdjustmentAmount;
 
         public static string DefaultColumnTitle(TemplateColumnKey key) => key switch
         {
@@ -58,6 +62,9 @@ namespace Marilog.Kernel.Rules
             TemplateColumnKey.PaymentReference => "Reference",
             TemplateColumnKey.PaymentNote => "Description",
             TemplateColumnKey.PaidAmount => "Amount",
+            TemplateColumnKey.AdjustmentDate => "Date",
+            TemplateColumnKey.AdjustmentReason => "Reason",
+            TemplateColumnKey.AdjustmentAmount => "Amount",
             _ => key.ToString()
         };
 

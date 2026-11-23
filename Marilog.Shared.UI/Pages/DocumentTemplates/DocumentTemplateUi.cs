@@ -80,6 +80,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateElementKey.Image => "Image",
             TemplateElementKey.ItemsTable => "Items table",
             TemplateElementKey.PaymentsTable => "Payments table",
+            TemplateElementKey.AdjustmentsTable => "Adjustments table",
             TemplateElementKey.DocNumber => "Document number",
             TemplateElementKey.DocType => "Document type",
             TemplateElementKey.DocDate => "Date",
@@ -180,8 +181,19 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             [DateTime.Today.AddDays(-2).ToString("dd MMM yyyy", CultureInfo.InvariantCulture), "Cash on board", "", "Cash to Master", "2,000.00"]
         ];
 
-        public static string[][] SampleRows(TemplateElementKey table)
-            => table == TemplateElementKey.PaymentsTable ? SamplePayments : SampleItems;
+        // Adjustments: AdjustmentDate, AdjustmentReason, AdjustmentAmount. Same as the server sample: they add up to -500.00.
+        private static readonly string[][] SampleAdjustments =
+        [
+            [DateTime.Today.AddDays(-5).ToString("dd MMM yyyy", CultureInfo.InvariantCulture), "Extra port dues", "300.00"],
+            [DateTime.Today.AddDays(-3).ToString("dd MMM yyyy", CultureInfo.InvariantCulture), "Discount", "-800.00"]
+        ];
+
+        public static string[][] SampleRows(TemplateElementKey table) => table switch
+        {
+            TemplateElementKey.PaymentsTable => SamplePayments,
+            TemplateElementKey.AdjustmentsTable => SampleAdjustments,
+            _ => SampleItems
+        };
 
         public static string SampleCell(TemplateElementKey table, TemplateColumnKey key, string[] row)
         {
@@ -196,7 +208,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
         {
             TemplateElementKey.TotalAmount or TemplateElementKey.AdjustmentsTotal or TemplateElementKey.NetAmount
                 or TemplateElementKey.TotalPaid or TemplateElementKey.RemainingBalance or TemplateElementKey.PaymentsTable
-                or TemplateElementKey.AmountInWords
+                   or TemplateElementKey.AdjustmentsTable or TemplateElementKey.AmountInWords
                 => TemplatePageScope.Last,
             TemplateElementKey.DocNumber or TemplateElementKey.DocDate
                 or TemplateElementKey.StaticText or TemplateElementKey.Image or TemplateElementKey.PageNumber
@@ -221,6 +233,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             TemplateColumnKey.Quantity or TemplateColumnKey.Unit => 1,
             TemplateColumnKey.PaymentReference => 2,
             TemplateColumnKey.PaymentNote => 2.5f,
+            TemplateColumnKey.AdjustmentReason => 4,
             _ => 1.5f
         };
 
@@ -233,6 +246,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
                 TemplateElementKey.Image => (150f, 80f),
                 TemplateElementKey.ItemsTable => (pageWidth - 80f, 300f),
                 TemplateElementKey.PaymentsTable => (pageWidth - 80f, 90f),
+                TemplateElementKey.AdjustmentsTable => (pageWidth - 80f, 70f),
                 TemplateElementKey.SupplierAddress or TemplateElementKey.BuyerAddress => (200f, 40f),
                 TemplateElementKey.AmountInWords => (350f, 18f),
                 TemplateElementKey.PageNumber => (100f, 18f),

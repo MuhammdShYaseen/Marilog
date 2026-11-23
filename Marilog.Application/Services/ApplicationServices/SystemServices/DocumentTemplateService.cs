@@ -201,15 +201,20 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             return _renderer.Render(ToResponse(template), data, images);
         }
 
-        // Items always; payments only when the template shows them (a second query).
+        // Items always; payments and adjustments only when the template shows one of them (a second query brings both).
         // Plus the supplier/buyer details and the currency name, which DocumentResponse doesn't carry (one small query).
         private async Task<DocumentTemplateData> GetDataAsync(int documentId, List<DocumentTemplateElementDto> elements, CancellationToken ct)
         {
             var document = await _documentService.GetWithItemsAsync(documentId, false, ct)
                 ?? throw new KeyNotFoundException($"There is no document with ID: {documentId}");
 
-            if (elements.Any(e => e.Key == TemplateElementKey.PaymentsTable))
-                document.Payments = (await _documentService.GetWithPaymentsAsync(documentId, false, ct))?.Payments ?? [];
+            if (elements.Any(e => e.Key is TemplateElementKey.PaymentsTable or TemplateElementKey.AdjustmentsTable))
+            {
+                var withPayments = await _documentService.GetWithPaymentsAsync(documentId, false, ct);
+                document.Payments = withPayments?.Payments ?? [];
+                document.Adjustments = withPayments?.Adjustments
+                    .OrderBy(a => a.AdjustmentDate).ThenBy(a => a.Id).ToList() ?? [];
+            }
 
             var extra = await _documents.Query()
     .AsNoTracking()

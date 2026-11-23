@@ -266,6 +266,14 @@
                         A document with no payments prints nothing here.
                     </MudText>
                 }
+                
+                @if (el.Key == TemplateElementKey.AdjustmentsTable)
+                {
+                    <MudText Typo="Typo.caption" Class="dt-note">
+                        Shows the document's adjustments inside this box, with their sign (a discount is negative).
+                        If there are more than fit, the table shrinks. A document with no adjustments prints nothing here.
+                    </MudText>
+                }
 
                 @if (el.Key == TemplateElementKey.StaticText)
                 {
@@ -611,7 +619,8 @@
     private static readonly (TemplateElementKey Key, string Icon)[] Tables =
     [
         (TemplateElementKey.ItemsTable, Icons.Material.Filled.TableRows),
-        (TemplateElementKey.PaymentsTable, Icons.Material.Filled.Payments)
+        (TemplateElementKey.PaymentsTable, Icons.Material.Filled.Payments),
+        (TemplateElementKey.AdjustmentsTable, Icons.Material.Filled.Tune)
     ];
 
     private bool Has(TemplateElementKey key) => Model.Elements.Any(e => e.Key == key);

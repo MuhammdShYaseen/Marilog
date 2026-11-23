@@ -53,6 +53,9 @@ namespace Marilog.Domain.Entities.SystemEntities
             if (elements.Count(e => e.Key == TemplateElementKey.PaymentsTable) > 1)
                 throw new ArgumentException("A template can have only one payments table.", nameof(elements));
 
+            if (elements.Count(e => e.Key == TemplateElementKey.AdjustmentsTable) > 1)
+                throw new ArgumentException("A template can have only one adjustments table.", nameof(elements));
+
             Name = name.Trim();
             PageSize = pageSize;
             IsLandscape = isLandscape;
@@ -88,7 +91,8 @@ namespace Marilog.Domain.Entities.SystemEntities
         // Image only: the picture is a StoredFile (EntityType.DocumentTemplate); the template keeps only its ID.
         public int? StoredFileId { get; private set; }
 
-        // ItemsTable and PaymentsTable only
+
+        // ItemsTable, PaymentsTable and AdjustmentsTable only
         public List<DocumentTemplateColumn> Columns { get; private set; } = [];
 
         private DocumentTemplateElement() { }
@@ -149,7 +153,7 @@ namespace Marilog.Domain.Entities.SystemEntities
                     ValidateImage();
                     break;
 
-                case TemplateElementKey.ItemsTable or TemplateElementKey.PaymentsTable:
+                case TemplateElementKey.ItemsTable or TemplateElementKey.PaymentsTable or TemplateElementKey.AdjustmentsTable:
                     ValidateColumns();
                     break;
             }
@@ -176,7 +180,7 @@ namespace Marilog.Domain.Entities.SystemEntities
         }
     }
 
-    // Owned by DocumentTemplateElement (items and payments tables). Width is relative to the other columns.
+    //    // Owned by DocumentTemplateElement (items, payments and adjustments tables). Width is relative to the other columns.
     public class DocumentTemplateColumn
     {
         public TemplateColumnKey Key { get; private set; }
