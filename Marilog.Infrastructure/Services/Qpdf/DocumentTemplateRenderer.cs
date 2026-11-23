@@ -106,7 +106,9 @@ namespace Marilog.Infrastructure.Services.Qpdf
                         {
                             layers.PrimaryLayer();
                             foreach (var box in boxes)
-                                layers.Layer().Element(c => ComposeBox(c, box.Element, box.Image, data));
+                                layers.Layer()
+                                .DefaultTextStyle(x => x.FontFamily(FontsFor(box.Element.FontFamily ?? template.FontFamily)))
+                                .Element(c => ComposeBox(c, box.Element, box.Image, data));
                         });
 
                         if (table is null) return;

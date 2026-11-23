@@ -114,6 +114,7 @@ namespace Marilog.Shared.UI.Pages.DocumentTemplates
             Width = e.Width,
             Height = e.Height,
             FontFamily = e.FontFamily,
+            FontSize = e.FontSize,
             Bold = e.Bold,
             Align = e.Align,
             Border = e.Border,

@@ -435,6 +435,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 Y = e.Y,
                 Width = e.Width,
                 Height = e.Height,
+                FontSize = e.FontSize,
                 FontFamily = e.FontFamily,
                 Bold = e.Bold,
                 Align = e.Align,
