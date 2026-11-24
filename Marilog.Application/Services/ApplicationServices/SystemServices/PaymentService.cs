@@ -1,4 +1,5 @@
-﻿using Marilog.Contracts.DTOs.Reports.PaymentReports;
+﻿using Marilog.Application.Extensions;
+using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
@@ -188,6 +189,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             if (options.Side.HasValue)
                 documentsQuery = documentsQuery.Where(p => p.Side == options.Side.Value);
+
+            documentsQuery = documentsQuery
+                .WhereSupplierIn(options.SupplierIds)
+                .WhereBuyerIn(options.BuyerIds)
+                .WhereDocTypeIn(options.DocTypeIds)
+                .WherePaymentStatus(options.PaymentStatus);
 
             // ─── النزول لمستوى الدفعة الفعلي — هون المفتاح ───────────────────────
             var paymentsQuery = documentsQuery.SelectMany(

@@ -205,33 +205,35 @@
         <div class="wa-rpt-section-title">Filters</div>
         <MudGrid Spacing="2">
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           @bind-Value="_filter.SupplierId"
-                           Label="Supplier"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Clearable="true">
-                    @foreach (var c in Companies)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int" MultiSelection="true"
+                                   @bind-SelectedValues="_supplierIds"
+                                   ToStringFunc="CompanyName"
+                                   Label="Suppliers"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var c in Companies)
+                            {
+                                <MudSelectItem T="int" Value="c.Id">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           @bind-Value="_filter.BuyerId"
-                           Label="Buyer"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Clearable="true">
-                    @foreach (var b in Companies)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)b.Id)">@b.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int" MultiSelection="true"
+                                   @bind-SelectedValues="_buyerIds"
+                                   ToStringFunc="CompanyName"
+                                   Label="Buyers"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var b in Companies)
+                            {
+                                <MudSelectItem T="int" Value="b.Id">@b.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="int?"
@@ -259,7 +261,33 @@
                     }
                 </MudSelect>
             </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="int" MultiSelection="true"
+                                   @bind-SelectedValues="_docTypeIds"
+                                   ToStringFunc="DocTypeName"
+                                   Label="Document Types"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var t in DocTypes)
+                            {
+                                <MudSelectItem T="int" Value="t.Id">@t.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
 
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="DocumentPaymentStatus?"
+                                   @bind-Value="_filter.PaymentStatus"
+                                   Label="Payment Status"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense">
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="null">All</MudSelectItem>
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Paid">Paid</MudSelectItem>
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Unpaid">Unpaid</MudSelectItem>
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.PartiallyPaid">Partially Paid</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudDatePicker Date="_fromDateTime"
                                DateChanged="v => { _filter.FromDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; }"
@@ -688,6 +716,9 @@
     private int? _selectedSupplierId;
     private int? _selectedTypeId;
     private DocumentFilterOptions _filter = new();
+    private IReadOnlyCollection<int> _supplierIds = [];
+    private IReadOnlyCollection<int> _buyerIds = [];
+    private IReadOnlyCollection<int> _docTypeIds = [];
     private DocumentReport? _documentReport;
     private bool _loadingDocumentReport;
     private bool _exportingPdf;
@@ -727,6 +758,10 @@
 
     private async Task RunReportAsync()
     {
+        _filter.SupplierIds = _supplierIds.ToList();
+        _filter.BuyerIds = _buyerIds.ToList();
+        _filter.DocTypeIds = _docTypeIds.ToList();
+
         _loadingDocumentReport = true;
         StateHasChanged();
         await OnDocumentReportRequested.InvokeAsync(_filter);
@@ -736,9 +771,18 @@
     private void ClearFilter()
     {
         _filter = new();
+        _supplierIds = [];
+        _buyerIds = [];
+        _docTypeIds = [];
         _documentReport = null;
         StateHasChanged();
     }
+
+    private string CompanyName(int id) =>
+        Companies.FirstOrDefault(c => c.Id == id)?.Name ?? $"#{id}";
+
+    private string DocTypeName(int id) =>
+        DocTypes.FirstOrDefault(t => t.Id == id)?.Name ?? $"#{id}";
 
     public void SetDocumentReport(DocumentReport report)
     {

@@ -12,6 +12,7 @@
 @inject IVoyageService VoyageService
 @inject IVesselService VesselService
 @inject ICompanyService CompanyService
+@inject IDocumentTypeService DocTypeService
 @inject IPdfFileGeneratorService PdfService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
@@ -24,6 +25,7 @@
 <SharedPaymentPage Vessels="_vessels"
                    Voyages="_voyages"
                    Companies="_companies"
+                   DocTypes="_docTypes"
                    OnPaymentReportRequested="HandlePaymentReportRequestedAsync"
                    OnDownloadPaymentPdf="HandleExportPaymentPdfAsync"
                    @ref="_paymentPage" />
@@ -32,6 +34,7 @@
     private IReadOnlyList<VesselLookupResponse> _vessels = [];
     private IReadOnlyList<VoyageLookupResponse> _voyages = [];
     private IReadOnlyList<CompanyResponse> _companies = [];
+    private IReadOnlyList<DocumentTypeResponse> _docTypes = [];
     private SharedPaymentPage? _paymentPage;
     private bool _loading = true;
 
@@ -43,12 +46,14 @@
             var t1 = VesselService.GetAllAsLookUpAsync();
             var t2 = CompanyService.GetActiveAsync();
             var t3 = VoyageService.GetAllLookupAsync();
+            var t4 = DocTypeService.GetActiveAsync();
 
-            await Task.WhenAll(t1, t2, t3);
+            await Task.WhenAll(t1, t2, t3, t4);
 
             _vessels = t1.Result;
             _companies = t2.Result;
             _voyages = t3.Result;
+            _docTypes = t4.Result;
         }
         catch (Exception ex)
         {

@@ -1,3 +1,4 @@
+using Marilog.Application.Extensions;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
@@ -254,7 +255,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var result = await Operating()
                 .AsNoTracking()
-                .Where(x => x.IsActive &&
+                .Where(x => x.IsActive && x.Side != FinancialSide.None &&
                             x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
                             > x.Payments.Sum(p => p.PaidAmount))
                 .OrderBy(x => x.DocDate)
@@ -273,7 +274,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
         {
             var unpaid = Operating()
                 .AsNoTracking()
-                .Where(x => x.IsActive &&
+                .Where(x => x.IsActive && x.Side != FinancialSide.None &&
                             x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
                             > x.Payments.Sum(p => p.PaidAmount));
 
@@ -806,6 +807,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 query = query.Where(x =>
                     (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
                     < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
+            query = query
+                .WhereSupplierIn(options.SupplierIds)
+                .WhereBuyerIn(options.BuyerIds)
+                .WhereDocTypeIn(options.DocTypeIds)
+                .WherePaymentStatus(options.PaymentStatus);
 
             if (options.FromDate.HasValue || options.ToDate.HasValue)
             {

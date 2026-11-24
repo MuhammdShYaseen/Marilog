@@ -28,5 +28,13 @@ namespace Marilog.Contracts.DTOs.Reports.PaymentReports
 
         public decimal? MinAmount { get; set; }
         public decimal? MaxAmount { get; set; }
+
+        // ─── Multi-select (empty = all) ───
+        public List<int> SupplierIds { get; set; } = [];
+        public List<int> BuyerIds { get; set; } = [];
+        public List<int> DocTypeIds { get; set; } = [];
+
+        // Payment status of the payment's document. null = all
+        public DocumentPaymentStatus? PaymentStatus { get; set; }
     }
 }

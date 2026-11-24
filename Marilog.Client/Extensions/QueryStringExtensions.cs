@@ -11,7 +11,10 @@ namespace Marilog.Client.Extensions
             var props = filter.GetType()
                 .GetProperties()
                 .Where(p => p.GetValue(filter) != null)
-                .Select(p => $"{p.Name}={Uri.EscapeDataString(FormatValue(p.GetValue(filter)!))}");
+                .SelectMany(p => p.GetValue(filter) is System.Collections.IEnumerable list and not string
+                    // List<int> → Name=1&Name=2 (empty list → nothing)
+                    ? list.Cast<object>().Select(v => $"{p.Name}={Uri.EscapeDataString(FormatValue(v))}")
+                    : new[] { $"{p.Name}={Uri.EscapeDataString(FormatValue(p.GetValue(filter)!))}" });
 
             var qs = string.Join("&", props);
             return qs.Length > 0 ? $"?{qs}" : string.Empty;

@@ -13,10 +13,18 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
         public int? Month { get; set; }
         public int? LastDays { get; set; }
 
-        public DateOnly? FromDate { get; set; } 
+        public DateOnly? FromDate { get; set; }
         public DateOnly? ToDate { get; set; }
         public FinancialSide? Side { get; set; }
         public int? VoyageId { get; set; }
         public bool? IsDateOfPayment { get; set; }
+
+        // ─── Multi-select (empty = all). The single fields above stay for the Dashboard and Assets pages ───
+        public List<int> SupplierIds { get; set; } = [];
+        public List<int> BuyerIds { get; set; } = [];
+        public List<int> DocTypeIds { get; set; } = [];
+
+        // null = all
+        public DocumentPaymentStatus? PaymentStatus { get; set; }
     }
 }

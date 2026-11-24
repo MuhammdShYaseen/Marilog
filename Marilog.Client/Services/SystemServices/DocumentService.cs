@@ -330,7 +330,13 @@ namespace Marilog.Client.Services.SystemServices
 
             if (options.Side.HasValue)
                 parts.Add($"side={options.Side.Value}");
+            // Multi-select: repeated keys (supplierIds=1&supplierIds=2) bind to List<int> on the API
+            parts.AddRange(options.SupplierIds.Select(id => $"supplierIds={id}"));
+            parts.AddRange(options.BuyerIds.Select(id => $"buyerIds={id}"));
+            parts.AddRange(options.DocTypeIds.Select(id => $"docTypeIds={id}"));
 
+            if (options.PaymentStatus.HasValue)
+                parts.Add($"paymentStatus={options.PaymentStatus.Value}");
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
        

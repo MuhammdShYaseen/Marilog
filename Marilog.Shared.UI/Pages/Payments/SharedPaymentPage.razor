@@ -456,10 +456,14 @@
     [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
     [Parameter] public IReadOnlyList<VoyageLookupResponse> Voyages { get; set; } = [];
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
     [Parameter] public EventCallback<FilterPaymentOptionsRequest> OnPaymentReportRequested { get; set; }
     [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnDownloadPaymentPdf { get; set; }
 
     private FilterPaymentOptionsRequest _paymentFilter = new();
+    private IReadOnlyCollection<int> _supplierIds = [];
+    private IReadOnlyCollection<int> _buyerIds = [];
+    private IReadOnlyCollection<int> _docTypeIds = [];
     private PaymentsReport? _paymentReport;
     private bool _loadingPaymentReport;
     private DateTime? _paymentFromDateTime;
@@ -478,6 +482,10 @@
 
     private async Task RunPaymentReportAsync()
     {
+        _paymentFilter.SupplierIds = _supplierIds.ToList();
+        _paymentFilter.BuyerIds = _buyerIds.ToList();
+        _paymentFilter.DocTypeIds = _docTypeIds.ToList();
+
         _loadingPaymentReport = true;
         StateHasChanged();
         await OnPaymentReportRequested.InvokeAsync(_paymentFilter);
@@ -494,10 +502,19 @@
     private void ClearPaymentFilter()
     {
         _paymentFilter = new();
+        _supplierIds = [];
+        _buyerIds = [];
+        _docTypeIds = [];
         _paymentFromDateTime = null;
         _paymentToDateTime = null;
         _paymentReport = null;
     }
+
+    private string CompanyName(int id) =>
+        Companies.FirstOrDefault(c => c.Id == id)?.Name ?? $"#{id}";
+
+    private string DocTypeName(int id) =>
+        DocTypes.FirstOrDefault(t => t.Id == id)?.Name ?? $"#{id}";
 }
 
 <style>
