@@ -568,8 +568,8 @@
         if (Filter.Side.HasValue)
             parts.Add($"Type: {Filter.Side}");
 
-        if (Filter.UnpaidOnly)
-            parts.Add("Unpaid Only");
+        if (Filter.PaymentStatus.HasValue)
+            parts.Add($"Status: {Filter.PaymentStatus}");
 
         return parts.Count == 0 ? "No filters applied" : string.Join("  •  ", parts);
     }

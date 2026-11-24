@@ -25,9 +25,9 @@ namespace Marilog.Client.Services.SystemServices
             return response!.Data!;
         }
 
-        public async Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, int? vesselId = null, CancellationToken ct = default)
+        public async Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, List<int> vesselIds, CancellationToken ct = default)
         {
-            var query = $"?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + (vesselId.HasValue ? $"&vesselId={vesselId}" : "");
+            var query = $"?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}" + string.Concat(vesselIds.Select(id => $"&vesselIds={id}"));
             var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<VoyageChartPointResponse>>>(
                 $"api/operations/dashboard/voyage-summary{query}", ct);
             return response!.Data!;
@@ -45,7 +45,7 @@ namespace Marilog.Client.Services.SystemServices
             parts.AddRange(o.BuyerIds.Select(id => $"BuyerIds={id}"));
             parts.AddRange(o.VesselIds.Select(id => $"VesselIds={id}"));
             parts.AddRange(o.DocTypeIds.Select(id => $"DocTypeIds={id}"));
-            if (o.UnpaidOnly) parts.Add("UnpaidOnly=true");
+            if (o.PaymentStatus.HasValue) parts.Add($"PaymentStatus={o.PaymentStatus}");
             if (o.FromDate.HasValue) parts.Add($"FromDate={o.FromDate:yyyy-MM-dd}");
             if (o.ToDate.HasValue) parts.Add($"ToDate={o.ToDate:yyyy-MM-dd}");
             if (o.Side.HasValue) parts.Add($"Side={o.Side}");

@@ -49,10 +49,11 @@
             <MudSelectItem T="FinancialSide?" Value="@((FinancialSide?)FinancialSide.AssetSale)">Sale</MudSelectItem>
         </MudSelect>
 
-        <MudSelect T="int?"
-                   Value="_vesselId"
-                   ValueChanged="OnVesselChanged"
-                   Label="Vessel"
+        <MudSelect T="int" MultiSelection="true"
+                   @bind-SelectedValues="_vesselIds"
+                   @bind-SelectedValues:after="RaiseFilterAsync"
+                   ToStringFunc="VesselName"
+                   Label="Vessels"
                    Variant="Variant.Outlined"
                    Margin="Margin.Dense"
                    Dense="true"
@@ -60,15 +61,23 @@
                    Style="max-width:250px">
             @foreach (var v in Vessels)
             {
-                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                <MudSelectItem T="int" Value="v.Id">@v.Name</MudSelectItem>
             }
         </MudSelect>
 
-        <MudSwitch T="bool"
-                   Value="_unpaidOnly"
-                   ValueChanged="OnUnpaidOnlyChanged"
-                   Color="Color.Primary"
-                   Label="Unpaid only" />
+        <MudSelect T="DocumentPaymentStatus?"
+                   Value="_paymentStatus"
+                   ValueChanged="OnPaymentStatusChanged"
+                   Label="Payment Status"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Dense="true"
+                   Style="max-width:200px">
+            <MudSelectItem T="DocumentPaymentStatus?" Value="null">All</MudSelectItem>
+            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Paid">Paid</MudSelectItem>
+            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Unpaid">Unpaid</MudSelectItem>
+            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.PartiallyPaid">Partially Paid</MudSelectItem>
+        </MudSelect>
     </div>
 
     <DocumentTable Items="Items"
@@ -99,20 +108,22 @@
     [Parameter] public EventCallback<(DocumentFilterOptions Options, string? Search)> OnFilterChanged { get; set; }
 
     private FinancialSide? _side;
-    private int? _vesselId;
-    private bool _unpaidOnly;
+    private IReadOnlyCollection<int> _vesselIds = [];
+    private DocumentPaymentStatus? _paymentStatus;
     private string? _search;
 
     private Task OnSideChanged(FinancialSide? value) { _side = value; return RaiseFilterAsync(); }
-    private Task OnVesselChanged(int? value) { _vesselId = value; return RaiseFilterAsync(); }
-    private Task OnUnpaidOnlyChanged(bool value) { _unpaidOnly = value; return RaiseFilterAsync(); }
+    private Task OnPaymentStatusChanged(DocumentPaymentStatus? value) { _paymentStatus = value; return RaiseFilterAsync(); }
     private Task OnSearchChanged(string? value) { _search = value; return RaiseFilterAsync(); }
 
     private Task RaiseFilterAsync() =>
         OnFilterChanged.InvokeAsync((new DocumentFilterOptions
         {
             Side = _side,
-            VesselIds = _vesselId.HasValue ? [_vesselId.Value] : [],
-            UnpaidOnly = _unpaidOnly
+            VesselIds = _vesselIds.ToList(),
+            PaymentStatus = _paymentStatus
         }, _search));
+
+    private string VesselName(int id) =>
+        Vessels.FirstOrDefault(v => v.Id == id)?.Name ?? $"#{id}";
 }

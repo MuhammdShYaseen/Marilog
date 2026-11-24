@@ -122,18 +122,18 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .ToList();
         }
 
-        public async Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, int? vesselId = null, CancellationToken ct = default)
+        public async Task<IReadOnlyList<VoyageChartPointResponse>> GetVoyageSummaryAsync(DateOnly from, DateOnly to, List<int> vesselIds, CancellationToken ct = default)
         {
             var report = await _voyageService.GetVoyagesReportAsync(
                 new VoyageReportFilterOptions
                 {
                     FromDate = from.ToDateTime(TimeOnly.MinValue),
-                    ToDate = to.ToDateTime(TimeOnly.MaxValue),
-                    VesselId = vesselId
+                    ToDate = to.ToDateTime(TimeOnly.MaxValue)
                 },
                 ct);
 
             return report.Voyages
+                .Where(v => vesselIds.Count == 0 || vesselIds.Contains(v.VesselId))
                 .GroupBy(v => new { v.VoyageMonth.Year, v.VoyageMonth.Month })
                 .Select(g =>
                 {

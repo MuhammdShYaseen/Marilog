@@ -796,12 +796,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             else 
                 query = query.Where(x => x.Side == FinancialSide.Revenue || x.Side == FinancialSide.Expense);
 
-            if (options.UnpaidOnly == true)
-                query = query.Where(x =>
-                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
-                    < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
-           
-
             if (options.FromDate.HasValue || options.ToDate.HasValue)
             {
                 if (options.FromDate.HasValue)
@@ -1068,12 +1062,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .WhereBuyerIn(options.BuyerIds)
                 .WhereDocTypeIn(options.DocTypeIds)
                 .WhereVesselIn(options.VesselIds)
-                .WhereVoyageIn(options.VoyageIds);
-
-            if (options.UnpaidOnly)
-                query = query.Where(x =>
-                    (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
-                    < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
+                .WhereVoyageIn(options.VoyageIds)
+                .WherePaymentStatus(options.PaymentStatus);
 
             // Same date rules as the documents report: a range wins, then LastDays, then Year/Month.
             if (options.FromDate.HasValue || options.ToDate.HasValue)

@@ -34,41 +34,45 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="int?" Label="Vessel" @bind-Value="_vesselId" Clearable="true"
+                        <MudSelect T="int" MultiSelection="true" Label="Vessels" @bind-SelectedValues="_vesselIds"
+                                   ToStringFunc="VesselName" Clearable="true"
                                    Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var v in Vessels ?? [])
+                            @foreach (var x in Vessels ?? [])
                             {
-                                <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                                <MudSelectItem T="int" Value="x.Id">@x.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="int?" Label="Document Type" @bind-Value="_docTypeId" Clearable="true"
+                        <MudSelect T="int" MultiSelection="true" Label="Document Types" @bind-SelectedValues="_docTypeIds"
+                                   ToStringFunc="DocTypeName" Clearable="true"
                                    Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var t in DocTypes ?? [])
+                            @foreach (var x in DocTypes ?? [])
                             {
-                                <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                                <MudSelectItem T="int" Value="x.Id">@x.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="int?" Label="Supplier" @bind-Value="_supplierId" Clearable="true"
+                        <MudSelect T="int" MultiSelection="true" Label="Suppliers" @bind-SelectedValues="_supplierIds"
+                                   ToStringFunc="CompanyName" Clearable="true"
                                    Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var c in Companies ?? [])
+                            @foreach (var x in Companies ?? [])
                             {
-                                <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                                <MudSelectItem T="int" Value="x.Id">@x.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="int?" Label="Buyer" @bind-Value="_buyerId" Clearable="true"
+                        <MudSelect T="int" MultiSelection="true" Label="Buyers" @bind-SelectedValues="_buyerIds"
+                                   ToStringFunc="CompanyName" Clearable="true"
                                    Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var c in Companies ?? [])
+                            @foreach (var x in Companies ?? [])
                             {
-                                <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                                <MudSelectItem T="int" Value="x.Id">@x.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -81,11 +85,15 @@
                         </MudSelect>
                     </MudItem>
 
-                    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
-                        <MudCheckBox T="bool" @bind-Value="_unpaidOnly" Label="Unpaid Only"
-                                     Color="Color.Primary" Size="Size.Small" Class="az-filter-check" />
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="DocumentPaymentStatus?" Label="Payment Status" @bind-Value="_paymentStatus"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="null">All</MudSelectItem>
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Paid">Paid</MudSelectItem>
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Unpaid">Unpaid</MudSelectItem>
+                            <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.PartiallyPaid">Partially Paid</MudSelectItem>
+                        </MudSelect>
                     </MudItem>
-
                 </MudGrid>
 
                 <MudDivider Class="my-3" />
@@ -131,26 +139,18 @@
 
     private DateTime? _fromDate;
     private DateTime? _toDate;
-    private int? _vesselId;
-    private int? _docTypeId;
-    private int? _supplierId;
-    private int? _buyerId;
+    private IReadOnlyCollection<int> _vesselIds = [];
+    private IReadOnlyCollection<int> _docTypeIds = [];
+    private IReadOnlyCollection<int> _supplierIds = [];
+    private IReadOnlyCollection<int> _buyerIds = [];
     private FinancialSide? _side;
-    private bool _unpaidOnly;
+    private DocumentPaymentStatus? _paymentStatus;
     private bool _initialized;
 
     protected override void OnParametersSet()
     {
         if (_initialized) return;
-
-        _fromDate = Value.FromDate?.ToDateTime(TimeOnly.MinValue);
-        _toDate = Value.ToDate?.ToDateTime(TimeOnly.MinValue);
-        _vesselId = FirstOrNull(Value.VesselIds);
-        _docTypeId = FirstOrNull(Value.DocTypeIds);
-        _supplierId = FirstOrNull(Value.SupplierIds);
-        _buyerId = FirstOrNull(Value.BuyerIds);
-        _side = Value.Side;
-        _unpaidOnly = Value.UnpaidOnly;
+        Load(Value);
         _initialized = true;
     }
 
@@ -166,14 +166,7 @@
             var state = JsonSerializer.Deserialize<DocumentFilterOptions>(saved);
             if (state is null) return;
 
-            _fromDate = state.FromDate?.ToDateTime(TimeOnly.MinValue);
-            _toDate = state.ToDate?.ToDateTime(TimeOnly.MinValue);
-            _vesselId = FirstOrNull(state.VesselIds);
-            _docTypeId = FirstOrNull(state.DocTypeIds);
-            _supplierId = FirstOrNull(state.SupplierIds);
-            _buyerId = FirstOrNull(state.BuyerIds);
-            _side = state.Side;
-            _unpaidOnly = state.UnpaidOnly;
+            Load(state);
             StateHasChanged();
 
             await OnFilterChanged.InvokeAsync(state);
@@ -182,6 +175,18 @@
         {
             // Ignore any stale or corrupted localStorage data
         }
+    }
+
+    private void Load(DocumentFilterOptions o)
+    {
+        _fromDate = o.FromDate?.ToDateTime(TimeOnly.MinValue);
+        _toDate = o.ToDate?.ToDateTime(TimeOnly.MinValue);
+        _vesselIds = o.VesselIds;
+        _docTypeIds = o.DocTypeIds;
+        _supplierIds = o.SupplierIds;
+        _buyerIds = o.BuyerIds;
+        _side = o.Side;
+        _paymentStatus = o.PaymentStatus;
     }
 
     private void SetPreset(int months)
@@ -197,23 +202,27 @@
         {
             FromDate = _fromDate.HasValue ? DateOnly.FromDateTime(_fromDate.Value) : null,
             ToDate = _toDate.HasValue ? DateOnly.FromDateTime(_toDate.Value) : null,
-            VesselIds = AsList(_vesselId),
-            DocTypeIds = AsList(_docTypeId),
-            SupplierIds = AsList(_supplierId),
-            BuyerIds = AsList(_buyerId),
+            VesselIds = _vesselIds.ToList(),
+            DocTypeIds = _docTypeIds.ToList(),
+            SupplierIds = _supplierIds.ToList(),
+            BuyerIds = _buyerIds.ToList(),
             Side = _side,
-            UnpaidOnly = _unpaidOnly
+            PaymentStatus = _paymentStatus
         };
 
         await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, JsonSerializer.Serialize(options));
         await OnFilterChanged.InvokeAsync(options);
     }
-    
-    // The dashboard picks one value per filter; the DTO carries lists.
-    private static int? FirstOrNull(List<int> ids) => ids.Count > 0 ? ids[0] : null;
-    private static List<int> AsList(int? id) => id.HasValue ? [id.Value] : [];
-}
 
+    private string VesselName(int id) =>
+        Vessels?.FirstOrDefault(v => v.Id == id)?.Name ?? $"#{id}";
+
+    private string DocTypeName(int id) =>
+        DocTypes?.FirstOrDefault(t => t.Id == id)?.Name ?? $"#{id}";
+
+    private string CompanyName(int id) =>
+        Companies?.FirstOrDefault(c => c.Id == id)?.Name ?? $"#{id}";
+}
 <style>
     /* ── Filter panel (Azure command bar) ──────────────────── */
     .az-filter {

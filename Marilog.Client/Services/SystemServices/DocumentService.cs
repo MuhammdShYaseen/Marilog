@@ -305,9 +305,6 @@ namespace Marilog.Client.Services.SystemServices
             if (options.PaymentStatus.HasValue)
                 parts.Add($"paymentStatus={options.PaymentStatus.Value}");
 
-            if (options.UnpaidOnly)
-                parts.Add("unpaidOnly=true");
-
             if (options.LastDays.HasValue)
                 parts.Add($"lastDays={options.LastDays.Value}");
 

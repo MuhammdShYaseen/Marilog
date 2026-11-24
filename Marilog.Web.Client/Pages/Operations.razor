@@ -216,7 +216,7 @@ else
             var to = _filter.ToDate ?? DateOnly.FromDateTime(DateTime.Today);
 
             var t1 = DashboardService.GetFinancialSummaryAsync(_filter);
-            var t2 = DashboardService.GetVoyageSummaryAsync(from, to, _filter.VesselIds.Count > 0 ? _filter.VesselIds[0] : null);
+            var t2 = DashboardService.GetVoyageSummaryAsync(from, to, _filter.VesselIds);
             await Task.WhenAll(t1, t2);
             _financialData = t1.Result;
             _voyageData = t2.Result;

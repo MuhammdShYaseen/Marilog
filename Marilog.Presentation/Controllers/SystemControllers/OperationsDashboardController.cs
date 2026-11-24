@@ -46,9 +46,9 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         [RequirePermission(AppScreen.OperationalDashboard)]
         [HttpGet("voyage-summary")]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<VoyageChartPointResponse>>>> GetVoyageSummary(
-            [FromQuery] DateOnly from, [FromQuery] DateOnly to, [FromQuery] int? vesselId, CancellationToken ct)
+                       [FromQuery] DateOnly from, [FromQuery] DateOnly to, [FromQuery] List<int> vesselIds, CancellationToken ct)
         {
-            var data = await _service.GetVoyageSummaryAsync(from, to, vesselId, ct);
+            var data = await _service.GetVoyageSummaryAsync(from, to, vesselIds, ct);
             return Ok(ApiResponse<IReadOnlyList<VoyageChartPointResponse>>.Ok(data));
         }
         [Authorize]

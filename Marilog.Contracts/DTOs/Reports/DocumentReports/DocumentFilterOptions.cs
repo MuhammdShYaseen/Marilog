@@ -4,7 +4,6 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
 {
     public class DocumentFilterOptions
     {
-        public bool UnpaidOnly { get; set; }
         public int? Year { get; set; }
         public int? Month { get; set; }
         public int? LastDays { get; set; }
