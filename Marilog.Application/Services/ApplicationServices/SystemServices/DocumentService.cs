@@ -789,7 +789,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .WhereDocTypeIn(options.DocTypeIds)
                 .WhereVesselIn(options.VesselIds)
                 .WhereVoyageIn(options.VoyageIds)
-                .WherePaymentStatus(options.PaymentStatus);
+                .WherePaymentStatus(options.PaymentStatus)
+                .WhereDue(options.DueStatus, options.DueSoonDays);
 
             if (options.Side.HasValue)
                 query = query.Where(x => x.Side == options.Side.Value);
@@ -891,6 +892,10 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     NetAmount = x.TotalAmount + x.Adjustments,
                     PaidAmount = x.Paid,
                     Remaining = x.TotalAmount + x.Adjustments - x.Paid,
+                    // PaymentStatus is computed from these two — without them every row showed "Unpaid"
+                    TotalPaid = x.Paid,
+                    RemainingBalance = x.TotalAmount + x.Adjustments - x.Paid,
+                    IsFullyPaid = x.TotalAmount + x.Adjustments <= x.Paid,
                     CurrencyCode = x.CurrencyCode,
                     CurrencyId = x.CurrencyId,
 

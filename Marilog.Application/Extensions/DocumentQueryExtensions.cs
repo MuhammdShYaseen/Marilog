@@ -31,6 +31,29 @@ namespace Marilog.Application.Extensions
             };
         }
 
+        // Due filter: only documents that still owe money and have a due date.
+        internal static IQueryable<Document> WhereDue(
+            this IQueryable<Document> query, DueStatus? status, int dueSoonDays)
+        {
+            if (status is null) return query;
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var soon = today.AddDays(dueSoonDays);
+
+            query = query.Where(x =>
+                x.DocDue != null &&
+                (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
+                < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
+
+            return status switch
+            {
+                DueStatus.Overdue => query.Where(x => x.DocDue < today),
+                DueStatus.DueToday => query.Where(x => x.DocDue == today),
+                DueStatus.DueSoon => query.Where(x => x.DocDue >= today && x.DocDue <= soon),
+                _ => query
+            };
+        }
+
         // Multi-select filters: an empty list means "no filter".
         internal static IQueryable<Document> WhereSupplierIn(this IQueryable<Document> query, List<int> ids) =>
             ids.Count == 0 ? query : query.Where(x => x.SupplierId != null && ids.Contains(x.SupplierId.Value));

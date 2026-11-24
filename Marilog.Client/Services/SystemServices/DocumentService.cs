@@ -305,6 +305,11 @@ namespace Marilog.Client.Services.SystemServices
             if (options.PaymentStatus.HasValue)
                 parts.Add($"paymentStatus={options.PaymentStatus.Value}");
 
+            if (options.DueStatus.HasValue)
+            {
+                parts.Add($"dueStatus={options.DueStatus.Value}");
+                parts.Add($"dueSoonDays={options.DueSoonDays}");
+            }
             if (options.LastDays.HasValue)
                 parts.Add($"lastDays={options.LastDays.Value}");
 

@@ -495,6 +495,14 @@
         Paid = 2
     }
 
+    // Due filter: only documents that still have money owed and a due date.
+    public enum DueStatus
+    {
+        Overdue = 0,   // due date passed
+        DueToday = 1,  // due today
+        DueSoon = 2    // due from today up to N days ahead
+    }
+
     //=====Swift-=====
     public enum SwiftTransferStatus
     {

@@ -289,6 +289,31 @@
                             <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.PartiallyPaid">Partially Paid</MudSelectItem>
                         </MudSelect>
                     </MudItem>
+                    
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="DueStatus?"
+                                   @bind-Value="_filter.DueStatus"
+                                   Label="Due"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense">
+                            <MudSelectItem T="DueStatus?" Value="null">All</MudSelectItem>
+                            <MudSelectItem T="DueStatus?" Value="DueStatus.Overdue">Overdue</MudSelectItem>
+                            <MudSelectItem T="DueStatus?" Value="DueStatus.DueToday">Due today</MudSelectItem>
+                            <MudSelectItem T="DueStatus?" Value="DueStatus.DueSoon">Due within days…</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    @if (_filter.DueStatus == DueStatus.DueSoon)
+                    {
+                        <MudItem xs="12" sm="6" md="2">
+                            <MudNumericField T="int"
+                                             @bind-Value="_filter.DueSoonDays"
+                                             Label="Within days"
+                                             Min="1" Max="365"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense" />
+                        </MudItem>
+                    }
             <MudItem xs="12" sm="6" md="3">
                 <MudDatePicker Date="_fromDateTime"
                                DateChanged="v => { _filter.FromDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; }"

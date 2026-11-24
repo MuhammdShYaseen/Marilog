@@ -22,5 +22,9 @@ namespace Marilog.Contracts.DTOs.Reports.DocumentReports
 
         // null = all
         public DocumentPaymentStatus? PaymentStatus { get; set; }
+
+        // null = all. DueSoonDays is used only with DueStatus.DueSoon
+        public DueStatus? DueStatus { get; set; }
+        public int DueSoonDays { get; set; } = 10;
     }
 }
