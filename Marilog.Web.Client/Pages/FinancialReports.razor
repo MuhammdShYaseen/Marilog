@@ -3,6 +3,7 @@
 <PageTitle>Financial Reports</PageTitle>
 @using Kernel.Enums
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Reports.PaymentReports
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
 @using Marilog.Contracts.Interfaces.Services.SystemServices
@@ -10,6 +11,8 @@
 @using Marilog.Web.Client.Services.Interfaces
 @using MudBlazor
 @inject IDocumentService DocumentService
+@inject IPaymentService PaymentService
+@inject IVoyageService VoyageService
 @inject IVesselService VesselService
 @inject ICompanyService CompanyService
 @inject IDocumentTypeService DocTypeService
@@ -27,10 +30,13 @@
 
 <SharedFinancialReportsPage Companies="_companies"
                             Vessels="_vessels"
+                            Voyages="_voyages"
                             DocTypes="_docTypes"
                             Currencies="_currencies"
                             OnRunReport="@(filter => DocumentService.GetFilteredDocsReportAsync(filter))"
                             OnExportPdf="ExportPdfAsync"
+                            OnRunPaymentReport="@(filter => PaymentService.GetPaymentsReportAsync(filter))"
+                            OnExportPaymentPdf="ExportPaymentPdfAsync"
                             OnLoadAging="@(() => DocumentService.GetAgingAsync())"
                             OnLoadStatement="@((seller, buyer, fromDate, toDate) => DocumentService.GetStatementAsync(seller, buyer, fromDate, toDate))"
                             OnBaseCurrencyChanged="ChangeBaseCurrencyAsync"
@@ -40,6 +46,7 @@
 @code {
     private IReadOnlyList<CompanyResponse> _companies = [];
     private IReadOnlyList<VesselLookupResponse> _vessels = [];
+    private IReadOnlyList<VoyageLookupResponse> _voyages = [];
     private IReadOnlyList<DocumentTypeResponse> _docTypes = [];
     private IReadOnlyList<CurrencyResponse> _currencies = [];
     private bool _loading = true;
@@ -52,13 +59,15 @@
             var t2 = VesselService.GetAllAsLookUpAsync();
             var t3 = DocTypeService.GetActiveAsync();
             var t4 = CurrencyService.GetActiveAsync();
+            var t5 = VoyageService.GetAllLookupAsync();
 
-            await Task.WhenAll(t1, t2, t3, t4);
+            await Task.WhenAll(t1, t2, t3, t4, t5);
 
             _companies = t1.Result;
             _vessels = t2.Result;
             _docTypes = t3.Result;
             _currencies = t4.Result;
+            _voyages = t5.Result;
         }
         catch (Exception ex)
         {
@@ -73,6 +82,12 @@
     private async Task ExportPdfAsync((DocumentReport report, string title, string fileName) args)
     {
         var bytes = await PdfService.GenerateDocumentReportPdf(args.report, args.title);
+        await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", Convert.ToBase64String(bytes));
+    }
+
+    private async Task ExportPaymentPdfAsync((PaymentsReport report, string title, string fileName) args)
+    {
+        var bytes = await PdfService.GeneratePaymentReportPdf(args.report, args.title);
         await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", Convert.ToBase64String(bytes));
     }
 

@@ -4,8 +4,7 @@
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Payments
 
-<MudPaper Class="pa-4" Elevation="0">
-    <MudText Typo="Typo.h5" Class="mb-2">Payments</MudText>
+@* Payments report: filters, summary and the payment list. *@
 
     @* ── Filter Bar ──────────────────────────────────────── *@
     <MudPaper Class="pa-4 mb-4 wa-rpt-panel" Elevation="0">
@@ -202,7 +201,7 @@
                                DisableElevation="true"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                               OnClick="@(() => OnDownloadPaymentPdf.InvokeAsync((_paymentReport!, "Payment Report", "PaymentReport")))">
+                               OnClick="@(() => OnExportPdf.InvokeAsync((_paymentReport!, "Payment Report", $"PaymentReport_{DateTime.Now:yyyyMMdd_HHmm}.pdf")))">
                         Save as PDF
                     </MudButton>
                 }
@@ -481,15 +480,13 @@
         </MudTable>
     }
 
-</MudPaper>
-
 @code {
     [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
     [Parameter] public IReadOnlyList<VoyageLookupResponse> Voyages { get; set; } = [];
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
-    [Parameter] public EventCallback<FilterPaymentOptionsRequest> OnPaymentReportRequested { get; set; }
-    [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnDownloadPaymentPdf { get; set; }
+    [Parameter] public Func<FilterPaymentOptionsRequest, Task<PaymentsReport>>? OnRun { get; set; }
+    [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnExportPdf { get; set; }
 
     private FilterPaymentOptionsRequest _paymentFilter = new();
     private IReadOnlyCollection<int> _supplierIds = [];
@@ -513,8 +510,17 @@
             ? Voyages
             : Voyages.Where(v => _vesselIds.Contains(v.VesselId));
 
+    /// <summary>Runs the report again if one is shown (used after the base currency changes).</summary>
+    public async Task ReloadAsync()
+    {
+        if (_paymentReport is not null)
+            await RunPaymentReportAsync();
+    }
+
     private async Task RunPaymentReportAsync()
     {
+        if (OnRun is null) return;
+
         _paymentFilter.SupplierIds = _supplierIds.ToList();
         _paymentFilter.BuyerIds = _buyerIds.ToList();
         _paymentFilter.DocTypeIds = _docTypeIds.ToList();
@@ -523,15 +529,15 @@
 
         _loadingPaymentReport = true;
         StateHasChanged();
-        await OnPaymentReportRequested.InvokeAsync(_paymentFilter);
-        _loadingPaymentReport = false;
-    }
-
-    public void SetPaymentReport(PaymentsReport report)
-    {
-        _paymentReport = report;
-        _loadingPaymentReport = false;
-        StateHasChanged();
+        try
+        {
+            _paymentReport = await OnRun.Invoke(_paymentFilter);
+        }
+        finally
+        {
+            _loadingPaymentReport = false;
+            StateHasChanged();
+        }
     }
 
     private void ClearPaymentFilter()

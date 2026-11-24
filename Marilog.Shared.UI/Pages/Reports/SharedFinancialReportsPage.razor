@@ -1,7 +1,9 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Reports.PaymentReports
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.Documents
+@using Marilog.Shared.UI.Pages.Payments
 @using MudBlazor
 @namespace Marilog.Shared.UI.Pages.Reports
 
@@ -28,7 +30,18 @@
                                  @ref="_reportPanel" />
         </MudTabPanel>
 
-        @* ── Aging (tab index 1) ──────────────────────────────── *@
+        @* ── Payments report ───────────────────────────────────── *@
+        <MudTabPanel Text="Payments Report">
+            <PaymentReportPanel Companies="Companies"
+                                Vessels="Vessels"
+                                Voyages="Voyages"
+                                DocTypes="DocTypes"
+                                OnRun="OnRunPaymentReport"
+                                OnExportPdf="OnExportPaymentPdf"
+                                @ref="_paymentPanel" />
+        </MudTabPanel>
+
+        @* ── Aging (tab index 2) ──────────────────────────────── *@
         <MudTabPanel Text="Aging">
             <div class="d-flex justify-end mb-2">
                 <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
@@ -51,20 +64,24 @@
 @code {
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<VoyageLookupResponse> Voyages { get; set; } = [];
     [Parameter] public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
     [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
 
     [Parameter] public Func<DocumentFilterOptions, Task<DocumentReport>>? OnRunReport { get; set; }
     [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdf { get; set; }
+    [Parameter] public Func<FilterPaymentOptionsRequest, Task<PaymentsReport>>? OnRunPaymentReport { get; set; }
+    [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnExportPaymentPdf { get; set; }
     [Parameter] public Func<Task<AgingReport>>? OnLoadAging { get; set; }
     [Parameter] public Func<int, int, DateOnly?, DateOnly?, Task<StatementReport>>? OnLoadStatement { get; set; }
     [Parameter] public EventCallback<int> OnBaseCurrencyChanged { get; set; }
     [Parameter] public EventCallback<int> OnOpenDocument { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
-    private const int AgingTabIndex = 1;
+    private const int AgingTabIndex = 2;
     private AgingReport? _aging;
     private DocumentReportPanel? _reportPanel;
+    private PaymentReportPanel? _paymentPanel;
     private StatementPanel? _statementPanel;
 
     private async Task OnTabChanged(int index)
@@ -90,6 +107,7 @@
 
         // Reload whatever is already shown, so every total is in the new base.
         if (_reportPanel is not null) await _reportPanel.ReloadAsync();
+        if (_paymentPanel is not null) await _paymentPanel.ReloadAsync();
         if (_aging is not null) await LoadAgingAsync();
         if (_statementPanel is not null) await _statementPanel.ReloadAsync();
     }
