@@ -34,7 +34,17 @@
                            OnPageChanged="OnUnpaidPageChanged"
                            OnManageAttachedFilesClicked="OnManageAttachedFilesClicked" />
         </MudTabPanel>
-
+        @* ── Aging (tab index 1 — keep it right after Unpaid) ─── *@
+        <MudTabPanel Text="Aging">
+            <div class="d-flex justify-end mb-2">
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAgingAsync">
+                    Refresh
+                </MudButton>
+            </div>
+            <AgingTables Report="_aging" />
+        </MudTabPanel>
         @* ── Last Added ────────────────────────────────────────────── *@
         <MudTabPanel Text="Last Added">
 
@@ -725,6 +735,7 @@
     [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdfRequested { get; set; }
     [Parameter] public Func<string, bool, Task<IReadOnlyList<DocumentResponse>>>? OnSearch { get; set; }
     [Parameter] public Func<int, bool, Task<IReadOnlyList<DocumentResponse>>>? OnLoadLastAdded { get; set; }
+    [Parameter] public Func<Task<AgingReport>>? OnLoadAging { get; set; }
     [Parameter] public int UnpaidPage { get; set; } = 1;
     [Parameter] public int UnpaidTotalPages { get; set; }
     [Parameter] public EventCallback<int> OnUnpaidPageChanged { get; set; }
@@ -748,6 +759,8 @@
     private bool _searchingDocuments;
     private IReadOnlyList<DocumentResponse> _searchResults = [];
     private IReadOnlyList<DocumentResponse> _lastAddResult = [];
+    private const int AgingTabIndex = 1;
+    private AgingReport? _aging;
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
 
@@ -769,10 +782,23 @@
         OnTypeSelected.InvokeAsync(typeId);
     }
 
-    private void OnTabChanged(int index)
+    private async Task OnTabChanged(int index)
     {
         _selectedVesselId = null;
         _selectedSupplierId = null;
+
+        // Load Aging the first time its tab is opened; Refresh reloads it.
+        if (index == AgingTabIndex && _aging is null)
+            await LoadAgingAsync();
+    }
+
+    private async Task LoadAgingAsync()
+    {
+        if (OnLoadAging is null) return;
+
+        _aging = null;          // shows the loading bar
+        StateHasChanged();
+        _aging = await OnLoadAging.Invoke();
     }
 
     private async Task RunReportAsync()

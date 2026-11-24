@@ -118,6 +118,7 @@ else
                      OnExportPdfRequested="HandleExportPdfAsync"
                      OnSearch="HandelSearchAsync"
                      OnLoadLastAdded="HandelGetLastAddAsync"
+                     OnLoadAging="@(() => DocumentService.GetAgingAsync())"
                      UnpaidPage="_unpaidPage"
                      UnpaidTotalPages="_unpaidTotalPages"
                      OnUnpaidPageChanged="LoadUnpaidPageAsync"

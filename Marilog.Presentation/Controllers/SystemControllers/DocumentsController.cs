@@ -126,6 +126,16 @@ namespace Marilog.Presentation.Controllers.SystemControllers
         }
 
 
+
+        // All open operating documents as of today, split by days past due. No filters.
+        [HttpGet("aging")]
+        public async Task<ActionResult<AgingReport>> GetAging(CancellationToken ct)
+        {
+            var report = await _service.GetAgingAsync(ct);
+            return Ok(ApiResponse<AgingReport>.Ok(report));
+        }
+
+
         // GET api/documents/assets?page=1&pageSize=20&side=AssetPurchase&vesselId=3 ...
         [HttpGet("assets")]
         public async Task<ActionResult<PagedResponse<DocumentResponse>>> GetFilteredAssets(

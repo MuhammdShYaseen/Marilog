@@ -342,6 +342,86 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 TotalPages = pages.Count
             };
         }
+
+
+        // ══ Aging ═════════════════════════════════════════════════════════════════
+        // All open operating documents as of today — no filters.
+        // Expenses = expense docs by supplier, Revenues = revenue docs by buyer.
+        public async Task<AgingReport> GetAgingAsync(CancellationToken ct = default)
+        {
+            var baseRate = await GetBaseCurrencyExchangeRate(ct);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            var open = await Operating()
+                .AsNoTracking()
+                .Where(x => x.IsActive &&
+                            (x.Side == FinancialSide.Revenue || x.Side == FinancialSide.Expense) &&
+                            (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
+                            < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m))
+                .Select(x => new
+                {
+                    x.Side,
+                    x.SupplierId,
+                    SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
+                    x.BuyerId,
+                    BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
+                    x.DocDate,
+                    x.DocDue,
+                    Remaining = x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m)
+                              - (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m),
+                    x.Currency.ExchangeRate
+                })
+                .ToListAsync(ct);
+
+            var payables = open
+                .Where(x => x.Side == FinancialSide.Expense)
+                .Select(x => (x.SupplierId, x.SupplierName, x.DocDue ?? x.DocDate, x.Remaining * x.ExchangeRate / baseRate.ExchangeRate));
+
+            var receivables = open
+                .Where(x => x.Side == FinancialSide.Revenue)
+                .Select(x => (x.BuyerId, x.BuyerName, x.DocDue ?? x.DocDate, x.Remaining * x.ExchangeRate / baseRate.ExchangeRate));
+
+            return new AgingReport
+            {
+                AsOf = today,
+                BaseCurrencyCode = baseRate.Code,
+                Expenses = BuildAging(payables, today),
+                Revenues = BuildAging(receivables, today)
+            };
+        }
+
+        // Groups open amounts by company and puts each one in a bucket by days past due.
+        // A document with no due date is treated as due on its document date.
+        private static List<AgingRow> BuildAging(
+            IEnumerable<(int? CompanyId, string? CompanyName, DateOnly Due, decimal Amount)> docs,
+            DateOnly today)
+        {
+            return docs
+                .GroupBy(d => d.CompanyId ?? 0)
+                .Select(g =>
+                {
+                    var row = new AgingRow
+                    {
+                        CompanyId = g.Key,
+                        CompanyName = g.First().CompanyName ?? "—"
+                    };
+
+                    foreach (var d in g)
+                    {
+                        var daysLate = today.DayNumber - d.Due.DayNumber;
+
+                        if (daysLate <= 0) row.NotDue += d.Amount;
+                        else if (daysLate <= 30) row.Days1To30 += d.Amount;
+                        else if (daysLate <= 60) row.Days31To60 += d.Amount;
+                        else if (daysLate <= 90) row.Days61To90 += d.Amount;
+                        else row.Over90 += d.Amount;
+                    }
+
+                    return row;
+                })
+                .OrderByDescending(r => r.Total)
+                .ToList();
+        }
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(
             int parentDocumentId, CancellationToken ct = default)
         {

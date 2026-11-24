@@ -1,0 +1,72 @@
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+@* Aging: open balances as of today, split by days past due. Base currency. *@
+
+@if (Report is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!Report.Expenses.Any() && !Report.Revenues.Any())
+{
+    <MudText Typo="Typo.body2" Class="pa-4">No open balances.</MudText>
+}
+else
+{
+    <MudText Typo="Typo.caption" Class="mb-2 d-block">
+        As of @Report.AsOf.ToString("dd MMM yyyy") — amounts in @Report.BaseCurrencyCode.
+        Documents with no due date are counted from their document date.
+    </MudText>
+
+    @foreach (var (title, party, rows) in new[]
+{
+        ("Expenses", "Supplier", Report.Expenses),
+        ("Revenues", "Buyer", Report.Revenues)
+    })
+    {
+        if (!rows.Any()) continue;
+
+        <MudText Typo="Typo.subtitle1" Class="mt-2 mb-1"><b>@title</b></MudText>
+        <MudTable Items="rows" Dense="true" Hover="true" Elevation="0" Class="mb-4">
+            <HeaderContent>
+                <MudTh>@party</MudTh>
+                <MudTh Style="text-align:right">Not due</MudTh>
+                <MudTh Style="text-align:right">1–30</MudTh>
+                <MudTh Style="text-align:right">31–60</MudTh>
+                <MudTh Style="text-align:right">61–90</MudTh>
+                <MudTh Style="text-align:right">+90</MudTh>
+                <MudTh Style="text-align:right">Total</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CompanyName</MudTd>
+                <MudTd Style="text-align:right">@Cell(context.NotDue)</MudTd>
+                <MudTd Style="@LateStyle(context.Days1To30)">@Cell(context.Days1To30)</MudTd>
+                <MudTd Style="@LateStyle(context.Days31To60)">@Cell(context.Days31To60)</MudTd>
+                <MudTd Style="@LateStyle(context.Days61To90)">@Cell(context.Days61To90)</MudTd>
+                <MudTd Style="@LateStyle(context.Over90)">@Cell(context.Over90)</MudTd>
+                <MudTd Style="text-align:right"><b>@context.Total.ToString("N2")</b></MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd><b>Total</b></MudTd>
+                <MudTd Style="text-align:right"><b>@rows.Sum(r => r.NotDue).ToString("N2")</b></MudTd>
+                <MudTd Style="text-align:right"><b>@rows.Sum(r => r.Days1To30).ToString("N2")</b></MudTd>
+                <MudTd Style="text-align:right"><b>@rows.Sum(r => r.Days31To60).ToString("N2")</b></MudTd>
+                <MudTd Style="text-align:right"><b>@rows.Sum(r => r.Days61To90).ToString("N2")</b></MudTd>
+                <MudTd Style="text-align:right"><b>@rows.Sum(r => r.Over90).ToString("N2")</b></MudTd>
+                <MudTd Style="text-align:right"><b>@rows.Sum(r => r.Total).ToString("N2")</b></MudTd>
+            </FooterContent>
+        </MudTable>
+    }
+}
+
+@code {
+    /// <summary>null = still loading.</summary>
+    [Parameter] public AgingReport? Report { get; set; }
+
+    // Empty cell instead of 0.00 so the late amounts stand out.
+    private static string Cell(decimal amount) => amount == 0 ? "" : amount.ToString("N2");
+
+    private static string LateStyle(decimal amount) =>
+        amount == 0 ? "text-align:right" : "text-align:right; color:var(--mud-palette-error)";
+}

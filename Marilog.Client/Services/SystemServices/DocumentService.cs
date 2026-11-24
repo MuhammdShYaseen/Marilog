@@ -93,7 +93,11 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetCheckedAsync<ApiResponse<IReadOnlyList<DocumentResponse>>>($"{Base}/unpaid?treeView={treeView}", ct);
             return response?.Data ?? [];
         }
-
+        public async Task<AgingReport> GetAgingAsync(CancellationToken ct = default)
+        {
+            var response = await _http.GetCheckedAsync<ApiResponse<AgingReport>>($"{Base}/aging", ct);
+            return response?.Data ?? new AgingReport();
+        }
         public async Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default)
         {
             var url = $"{Base}/unpaid/paged?page={request.Page}&pageSize={request.PageSize}&treeView={treeView}";
