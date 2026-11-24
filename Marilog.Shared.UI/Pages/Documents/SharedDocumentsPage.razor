@@ -5,7 +5,29 @@
 @namespace Marilog.Shared.UI.Pages.Documents
 
 <MudPaper Class="pa-4" Elevation="0">
-    <MudText Typo="Typo.h5" Class="mb-2">Documents</MudText>
+    <div class="d-flex align-center mb-2">
+        <MudText Typo="Typo.h5">Documents</MudText>
+        <MudSpacer />
+
+        @* Base currency: all totals on this page are shown in it *@
+        <MudMenu Label="@($"Base: {BaseCurrencyCode}")"
+                 StartIcon="@Icons.Material.Filled.CurrencyExchange"
+                 EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                 Variant="Variant.Outlined"
+                 Color="Color.Primary"
+                 Size="Size.Small"
+                 Dense="true"
+                 AnchorOrigin="Origin.BottomRight"
+                 TransformOrigin="Origin.TopRight">
+            @foreach (var c in Currencies)
+            {
+                <MudMenuItem OnClick="@(() => ChangeBaseCurrencyAsync(c.Id))"
+                             Icon="@(c.IsBaseCurrency ? Icons.Material.Filled.Check : null)">
+                    <b>@c.Code</b> — @c.Name
+                </MudMenuItem>
+            }
+        </MudMenu>
+    </div>
 
     <div class="d-flex align-center gap-1 mb-3 pb-1"
          style="border-bottom:1px solid var(--mud-palette-lines-default);">
@@ -19,6 +41,7 @@
                    OnClick="@(() => OnImportFromPdf.InvokeAsync())">
             Import from PDF
         </MudButton>
+        
     </div>
 
     <MudTabs ActivePanelIndexChanged="OnTabChanged" Elevation="0" Rounded="true" Class="mb-3">
@@ -44,6 +67,12 @@
                 </MudButton>
             </div>
             <AgingTables Report="_aging" />
+        </MudTabPanel>
+
+        
+        @* ── Statement of account ─────────────────────────────── *@
+        <MudTabPanel Text="Statement">
+            <StatementPanel Companies="Companies" OnLoad="OnLoadStatement" @ref="_statementPanel" />
         </MudTabPanel>
         @* ── Last Added ────────────────────────────────────────────── *@
         <MudTabPanel Text="Last Added">
@@ -736,6 +765,9 @@
     [Parameter] public Func<string, bool, Task<IReadOnlyList<DocumentResponse>>>? OnSearch { get; set; }
     [Parameter] public Func<int, bool, Task<IReadOnlyList<DocumentResponse>>>? OnLoadLastAdded { get; set; }
     [Parameter] public Func<Task<AgingReport>>? OnLoadAging { get; set; }
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public EventCallback<int> OnBaseCurrencyChanged { get; set; }
+    [Parameter] public Func<int, int, DateOnly?, DateOnly?, Task<StatementReport>>? OnLoadStatement { get; set; }
     [Parameter] public int UnpaidPage { get; set; } = 1;
     [Parameter] public int UnpaidTotalPages { get; set; }
     [Parameter] public EventCallback<int> OnUnpaidPageChanged { get; set; }
@@ -761,6 +793,7 @@
     private IReadOnlyList<DocumentResponse> _lastAddResult = [];
     private const int AgingTabIndex = 1;
     private AgingReport? _aging;
+    private StatementPanel? _statementPanel;
     private void OnDocumentClick(DocumentResponse doc) =>
         OnDocumentSelected.InvokeAsync(doc.Id);
 
@@ -800,7 +833,23 @@
         StateHasChanged();
         _aging = await OnLoadAging.Invoke();
     }
+    private int? BaseCurrencyId => Currencies.FirstOrDefault(c => c.IsBaseCurrency)?.Id;
+    private string BaseCurrencyCode => Currencies.FirstOrDefault(c => c.IsBaseCurrency)?.Code ?? "—";
 
+    // Base currency only changes how totals are converted; stored amounts stay as they are.
+    private async Task ChangeBaseCurrencyAsync(int? currencyId)
+    {
+        if (currencyId is null || currencyId == BaseCurrencyId) return;
+
+        await OnBaseCurrencyChanged.InvokeAsync(currencyId.Value);   // host saves it and reloads its lists
+
+        // Reload what this page holds, so every total shows in the new base.
+        if (_aging is not null) await LoadAgingAsync();
+        if (_documentReport is not null) await RunReportAsync();
+        if (_lastAddResult.Count > 0) await RunGetLastAddAsync();
+        if (_searchResults.Count > 0) await RunSearchAsync();
+        if (_statementPanel is not null) await _statementPanel.ReloadAsync();
+    }
     private async Task RunReportAsync()
     {
         _filter.SupplierIds = _supplierIds.ToList();

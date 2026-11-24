@@ -98,6 +98,15 @@ namespace Marilog.Client.Services.SystemServices
             var response = await _http.GetCheckedAsync<ApiResponse<AgingReport>>($"{Base}/aging", ct);
             return response?.Data ?? new AgingReport();
         }
+        public async Task<StatementReport> GetStatementAsync(int sellerId, int buyerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        {
+            var url = $"{Base}/statement?sellerId={sellerId}&buyerId={buyerId}";
+            if (from.HasValue) url += $"&from={from.Value:yyyy-MM-dd}";
+            if (to.HasValue) url += $"&to={to.Value:yyyy-MM-dd}";
+
+            var response = await _http.GetCheckedAsync<ApiResponse<StatementReport>>(url, ct);
+            return response?.Data ?? new StatementReport();
+        }
         public async Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default)
         {
             var url = $"{Base}/unpaid/paged?page={request.Page}&pageSize={request.PageSize}&treeView={treeView}";

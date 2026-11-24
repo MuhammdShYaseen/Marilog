@@ -119,6 +119,9 @@ else
                      OnSearch="HandelSearchAsync"
                      OnLoadLastAdded="HandelGetLastAddAsync"
                      OnLoadAging="@(() => DocumentService.GetAgingAsync())"
+                     OnLoadStatement="@((seller, buyer, fromDate, toDate) => DocumentService.GetStatementAsync(seller, buyer, fromDate, toDate))"
+                     Currencies="_currencies"
+                     OnBaseCurrencyChanged="ChangeBaseCurrencyAsync"
                      UnpaidPage="_unpaidPage"
                      UnpaidTotalPages="_unpaidTotalPages"
                      OnUnpaidPageChanged="LoadUnpaidPageAsync"
@@ -578,7 +581,27 @@ else
             Snackbar.Add(ex.Message, Severity.Error);
         }
     }
+    // Saves the new base currency, then reloads the lists this page holds.
+    private async Task ChangeBaseCurrencyAsync(int currencyId)
+    {
+        try
+        {
+            await CurrencyService.SetAsBaseAsync(currencyId);
+            _currencies = await CurrencyService.GetActiveAsync();
 
+            await LoadUnpaidPageAsync(_unpaidPage);
+            await LoadByVessel(_selectedVesselId);
+            await LoadBySupplier(_selectedSupplierId);
+            await LoadByType(_selectedTypeId);
+
+            var code = _currencies.FirstOrDefault(c => c.Id == currencyId)?.Code;
+            Snackbar.Add($"Base currency is now {code}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
 
     private async Task LoadUnpaidPageAsync(int page)
     {

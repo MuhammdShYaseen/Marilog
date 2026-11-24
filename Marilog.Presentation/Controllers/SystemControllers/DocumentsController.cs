@@ -135,6 +135,15 @@ namespace Marilog.Presentation.Controllers.SystemControllers
             return Ok(ApiResponse<AgingReport>.Ok(report));
         }
 
+        // Statement of account between a seller and a buyer. from/to are optional.
+        [HttpGet("statement")]
+        public async Task<ActionResult<StatementReport>> GetStatement(
+            [FromQuery] int sellerId, [FromQuery] int buyerId,
+            [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+        {
+            var report = await _service.GetStatementAsync(sellerId, buyerId, from, to, ct);
+            return Ok(ApiResponse<StatementReport>.Ok(report));
+        }
 
         // GET api/documents/assets?page=1&pageSize=20&side=AssetPurchase&vesselId=3 ...
         [HttpGet("assets")]

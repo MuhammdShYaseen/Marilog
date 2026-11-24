@@ -422,6 +422,88 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .OrderByDescending(r => r.Total)
                 .ToList();
         }
+
+
+        // ══ Statement of account ══════════════════════════════════════════════════
+        // Every document between the two parties (both directions, all sides except None),
+        // with its adjustments and payments as separate lines, in base currency.
+        // Debit = the buyer owes more, Credit = the buyer owes less.
+        public async Task<StatementReport> GetStatementAsync(
+            int sellerId, int buyerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        {
+            var baseRate = await GetBaseCurrencyExchangeRate(ct);
+
+            var docs = await _repo.Query()
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.Side != FinancialSide.None &&
+                            ((x.SupplierId == sellerId && x.BuyerId == buyerId) ||
+                             (x.SupplierId == buyerId && x.BuyerId == sellerId)))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.DocNumber,
+                    DocTypeName = x.DocType != null ? x.DocType.Name : null,
+                    x.DocDate,
+                    x.TotalAmount,
+                    IssuedBySeller = x.SupplierId == sellerId,
+                    x.Currency.ExchangeRate,
+                    Adjustments = x.Adjustments.Select(a => new { a.AdjustmentDate, a.Amount, a.Reason }).ToList(),
+                    Payments = x.Payments.Select(p => new { p.PaymentDate, p.PaidAmount, p.PaymentMethod }).ToList()
+                })
+                .ToListAsync(ct);
+
+            // (date, order within the day, line) — signed amount: + = buyer owes more
+            var entries = new List<(DateOnly Date, int Order, string Description, int DocumentId, decimal Amount)>();
+
+            foreach (var d in docs)
+            {
+                var toBase = d.ExchangeRate / baseRate.ExchangeRate;
+                var sign = d.IssuedBySeller ? 1m : -1m;   // a document the buyer issued counts the other way
+                var name = $"{d.DocTypeName} {d.DocNumber}".Trim();
+
+                entries.Add((d.DocDate, 0, name, d.Id, d.TotalAmount * toBase * sign));
+
+                foreach (var a in d.Adjustments)
+                    entries.Add((a.AdjustmentDate, 1, $"Adjustment — {d.DocNumber}{(string.IsNullOrWhiteSpace(a.Reason) ? "" : ": " + a.Reason)}",
+                                 d.Id, a.Amount * toBase * sign));
+
+                foreach (var p in d.Payments)
+                    entries.Add((p.PaymentDate, 2, $"Payment ({p.PaymentMethod}) — {d.DocNumber}",
+                                 d.Id, -p.PaidAmount * toBase * sign));
+            }
+
+            var ordered = entries.OrderBy(e => e.Date).ThenBy(e => e.Order).ThenBy(e => e.DocumentId).ToList();
+
+            var opening = ordered.Where(e => from.HasValue && e.Date < from.Value).Sum(e => e.Amount);
+            var balance = opening;
+            var lines = new List<StatementLine>();
+
+            foreach (var e in ordered.Where(e => (!from.HasValue || e.Date >= from.Value) && (!to.HasValue || e.Date <= to.Value)))
+            {
+                balance += e.Amount;
+                lines.Add(new StatementLine
+                {
+                    Date = e.Date,
+                    Description = e.Description,
+                    DocumentId = e.DocumentId,
+                    Debit = e.Amount > 0 ? e.Amount : 0m,
+                    Credit = e.Amount < 0 ? -e.Amount : 0m,
+                    Balance = balance
+                });
+            }
+
+            return new StatementReport
+            {
+                From = from,
+                To = to,
+                BaseCurrencyCode = baseRate.Code,
+                OpeningBalance = opening,
+                TotalDebit = lines.Sum(l => l.Debit),
+                TotalCredit = lines.Sum(l => l.Credit),
+                ClosingBalance = balance,
+                Lines = lines
+            };
+        }
         public async Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(
             int parentDocumentId, CancellationToken ct = default)
         {

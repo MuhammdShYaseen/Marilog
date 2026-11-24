@@ -25,6 +25,7 @@ namespace Marilog.Contracts.Interfaces.Services.SystemServices
         Task<IReadOnlyList<DocumentResponse>> GetByTypeAsync(int docTypeId, bool treeView = false, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetUnpaidAsync(bool treeView = false, CancellationToken ct = default);
         Task<AgingReport> GetAgingAsync(CancellationToken ct = default);
+        Task<StatementReport> GetStatementAsync(int sellerId, int buyerId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
         Task<PagedResponse<DocumentResponse>> GetUnpaidPagedAsync(PagedRequest request, bool treeView = false, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetChildrenAsync(int parentDocumentId, CancellationToken ct = default);
         Task<IReadOnlyList<DocumentResponse>> GetAllAsTreeAsync(CancellationToken ct = default);

@@ -1,0 +1,134 @@
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Documents
+
+@* Statement of account between a seller and a buyer, in base currency. *@
+
+<MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="int?" @bind-Value="_sellerId" Label="Seller"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var c in Companies)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="int?" @bind-Value="_buyerId" Label="Buyer"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var c in Companies)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="6" sm="3" md="2">
+            <MudDatePicker @bind-Date="_from" Label="From" DateFormat="dd MMM yyyy"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+        </MudItem>
+
+        <MudItem xs="6" sm="3" md="2">
+            <MudDatePicker @bind-Date="_to" Label="To" DateFormat="dd MMM yyyy"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                       Disabled="@(_sellerId is null || _buyerId is null || _sellerId == _buyerId || _loading)"
+                       OnClick="ReloadAsync">
+                Show statement
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_report is not null)
+{
+    <MudText Typo="Typo.caption" Class="mb-2 d-block">
+        Amounts in @_report.BaseCurrencyCode. Balance = what @Name(_shownBuyerId) owes @Name(_shownSellerId);
+        a negative balance means @Name(_shownSellerId) owes @Name(_shownBuyerId).
+    </MudText>
+
+    <MudSimpleTable Dense="true" Elevation="0" Class="mb-4" Style="max-width:480px">
+        <tbody>
+            <tr><td>Opening balance</td><td style="text-align:right">@_report.OpeningBalance.ToString("N2")</td></tr>
+            <tr><td>Total debit</td><td style="text-align:right">@_report.TotalDebit.ToString("N2")</td></tr>
+            <tr><td>Total credit</td><td style="text-align:right">@_report.TotalCredit.ToString("N2")</td></tr>
+            <tr><td><b>Closing balance</b></td><td style="text-align:right"><b>@_report.ClosingBalance.ToString("N2")</b></td></tr>
+        </tbody>
+    </MudSimpleTable>
+
+    <MudTable Items="_report.Lines" Dense="true" Hover="true" Elevation="0" Class="mb-4">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh Style="text-align:right">Debit</MudTh>
+            <MudTh Style="text-align:right">Credit</MudTh>
+            <MudTh Style="text-align:right">Balance</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Date.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd Style="text-align:right">@Cell(context.Debit)</MudTd>
+            <MudTd Style="text-align:right">@Cell(context.Credit)</MudTd>
+            <MudTd Style="text-align:right">@context.Balance.ToString("N2")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2">No transactions in this period.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+    [Parameter] public Func<int, int, DateOnly?, DateOnly?, Task<StatementReport>>? OnLoad { get; set; }
+
+    private int? _sellerId;
+    private int? _buyerId;
+    private DateTime? _from;
+    private DateTime? _to;
+
+    private StatementReport? _report;
+    private int? _shownSellerId;
+    private int? _shownBuyerId;
+    private bool _loading;
+
+    /// <summary>Loads the statement for the selected parties. Also called after the base currency changes.</summary>
+    public async Task ReloadAsync()
+    {
+        if (OnLoad is null || _sellerId is null || _buyerId is null) return;
+
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            _report = await OnLoad.Invoke(
+                _sellerId.Value,
+                _buyerId.Value,
+                _from.HasValue ? DateOnly.FromDateTime(_from.Value) : null,
+                _to.HasValue ? DateOnly.FromDateTime(_to.Value) : null);
+
+            _shownSellerId = _sellerId;
+            _shownBuyerId = _buyerId;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string Name(int? id) => Companies.FirstOrDefault(c => c.Id == id)?.Name ?? "—";
+
+    // Empty cell instead of 0.00 so each line shows one side only.
+    private static string Cell(decimal amount) => amount == 0 ? "" : amount.ToString("N2");
+}
