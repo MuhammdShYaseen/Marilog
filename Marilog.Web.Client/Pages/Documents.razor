@@ -4,12 +4,10 @@
 <PageTitle>Documents</PageTitle>
 @using Kernel.Enums
 @using Marilog.Contracts.Common
-@using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
 @using Marilog.Contracts.DTOs.Requests.DocumentDTOs
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Contracts.Interfaces.Services.DocumentExtraction
-@using Marilog.Contracts.Interfaces.Services.FunctionaltyServices
 @using Marilog.Contracts.Interfaces.Services.SystemServices
 @using Marilog.Shared.UI.Pages.Documents
 @using Marilog.Web.Client.Services.Interfaces
@@ -26,7 +24,6 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ISwiftTransferService SwiftTransferService
-@inject IPdfFileGeneratorService PdfService
 @inject IStoredFileService StoredFileService
 @inject IRecordCreator RecordCreator
 @inject IManageStoredFiles ManageStoredFiles
@@ -114,14 +111,8 @@ else
                      OnSupplierSelected="LoadBySupplier"
                      OnTypeSelected="LoadByType"
                      DocTypes="_docTypes"
-                     OnDocumentReportRequested="HandleDocumentReportRequestedAsync"
-                     OnExportPdfRequested="HandleExportPdfAsync"
                      OnSearch="HandelSearchAsync"
                      OnLoadLastAdded="HandelGetLastAddAsync"
-                     OnLoadAging="@(() => DocumentService.GetAgingAsync())"
-                     OnLoadStatement="@((seller, buyer, fromDate, toDate) => DocumentService.GetStatementAsync(seller, buyer, fromDate, toDate))"
-                     Currencies="_currencies"
-                     OnBaseCurrencyChanged="ChangeBaseCurrencyAsync"
                      UnpaidPage="_unpaidPage"
                      UnpaidTotalPages="_unpaidTotalPages"
                      OnUnpaidPageChanged="LoadUnpaidPageAsync"
@@ -452,13 +443,6 @@ else
 
     private SharedDocumentsPage? _documentsPage;
 
-    private async Task HandleDocumentReportRequestedAsync(Marilog.Contracts.DTOs.Reports.DocumentReports.DocumentFilterOptions filter)
-    {
-        var report = await DocumentService.GetFilteredDocsReportAsync(filter);
-        _documentsPage?.SetDocumentReport(report);
-    }
-
-    
     // Export PDF menu on a document: renders the chosen template with this document's data.
     private async Task ExportWithTemplateAsync((DocumentResponse Doc, int TemplateId) args)
     {
@@ -472,13 +456,6 @@ else
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
-    }
-
-    private async Task HandleExportPdfAsync((DocumentReport report, string title, string fileName) args)
-    {
-        var bytes = await PdfService.GenerateDocumentReportPdf(args.report, args.title);
-        var base64 = Convert.ToBase64String(bytes);  // ← حوّل إلى Base64
-        await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", base64);
     }
 
     private async Task<IReadOnlyList<DocumentResponse>> HandelSearchAsync(string searchString, bool isTreeView)
@@ -581,28 +558,7 @@ else
             Snackbar.Add(ex.Message, Severity.Error);
         }
     }
-    // Saves the new base currency, then reloads the lists this page holds.
-    private async Task ChangeBaseCurrencyAsync(int currencyId)
-    {
-        try
-        {
-            await CurrencyService.SetAsBaseAsync(currencyId);
-            _currencies = await CurrencyService.GetActiveAsync();
-
-            await LoadUnpaidPageAsync(_unpaidPage);
-            await LoadByVessel(_selectedVesselId);
-            await LoadBySupplier(_selectedSupplierId);
-            await LoadByType(_selectedTypeId);
-
-            var code = _currencies.FirstOrDefault(c => c.Id == currencyId)?.Code;
-            Snackbar.Add($"Base currency is now {code}", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-    }
-
+   
     private async Task LoadUnpaidPageAsync(int page)
     {
         _unpaidPage = page;

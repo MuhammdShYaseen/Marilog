@@ -1,0 +1,96 @@
+@using Marilog.Contracts.DTOs.Reports.DocumentReports
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Documents
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Reports
+
+<MudPaper Class="pa-4" Elevation="0">
+    <div class="d-flex align-center mb-3 pb-1"
+         style="border-bottom:1px solid var(--mud-palette-lines-default);">
+        <MudText Typo="Typo.h5">Financial Reports</MudText>
+        <MudSpacer />
+        @* All totals on this page are shown in the base currency *@
+        <BaseCurrencyMenu Currencies="Currencies" OnChanged="ChangeBaseCurrencyAsync" />
+    </div>
+
+    <MudTabs ActivePanelIndexChanged="OnTabChanged" Elevation="0" Rounded="true" Class="mb-3">
+
+        @* ── Documents report ──────────────────────────────────── *@
+        <MudTabPanel Text="Documents Report">
+            <DocumentReportPanel Companies="Companies"
+                                 Vessels="Vessels"
+                                 DocTypes="DocTypes"
+                                 OnRun="OnRunReport"
+                                 OnExportPdf="OnExportPdf"
+                                 OnOpenDocument="OnOpenDocument"
+                                 OnManageAttachedFilesClicked="OnManageAttachedFilesClicked"
+                                 @ref="_reportPanel" />
+        </MudTabPanel>
+
+        @* ── Aging (tab index 1) ──────────────────────────────── *@
+        <MudTabPanel Text="Aging">
+            <div class="d-flex justify-end mb-2">
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAgingAsync">
+                    Refresh
+                </MudButton>
+            </div>
+            <AgingTables Report="_aging" />
+        </MudTabPanel>
+
+        @* ── Statement of account ─────────────────────────────── *@
+        <MudTabPanel Text="Statement">
+            <StatementPanel Companies="Companies" OnLoad="OnLoadStatement" @ref="_statementPanel" />
+        </MudTabPanel>
+
+    </MudTabs>
+</MudPaper>
+
+@code {
+    [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
+    [Parameter] public IReadOnlyList<VesselLookupResponse> Vessels { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+
+    [Parameter] public Func<DocumentFilterOptions, Task<DocumentReport>>? OnRunReport { get; set; }
+    [Parameter] public EventCallback<(DocumentReport report, string title, string fileName)> OnExportPdf { get; set; }
+    [Parameter] public Func<Task<AgingReport>>? OnLoadAging { get; set; }
+    [Parameter] public Func<int, int, DateOnly?, DateOnly?, Task<StatementReport>>? OnLoadStatement { get; set; }
+    [Parameter] public EventCallback<int> OnBaseCurrencyChanged { get; set; }
+    [Parameter] public EventCallback<int> OnOpenDocument { get; set; }
+    [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
+
+    private const int AgingTabIndex = 1;
+    private AgingReport? _aging;
+    private DocumentReportPanel? _reportPanel;
+    private StatementPanel? _statementPanel;
+
+    private async Task OnTabChanged(int index)
+    {
+        // Load Aging the first time its tab is opened; Refresh reloads it.
+        if (index == AgingTabIndex && _aging is null)
+            await LoadAgingAsync();
+    }
+
+    private async Task LoadAgingAsync()
+    {
+        if (OnLoadAging is null) return;
+
+        _aging = null;          // shows the loading bar
+        StateHasChanged();
+        _aging = await OnLoadAging.Invoke();
+    }
+
+    // Base currency only changes how totals are converted; stored amounts stay as they are.
+    private async Task ChangeBaseCurrencyAsync(int currencyId)
+    {
+        await OnBaseCurrencyChanged.InvokeAsync(currencyId);   // host saves it and reloads the currencies
+
+        // Reload whatever is already shown, so every total is in the new base.
+        if (_reportPanel is not null) await _reportPanel.ReloadAsync();
+        if (_aging is not null) await LoadAgingAsync();
+        if (_statementPanel is not null) await _statementPanel.ReloadAsync();
+    }
+}

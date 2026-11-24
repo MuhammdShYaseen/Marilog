@@ -1,0 +1,38 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.Reports
+
+@* Base currency picker: shows the current base and lets the user switch it. *@
+
+<MudMenu Label="@($"Base: {BaseCode}")"
+         StartIcon="@Icons.Material.Filled.CurrencyExchange"
+         EndIcon="@Icons.Material.Filled.ArrowDropDown"
+         Variant="Variant.Outlined"
+         Color="Color.Primary"
+         Size="Size.Small"
+         Dense="true"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight">
+    @foreach (var c in Currencies)
+    {
+        <MudMenuItem OnClick="@(() => SelectAsync(c))"
+                     Icon="@(c.IsBaseCurrency ? Icons.Material.Filled.Check : null)">
+            <b>@c.Code</b> — @c.Name
+        </MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+
+    /// <summary>Raised with the chosen currency id; the host saves it.</summary>
+    [Parameter] public EventCallback<int> OnChanged { get; set; }
+
+    private string BaseCode => Currencies.FirstOrDefault(c => c.IsBaseCurrency)?.Code ?? "—";
+
+    private async Task SelectAsync(CurrencyResponse currency)
+    {
+        if (currency.IsBaseCurrency) return;
+        await OnChanged.InvokeAsync(currency.Id);
+    }
+}
