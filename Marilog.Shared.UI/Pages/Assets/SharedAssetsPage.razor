@@ -112,7 +112,7 @@
         OnFilterChanged.InvokeAsync((new DocumentFilterOptions
         {
             Side = _side,
-            VesselId = _vesselId,
+            VesselIds = _vesselId.HasValue ? [_vesselId.Value] : [],
             UnpaidOnly = _unpaidOnly
         }, _search));
 }

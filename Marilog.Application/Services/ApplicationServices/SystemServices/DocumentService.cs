@@ -783,20 +783,13 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(x => x.Side == FinancialSide.Revenue || x.Side == FinancialSide.Expense);
 
             // ─── فلترة ───────────────────────────────────────────────────────────
-            if (options.SupplierId.HasValue)
-                query = query.Where(x => x.SupplierId == options.SupplierId.Value);
-
-            if (options.VoyageId.HasValue)
-                query = query.Where(x => x.VoyageId == options.VoyageId);
-
-            if (options.BuyerId.HasValue)
-                query = query.Where(x => x.BuyerId == options.BuyerId.Value);
-
-            if (options.VesselId.HasValue)
-                query = query.Where(x => x.VesselId == options.VesselId.Value);
-
-            if (options.DocTypeId.HasValue)
-                query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
+            query = query
+                .WhereSupplierIn(options.SupplierIds)
+                .WhereBuyerIn(options.BuyerIds)
+                .WhereDocTypeIn(options.DocTypeIds)
+                .WhereVesselIn(options.VesselIds)
+                .WhereVoyageIn(options.VoyageIds)
+                .WherePaymentStatus(options.PaymentStatus);
 
             if (options.Side.HasValue)
                 query = query.Where(x => x.Side == options.Side.Value);
@@ -807,11 +800,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 query = query.Where(x =>
                     (x.Payments.Sum(p => (decimal?)p.PaidAmount) ?? 0m)
                     < x.TotalAmount + (x.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m));
-            query = query
-                .WhereSupplierIn(options.SupplierIds)
-                .WhereBuyerIn(options.BuyerIds)
-                .WhereDocTypeIn(options.DocTypeIds)
-                .WherePaymentStatus(options.PaymentStatus);
+           
 
             if (options.FromDate.HasValue || options.ToDate.HasValue)
             {
@@ -1074,20 +1063,12 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             if (options.Side is FinancialSide.AssetPurchase or FinancialSide.AssetSale)
                 query = query.Where(x => x.Side == options.Side.Value);
 
-            if (options.SupplierId.HasValue)
-                query = query.Where(x => x.SupplierId == options.SupplierId.Value);
-
-            if (options.BuyerId.HasValue)
-                query = query.Where(x => x.BuyerId == options.BuyerId.Value);
-
-            if (options.VesselId.HasValue)
-                query = query.Where(x => x.VesselId == options.VesselId.Value);
-
-            if (options.VoyageId.HasValue)
-                query = query.Where(x => x.VoyageId == options.VoyageId.Value);
-
-            if (options.DocTypeId.HasValue)
-                query = query.Where(x => x.DocTypeId == options.DocTypeId.Value);
+            query = query
+                .WhereSupplierIn(options.SupplierIds)
+                .WhereBuyerIn(options.BuyerIds)
+                .WhereDocTypeIn(options.DocTypeIds)
+                .WhereVesselIn(options.VesselIds)
+                .WhereVoyageIn(options.VoyageIds);
 
             if (options.UnpaidOnly)
                 query = query.Where(x =>

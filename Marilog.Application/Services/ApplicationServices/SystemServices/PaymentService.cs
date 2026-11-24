@@ -172,21 +172,6 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .Where(p => p.IsActive && p.Side != FinancialSide.None);
 
             // ─── فلترة الكيانات (على مستوى المستند) ──────────────────────────────
-            if (options.VesselId.HasValue)
-                documentsQuery = documentsQuery.Where(p => p.VesselId == options.VesselId.Value);
-
-            if (options.SupplierId.HasValue)
-                documentsQuery = documentsQuery.Where(p => p.SupplierId == options.SupplierId.Value);
-
-            if (options.BuyerId.HasValue)
-                documentsQuery = documentsQuery.Where(p => p.BuyerId == options.BuyerId.Value);
-
-            if (options.VoyageId.HasValue)
-                documentsQuery = documentsQuery.Where(p => p.VoyageId == options.VoyageId.Value);
-
-            if (options.DocTypeId.HasValue)
-                documentsQuery = documentsQuery.Where(p => p.DocTypeId == options.DocTypeId.Value);
-
             if (options.Side.HasValue)
                 documentsQuery = documentsQuery.Where(p => p.Side == options.Side.Value);
 
@@ -194,6 +179,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 .WhereSupplierIn(options.SupplierIds)
                 .WhereBuyerIn(options.BuyerIds)
                 .WhereDocTypeIn(options.DocTypeIds)
+                .WhereVesselIn(options.VesselIds)
+                .WhereVoyageIn(options.VoyageIds)
                 .WherePaymentStatus(options.PaymentStatus);
 
             // ─── النزول لمستوى الدفعة الفعلي — هون المفتاح ───────────────────────

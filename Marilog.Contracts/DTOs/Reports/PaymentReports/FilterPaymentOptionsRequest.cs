@@ -11,12 +11,6 @@ namespace Marilog.Contracts.DTOs.Reports.PaymentReports
         public DateOnly? FromDate { get; set; }
         public DateOnly? ToDate { get; set; }
 
-        public int? VesselId { get; set; }
-        public int? SupplierId { get; set; }
-        public int? BuyerId { get; set; }
-        public int? VoyageId { get; set; }
-        public int? DocTypeId { get; set; }
-
         public PaymentMethod? PaymentMethod { get; set; }
         public FinancialSide? Side { get; set; }
 
@@ -33,6 +27,8 @@ namespace Marilog.Contracts.DTOs.Reports.PaymentReports
         public List<int> SupplierIds { get; set; } = [];
         public List<int> BuyerIds { get; set; } = [];
         public List<int> DocTypeIds { get; set; } = [];
+        public List<int> VesselIds { get; set; } = [];
+        public List<int> VoyageIds { get; set; } = [];
 
         // Payment status of the payment's document. null = all
         public DocumentPaymentStatus? PaymentStatus { get; set; }

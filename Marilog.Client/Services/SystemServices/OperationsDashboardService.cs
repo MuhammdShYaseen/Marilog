@@ -41,15 +41,15 @@ namespace Marilog.Client.Services.SystemServices
         private static string BuildQuery(DocumentFilterOptions o)
         {
             var parts = new List<string>();
-            if (o.SupplierId.HasValue) parts.Add($"SupplierId={o.SupplierId}");
-            if (o.BuyerId.HasValue) parts.Add($"BuyerId={o.BuyerId}");
-            if (o.VesselId.HasValue) parts.Add($"VesselId={o.VesselId}");
-            if (o.DocTypeId.HasValue) parts.Add($"DocTypeId={o.DocTypeId}");
+            parts.AddRange(o.SupplierIds.Select(id => $"SupplierIds={id}"));
+            parts.AddRange(o.BuyerIds.Select(id => $"BuyerIds={id}"));
+            parts.AddRange(o.VesselIds.Select(id => $"VesselIds={id}"));
+            parts.AddRange(o.DocTypeIds.Select(id => $"DocTypeIds={id}"));
             if (o.UnpaidOnly) parts.Add("UnpaidOnly=true");
             if (o.FromDate.HasValue) parts.Add($"FromDate={o.FromDate:yyyy-MM-dd}");
             if (o.ToDate.HasValue) parts.Add($"ToDate={o.ToDate:yyyy-MM-dd}");
             if (o.Side.HasValue) parts.Add($"Side={o.Side}");
-            if (o.VoyageId.HasValue) parts.Add($"VoyageId={o.VoyageId}");
+            parts.AddRange(o.VoyageIds.Select(id => $"VoyageIds={id}"));
             return parts.Count == 0 ? string.Empty : "?" + string.Join("&", parts);
         }
 

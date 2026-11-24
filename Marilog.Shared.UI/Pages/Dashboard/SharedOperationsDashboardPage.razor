@@ -553,29 +553,17 @@
             parts.Add($"{from} – {to}");
         }
 
-        if (Filter.VesselId.HasValue)
-        {
-            var name = VesselLookups?.FirstOrDefault(v => v.Id == Filter.VesselId)?.Name;
-            if (name is not null) parts.Add($"Vessel: {name}");
-        }
+        var vessels = VesselLookups?.Where(v => Filter.VesselIds.Contains(v.Id)).Select(v => v.Name).ToList() ?? [];
+        if (vessels.Count > 0) parts.Add($"Vessel: {string.Join(", ", vessels)}");
 
-        if (Filter.DocTypeId.HasValue)
-        {
-            var name = DocTypes?.FirstOrDefault(t => t.Id == Filter.DocTypeId)?.Name;
-            if (name is not null) parts.Add($"Doc Type: {name}");
-        }
+        var docTypes = DocTypes?.Where(t => Filter.DocTypeIds.Contains(t.Id)).Select(t => t.Name).ToList() ?? [];
+        if (docTypes.Count > 0) parts.Add($"Doc Type: {string.Join(", ", docTypes)}");
 
-        if (Filter.SupplierId.HasValue)
-        {
-            var name = Companies?.FirstOrDefault(c => c.Id == Filter.SupplierId)?.Name;
-            if (name is not null) parts.Add($"Supplier: {name}");
-        }
+        var suppliers = Companies?.Where(c => Filter.SupplierIds.Contains(c.Id)).Select(c => c.Name).ToList() ?? [];
+        if (suppliers.Count > 0) parts.Add($"Supplier: {string.Join(", ", suppliers)}");
 
-        if (Filter.BuyerId.HasValue)
-        {
-            var name = Companies?.FirstOrDefault(c => c.Id == Filter.BuyerId)?.Name;
-            if (name is not null) parts.Add($"Buyer: {name}");
-        }
+        var buyers = Companies?.Where(c => Filter.BuyerIds.Contains(c.Id)).Select(c => c.Name).ToList() ?? [];
+        if (buyers.Count > 0) parts.Add($"Buyer: {string.Join(", ", buyers)}");
 
         if (Filter.Side.HasValue)
             parts.Add($"Type: {Filter.Side}");

@@ -57,17 +57,15 @@ namespace Marilog.Client.Services.SystemServices
         {
             var parts = new List<string>();
 
-            if (options.SupplierId.HasValue)
-                parts.Add($"supplierId={options.SupplierId.Value}");
+            // Multi-select: repeated keys (supplierIds=1&supplierIds=2) bind to List<int> on the API
+            parts.AddRange(options.SupplierIds.Select(id => $"supplierIds={id}"));
+            parts.AddRange(options.BuyerIds.Select(id => $"buyerIds={id}"));
+            parts.AddRange(options.DocTypeIds.Select(id => $"docTypeIds={id}"));
+            parts.AddRange(options.VesselIds.Select(id => $"vesselIds={id}"));
+            parts.AddRange(options.VoyageIds.Select(id => $"voyageIds={id}"));
 
-            if (options.BuyerId.HasValue)
-                parts.Add($"buyerId={options.BuyerId.Value}");
-
-            if (options.VesselId.HasValue)
-                parts.Add($"vesselId={options.VesselId.Value}");
-
-            if (options.DocTypeId.HasValue)
-                parts.Add($"docTypeId={options.DocTypeId.Value}");
+            if (options.PaymentStatus.HasValue)
+                parts.Add($"paymentStatus={options.PaymentStatus.Value}");
 
             if (options.LastDays.HasValue)
                 parts.Add($"lastDays={options.LastDays.Value}");
@@ -92,17 +90,6 @@ namespace Marilog.Client.Services.SystemServices
 
             if (options.MaxAmount.HasValue)
                 parts.Add($"maxAmount={options.MaxAmount.Value.ToString(CultureInfo.InvariantCulture)}");
-
-            if (options.VoyageId.HasValue)
-                parts.Add($"voyageId={options.VoyageId.Value}");
-
-            // Multi-select: repeated keys (supplierIds=1&supplierIds=2) bind to List<int> on the API
-            parts.AddRange(options.SupplierIds.Select(id => $"supplierIds={id}"));
-            parts.AddRange(options.BuyerIds.Select(id => $"buyerIds={id}"));
-            parts.AddRange(options.DocTypeIds.Select(id => $"docTypeIds={id}"));
-
-            if (options.PaymentStatus.HasValue)
-                parts.Add($"paymentStatus={options.PaymentStatus.Value}");
 
             return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }

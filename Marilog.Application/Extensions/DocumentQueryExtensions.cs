@@ -40,5 +40,12 @@ namespace Marilog.Application.Extensions
 
         internal static IQueryable<Document> WhereDocTypeIn(this IQueryable<Document> query, List<int> ids) =>
             ids.Count == 0 ? query : query.Where(x => ids.Contains(x.DocTypeId));
+
+
+        internal static IQueryable<Document> WhereVesselIn(this IQueryable<Document> query, List<int> ids) =>
+            ids.Count == 0 ? query : query.Where(x => x.VesselId != null && ids.Contains(x.VesselId.Value));
+
+        internal static IQueryable<Document> WhereVoyageIn(this IQueryable<Document> query, List<int> ids) =>
+            ids.Count == 0 ? query : query.Where(x => x.VoyageId != null && ids.Contains(x.VoyageId.Value));
     }
 }

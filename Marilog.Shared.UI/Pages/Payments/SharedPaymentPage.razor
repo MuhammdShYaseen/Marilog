@@ -13,58 +13,77 @@
         <MudGrid Spacing="2">
 
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           @bind-Value="_paymentFilter.SupplierId"
-                           Label="Supplier"
+                <MudSelect T="int" MultiSelection="true"
+                           @bind-SelectedValues="_supplierIds"
+                           ToStringFunc="CompanyName"
+                           Label="Suppliers"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
                     @foreach (var s in Companies)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name</MudSelectItem>
+                        <MudSelectItem T="int" Value="s.Id">@s.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           @bind-Value="_paymentFilter.BuyerId"
-                           Label="Buyer"
+                <MudSelect T="int" MultiSelection="true"
+                           @bind-SelectedValues="_buyerIds"
+                           ToStringFunc="CompanyName"
+                           Label="Buyers"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
                     @foreach (var b in Companies)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)b.Id)">@b.Name</MudSelectItem>
+                        <MudSelectItem T="int" Value="b.Id">@b.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           Value="_paymentFilter.VesselId"
-                           ValueChanged="OnVesselChanged"
-                           Label="Vessel"
+                <MudSelect T="int" MultiSelection="true"
+                           @bind-SelectedValues="_vesselIds"
+                           @bind-SelectedValues:after="OnVesselsChanged"
+                           ToStringFunc="VesselName"
+                           Label="Vessels"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
                     @foreach (var v in Vessels)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                        <MudSelectItem T="int" Value="v.Id">@v.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           @bind-Value="_paymentFilter.VoyageId"
-                           Label="Voyage"
+                <MudSelect T="int" MultiSelection="true"
+                           @bind-SelectedValues="_voyageIds"
+                           ToStringFunc="VoyageName"
+                           Label="Voyages"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
                     @foreach (var vo in FilteredVoyages)
                     {
-                        <MudSelectItem T="int?" Value="@((int?)vo.Id)">@vo.DisplayText</MudSelectItem>
+                        <MudSelectItem T="int" Value="vo.Id">@vo.DisplayText</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="int" MultiSelection="true"
+                           @bind-SelectedValues="_docTypeIds"
+                           ToStringFunc="DocTypeName"
+                           Label="Document Types"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Clearable="true">
+                    @foreach (var t in DocTypes)
+                    {
+                        <MudSelectItem T="int" Value="t.Id">@t.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -97,6 +116,18 @@
                 </MudSelect>
             </MudItem>
 
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="DocumentPaymentStatus?"
+                           @bind-Value="_paymentFilter.PaymentStatus"
+                           Label="Document Payment Status"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="DocumentPaymentStatus?" Value="null">All</MudSelectItem>
+                    <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Paid">Paid</MudSelectItem>
+                    <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.Unpaid">Unpaid</MudSelectItem>
+                    <MudSelectItem T="DocumentPaymentStatus?" Value="DocumentPaymentStatus.PartiallyPaid">Partially Paid</MudSelectItem>
+                </MudSelect>
+            </MudItem>
             <MudItem xs="12" sm="6" md="3">
                 <MudDatePicker Date="_paymentFromDateTime"
                                DateChanged="v => { _paymentFilter.FromDate = v.HasValue ? DateOnly.FromDateTime(v.Value) : null; _paymentFromDateTime = v; }"
@@ -464,27 +495,31 @@
     private IReadOnlyCollection<int> _supplierIds = [];
     private IReadOnlyCollection<int> _buyerIds = [];
     private IReadOnlyCollection<int> _docTypeIds = [];
+    private IReadOnlyCollection<int> _vesselIds = [];
+    private IReadOnlyCollection<int> _voyageIds = [];
     private PaymentsReport? _paymentReport;
     private bool _loadingPaymentReport;
     private DateTime? _paymentFromDateTime;
     private DateTime? _paymentToDateTime;
 
-    private void OnVesselChanged(int? vesselId)
+    // When vessels change, keep only the voyages that still belong to a selected vessel.
+    private void OnVesselsChanged()
     {
-        _paymentFilter.VesselId = vesselId;
-        _paymentFilter.VoyageId = null;
+        _voyageIds = FilteredVoyages.Select(v => v.Id).Intersect(_voyageIds).ToList();
     }
 
     private IEnumerable<VoyageLookupResponse> FilteredVoyages =>
-        _paymentFilter.VesselId is null
+        _vesselIds.Count == 0
             ? Voyages
-            : Voyages.Where(v => v.VesselId == _paymentFilter.VesselId);
+            : Voyages.Where(v => _vesselIds.Contains(v.VesselId));
 
     private async Task RunPaymentReportAsync()
     {
         _paymentFilter.SupplierIds = _supplierIds.ToList();
         _paymentFilter.BuyerIds = _buyerIds.ToList();
         _paymentFilter.DocTypeIds = _docTypeIds.ToList();
+        _paymentFilter.VesselIds = _vesselIds.ToList();
+        _paymentFilter.VoyageIds = _voyageIds.ToList();
 
         _loadingPaymentReport = true;
         StateHasChanged();
@@ -505,6 +540,8 @@
         _supplierIds = [];
         _buyerIds = [];
         _docTypeIds = [];
+        _vesselIds = [];
+        _voyageIds = [];
         _paymentFromDateTime = null;
         _paymentToDateTime = null;
         _paymentReport = null;
@@ -515,6 +552,12 @@
 
     private string DocTypeName(int id) =>
         DocTypes.FirstOrDefault(t => t.Id == id)?.Name ?? $"#{id}";
+
+    private string VesselName(int id) =>
+        Vessels.FirstOrDefault(v => v.Id == id)?.Name ?? $"#{id}";
+
+    private string VoyageName(int id) =>
+        Voyages.FirstOrDefault(v => v.Id == id)?.DisplayText ?? $"#{id}";
 }
 
 <style>

@@ -236,17 +236,18 @@
                     </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?"
-                           @bind-Value="_filter.VesselId"
-                           Label="Vessel"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Clearable="true">
-                    @foreach (var v in Vessels)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
-                    }
-                </MudSelect>
+                        <MudSelect T="int" MultiSelection="true"
+                                   @bind-SelectedValues="_vesselIds"
+                                   ToStringFunc="VesselName"
+                                   Label="Vessels"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            @foreach (var v in Vessels)
+                            {
+                                <MudSelectItem T="int" Value="v.Id">@v.Name</MudSelectItem>
+                            }
+                        </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
@@ -329,14 +330,6 @@
                                  Label="Last N Days"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="2" Class="d-flex align-center">
-                <MudCheckBox T="bool"
-                             Value="_filter.UnpaidOnly"
-                             ValueChanged="@((bool v) => { _filter.UnpaidOnly = v; StateHasChanged(); })"
-                             Label="Unpaid Only"
-                             Color="Color.Primary" />
             </MudItem>
 
             <MudItem xs="12" Class="d-flex gap-2 flex-wrap">
@@ -719,6 +712,7 @@
     private IReadOnlyCollection<int> _supplierIds = [];
     private IReadOnlyCollection<int> _buyerIds = [];
     private IReadOnlyCollection<int> _docTypeIds = [];
+    private IReadOnlyCollection<int> _vesselIds = [];
     private DocumentReport? _documentReport;
     private bool _loadingDocumentReport;
     private bool _exportingPdf;
@@ -761,7 +755,7 @@
         _filter.SupplierIds = _supplierIds.ToList();
         _filter.BuyerIds = _buyerIds.ToList();
         _filter.DocTypeIds = _docTypeIds.ToList();
-
+        _filter.VesselIds = _vesselIds.ToList();
         _loadingDocumentReport = true;
         StateHasChanged();
         await OnDocumentReportRequested.InvokeAsync(_filter);
@@ -774,6 +768,7 @@
         _supplierIds = [];
         _buyerIds = [];
         _docTypeIds = [];
+        _vesselIds = [];
         _documentReport = null;
         StateHasChanged();
     }
@@ -783,6 +778,9 @@
 
     private string DocTypeName(int id) =>
         DocTypes.FirstOrDefault(t => t.Id == id)?.Name ?? $"#{id}";
+
+    private string VesselName(int id) =>
+        Vessels.FirstOrDefault(v => v.Id == id)?.Name ?? $"#{id}";
 
     public void SetDocumentReport(DocumentReport report)
     {
