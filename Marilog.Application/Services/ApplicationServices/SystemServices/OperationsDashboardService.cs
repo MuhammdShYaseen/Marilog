@@ -80,10 +80,16 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 alerts.Add($"{expiredContracts.Count} crew contracts expired");
             }
 
-            if (unpaidDocuments.Count > 0)
-            {
-                alerts.Add($"{unpaidDocuments.Count} unpaid documents");
-            }
+            // Only documents with a due date can be late; 7 days = same window as the due-date notifications
+            var todayDate = DateOnly.FromDateTime(today);
+            var overdueCount = unpaidDocuments.Count(d => d.DocDue < todayDate);
+            var dueSoonCount = unpaidDocuments.Count(d => d.DocDue >= todayDate && d.DocDue <= todayDate.AddDays(7));
+
+            if (overdueCount > 0)
+                alerts.Add($"{overdueCount} documents overdue");
+
+            if (dueSoonCount > 0)
+                alerts.Add($"{dueSoonCount} documents due within 7 days");
 
             if (upcoming.Any())
             {

@@ -1,5 +1,6 @@
 @using Marilog.Contracts.DTOs.Reports.DocumentReports
 @using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Components.Fleet
 @using Marilog.Shared.UI.Pages.Documents
 @using MudBlazor
@@ -80,6 +81,75 @@
 
 </div>
 
+@* ── Payments due: overdue and due within the next days ─────── *@
+<div class="az-card mb-4">
+    <div class="az-card-header">
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.EventBusy" Size="Size.Small" Color="Color.Error" />
+            <span class="az-card-title">Payments Due</span>
+        </div>
+        <div class="d-flex align-center gap-2">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error">
+                @DueDocuments.Count(d => d.DocDue < Today) overdue
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
+                @DueDocuments.Count(d => d.DocDue >= Today) due within @DueSoonDays days
+            </MudChip>
+        </div>
+    </div>
+
+    <MudTable Items="DueDocuments" Dense="true" Hover="true" Elevation="0" Class="az-table">
+        <HeaderContent>
+            <MudTh>Due date</MudTh>
+            <MudTh>When</MudTh>
+            <MudTh>Doc No.</MudTh>
+            <MudTh>Direction</MudTh>
+            <MudTh>Party</MudTh>
+            <MudTh>Vessel</MudTh>
+            <MudTh Class="text-right">Outstanding</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Class="az-muted">@context.DocDue?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>
+                @if (DocumentStatusDisplay.Due(context) is { } due)
+                {
+                    <MudText Typo="Typo.body2" Color="@due.Color" Style="font-weight:600">@due.Text</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                <MudLink OnClick="() => OnDocumentClick.InvokeAsync(context.Id)" Class="az-link font-weight-medium">
+                    @context.DocNumber
+                </MudLink>
+            </MudTd>
+            <MudTd>
+                @if (IsIncoming(context))
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                             Icon="@Icons.Material.Filled.SouthWest">Revenue</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                             Icon="@Icons.Material.Filled.NorthEast">Expense</MudChip>
+                }
+            </MudTd>
+            @* the other side: who we pay (expense) or who pays us (revenue) *@
+            <MudTd>@(IsIncoming(context) ? context.BuyerName : context.SupplierName)</MudTd>
+            <MudTd>@(context.VesselName ?? "—")</MudTd>
+            <MudTd Class="text-right">
+                <span class="az-num az-out-due">@Outstanding(context).ToString("N2")</span>
+                <span class="az-currency">@context.CurrencyCode</span>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="az-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.EventAvailable" Size="Size.Large" Color="Color.Success" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nothing overdue or due in the next @DueSoonDays days.</MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
 @* ── Fleet map ───────────────────────────────────────────── *@
 <FleetMap Vessels="FleetVessels"
           Unlocated="UnlocatedVessels"
@@ -104,6 +174,219 @@
 @* ── Charts ────────────────────────────────────────────────── *@
 <div class="az-section mb-4">
     <FinancialSummaryChart Data="FinancialData" FilterSummary="@GetFilterSummary()" />
+</div>
+
+@* ── Documents (filter result, shown on demand) ──────────── *@
+<div class="az-card mb-4">
+    <div class="az-card-header">
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" Color="Color.Primary" />
+            <span class="az-card-title">Documents</span>
+            <span class="az-card-sub">filter result</span>
+        </div>
+
+        <div class="d-flex align-center gap-2">
+            @if (AdjustedDocumentCount > 0)
+            {
+                <MudTooltip Text="Documents whose price was settled after issue — the Amount column shows the agreed net.">
+                    <span class="az-flag">
+                        @AdjustedDocumentCount adjusted
+                    </span>
+                </MudTooltip>
+            }
+            @if (ShowFilteredDocuments && FilteredDocuments?.Any() == true)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                    @FilteredDocuments.Count documents
+                </MudChip>
+            }
+            <MudSwitch T="bool"
+                       Value="ShowFilteredDocuments"
+                       ValueChanged="OnShowFilteredDocumentsChanged"
+                       Color="Color.Primary"
+                       Label="Show" />
+        </div>
+    </div>
+
+    @if (ShowFilteredDocuments)
+    {
+        if (FilteredDocuments is null)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudTable Items="GroupedDocuments"
+                      Dense="true"
+                      Hover="true"
+                      Striped="false"
+                      Bordered="false"
+                      Elevation="0"
+                      Class="az-table az-table--grouped documents-table">
+
+                <HeaderContent>
+                    <MudTh>Doc No.</MudTh>
+                    <MudTh>Supplier</MudTh>
+                    <MudTh>Vessel</MudTh>
+                    <MudTh>Date</MudTh>
+                    <MudTh Class="text-right">Amount</MudTh>
+                    <MudTh Class="text-right">Outstanding</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Due</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+
+                    @if (context.IsGroupHeader)
+                    {
+                        <MudTd ColSpan="8" Class="pa-0">
+                            <div class="az-group">
+
+                                <div class="d-flex justify-space-between align-center flex-wrap gap-3">
+
+                                    <div class="d-flex align-center gap-2">
+
+                                        <MudIconButton Icon="@(IsSupplierExpanded(context.SupplierName!)
+                                                                ? Icons.Material.Filled.KeyboardArrowDown
+                                                                : Icons.Material.Filled.ChevronRight)"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => ToggleSupplier(context.SupplierName!))" />
+
+                                        <MudIcon Icon="@Icons.Material.Outlined.Business"
+                                                 Size="Size.Small"
+                                                 Color="Color.Primary" />
+
+                                        <div>
+                                            <div class="az-group-title">@context.SupplierName</div>
+                                            <div class="az-group-sub">
+                                                @context.DocumentCount documents
+                                                @if (context.AdjustedCount > 0)
+                                                {
+                                                    <span class="az-group-dot">&middot;</span>
+                                                    <span class="az-group-adj">@context.AdjustedCount adjusted</span>
+                                                }
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="d-flex align-center flex-wrap gap-2">
+
+                                        <span class="az-group-label">Outstanding</span>
+
+                                        @if (context.SupplierTotals!.Count == 0)
+                                        {
+                                            <span class="az-settled">Fully settled</span>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var total in context.SupplierTotals!)
+                                            {
+                                                <MudChip T="string"
+                                                         Size="Size.Small"
+                                                         Variant="Variant.Outlined"
+                                                         Color="Color.Warning"
+                                                         Class="az-total-chip">
+                                                    @total.CurrencyCode&nbsp;@total.Amount.ToString("N2")
+                                                </MudChip>
+                                            }
+                                        }
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </MudTd>
+                    }
+                    else if (context.Document is not null)
+                    {
+                        <MudTd>
+                            <MudLink OnClick="() => OnDocumentClick.InvokeAsync(context.Document.Id)"
+                                     Class="az-link font-weight-medium">
+                                @context.Document.DocNumber
+                            </MudLink>
+                        </MudTd>
+
+                        <MudTd>
+                            <MudText Typo="Typo.body2">@context.Document.SupplierName</MudText>
+                        </MudTd>
+
+                        <MudTd>
+                            <MudText Typo="Typo.body2">@context.Document.VesselName</MudText>
+                        </MudTd>
+
+                        <MudTd Class="az-muted">
+                            @context.Document.DocDate.ToString("dd MMM yyyy")
+                        </MudTd>
+
+                        @* ── Amount: net agreed price, with the original + adjustment
+                               spelled out underneath whenever a settlement occurred ── *@
+                        <MudTd Class="text-right">
+                            <div class="az-amount">
+                                <div>
+                                    <span class="az-num">@context.Document.NetAmount.ToString("N2")</span>
+                                    <span class="az-currency">@context.Document.CurrencyCode</span>
+                                </div>
+                                @if (context.Document.AdjustmentsTotal != 0)
+                                {
+                                    <div class="az-amount-sub">
+                                        <span class="az-amount-orig">@context.Document.TotalAmount.ToString("N2")</span>
+                                        <span class="@($"az-adj {(context.Document.AdjustmentsTotal < 0 ? "az-adj-down" : "az-adj-up")}")">
+                                            @FormatSigned(context.Document.AdjustmentsTotal)
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        </MudTd>
+
+                        @* ── Outstanding: what is still unpaid against the net ── *@
+                        <MudTd Class="text-right">
+                            @if (Outstanding(context.Document) > 0)
+                            {
+                                <span class="az-num az-out-due">@Outstanding(context.Document).ToString("N2")</span>
+                                <span class="az-currency">@context.Document.CurrencyCode</span>
+                            }
+                            else
+                            {
+                                <span class="az-settled">Settled</span>
+                            }
+                        </MudTd>
+
+                        var payStatus = DocumentStatusDisplay.Payment(context.Document);
+                        <MudTd>
+                            <MudChip T="string" Icon="@payStatus.Icon" Color="@payStatus.Color"
+                                     Size="Size.Small" Variant="Variant.Filled">
+                                @payStatus.Text
+                            </MudChip>
+                        </MudTd>
+
+                        <MudTd>
+                            @if (DocumentStatusDisplay.Due(context.Document) is { } due)
+                            {
+                                <MudTooltip Text="@context.Document.DocDue?.ToString("dd MMM yyyy")">
+                                    <MudText Typo="Typo.body2" Color="@due.Color" Style="font-weight:600">@due.Text</MudText>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </MudTd>
+                    }
+
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="az-empty">
+                        <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">No documents.</MudText>
+                    </div>
+                </NoRecordsContent>
+
+            </MudTable>
+        }
+    }
 </div>
 
 <div class="az-section mb-4">
@@ -303,202 +586,6 @@
 
 </MudGrid>
 
-@* ── Documents ─────────────────────────────────────────────── *@
-<div class="az-card">
-    <div class="az-card-header">
-        <div class="d-flex align-center gap-2">
-            <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" Color="Color.Primary" />
-            <span class="az-card-title">Documents</span>
-        </div>
-
-        <div class="d-flex align-center gap-2">
-            @if (AdjustedDocumentCount > 0)
-            {
-                <MudTooltip Text="Documents whose price was settled after issue — the Amount column shows the agreed net.">
-                    <span class="az-flag">
-                        @AdjustedDocumentCount adjusted
-                    </span>
-                </MudTooltip>
-            }
-            @if (Data?.Documents?.Any() == true)
-            {
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
-                    @Data.Documents.Count documents
-                </MudChip>
-            }
-        </div>
-    </div>
-
-    <MudTable Items="GroupedDocuments"
-              Dense="true"
-              Hover="true"
-              Striped="false"
-              Bordered="false"
-              Elevation="0"
-              Class="az-table az-table--grouped documents-table">
-
-        <HeaderContent>
-            <MudTh>Doc No.</MudTh>
-            <MudTh>Supplier</MudTh>
-            <MudTh>Vessel</MudTh>
-            <MudTh>Date</MudTh>
-            <MudTh Class="text-right">Amount</MudTh>
-            <MudTh Class="text-right">Outstanding</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Due</MudTh>
-        </HeaderContent>
-
-        <RowTemplate>
-
-            @if (context.IsGroupHeader)
-            {
-                <MudTd ColSpan="8" Class="pa-0">
-                    <div class="az-group">
-
-                        <div class="d-flex justify-space-between align-center flex-wrap gap-3">
-
-                            <div class="d-flex align-center gap-2">
-
-                                <MudIconButton Icon="@(IsSupplierExpanded(context.SupplierName!)
-                                                        ? Icons.Material.Filled.KeyboardArrowDown
-                                                        : Icons.Material.Filled.ChevronRight)"
-                                               Size="Size.Small"
-                                               OnClick="@(() => ToggleSupplier(context.SupplierName!))" />
-
-                                <MudIcon Icon="@Icons.Material.Outlined.Business"
-                                         Size="Size.Small"
-                                         Color="Color.Primary" />
-
-                                <div>
-                                    <div class="az-group-title">@context.SupplierName</div>
-                                    <div class="az-group-sub">
-                                        @context.DocumentCount documents
-                                        @if (context.AdjustedCount > 0)
-                                        {
-                                            <span class="az-group-dot">&middot;</span>
-                                            <span class="az-group-adj">@context.AdjustedCount adjusted</span>
-                                        }
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <div class="d-flex align-center flex-wrap gap-2">
-
-                                <span class="az-group-label">Outstanding</span>
-
-                                @if (context.SupplierTotals!.Count == 0)
-                                {
-                                    <span class="az-settled">Fully settled</span>
-                                }
-                                else
-                                {
-                                    @foreach (var total in context.SupplierTotals!)
-                                    {
-                                        <MudChip T="string"
-                                                 Size="Size.Small"
-                                                 Variant="Variant.Outlined"
-                                                 Color="Color.Warning"
-                                                 Class="az-total-chip">
-                                            @total.CurrencyCode&nbsp;@total.Amount.ToString("N2")
-                                        </MudChip>
-                                    }
-                                }
-
-                            </div>
-
-                        </div>
-
-                    </div>
-                </MudTd>
-            }
-            else if (context.Document is not null)
-            {
-                <MudTd>
-                    <MudLink OnClick="() => OnDocumentClick.InvokeAsync(context.Document.Id)"
-                             Class="az-link font-weight-medium">
-                        @context.Document.DocNumber
-                    </MudLink>
-                </MudTd>
-
-                <MudTd>
-                    <MudText Typo="Typo.body2">@context.Document.SupplierName</MudText>
-                </MudTd>
-
-                <MudTd>
-                    <MudText Typo="Typo.body2">@context.Document.VesselName</MudText>
-                </MudTd>
-
-                <MudTd Class="az-muted">
-                    @context.Document.DocDate.ToString("dd MMM yyyy")
-                </MudTd>
-
-                @* ── Amount: net agreed price, with the original + adjustment
-                       spelled out underneath whenever a settlement occurred ── *@
-                <MudTd Class="text-right">
-                    <div class="az-amount">
-                        <div>
-                            <span class="az-num">@context.Document.NetAmount.ToString("N2")</span>
-                            <span class="az-currency">@context.Document.CurrencyCode</span>
-                        </div>
-                        @if (context.Document.AdjustmentsTotal != 0)
-                        {
-                            <div class="az-amount-sub">
-                                <span class="az-amount-orig">@context.Document.TotalAmount.ToString("N2")</span>
-                                <span class="@($"az-adj {(context.Document.AdjustmentsTotal < 0 ? "az-adj-down" : "az-adj-up")}")">
-                                    @FormatSigned(context.Document.AdjustmentsTotal)
-                                </span>
-                            </div>
-                        }
-                    </div>
-                </MudTd>
-
-                @* ── Outstanding: what is still unpaid against the net ── *@
-                <MudTd Class="text-right">
-                    @if (Outstanding(context.Document) > 0)
-                    {
-                        <span class="az-num az-out-due">@Outstanding(context.Document).ToString("N2")</span>
-                        <span class="az-currency">@context.Document.CurrencyCode</span>
-                    }
-                    else
-                    {
-                        <span class="az-settled">Settled</span>
-                    }
-                </MudTd>
-                
-                var payStatus = DocumentStatusDisplay.Payment(context.Document);
-                <MudTd>
-                    <MudChip T="string" Icon="@payStatus.Icon" Color="@payStatus.Color"
-                             Size="Size.Small" Variant="Variant.Filled">
-                        @payStatus.Text
-                    </MudChip>
-                </MudTd>
-
-                <MudTd>
-                    @if (DocumentStatusDisplay.Due(context.Document) is { } due)
-                    {
-                        <MudTooltip Text="@context.Document.DocDue?.ToString("dd MMM yyyy")">
-                            <MudText Typo="Typo.body2" Color="@due.Color" Style="font-weight:600">@due.Text</MudText>
-                        </MudTooltip>
-                    }
-                    else
-                    {
-                        <span>—</span>
-                    }
-                </MudTd>
-            }
-
-        </RowTemplate>
-
-        <NoRecordsContent>
-            <div class="az-empty">
-                <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.body2" Color="Color.Secondary">No documents.</MudText>
-            </div>
-        </NoRecordsContent>
-
-    </MudTable>
-</div>
 @code {
     [Parameter] public OperationsDashboardResponse? Data { get; set; }
     [Parameter] public EventCallback<int> OnVoyageClick { get; set; }
@@ -528,6 +615,27 @@
 
     [Parameter] public IReadOnlyList<CurrencyTickerItemResponse> TickerItems { get; set; } = [];
 
+    // Documents of the current filter, shown only when the user turns them on (null = loading)
+    [Parameter] public bool ShowFilteredDocuments { get; set; }
+    [Parameter] public IReadOnlyList<DocumentResponse>? FilteredDocuments { get; set; }
+    [Parameter] public EventCallback<bool> OnShowFilteredDocumentsChanged { get; set; }
+
+    // Payments Due: open documents with a due date that has passed or falls within the next days.
+    // Same 7-day window as the due-date notifications and the alerts above.
+    private const int DueSoonDays = 7;
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+
+    private IReadOnlyList<DocumentResponse> DueDocuments =>
+        Data?.Documents?
+            .Where(d => d.DocDue is not null && d.DocDue <= Today.AddDays(DueSoonDays) && Outstanding(d) > 0)
+            .OrderBy(d => d.DocDue)
+            .ToList()
+        ?? [];
+
+    // Money coming in to us: revenue and asset sales
+    private static bool IsIncoming(DocumentResponse d)
+        => d.Side is FinancialSide.Revenue or FinancialSide.AssetSale;
+
     private static string FormatSigned(decimal value)
         => value > 0 ? $"+{value:N2}" : value.ToString("N2");
 
@@ -540,7 +648,7 @@
         => d.RemainingBalance != 0 ? d.RemainingBalance : d.Remaining;
 
     private int AdjustedDocumentCount
-        => Data?.Documents?.Count(d => d.AdjustmentsTotal != 0) ?? 0;
+        => FilteredDocuments?.Count(d => d.AdjustmentsTotal != 0) ?? 0;
 
     private string GetFilterSummary()
     {
@@ -575,7 +683,7 @@
     }
 
     private IReadOnlyList<GroupedDocumentRow> GroupedDocuments =>
-        Data?.Documents?
+        FilteredDocuments?
             .GroupBy(x => x.SupplierName)
             .SelectMany(group =>
             {
@@ -689,6 +797,11 @@
         padding: 10px 16px;
         background-color: var(--mud-palette-background-grey);
         border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .az-card-sub {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
     }
 
     .az-card-title {

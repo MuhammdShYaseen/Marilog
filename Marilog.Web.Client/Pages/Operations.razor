@@ -8,6 +8,8 @@
 @using Marilog.Shared.UI.Pages.Dashboard
 
 @inject IOperationsDashboardService DashboardService
+@inject IDocumentService DocumentService
+@inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject IVesselService VesselService
 @inject IDocumentTypeService DocTypeService
@@ -41,7 +43,10 @@ else
                                    OnFleetVesselSelected="OnFleetVesselSelected"
                                    OnFleetSelectionCleared="OnFleetSelectionCleared"
                                    OnFleetRefresh="LoadFleetAsync"
-                                   TickerItems="_ticker" />
+                                   TickerItems="_ticker"
+                                   ShowFilteredDocuments="_showFilteredDocs"
+                                   FilteredDocuments="_filteredDocs"
+                                   OnShowFilteredDocumentsChanged="ToggleFilteredDocsAsync" />
 }
 
 @code {
@@ -63,6 +68,11 @@ else
     private IReadOnlyList<CompanyResponse> _companies = [];
     private IReadOnlyList<FinancialChartPointResponse> _financialData = [];
     private IReadOnlyList<VoyageChartPointResponse> _voyageData = [];
+
+    // "Documents (filter result)" card: off by default, the user's choice is remembered
+    private const string ShowDocsKey = "marilog.dashboard.showDocuments";
+    private bool _showFilteredDocs;
+    private IReadOnlyList<DocumentResponse>? _filteredDocs;
 
     private DocumentFilterOptions _filter = new()
     {
@@ -117,6 +127,48 @@ else
     {
         _filter = filter;
         await LoadChartsAsync();
+
+        if (_showFilteredDocs)
+            await LoadFilteredDocsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var saved = await JS.InvokeAsync<string?>("localStorage.getItem", ShowDocsKey);
+        if (saved == "true")
+        {
+            _showFilteredDocs = true;
+            await LoadFilteredDocsAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleFilteredDocsAsync(bool show)
+    {
+        _showFilteredDocs = show;
+        await JS.InvokeVoidAsync("localStorage.setItem", ShowDocsKey, show ? "true" : "false");
+
+        if (show)
+            await LoadFilteredDocsAsync();
+    }
+
+    // The documents behind the financial chart: same filter, same report.
+    private async Task LoadFilteredDocsAsync()
+    {
+        _filteredDocs = null;   // shows the loading bar
+        StateHasChanged();
+        try
+        {
+            var report = await DocumentService.GetFilteredDocsReportAsync(_filter);
+            _filteredDocs = report.Documents;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard documents load failed: {ex.Message}");
+            _filteredDocs = [];
+        }
     }
 
     private async Task LoadFleetAsync()
