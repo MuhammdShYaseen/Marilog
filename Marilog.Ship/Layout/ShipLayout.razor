@@ -1,0 +1,16 @@
+@inherits LayoutComponentBase
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Shared.UI.Layout
+
+<SharedMainLayout Items="_navItems" AppTitle="Marilog Ship">
+    <ChildContent>
+        @Body
+    </ChildContent>
+</SharedMainLayout>
+
+@code {
+    private readonly List<NavItemResponse> _navItems =
+    [
+        new() { Id = 1, Title = "Vessels", Route = "/vessels", Icon = "DirectionsBoat", Order = 1, IsActive = true },
+    ];
+}

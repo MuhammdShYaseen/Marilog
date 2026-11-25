@@ -16,6 +16,7 @@
   </Folder>
   <Folder Name="/Frontend/" />
   <Folder Name="/Frontend/Platforms/">
+    <Project Path="Marilog.Ship/Marilog.Ship.csproj" Id="e19965c5-a313-4a59-8dab-122c3c95d094" />
     <Project Path="Marilog.Web.Client/Marilog.Web.Client.csproj" Id="cfc408ad-9641-4452-b0e3-773071597a8f" />
   </Folder>
   <Folder Name="/Frontend/Shared/">
