@@ -451,21 +451,28 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
             // (date, order within the day, line) — signed amount: + = buyer owes more
             var entries = new List<(DateOnly Date, int Order, string Description, int DocumentId, decimal Amount)>();
 
+            // Each line in whole cents so the totals add up exactly; zero-value lines are left out.
+            void Add(DateOnly date, int order, string description, int documentId, decimal amount)
+            {
+                amount = Math.Round(amount, 2);
+                if (amount != 0) entries.Add((date, order, description, documentId, amount));
+            }
+
             foreach (var d in docs)
             {
                 var toBase = d.ExchangeRate / baseRate.ExchangeRate;
                 var sign = d.IssuedBySeller ? 1m : -1m;   // a document the buyer issued counts the other way
                 var name = $"{d.DocTypeName} {d.DocNumber}".Trim();
 
-                entries.Add((d.DocDate, 0, name, d.Id, d.TotalAmount * toBase * sign));
+                Add(d.DocDate, 0, name, d.Id, d.TotalAmount * toBase * sign);
 
                 foreach (var a in d.Adjustments)
-                    entries.Add((a.AdjustmentDate, 1, $"Adjustment — {d.DocNumber}{(string.IsNullOrWhiteSpace(a.Reason) ? "" : ": " + a.Reason)}",
-                                 d.Id, a.Amount * toBase * sign));
+                    Add(a.AdjustmentDate, 1, $"Adjustment — {d.DocNumber}{(string.IsNullOrWhiteSpace(a.Reason) ? "" : ": " + a.Reason)}",
+                        d.Id, a.Amount * toBase * sign);
 
                 foreach (var p in d.Payments)
-                    entries.Add((p.PaymentDate, 2, $"Payment ({p.PaymentMethod}) — {d.DocNumber}",
-                                 d.Id, -p.PaidAmount * toBase * sign));
+                    Add(p.PaymentDate, 2, $"Payment ({p.PaymentMethod}) — {d.DocNumber}",
+                        d.Id, -p.PaidAmount * toBase * sign);
             }
 
             var ordered = entries.OrderBy(e => e.Date).ThenBy(e => e.Order).ThenBy(e => e.DocumentId).ToList();

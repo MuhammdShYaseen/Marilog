@@ -681,14 +681,14 @@ namespace Marilog.Infrastructure.Services.Qpdf
                     {
                         col.Spacing(14);
 
-                        // ── KPI tiles: total open and how much of it is late ─────
+                        // ── KPI tiles: total open and how much is more than 30 days late ─
                         col.Item().Row(row =>
                         {
                             row.Spacing(8);
                             KpiTile(row.RelativeItem(), "Expenses open", $"{report.Expenses.Sum(r => r.Total):N2}", null, Az.Primary);
-                            KpiTile(row.RelativeItem(), "Expenses overdue", $"{report.Expenses.Sum(Overdue):N2}", null, Az.Error);
+                            KpiTile(row.RelativeItem(), "Expenses > 30 days", $"{report.Expenses.Sum(Over30Days):N2}", null, Az.Error);
                             KpiTile(row.RelativeItem(), "Revenues open", $"{report.Revenues.Sum(r => r.Total):N2}", null, Az.Primary);
-                            KpiTile(row.RelativeItem(), "Revenues overdue", $"{report.Revenues.Sum(Overdue):N2}", null, Az.Error);
+                            KpiTile(row.RelativeItem(), "Revenues > 30 days", $"{report.Revenues.Sum(Over30Days):N2}", null, Az.Error);
                         });
 
                         col.Item().Element(c => NoteLine(c,
@@ -704,7 +704,9 @@ namespace Marilog.Infrastructure.Services.Qpdf
             return Task.FromResult(bytes);
         }
 
-        private static decimal Overdue(AgingRow r) => r.Days1To30 + r.Days31To60 + r.Days61To90 + r.Over90;
+        // "> 30 days" instead of "overdue": a document with no due date counts from its own date,
+        // so 1–30 days is often just normal payment terms.
+        private static decimal Over30Days(AgingRow r) => r.Days31To60 + r.Days61To90 + r.Over90;
 
         // One aging table with a total row; zero cells stay empty so late amounts stand out.
         private static void AgingSection(ColumnDescriptor col, string title, string party, IReadOnlyList<AgingRow> rows)
@@ -722,24 +724,28 @@ namespace Marilog.Infrastructure.Services.Qpdf
             tableRows.Add(new string?[]
             {
                 "TOTAL",
-                $"{rows.Sum(r => r.NotDue):N2}", $"{rows.Sum(r => r.Days1To30):N2}", $"{rows.Sum(r => r.Days31To60):N2}",
-                $"{rows.Sum(r => r.Days61To90):N2}", $"{rows.Sum(r => r.Over90):N2}", $"{rows.Sum(r => r.Total):N2}"
+                Cell(rows.Sum(r => r.NotDue)), Cell(rows.Sum(r => r.Days1To30)), Cell(rows.Sum(r => r.Days31To60)),
+                Cell(rows.Sum(r => r.Days61To90)), Cell(rows.Sum(r => r.Over90)), $"{rows.Sum(r => r.Total):N2}"
             });
 
-            col.Item().Element(SectionTitle(title));
-            col.Item().Element(c => BuildTable(c,
-                headers: [party, "Not due", "1–30", "31–60", "61–90", "+90", "Total"],
-                rows: tableRows,
-                rightAlignedColumns: [1, 2, 3, 4, 5, 6],
-                coloredColumns: new Dictionary<int, (string positive, string negative)>
-                {
-                    [2] = (Az.Error, Az.Error),
-                    [3] = (Az.Error, Az.Error),
-                    [4] = (Az.Error, Az.Error),
-                    [5] = (Az.Error, Az.Error),
-                },
-                columnWidths: [3.2f, 1.4f, 1.4f, 1.4f, 1.4f, 1.4f, 1.5f]
-            ));
+            // Title and table stay on one page when they fit, so a table never leaves one row behind.
+            col.Item().PreventPageBreak().Column(section =>
+            {
+                section.Item().Element(SectionTitle(title));
+                section.Item().Element(c => BuildTable(c,
+                    headers: [party, "Not due", "1–30", "31–60", "61–90", "+90", "Total"],
+                    rows: tableRows,
+                    rightAlignedColumns: [1, 2, 3, 4, 5, 6],
+                    coloredColumns: new Dictionary<int, (string positive, string negative)>
+                    {
+                        [2] = (Az.Error, Az.Error),
+                        [3] = (Az.Error, Az.Error),
+                        [4] = (Az.Error, Az.Error),
+                        [5] = (Az.Error, Az.Error),
+                    },
+                    columnWidths: [3.2f, 1.4f, 1.4f, 1.4f, 1.4f, 1.4f, 1.5f]
+                ));
+            });
         }
 
         // ═══════════════════════════════════════════════════════════════════
