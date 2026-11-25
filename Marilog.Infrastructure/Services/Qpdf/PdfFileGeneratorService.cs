@@ -1,6 +1,5 @@
 ﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
-
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Kernel.Enums;
@@ -657,6 +656,175 @@ namespace Marilog.Infrastructure.Services.Qpdf
                 ));
             });
         };
+
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  AGING — open balances by days past due (base currency)
+        // ═══════════════════════════════════════════════════════════════════
+        public Task<byte[]> GenerateAgingPdf(AgingReport report, CancellationToken ct = default)
+        {
+            ct.ThrowIfCancellationRequested();
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var title = $"Aging — as of {report.AsOf:dd MMM yyyy}";
+
+            var bytes = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1.4f, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(Az.Font).FontColor(Az.Text));
+
+                    page.Header().Element(ComposeHeader(title, report.BaseCurrencyCode));
+                    page.Content().PaddingTop(10).Column(col =>
+                    {
+                        col.Spacing(14);
+
+                        // ── KPI tiles: total open and how much of it is late ─────
+                        col.Item().Row(row =>
+                        {
+                            row.Spacing(8);
+                            KpiTile(row.RelativeItem(), "Expenses open", $"{report.Expenses.Sum(r => r.Total):N2}", null, Az.Primary);
+                            KpiTile(row.RelativeItem(), "Expenses overdue", $"{report.Expenses.Sum(Overdue):N2}", null, Az.Error);
+                            KpiTile(row.RelativeItem(), "Revenues open", $"{report.Revenues.Sum(r => r.Total):N2}", null, Az.Primary);
+                            KpiTile(row.RelativeItem(), "Revenues overdue", $"{report.Revenues.Sum(Overdue):N2}", null, Az.Error);
+                        });
+
+                        col.Item().Element(c => NoteLine(c,
+                            "Columns are days past the due date. Documents with no due date are counted from their document date."));
+
+                        AgingSection(col, "Expenses", "Supplier", report.Expenses);
+                        AgingSection(col, "Revenues", "Buyer", report.Revenues);
+                    });
+                    page.Footer().Element(ComposeFooter("Aging", report.BaseCurrencyCode));
+                });
+            }).GeneratePdf();
+
+            return Task.FromResult(bytes);
+        }
+
+        private static decimal Overdue(AgingRow r) => r.Days1To30 + r.Days31To60 + r.Days61To90 + r.Over90;
+
+        // One aging table with a total row; zero cells stay empty so late amounts stand out.
+        private static void AgingSection(ColumnDescriptor col, string title, string party, IReadOnlyList<AgingRow> rows)
+        {
+            if (!rows.Any()) return;
+
+            static string Cell(decimal v) => v == 0 ? "" : $"{v:N2}";
+
+            var tableRows = rows.Select(r => new string?[]
+            {
+                r.CompanyName, Cell(r.NotDue), Cell(r.Days1To30), Cell(r.Days31To60),
+                Cell(r.Days61To90), Cell(r.Over90), $"{r.Total:N2}"
+            }).ToList();
+
+            tableRows.Add(new string?[]
+            {
+                "TOTAL",
+                $"{rows.Sum(r => r.NotDue):N2}", $"{rows.Sum(r => r.Days1To30):N2}", $"{rows.Sum(r => r.Days31To60):N2}",
+                $"{rows.Sum(r => r.Days61To90):N2}", $"{rows.Sum(r => r.Over90):N2}", $"{rows.Sum(r => r.Total):N2}"
+            });
+
+            col.Item().Element(SectionTitle(title));
+            col.Item().Element(c => BuildTable(c,
+                headers: [party, "Not due", "1–30", "31–60", "61–90", "+90", "Total"],
+                rows: tableRows,
+                rightAlignedColumns: [1, 2, 3, 4, 5, 6],
+                coloredColumns: new Dictionary<int, (string positive, string negative)>
+                {
+                    [2] = (Az.Error, Az.Error),
+                    [3] = (Az.Error, Az.Error),
+                    [4] = (Az.Error, Az.Error),
+                    [5] = (Az.Error, Az.Error),
+                },
+                columnWidths: [3.2f, 1.4f, 1.4f, 1.4f, 1.4f, 1.4f, 1.5f]
+            ));
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  STATEMENT OF ACCOUNT — seller vs buyer (base currency)
+        // ═══════════════════════════════════════════════════════════════════
+        public Task<byte[]> GenerateStatementPdf(StatementReport report, CancellationToken ct = default)
+        {
+            ct.ThrowIfCancellationRequested();
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var seller = string.IsNullOrWhiteSpace(report.SellerName) ? "Seller" : report.SellerName;
+            var buyer = string.IsNullOrWhiteSpace(report.BuyerName) ? "Buyer" : report.BuyerName;
+            var period = (report.From, report.To) switch
+            {
+                (null, null) => "All dates",
+                (DateOnly f, null) => $"From {f:dd MMM yyyy}",
+                (null, DateOnly t) => $"Up to {t:dd MMM yyyy}",
+                (DateOnly f, DateOnly t) => $"{f:dd MMM yyyy} – {t:dd MMM yyyy}"
+            };
+
+            var bytes = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1.4f, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(Az.Font).FontColor(Az.Text));
+
+                    page.Header().Element(ComposeHeader("Statement of Account", report.BaseCurrencyCode));
+                    page.Content().PaddingTop(10).Column(col =>
+                    {
+                        col.Spacing(14);
+
+                        // ── Parties and period ───────────────────────────────────
+                        col.Item().Row(row =>
+                        {
+                            row.Spacing(16);
+                            row.RelativeItem().Component(new FieldBlock("Seller", seller, bold: true));
+                            row.RelativeItem().Component(new FieldBlock("Buyer", buyer, bold: true));
+                            row.RelativeItem().Component(new FieldBlock("Period", period));
+                        });
+
+                        // ── Balances ─────────────────────────────────────────────
+                        col.Item().Row(row =>
+                        {
+                            row.Spacing(8);
+                            KpiTile(row.RelativeItem(), "Opening balance", $"{report.OpeningBalance:N2}", null, Az.Primary);
+                            KpiTile(row.RelativeItem(), "Total debit", $"{report.TotalDebit:N2}", null, Az.Primary);
+                            KpiTile(row.RelativeItem(), "Total credit", $"{report.TotalCredit:N2}", null, Az.Primary);
+                            KpiTile(row.RelativeItem(), "Closing balance", $"{report.ClosingBalance:N2}", null,
+                                    report.ClosingBalance > 0 ? Az.Warning : Az.Success);
+                        });
+
+                        col.Item().Element(c => NoteLine(c,
+                            $"Balance = what {buyer} owes {seller}. A negative balance means {seller} owes {buyer}."));
+
+                        // ── Lines: opening balance first, then every movement ────
+                        var rows = new List<string?[]>
+                        {
+                            new string?[] { report.From?.ToString("dd MMM yyyy") ?? "", "Opening balance", "", "", $"{report.OpeningBalance:N2}" }
+                        };
+                        rows.AddRange(report.Lines.Select(l => new string?[]
+                        {
+                            l.Date.ToString("dd MMM yyyy"),
+                            l.Description,
+                            l.Debit == 0 ? "" : $"{l.Debit:N2}",
+                            l.Credit == 0 ? "" : $"{l.Credit:N2}",
+                            $"{l.Balance:N2}"
+                        }));
+                        rows.Add(new string?[] { "", "Closing balance", $"{report.TotalDebit:N2}", $"{report.TotalCredit:N2}", $"{report.ClosingBalance:N2}" });
+
+                        col.Item().Element(SectionTitle($"Movements ({report.Lines.Count})"));
+                        col.Item().Element(c => BuildTable(c,
+                            headers: ["Date", "Description", "Debit", "Credit", "Balance"],
+                            rows: rows,
+                            rightAlignedColumns: [2, 3, 4],
+                            columnWidths: [1.3f, 4.6f, 1.5f, 1.5f, 1.6f]
+                        ));
+                    });
+                    page.Footer().Element(ComposeFooter("Statement of Account", report.BaseCurrencyCode));
+                });
+            }).GeneratePdf();
+
+            return Task.FromResult(bytes);
+        }
 
         // ═══════════════════════════════════════════════════════════════════
         //  BILL OF LADING  (logic unchanged — visual language aligned)

@@ -40,6 +40,8 @@
                             OnLoadAging="@(() => DocumentService.GetAgingAsync())"
                             OnLoadStatement="@((seller, buyer, fromDate, toDate) => DocumentService.GetStatementAsync(seller, buyer, fromDate, toDate))"
                             OnBaseCurrencyChanged="ChangeBaseCurrencyAsync"
+                            OnExportAgingPdf="ExportAgingPdfAsync"
+                            OnExportStatementPdf="ExportStatementPdfAsync"
                             OnOpenDocument="@(id => Nav.NavigateTo($"/documents/{id}"))"
                             OnManageAttachedFilesClicked="@(arg => ManageStoredFiles.OpenManageStoredFilesDialogAsync(arg))" />
 
@@ -90,7 +92,36 @@
         var bytes = await PdfService.GeneratePaymentReportPdf(args.report, args.title);
         await JS.InvokeVoidAsync("marilogDownload.downloadBytes", args.fileName, "application/pdf", Convert.ToBase64String(bytes));
     }
+    private async Task ExportAgingPdfAsync(AgingReport report)
+    {
+        try
+        {
+            var bytes = await PdfService.GenerateAgingPdf(report);
+            await DownloadPdfAsync($"Aging_{report.AsOf:yyyyMMdd}.pdf", bytes);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
 
+    private async Task ExportStatementPdfAsync(StatementReport report)
+    {
+        try
+        {
+            var bytes = await PdfService.GenerateStatementPdf(report);
+            var name = string.Concat($"Statement_{report.SellerName}_{report.BuyerName}"
+                .Select(c => char.IsLetterOrDigit(c) ? c : '_'));
+            await DownloadPdfAsync($"{name}_{DateTime.Now:yyyyMMdd}.pdf", bytes);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DownloadPdfAsync(string fileName, byte[] bytes) =>
+        await JS.InvokeVoidAsync("marilogDownload.downloadBytes", fileName, "application/pdf", Convert.ToBase64String(bytes));
     // Saves the new base currency; the page then reloads what it shows.
     private async Task ChangeBaseCurrencyAsync(int currencyId)
     {

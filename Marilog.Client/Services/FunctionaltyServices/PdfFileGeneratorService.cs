@@ -1,13 +1,7 @@
-﻿using Marilog.Client.Extensions;
-using Marilog.Contracts.DTOs.Reports.DocumentReports;
+﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
-using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
-using System;
-using System.Collections.Generic;
 using System.Net.Http.Json;
-using System.Text;
-using static System.Net.WebRequestMethods;
 
 namespace Marilog.Client.Services.FunctionaltyServices
 {
@@ -42,7 +36,19 @@ namespace Marilog.Client.Services.FunctionaltyServices
 
             return await response.Content.ReadAsByteArrayAsync(ct);
         }
+        public Task<byte[]> GenerateAgingPdf(AgingReport report, CancellationToken ct = default)
+            => PostForPdfAsync("api/PdfFileGenerator/Aging", report, ct);
 
+        public Task<byte[]> GenerateStatementPdf(StatementReport report, CancellationToken ct = default)
+            => PostForPdfAsync("api/PdfFileGenerator/Statement", report, ct);
+
+        // Posts the report and returns the PDF bytes; shows the server's message on failure.
+        private async Task<byte[]> PostForPdfAsync<T>(string url, T report, CancellationToken ct)
+        {
+            using var response = await _http.PostAsJsonAsync(url, report, ct);
+            await response.EnsureSuccessWithMessageAsync(ct);
+            return await response.Content.ReadAsByteArrayAsync(ct);
+        }
         public async Task<byte[]> GeneratePaymentReportPdf(PaymentsReport report, string title, CancellationToken ct = default)
         {
             var url = string.IsNullOrWhiteSpace(title)

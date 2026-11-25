@@ -4,6 +4,8 @@
     // Balance = what the buyer owes the seller (negative = the seller owes the buyer).
     public class StatementReport
     {
+        public string SellerName { get; set; } = string.Empty;
+        public string BuyerName { get; set; } = string.Empty;
         public DateOnly? From { get; set; }
         public DateOnly? To { get; set; }
         public string BaseCurrencyCode { get; set; } = string.Empty;

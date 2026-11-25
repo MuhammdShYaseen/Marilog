@@ -8,7 +8,8 @@ namespace Marilog.Contracts.Interfaces.Services.FunctionaltyServices
     {
         Task<byte[]> GenerateDocumentReportPdf(DocumentReport report, string title, CancellationToken ct =default);
         Task<byte[]> GenerateBillOfLadingFile(int blId, CancellationToken ct = default);
-
+        Task<byte[]> GenerateAgingPdf(AgingReport report, CancellationToken ct = default);
+        Task<byte[]> GenerateStatementPdf(StatementReport report, CancellationToken ct = default);
         Task<byte[]> GeneratePaymentReportPdf(PaymentsReport report, string title, CancellationToken ct = default);
     }
 }

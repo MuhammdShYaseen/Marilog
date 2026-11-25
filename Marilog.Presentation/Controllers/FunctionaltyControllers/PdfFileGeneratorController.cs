@@ -1,8 +1,6 @@
 ﻿using Marilog.Contracts.DTOs.Reports.DocumentReports;
 using Marilog.Contracts.DTOs.Reports.PaymentReports;
-using Marilog.Contracts.DTOs.Responses;
 using Marilog.Contracts.Interfaces.Services.FunctionaltyServices;
-using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Infrastructure.Helpers.UserIdentity;
 using Marilog.Kernel.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -39,6 +37,24 @@ namespace Marilog.Presentation.Controllers.FunctionaltyControllers
 
             return File(pdfBytes, "application/pdf", fileName);
         }
+
+
+        [RequirePermission(EntityType.Document, PermissionAction.Read)]
+        [HttpPost("Aging")]
+        public async Task<IActionResult> ExportAging([FromBody] AgingReport report, CancellationToken ct = default)
+        {
+            var pdfBytes = await _pdfGeneratorService.GenerateAgingPdf(report, ct);
+            return File(pdfBytes, "application/pdf", $"Aging_{report.AsOf:yyyyMMdd}.pdf");
+        }
+
+        [RequirePermission(EntityType.Document, PermissionAction.Read)]
+        [HttpPost("Statement")]
+        public async Task<IActionResult> ExportStatement([FromBody] StatementReport report, CancellationToken ct = default)
+        {
+            var pdfBytes = await _pdfGeneratorService.GenerateStatementPdf(report, ct);
+            return File(pdfBytes, "application/pdf", $"Statement_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+        }
+
         [RequirePermission(EntityType.BillOfLading, PermissionAction.Read)]
         [HttpGet("BillOfLadingPdf/{id:int}")]
         public async Task<IActionResult> ExportBillOfLadingFile(int id, CancellationToken ct = default)

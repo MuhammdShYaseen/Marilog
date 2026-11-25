@@ -53,6 +53,13 @@
 }
 else if (_report is not null)
 {
+    <div class="d-flex justify-end mb-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   OnClick="@(() => OnExportPdf.InvokeAsync(_report))">
+            Save as PDF
+        </MudButton>
+    </div>
     <MudText Typo="Typo.caption" Class="mb-2 d-block">
         Amounts in @_report.BaseCurrencyCode. Balance = what @Name(_shownBuyerId) owes @Name(_shownSellerId);
         a negative balance means @Name(_shownSellerId) owes @Name(_shownBuyerId).
@@ -91,6 +98,7 @@ else if (_report is not null)
 @code {
     [Parameter] public IReadOnlyList<CompanyResponse> Companies { get; set; } = [];
     [Parameter] public Func<int, int, DateOnly?, DateOnly?, Task<StatementReport>>? OnLoad { get; set; }
+    [Parameter] public EventCallback<StatementReport> OnExportPdf { get; set; }
 
     private int? _sellerId;
     private int? _buyerId;

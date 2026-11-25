@@ -1,7 +1,6 @@
 using Marilog.Application.Extensions;
 using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Reports.DocumentReports;
-using Marilog.Contracts.DTOs.Reports.PaymentReports;
 using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs;
 using Marilog.Contracts.DTOs.Requests.DocumentDTOs;
 using Marilog.Contracts.DTOs.Responses;
@@ -9,9 +8,7 @@ using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
-using Marilog.Kernel.Primitives;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 namespace Marilog.Application.Services.ApplicationServices.SystemServices
@@ -19,18 +16,15 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
     public class DocumentService : IDocumentService
     {
         private readonly IRepository<Document> _repo;
-        private readonly IRepository<SwiftTransfer> _swiftRepo;
         private readonly IRepository<Currency> _currencyRepo;
         private readonly IRepository<DocumentType> _docTypeRepo;
 
         public DocumentService(
             IRepository<Document> repo,
-            IRepository<SwiftTransfer> swiftRepo,
             IRepository<Currency> currencyRepo,
             IRepository<DocumentType> docTypeRepo)
         {
             _repo = repo;
-            _swiftRepo = swiftRepo;
             _currencyRepo = currencyRepo;
             _docTypeRepo = docTypeRepo;
         }
@@ -445,6 +439,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     DocTypeName = x.DocType != null ? x.DocType.Name : null,
                     x.DocDate,
                     x.TotalAmount,
+                    SupplierName = x.Supplier != null ? x.Supplier.CompanyName : null,
+                    BuyerName = x.Buyer != null ? x.Buyer.CompanyName : null,
                     IssuedBySeller = x.SupplierId == sellerId,
                     x.Currency.ExchangeRate,
                     Adjustments = x.Adjustments.Select(a => new { a.AdjustmentDate, a.Amount, a.Reason }).ToList(),
@@ -491,9 +487,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     Balance = balance
                 });
             }
-
+            var first = docs.FirstOrDefault();
             return new StatementReport
             {
+                SellerName = (first is null ? null : first.IssuedBySeller ? first.SupplierName : first.BuyerName) ?? string.Empty,
+                BuyerName = (first is null ? null : first.IssuedBySeller ? first.BuyerName : first.SupplierName) ?? string.Empty,
                 From = from,
                 To = to,
                 BaseCurrencyCode = baseRate.Code,

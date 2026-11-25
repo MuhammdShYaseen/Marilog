@@ -42,19 +42,27 @@
 
         @* ── Aging (tab index 2) ──────────────────────────────── *@
         <MudTabPanel Text="Aging">
-            <div class="d-flex justify-end mb-2">
+            <div class="d-flex justify-end gap-2 mb-2">
                 <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAgingAsync">
                     Refresh
                 </MudButton>
+                @if (_aging is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                               OnClick="@(() => OnExportAgingPdf.InvokeAsync(_aging))">
+                        Save as PDF
+                    </MudButton>
+                }
             </div>
             <AgingTables Report="_aging" />
         </MudTabPanel>
 
         @* ── Statement of account ─────────────────────────────── *@
         <MudTabPanel Text="Statement">
-            <StatementPanel Companies="Companies" OnLoad="OnLoadStatement" @ref="_statementPanel" />
+            <StatementPanel Companies="Companies" OnLoad="OnLoadStatement" OnExportPdf="OnExportStatementPdf" @ref="_statementPanel" />
         </MudTabPanel>
 
     </MudTabs>
@@ -73,6 +81,8 @@
     [Parameter] public EventCallback<(PaymentsReport report, string title, string fileName)> OnExportPaymentPdf { get; set; }
     [Parameter] public Func<Task<AgingReport>>? OnLoadAging { get; set; }
     [Parameter] public Func<int, int, DateOnly?, DateOnly?, Task<StatementReport>>? OnLoadStatement { get; set; }
+    [Parameter] public EventCallback<AgingReport> OnExportAgingPdf { get; set; }
+    [Parameter] public EventCallback<StatementReport> OnExportStatementPdf { get; set; }
     [Parameter] public EventCallback<int> OnBaseCurrencyChanged { get; set; }
     [Parameter] public EventCallback<int> OnOpenDocument { get; set; }
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
