@@ -19,16 +19,18 @@ else
         Documents with no due date are counted from their document date.
     </MudText>
 
-    @foreach (var (title, party, rows) in new[]
-{
-        ("Expenses", "Supplier", Report.Expenses),
-        ("Revenues", "Buyer", Report.Revenues)
+    @foreach (var (title, party, rows, isExpense) in new[]
+    {
+        ("Expenses", "Supplier", Report.Expenses, true),
+        ("Revenues", "Buyer", Report.Revenues, false)
     })
     {
         if (!rows.Any()) continue;
 
         <MudText Typo="Typo.subtitle1" Class="mt-2 mb-1"><b>@title</b></MudText>
-        <MudTable Items="rows" Dense="true" Hover="true" Elevation="0" Class="mb-4">
+        <MudTable T="AgingRow" Items="rows" Dense="true" Hover="true" Elevation="0" Class="mb-4"
+                  RowStyle="cursor:pointer"
+                  OnRowClick="@(args => OpenStatement(args.Item, isExpense))">
             <HeaderContent>
                 <MudTh>@party</MudTh>
                 <MudTh Style="text-align:right">Not due</MudTh>
@@ -63,7 +65,19 @@ else
 @code {
     /// <summary>null = still loading.</summary>
     [Parameter] public AgingReport? Report { get; set; }
+    
+    /// <summary>Raised when a row is clicked: (sellerId, buyerId) of the statement to open; null = not known.</summary>
+    [Parameter] public EventCallback<(int? sellerId, int? buyerId)> OnStatementRequested { get; set; }
 
+    // Expenses: the company is the seller. Revenues: the company is the buyer.
+    private Task OpenStatement(AgingRow? row, bool isExpense)
+    {
+        if (row is null || row.CompanyId == 0) return Task.CompletedTask;
+
+        return isExpense
+            ? OnStatementRequested.InvokeAsync((row.CompanyId, row.OtherPartyId))
+            : OnStatementRequested.InvokeAsync((row.OtherPartyId, row.CompanyId));
+    }
     // Empty cell instead of 0.00 so the late amounts stand out.
     private static string Cell(decimal amount) => amount == 0 ? "" : amount.ToString("N2");
 

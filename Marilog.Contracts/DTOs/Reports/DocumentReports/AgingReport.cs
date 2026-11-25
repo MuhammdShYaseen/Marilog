@@ -17,6 +17,9 @@
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = string.Empty;
 
+        // The other side of these documents (the buyer of expenses / the seller of revenues),
+        // when there is only one. Used to open the statement between the two directly.
+        public int? OtherPartyId { get; set; }
         public decimal NotDue { get; set; }      // due today or later
         public decimal Days1To30 { get; set; }
         public decimal Days31To60 { get; set; }

@@ -15,7 +15,9 @@
         <BaseCurrencyMenu Currencies="Currencies" OnChanged="ChangeBaseCurrencyAsync" />
     </div>
 
-    <MudTabs ActivePanelIndexChanged="OnTabChanged" Elevation="0" Rounded="true" Class="mb-3">
+    @* KeepPanelsAlive: each tab keeps its filters and results when you switch between tabs *@
+    <MudTabs ActivePanelIndex="_activeTab" ActivePanelIndexChanged="OnTabChanged" KeepPanelsAlive="true"
+             Elevation="0" Rounded="true" Class="mb-3">
 
         @* ── Documents report ──────────────────────────────────── *@
         <MudTabPanel Text="Documents Report">
@@ -57,7 +59,7 @@
                     </MudButton>
                 }
             </div>
-            <AgingTables Report="_aging" />
+            <AgingTables Report="_aging" OnStatementRequested="OpenStatementAsync" />
         </MudTabPanel>
 
         @* ── Statement of account ─────────────────────────────── *@
@@ -88,16 +90,29 @@
     [Parameter] public EventCallback<(int entityId, EntityType entityType)> OnManageAttachedFilesClicked { get; set; }
 
     private const int AgingTabIndex = 2;
+    private const int StatementTabIndex = 3;
+    private int _activeTab;
     private AgingReport? _aging;
     private DocumentReportPanel? _reportPanel;
     private PaymentReportPanel? _paymentPanel;
     private StatementPanel? _statementPanel;
-
     private async Task OnTabChanged(int index)
     {
+        _activeTab = index;
+
         // Load Aging the first time its tab is opened; Refresh reloads it.
         if (index == AgingTabIndex && _aging is null)
             await LoadAgingAsync();
+    }
+
+    // Aging row clicked: jump to the Statement tab with both parties filled in.
+    private async Task OpenStatementAsync((int? sellerId, int? buyerId) parties)
+    {
+        _activeTab = StatementTabIndex;
+        StateHasChanged();
+
+        if (_statementPanel is not null)
+            await _statementPanel.ShowAsync(parties.sellerId, parties.buyerId);
     }
 
     private async Task LoadAgingAsync()

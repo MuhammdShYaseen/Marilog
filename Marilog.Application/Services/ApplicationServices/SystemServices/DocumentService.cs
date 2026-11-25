@@ -369,11 +369,11 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
             var payables = open
                 .Where(x => x.Side == FinancialSide.Expense)
-                .Select(x => (x.SupplierId, x.SupplierName, x.DocDue ?? x.DocDate, x.Remaining * x.ExchangeRate / baseRate.ExchangeRate));
+                                .Select(x => (x.SupplierId, x.SupplierName, x.BuyerId, x.DocDue ?? x.DocDate, x.Remaining * x.ExchangeRate / baseRate.ExchangeRate));
 
             var receivables = open
                 .Where(x => x.Side == FinancialSide.Revenue)
-                .Select(x => (x.BuyerId, x.BuyerName, x.DocDue ?? x.DocDate, x.Remaining * x.ExchangeRate / baseRate.ExchangeRate));
+                                .Select(x => (x.BuyerId, x.BuyerName, x.SupplierId, x.DocDue ?? x.DocDate, x.Remaining * x.ExchangeRate / baseRate.ExchangeRate));
 
             return new AgingReport
             {
@@ -386,9 +386,7 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
 
         // Groups open amounts by company and puts each one in a bucket by days past due.
         // A document with no due date is treated as due on its document date.
-        private static List<AgingRow> BuildAging(
-            IEnumerable<(int? CompanyId, string? CompanyName, DateOnly Due, decimal Amount)> docs,
-            DateOnly today)
+        private static List<AgingRow> BuildAging(IEnumerable<(int? CompanyId, string? CompanyName, int? OtherPartyId, DateOnly Due, decimal Amount)> docs, DateOnly today)
         {
             return docs
                 .GroupBy(d => d.CompanyId ?? 0)
@@ -397,7 +395,8 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                     var row = new AgingRow
                     {
                         CompanyId = g.Key,
-                        CompanyName = g.First().CompanyName ?? "—"
+                        CompanyName = g.First().CompanyName ?? "—",
+                        OtherPartyId = g.Select(d => d.OtherPartyId).Distinct().Count() == 1 ? g.First().OtherPartyId : null
                     };
 
                     foreach (var d in g)

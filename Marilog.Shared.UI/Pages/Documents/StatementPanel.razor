@@ -110,6 +110,18 @@ else if (_report is not null)
     private int? _shownBuyerId;
     private bool _loading;
 
+
+    /// <summary>Selects the two parties (from the Aging tab) and loads the statement when both are known.</summary>
+    public async Task ShowAsync(int? sellerId, int? buyerId)
+    {
+        _sellerId = sellerId;
+        _buyerId = buyerId;
+        _report = null;
+        StateHasChanged();
+
+        if (_sellerId is not null && _buyerId is not null && _sellerId != _buyerId)
+            await ReloadAsync();
+    }
     /// <summary>Loads the statement for the selected parties. Also called after the base currency changes.</summary>
     public async Task ReloadAsync()
     {
