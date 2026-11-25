@@ -1,6 +1,5 @@
 ﻿using Marilog.Application.Helpers;
 using Marilog.Application.Interfaces.Ai;
-using Marilog.Application.Interfaces.Services.Domain;
 using Marilog.Application.Interfaces.Services.Laytime;
 using Marilog.Application.Services.ApplicationServices.AiServices;
 using Marilog.Application.Services.ApplicationServices.AuditLog;
@@ -66,7 +65,6 @@ namespace Marilog.Application
 
 
             // ── Domain Services ───────────────────────────────────────────────────
-            services.AddScoped<IPayrollCalculatorService, PayrollCalculatorService>();
             services.AddScoped<IInboxService, InboxService>();
             services.AddScoped<InboxLinkResolver>();
             services.AddScoped<IRecordLinkService, RecordLinkService>();

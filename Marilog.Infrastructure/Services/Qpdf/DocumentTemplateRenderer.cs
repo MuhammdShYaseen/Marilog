@@ -382,6 +382,7 @@ namespace Marilog.Infrastructure.Services.Qpdf
             PaymentMethod.Cheque => "Cheque",
             PaymentMethod.CreditBalance => "Credit balance",
             PaymentMethod.CreditCard => "Credit card",
+            PaymentMethod.CigarettesOnBoard => "Cigarettes on board",
             _ => "Other"
         };
 

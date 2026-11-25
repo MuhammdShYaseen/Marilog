@@ -1,4 +1,6 @@
 ﻿using Marilog.Domain.Common;
+using Marilog.Kernel.Enums;
+using Marilog.Kernel.Rules;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -19,13 +21,14 @@ namespace Marilog.Domain.Entities.SystemEntities
         public Port? SignOffPortNav { get; private set; }
         public string? Notes { get; private set; }
         public int? DurationInMonth { get; private set; }
+        public WagesPaidBy WagesPaidBy { get; private set; } = WagesPaidBy.Office;
 
         private CrewContract() { }
         public static CrewContract Create(int durationInMonth, int personId, int vesselId, int rankId,
             decimal monthlyWage, DateOnly signOnDate, int? signOnPort = null,
             string? notes = null)
         {
-            if (durationInMonth <=0) throw new ArgumentException("Invalid durationInMonth");
+            if (durationInMonth <= 0) throw new ArgumentException("Invalid durationInMonth");
             if (personId <= 0) throw new ArgumentException("Invalid PersonID.");
             if (vesselId <= 0) throw new ArgumentException("Invalid VesselID.");
             if (rankId <= 0) throw new ArgumentException("Invalid RankID.");
@@ -72,11 +75,25 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
+        public void SetWagesPaidBy(WagesPaidBy wagesPaidBy)
+        {
+            if (!Enum.IsDefined(wagesPaidBy))
+                throw new ArgumentException("Invalid WagesPaidBy.");
+
+            WagesPaidBy = wagesPaidBy;
+            Touch();
+        }
+
+        // Inclusive days, same rule as payroll (CrewWageRules).
         public int ContractDurationDays() =>
-            (SignOffDate.HasValue ? SignOffDate.Value : DateOnly.FromDateTime(DateTime.UtcNow))
-                .DayNumber - SignOnDate.DayNumber;
+            CrewWageRules.CountServiceDays(SignOnDate, SignOffDate, SignOnDate, ServiceEnd());
 
         public decimal TotalWageEarned() =>
-            Math.Round(MonthlyWage / 30m * ContractDurationDays(), 2);
+            ServiceEnd() < SignOnDate
+                ? 0m
+                : CrewWageRules.PeriodWage(MonthlyWage, SignOnDate, SignOffDate, SignOnDate, ServiceEnd());
+
+        private DateOnly ServiceEnd() =>
+            SignOffDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Marilog.Domain.Common;
 using Marilog.Domain.Events;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Rules;
 
 namespace Marilog.Domain.Entities.SystemEntities
 {
@@ -149,11 +150,8 @@ namespace Marilog.Domain.Entities.SystemEntities
             Touch();
         }
 
-        // ── Private: calculation ──────────────────────────────────────────────────
-        private const int DaysPerMonth = 30;
-
         private void Calculate(CrewContract contract, int currencyId,
-    decimal allowances, decimal deductions, string? notes)
+                                decimal allowances, decimal deductions, string? notes)
         {
             if (currencyId <= 0) throw new ArgumentException("CurrencyId is required.");
             EnsureMoney(allowances, nameof(Allowances));
@@ -175,33 +173,23 @@ namespace Marilog.Domain.Entities.SystemEntities
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
         }
 
-        /// <summary>Full calendar month → full MonthlyWage; otherwise days × (MonthlyWage ÷ 30).</summary>
+        /// <summary>Wage rule lives in <see cref="CrewWageRules"/> — shared with the ship program.</summary>
         private static (int ServiceDays, decimal BasicWage) ComputeBasicWage(CrewContract contract, DateOnly month)
         {
             if (contract.MonthlyWage < 0)
                 throw new InvalidOperationException($"Contract {contract.Id} has a negative MonthlyWage.");
 
-            var serviceDays = CountServiceDays(contract.SignOnDate, contract.SignOffDate, month);
+            var lastDay = month.AddMonths(1).AddDays(-1);
+            var serviceDays = CrewWageRules.CountServiceDays(contract.SignOnDate, contract.SignOffDate, month, lastDay);
             if (serviceDays == 0)
                 throw new InvalidOperationException(
                     $"Contract {contract.Id} has no service days in {month:yyyy-MM}.");
 
-            var isFullMonth = serviceDays == DateTime.DaysInMonth(month.Year, month.Month);
-            var basicWage = Math.Round(
-                isFullMonth ? contract.MonthlyWage : contract.MonthlyWage * serviceDays / DaysPerMonth,
-                2, MidpointRounding.AwayFromZero);
+            var basicWage = CrewWageRules.MonthWage(contract.MonthlyWage, contract.SignOnDate, contract.SignOffDate, month);
 
             return (serviceDays, basicWage);
         }
 
-        private static string NormalizeCurrency(string currencyCode)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
-            var code = currencyCode.Trim().ToUpperInvariant();
-            if (code.Length != 3 || !code.All(char.IsAsciiLetter))
-                throw new ArgumentException($"'{currencyCode}' is not a valid 3-letter currency code.");
-            return code;
-        }
 
         private static int CountServiceDays(DateOnly signOn, DateOnly? signOff, DateOnly month)
         {

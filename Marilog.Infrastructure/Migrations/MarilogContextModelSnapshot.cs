@@ -1460,6 +1460,13 @@ namespace Marilog.Infrastructure.Migrations
                     b.Property<int>("VesselID")
                         .HasColumnType("int");
 
+                    b.Property<string>("WagesPaidBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Office");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Guid")

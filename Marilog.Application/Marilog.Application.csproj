@@ -23,6 +23,7 @@
     <Folder Include="Interfaces\EmailNotificationConfig\" />
     <Folder Include="Interfaces\LogService\" />
     <Folder Include="Interfaces\NumberingStart\" />
+    <Folder Include="Interfaces\Services\Domain\" />
     <Folder Include="Services\ApplicationServices\FunctionaltyServices\" />
   </ItemGroup>
 

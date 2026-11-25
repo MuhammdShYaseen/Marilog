@@ -469,9 +469,15 @@
         Cheque,
         CreditBalance,
         CreditCard,
-        Other
+        Other,
+        CigarettesOnBoard   // هدايا دخان من مخزون الباخرة (بسعر الكلفة)
     }
     public enum DisbursementStatus { Pending, Confirmed, Cancelled }
+    public enum WagesPaidBy
+    {
+        Office = 0,   // الراتب محسوب ومدفوع من المكتب
+        Master = 1    // الراتب على حساب الكابتن (Master's General Account)
+    }
 
     //Rank Enums
     public enum Department { DECK, ENGINE, CATERING }

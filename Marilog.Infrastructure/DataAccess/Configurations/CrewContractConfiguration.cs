@@ -1,4 +1,5 @@
 using Marilog.Domain.Entities.SystemEntities;
+using Marilog.Kernel.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,6 +19,11 @@ namespace Marilog.Infrastructure.DataAccess.Configurations
             builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
             builder.Property(x => x.DurationInMonth).IsRequired().HasDefaultValue(6);
+            builder.Property(x => x.WagesPaidBy)
+                    .IsRequired()
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(WagesPaidBy.Office);
             builder.HasOne(x => x.Rank)
                    .WithMany()
                    .HasForeignKey(x => x.RankID)

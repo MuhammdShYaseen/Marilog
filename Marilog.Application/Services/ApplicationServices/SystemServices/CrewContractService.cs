@@ -6,6 +6,7 @@ using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
 using Marilog.Kernel.Primitives;
+using Marilog.Kernel.Rules;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -578,13 +579,14 @@ namespace Marilog.Application.Services.ApplicationServices.SystemServices
                 ContractDurationMonths = x.DurationInMonth != null ? x.DurationInMonth : null,
                 IsActive = x.IsActive,
                 Notes = x.Notes,
-                ContractDurationDays = x.SignOffDate.HasValue
-                    ? x.SignOffDate.Value.DayNumber - x.SignOnDate.DayNumber
-                    : today.DayNumber - x.SignOnDate.DayNumber,
+                // Same rule as payroll (CrewWageRules) — evaluated client-side in the final projection.
+                ContractDurationDays = CrewWageRules.CountServiceDays(
+                    x.SignOnDate, x.SignOffDate, x.SignOnDate, x.SignOffDate ?? today),
 
-                TotalWageEarned = x.SignOffDate.HasValue
-                    ? x.MonthlyWage / 30m * (x.SignOffDate.Value.DayNumber - x.SignOnDate.DayNumber)
-                    : x.MonthlyWage / 30m * (today.DayNumber - x.SignOnDate.DayNumber),
+                TotalWageEarned = (x.SignOffDate ?? today) < x.SignOnDate
+                    ? 0m
+                    : CrewWageRules.PeriodWage(
+                        x.MonthlyWage, x.SignOnDate, x.SignOffDate, x.SignOnDate, x.SignOffDate ?? today),
                 Rank = new RankResponse
                 {
                     Code = x.Rank.RankCode,
