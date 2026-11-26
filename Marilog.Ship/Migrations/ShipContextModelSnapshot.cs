@@ -272,6 +272,148 @@ namespace Marilog.Ship.Migrations
                     b.ToTable("CrewContracts", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayroll", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Allowances")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("BasicWage")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Deductions")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("PayrollMonth")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("WorkingDays")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("ContractId", "PayrollMonth")
+                        .IsUnique()
+                        .HasFilter("\"Status\" <> 'Cancelled'");
+
+                    b.ToTable("CrewPayrolls", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayrollDisbursement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("PaidOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PayrollId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RecipientIdNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecipientName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("PayrollId");
+
+                    b.ToTable("CrewPayrollDisbursements", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Currency", b =>
                 {
                     b.Property<int>("Id")
@@ -819,6 +961,10 @@ namespace Marilog.Ship.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Number")
                         .HasColumnType("INTEGER");
 
@@ -1009,9 +1155,6 @@ namespace Marilog.Ship.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("BaseCurrencyId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("TEXT");
 
@@ -1042,8 +1185,6 @@ namespace Marilog.Ship.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BaseCurrencyId");
 
                     b.HasIndex("Guid")
                         .IsUnique();
@@ -1330,6 +1471,34 @@ namespace Marilog.Ship.Migrations
                     b.Navigation("Vessel");
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayroll", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.CrewContract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Currency");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayrollDisbursement", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.CrewPayroll", null)
+                        .WithMany("Disbursements")
+                        .HasForeignKey("PayrollId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Person", b =>
                 {
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Country", "NationalityCountry")
@@ -1509,19 +1678,11 @@ namespace Marilog.Ship.Migrations
 
             modelBuilder.Entity("Marilog.Ship.Domain.Entities.ShipSetup", b =>
                 {
-                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Currency", "BaseCurrency")
-                        .WithMany()
-                        .HasForeignKey("BaseCurrencyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Vessel", "Vessel")
                         .WithMany()
                         .HasForeignKey("VesselId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("BaseCurrency");
 
                     b.Navigation("Vessel");
                 });
@@ -1529,6 +1690,11 @@ namespace Marilog.Ship.Migrations
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Company", b =>
                 {
                     b.Navigation("Vessels");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CrewPayroll", b =>
+                {
+                    b.Navigation("Disbursements");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Person", b =>
