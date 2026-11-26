@@ -16,6 +16,7 @@ namespace Marilog.Ship.Domain.Entities
         public WagesPaidBy DefaultWagesPaidBy { get; private set; }
         public bool IsCompleted { get; private set; }
         public DateTime? CompletedAt { get; private set; }
+        public string? ShipKeyEncrypted { get; private set; }   // key from the office, encrypted (ShipKeyProtector)
 
         private ShipSetup() { }
 
@@ -40,11 +41,33 @@ namespace Marilog.Ship.Domain.Entities
             Touch();
         }
 
+        public void SetShipKey(string shipKeyEncrypted)
+        {
+            EnsureNotCompleted();
+            ArgumentException.ThrowIfNullOrWhiteSpace(shipKeyEncrypted);
+            ShipKeyEncrypted = shipKeyEncrypted;
+            Touch();
+        }
+
         public void Complete()
         {
             EnsureNotCompleted();
+            if (ShipKeyEncrypted is null)
+                throw new InvalidOperationException("Enter the ship key from the office before completing the setup.");
+
             IsCompleted = true;
             CompletedAt = DateTime.UtcNow;
+            Touch();
+        }
+
+        /// <summary>Opens the setup for one edit — only after a correct unlock code.</summary>
+        public void Reopen()
+        {
+            if (!IsCompleted)
+                throw new InvalidOperationException("The setup is not locked.");
+
+            IsCompleted = false;
+            CompletedAt = null;
             Touch();
         }
 

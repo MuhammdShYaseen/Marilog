@@ -1,7 +1,10 @@
 ﻿using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Kernel.Enums;
+using Marilog.Kernel.Rules;
 using Marilog.Ship.Domain.Entities;
+using Marilog.Ship.Domain.Enums;
+using Marilog.Ship.Services.Unlock;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Ship.Services.Setup
@@ -14,6 +17,7 @@ namespace Marilog.Ship.Services.Setup
         private readonly IRepository<Company> _companyRepo;
         private readonly IRepository<Currency> _currencyRepo;
         private readonly IRepository<CrewContract> _contractRepo;
+        private readonly IRepository<UnlockLog> _unlockLogRepo;
 
         public ShipSetupService(
             IRepository<ShipSetup> setupRepo,
@@ -21,7 +25,8 @@ namespace Marilog.Ship.Services.Setup
             IRepository<Vessel> vesselRepo,
             IRepository<Company> companyRepo,
             IRepository<Currency> currencyRepo,
-            IRepository<CrewContract> contractRepo)
+            IRepository<CrewContract> contractRepo,
+            IRepository<UnlockLog> unlockLogRepo)
         {
             _setupRepo = setupRepo;
             _mgaRepo = mgaRepo;
@@ -29,6 +34,7 @@ namespace Marilog.Ship.Services.Setup
             _companyRepo = companyRepo;
             _currencyRepo = currencyRepo;
             _contractRepo = contractRepo;
+            _unlockLogRepo = unlockLogRepo;
         }
 
         // ── Status ───────────────────────────────────────────────────────────────
@@ -46,7 +52,7 @@ namespace Marilog.Ship.Services.Setup
 
             if (setup is null)
                 return new ShipSetupStatusResponse(false, null, null, null, null, null, null, null,
-                    WagesPaidBy.Master, baseCurrency?.Id, baseCurrency?.CurrencyCode, hasOpening);
+                    WagesPaidBy.Master, baseCurrency?.Id, baseCurrency?.CurrencyCode, hasOpening, false);
 
             var vessel = await _vesselRepo.Query().AsNoTracking()
                 .Where(x => x.Id == setup.VesselId)
@@ -64,7 +70,8 @@ namespace Marilog.Ship.Services.Setup
             return new ShipSetupStatusResponse(
                 setup.IsCompleted, setup.VesselId, vessel.VesselName, vessel.CompanyName,
                 vessel.IMONumber, vessel.GrossTonnage, vessel.FlagCountryID, vessel.VesselTypeId,
-                setup.DefaultWagesPaidBy, baseCurrency?.Id, baseCurrency?.CurrencyCode, hasOpening);
+                setup.DefaultWagesPaidBy, baseCurrency?.Id, baseCurrency?.CurrencyCode, hasOpening,
+                setup.ShipKeyEncrypted is not null);
         }
 
         // ── Step 1+2: vessel, owner, base currency ───────────────────────────────
@@ -73,6 +80,8 @@ namespace Marilog.Ship.Services.Setup
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(request.OwnerCompanyName);
             ArgumentException.ThrowIfNullOrWhiteSpace(request.VesselName);
+            if (!string.IsNullOrWhiteSpace(request.ShipKey) && !ShipUnlockRules.IsValidKey(request.ShipKey))
+                throw new InvalidOperationException("The ship key is not valid. It looks like XXXX-XXXX-XXXX-XXXX.");
 
             var setup = await _setupRepo.Query().FirstOrDefaultAsync(ct);
             EnsureNotCompleted(setup);
@@ -89,7 +98,8 @@ namespace Marilog.Ship.Services.Setup
                 await _vesselRepo.AddAsync(vessel, ct);
                 await _vesselRepo.SaveChangesAsync(ct);
 
-                await _setupRepo.AddAsync(ShipSetup.Create(vessel.Id, request.DefaultWagesPaidBy), ct);
+                setup = ShipSetup.Create(vessel.Id, request.DefaultWagesPaidBy);
+                await _setupRepo.AddAsync(setup, ct);
             }
             else
             {
@@ -104,6 +114,9 @@ namespace Marilog.Ship.Services.Setup
                     request.FlagCountryId, vessel.Notes, request.VesselTypeId);
                 setup.Update(request.DefaultWagesPaidBy);
             }
+
+            if (!string.IsNullOrWhiteSpace(request.ShipKey))
+                setup.SetShipKey(ShipKeyProtector.Protect(ShipUnlockRules.NormalizeKey(request.ShipKey)));
 
             await _setupRepo.SaveChangesAsync(ct);
             await SetBaseCurrencyAsync(request.BaseCurrencyId, ct);
@@ -136,10 +149,13 @@ namespace Marilog.Ship.Services.Setup
             contract.SetWagesPaidBy(wagesPaidBy);
             await _contractRepo.SaveChangesAsync(ct);
         }
-        public async Task<IReadOnlyDictionary<int, WagesPaidBy>> GetWagesPaidByAsync(int vesselId, CancellationToken ct = default) =>
-                  await _contractRepo.Query().AsNoTracking()
-                    .Where(x => x.VesselID == vesselId)
-                    .ToDictionaryAsync(x => x.Id, x => x.WagesPaidBy, ct);
+
+        public async Task<IReadOnlyDictionary<int, WagesPaidBy>> GetWagesPaidByAsync(int vesselId,
+            CancellationToken ct = default) =>
+            await _contractRepo.Query().AsNoTracking()
+                .Where(x => x.VesselID == vesselId)
+                .ToDictionaryAsync(x => x.Id, x => x.WagesPaidBy, ct);
+
         // ── Opening balances ─────────────────────────────────────────────────────
 
         public async Task<OpeningBalancesResponse?> GetOpeningAsync(CancellationToken ct = default)
@@ -255,10 +271,21 @@ namespace Marilog.Ship.Services.Setup
                 throw new InvalidOperationException(
                     $"The opening balances differ by {check.Difference:N2} {check.BaseCurrencyCode}. Write the reason to continue.");
 
-            var opening = await _mgaRepo.Query().FirstAsync(x => x.IsOpening, ct);
+            var opening = await _mgaRepo.Query()
+                .Include(x => x.CrewLines)
+                .Include(x => x.CashLines)
+                .FirstAsync(x => x.IsOpening, ct);
 
             opening.CloseOpening(check.Difference != 0 ? differenceReason : null);
             setup.Complete();
+
+            // After an unlocked edit: keep the data as it is now locked again.
+            var edit = await _unlockLogRepo.Query()
+                .Where(x => x.Target == UnlockTarget.InitialSetup && x.UnlockedAt != null && x.DataAfter == null)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync(ct);
+            edit?.Finish(OpeningSnapshot.ToJson(opening));
+
             await _setupRepo.SaveChangesAsync(ct);
         }
 

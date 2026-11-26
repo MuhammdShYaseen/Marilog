@@ -107,6 +107,19 @@ namespace Marilog.Ship.Domain.Entities
             Touch();
         }
 
+        /// <summary>Opens the opening balances for one edit — only after a correct unlock code.</summary>
+        public void ReopenOpening()
+        {
+            if (!IsOpening)
+                throw new InvalidOperationException("Only the opening MGA can be reopened here.");
+            if (Status != MgaStatus.Closed)
+                throw new InvalidOperationException("The opening balances are not locked.");
+
+            Status = MgaStatus.Draft;
+            ClosedAt = null;
+            Touch();
+        }
+
         // ── Private ──────────────────────────────────────────────────────────────
         private void SetOpening(DateOnly asOf, string? masterName,
             decimal masterAccountBalance, decimal cigarettesOnBoard)

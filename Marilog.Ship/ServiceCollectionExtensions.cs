@@ -1,12 +1,13 @@
 ﻿using Marilog.Application.Helpers;
 using Marilog.Application.Interfaces.OnlineCurrencyRate;
 using Marilog.Application.Services.ApplicationServices.SystemServices;
-using Marilog.Contracts.Options;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
+using Marilog.Contracts.Options;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Ship.Data;
 using Marilog.Ship.Services;
 using Marilog.Ship.Services.Setup;
+using Marilog.Ship.Services.Unlock;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -40,6 +41,7 @@ namespace Marilog.Ship
 
             // ── Ship services ────────────────────────────────────────────────────
             services.AddScoped<IShipSetupService, ShipSetupService>();
+            services.AddScoped<IUnlockService, UnlockService>();
 
             return services;
         }

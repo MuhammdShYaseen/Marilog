@@ -14,7 +14,7 @@ namespace Marilog.Ship.Data.Configurations
                    .IsRequired()
                    .HasConversion<string>()
                    .HasMaxLength(20);
-
+            builder.Property(x => x.ShipKeyEncrypted).HasMaxLength(200);
             builder.HasOne(x => x.Vessel)
                    .WithMany()
                    .HasForeignKey(x => x.VesselId)

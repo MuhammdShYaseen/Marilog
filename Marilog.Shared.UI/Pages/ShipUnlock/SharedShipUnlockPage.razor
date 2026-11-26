@@ -1,0 +1,78 @@
+@using Marilog.Contracts.DTOs.Responses
+@using MudBlazor
+@namespace Marilog.Shared.UI.Pages.ShipUnlock
+
+<MudText Typo="Typo.h5" Class="mb-1">Ship Program — Keys &amp; Unlock Codes</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">
+    The ship key is typed into the ship program once, at installation. An unlock code opens one edit on board.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudSelect T="int?" Value="_vesselId" ValueChanged="OnVesselChanged" Label="Vessel" Clearable="true"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var v in Vessels.Where(x => !string.IsNullOrWhiteSpace(x.IMONumber)))
+            {
+                <MudSelectItem T="int?" Value="(int?)v.Id">@v.Name (IMO @v.IMONumber)</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField @bind-Value="_imo" Label="IMO Number" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      HelperText="Filled from the vessel, or typed for a vessel not in Marilog." />
+    </MudItem>
+</MudGrid>
+
+<MudGrid Class="mt-2">
+    @* ── Ship key ────────────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="6">
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Ship key (installation)</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(Busy || string.IsNullOrWhiteSpace(_imo))"
+                       OnClick="@(() => OnShowKeyClicked.InvokeAsync(_imo!.Trim()))">Show ship key</MudButton>
+            @if (!string.IsNullOrEmpty(ShipKey))
+            {
+                <MudText Typo="Typo.h5" Class="mt-3" Style="font-family:monospace">@ShipKey</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    @* ── Unlock code ─────────────────────────────────────────────────────── *@
+    <MudItem xs="12" md="6">
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Unlock code (one edit)</MudText>
+            <MudTextField @bind-Value="_requestCode" Label="Request code from the ship" MaxLength="6"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                       Disabled="@(Busy || string.IsNullOrWhiteSpace(_imo) || string.IsNullOrWhiteSpace(_requestCode))"
+                       OnClick="@(() => OnGetCodeClicked.InvokeAsync((_imo!.Trim(), _requestCode!.Trim())))">Get unlock code</MudButton>
+            @if (!string.IsNullOrEmpty(UnlockCode))
+            {
+                <MudText Typo="Typo.h4" Class="mt-3" Style="font-family:monospace">@UnlockCode</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public IReadOnlyList<VesselResponse> Vessels { get; set; } = [];
+    [Parameter] public string? ShipKey { get; set; }
+    [Parameter] public string? UnlockCode { get; set; }
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>IMO number.</summary>
+    [Parameter] public EventCallback<string> OnShowKeyClicked { get; set; }
+
+    /// <summary>(IMO number, request code).</summary>
+    [Parameter] public EventCallback<(string Imo, string RequestCode)> OnGetCodeClicked { get; set; }
+
+    private int? _vesselId;
+    private string? _imo;
+    private string? _requestCode;
+
+    private void OnVesselChanged(int? vesselId)
+    {
+        _vesselId = vesselId;
+        _imo = Vessels.FirstOrDefault(x => x.Id == vesselId)?.IMONumber;
+    }
+}

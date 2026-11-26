@@ -3,18 +3,19 @@
 namespace Marilog.Ship.Services.Setup
 {
     public record ShipSetupStatusResponse(
-        bool IsCompleted,
-        int? VesselId,
-        string? VesselName,
-        string? OwnerCompanyName,
-        string? ImoNumber,
-        decimal? GrossTonnage,
-        int? FlagCountryId,
-        int? VesselTypeId,
-        WagesPaidBy DefaultWagesPaidBy,
-        int? BaseCurrencyId,
-        string? BaseCurrencyCode,
-        bool HasOpening);
+     bool IsCompleted,
+     int? VesselId,
+     string? VesselName,
+     string? OwnerCompanyName,
+     string? ImoNumber,
+     decimal? GrossTonnage,
+     int? FlagCountryId,
+     int? VesselTypeId,
+     WagesPaidBy DefaultWagesPaidBy,
+     int? BaseCurrencyId,
+     string? BaseCurrencyCode,
+     bool HasOpening,
+     bool HasShipKey);
 
     public record SaveShipVesselRequest(
         string OwnerCompanyName,
@@ -24,7 +25,8 @@ namespace Marilog.Ship.Services.Setup
         int? FlagCountryId,
         int? VesselTypeId,
         int BaseCurrencyId,
-        WagesPaidBy DefaultWagesPaidBy);
+        WagesPaidBy DefaultWagesPaidBy,
+        string? ShipKey);   // from the office; empty = keep the saved key
 
     // All balances in the ship's base currency; cash in its own currency.
     public record OpeningCrewBalanceItem(int CrewContractId, decimal Balance);

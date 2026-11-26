@@ -7,7 +7,9 @@
 @using Marilog.Kernel.Enums
 @using Marilog.Shared.UI.Pages.CrewContracts
 @using Marilog.Shared.UI.Pages.Persons
+@using Marilog.Ship.Domain.Enums
 @using Marilog.Ship.Services.Setup
+@using Marilog.Ship.Services.Unlock
 @using Microsoft.Extensions.DependencyInjection
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -24,6 +26,36 @@ else if (_status?.IsCompleted == true)
     <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
         The initial setup is completed and locked for @_status.VesselName.
     </MudAlert>
+
+    @* ── One-time unlock ──────────────────────────────────────────────────── *@
+    <MudPaper Outlined="true" Class="pa-4 mt-3" Style="max-width:560px">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Edit the setup</MudText>
+
+        @if (_pending is null)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">
+                To change the setup or the opening balances, ask the office for an unlock code.
+                One code opens one edit.
+            </MudText>
+            <MudTextField @bind-Value="_unlockReason" Label="Reason for the edit" Lines="2"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                       Disabled="@(_busy || string.IsNullOrWhiteSpace(_unlockReason))"
+                       OnClick="RequestUnlockAsync">Request Unlock</MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">Send this request code to the office:</MudText>
+            <MudText Typo="Typo.h4" Class="my-2" Style="font-family:monospace">@_pending.RequestCode</MudText>
+            <MudText Typo="Typo.caption">Reason: @_pending.Reason</MudText>
+
+            <MudTextField @bind-Value="_unlockCode" Label="Unlock code from the office" MaxLength="6"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-3" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                       Disabled="@(_busy || string.IsNullOrWhiteSpace(_unlockCode))"
+                       OnClick="ConfirmUnlockAsync">Unlock</MudButton>
+        }
+    </MudPaper>
 }
 else
 {
@@ -92,6 +124,11 @@ else
                                 <MudSelectItem T="int" Value="c.Id">@c.Code — @c.Name</MudSelectItem>
                             }
                         </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_shipKey" Label="Ship Key (from the office)"
+                                      InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      HelperText="@(_status?.HasShipKey == true ? "A key is saved. Leave empty to keep it." : "XXXX-XXXX-XXXX-XXXX")" />
                     </MudItem>
                     <MudItem xs="12" sm="4">
                         <MudSelect T="WagesPaidBy" @bind-Value="_defaultWagesPaidBy" Label="Wages normally paid by"
@@ -279,6 +316,13 @@ else
                                       Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" />
                     }
 
+                    @if (_status?.HasShipKey != true)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
+                            Enter the ship key from the office in step 1 before completing.
+                        </MudAlert>
+                    }
+
                     <MudAlert Severity="Severity.Normal" Dense="true" Class="mt-3">
                         After completing, the setup and the opening balances are locked.
                     </MudAlert>
@@ -287,7 +331,7 @@ else
                 <div class="d-flex justify-space-between mt-4">
                     <MudButton Variant="Variant.Text" OnClick="@(() => _step = 2)">Back</MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Success"
-                               Disabled="@(_busy || _check is null || (_check.Difference != 0 && string.IsNullOrWhiteSpace(_differenceReason)))"
+                               Disabled="@(_busy || _check is null || _status?.HasShipKey != true || (_check.Difference != 0 && string.IsNullOrWhiteSpace(_differenceReason)))"
                                OnClick="CompleteAsync">Complete Setup</MudButton>
                 </div>
                 break;
@@ -306,6 +350,7 @@ else
     private ICrewContractService ContractService => ScopedServices.GetRequiredService<ICrewContractService>();
     private IRankService RankService => ScopedServices.GetRequiredService<IRankService>();
     private IPortService PortService => ScopedServices.GetRequiredService<IPortService>();
+    private IUnlockService UnlockService => ScopedServices.GetRequiredService<IUnlockService>();
 
     private readonly string[] _stepTitles = ["Vessel", "Crew", "Opening Balances", "Review"];
     private int _step;
@@ -332,6 +377,7 @@ else
     private int? _vesselTypeId;
     private int _baseCurrencyId;
     private WagesPaidBy _defaultWagesPaidBy = WagesPaidBy.Master;
+    private string? _shipKey;
 
     // Step 2
     private IReadOnlyList<CrewContractResponse> _contracts = [];
@@ -348,12 +394,21 @@ else
     private OpeningCheckResponse? _check;
     private string? _differenceReason;
 
+    // Unlock (setup completed)
+    private UnlockRequestResponse? _pending;
+    private string? _unlockReason;
+    private string? _unlockCode;
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _status = await SetupService.GetStatusAsync();
-            if (_status.IsCompleted) return;
+            if (_status.IsCompleted)
+            {
+                _pending = await UnlockService.GetPendingAsync(UnlockTarget.InitialSetup, null);
+                return;
+            }
 
             // Sequential on purpose: one DbContext does not allow parallel queries.
             _countries = await CountryService.GetActiveAsync();
@@ -410,8 +465,9 @@ else
         {
             await SetupService.SaveVesselAsync(new SaveShipVesselRequest(
                 _ownerName, _vesselName, _imo, _grossTonnage, _flagCountryId, _vesselTypeId,
-                _baseCurrencyId, _defaultWagesPaidBy));
+                _baseCurrencyId, _defaultWagesPaidBy, _shipKey));
 
+            _shipKey = null;
             _status = await SetupService.GetStatusAsync();
             _currencies = await CurrencyService.GetActiveAsync();
             await LoadCrewAsync();
@@ -580,7 +636,34 @@ else
         if (!completed) return;
 
         Snackbar.Add("Setup completed.", Severity.Success);
-        Nav.NavigateTo("/vessels");
+        Nav.NavigateTo("/vessels", forceLoad: true);
+    }
+
+    // ── Unlock ───────────────────────────────────────────────────────────────
+
+    private async Task RequestUnlockAsync()
+    {
+        await RunAsync(async () =>
+        {
+            _pending = await UnlockService.RequestAsync(UnlockTarget.InitialSetup, null, _unlockReason!);
+            _unlockReason = null;
+        });
+    }
+
+    private async Task ConfirmUnlockAsync()
+    {
+        var unlocked = false;
+
+        await RunAsync(async () =>
+        {
+            await UnlockService.ConfirmAsync(_pending!.Id, _unlockCode!.Trim());
+            unlocked = true;
+        });
+
+        if (!unlocked) return;
+
+        Snackbar.Add("Setup unlocked for one edit. Complete it again when done.", Severity.Success);
+        Nav.NavigateTo("/setup", forceLoad: true);
     }
 
     // ── Helper ───────────────────────────────────────────────────────────────

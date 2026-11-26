@@ -184,6 +184,7 @@ namespace Marilog.Infrastructure
 
 
             //====ExchangeOnlineService==============================================================
+            services.Configure<ShipUnlockOptions>(configuration.GetSection(ShipUnlockOptions.SectionName));
             services.Configure<ExchangeRatesOptions>(configuration.GetSection(ExchangeRatesOptions.SectionName));
             services.AddHttpClient<IExchangeRateProvider, OpenExchangeRatesProvider>((sp, http) =>
             {

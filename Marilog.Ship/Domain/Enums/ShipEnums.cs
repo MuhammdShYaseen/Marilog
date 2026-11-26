@@ -30,4 +30,12 @@
         Draft = 0,
         Closed = 1
     }
+
+
+    // What a one-time unlock code reopens.
+    public enum UnlockTarget
+    {
+        InitialSetup = 0,
+        Mga = 1
+    }
 }

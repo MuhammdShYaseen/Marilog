@@ -8,9 +8,42 @@
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="_content/Marilog.Shared.UI/ui-framework.css" rel="stylesheet" />
     <link href="_content/Marilog.Shared.UI/app.css" rel="stylesheet" />
+    <style>
+        /* Shown by Blazor when an unhandled error stops the UI. */
+        #blazor-error-ui {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2000;
+            padding: 0.6rem 1.25rem;
+            background: var(--mud-palette-error);
+            color: var(--mud-palette-error-text);
+        }
+
+            #blazor-error-ui .reload {
+                color: inherit;
+                margin-left: 1rem;
+            }
+
+            #blazor-error-ui .dismiss {
+                cursor: pointer;
+                position: absolute;
+                right: 0.75rem;
+                top: 0.5rem;
+            }
+    </style>
 </head>
 <body>
     <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">✕</a>
+    </div>
+
     <script src="_framework/blazor.webview.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
