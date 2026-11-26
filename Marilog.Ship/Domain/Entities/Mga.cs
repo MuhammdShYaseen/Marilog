@@ -20,7 +20,7 @@ namespace Marilog.Ship.Domain.Entities
         public MgaStatus Status { get; private set; } = MgaStatus.Draft;
         public string? EndReason { get; private set; }      // why the period is shorter than a month
         public string? MasterName { get; private set; }
-
+        public string? Notes { get; private set; }          // e.g. the reason for an opening difference
         // ── Summary of account (base currency) ───────────────────────────────────
         public decimal PreviousBalance { get; private set; }
         public decimal TotalWages { get; private set; }      // page 2
@@ -98,9 +98,10 @@ namespace Marilog.Ship.Domain.Entities
         }
 
         /// <summary>Locks the opening balances — called when the initial setup is completed.</summary>
-        public void CloseOpening()
+        public void CloseOpening(string? notes)
         {
             EnsureOpeningDraft();
+            Notes = ShipGuard.Text(notes);
             Status = MgaStatus.Closed;
             ClosedAt = DateTime.UtcNow;
             Touch();

@@ -19,11 +19,6 @@ namespace Marilog.Ship.Data.Configurations
                    .WithMany()
                    .HasForeignKey(x => x.VesselId)
                    .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.BaseCurrency)
-                   .WithMany()
-                   .HasForeignKey(x => x.BaseCurrencyId)
-                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

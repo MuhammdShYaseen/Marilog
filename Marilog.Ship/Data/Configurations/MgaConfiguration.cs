@@ -15,6 +15,7 @@ namespace Marilog.Ship.Data.Configurations
                    .HasConversion<string>()
                    .HasMaxLength(20);
             builder.Property(x => x.EndReason).HasMaxLength(300);
+            builder.Property(x => x.Notes).HasMaxLength(500);
             builder.Property(x => x.MasterName).HasMaxLength(150);
 
             // ── Owned children ────────────────────────────────────────────────────

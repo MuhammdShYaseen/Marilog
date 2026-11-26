@@ -7,40 +7,35 @@ namespace Marilog.Ship.Domain.Entities
     /// <summary>
     /// One row: the vessel this installation belongs to and its basic settings.
     /// Editable until the initial setup is completed.
+    /// The ship's base currency is the Currency marked IsBaseCurrency (same as Marilog).
     /// </summary>
     public class ShipSetup : Entity
     {
         public int VesselId { get; private set; }
         public Vessel Vessel { get; private set; } = null!;
-        public int BaseCurrencyId { get; private set; }
-        public Currency BaseCurrency { get; private set; } = null!;
         public WagesPaidBy DefaultWagesPaidBy { get; private set; }
         public bool IsCompleted { get; private set; }
         public DateTime? CompletedAt { get; private set; }
 
         private ShipSetup() { }
 
-        public static ShipSetup Create(int vesselId, int baseCurrencyId, WagesPaidBy defaultWagesPaidBy)
+        public static ShipSetup Create(int vesselId, WagesPaidBy defaultWagesPaidBy)
         {
             ShipGuard.Id(vesselId, nameof(VesselId));
-            ShipGuard.Id(baseCurrencyId, nameof(BaseCurrencyId));
+            if (!Enum.IsDefined(defaultWagesPaidBy)) throw new ArgumentException("Invalid WagesPaidBy.");
 
             return new ShipSetup
             {
                 VesselId = vesselId,
-                BaseCurrencyId = baseCurrencyId,
                 DefaultWagesPaidBy = defaultWagesPaidBy
             };
         }
 
-        public void Update(int vesselId, int baseCurrencyId, WagesPaidBy defaultWagesPaidBy)
+        public void Update(WagesPaidBy defaultWagesPaidBy)
         {
             EnsureNotCompleted();
-            ShipGuard.Id(vesselId, nameof(VesselId));
-            ShipGuard.Id(baseCurrencyId, nameof(BaseCurrencyId));
+            if (!Enum.IsDefined(defaultWagesPaidBy)) throw new ArgumentException("Invalid WagesPaidBy.");
 
-            VesselId = vesselId;
-            BaseCurrencyId = baseCurrencyId;
             DefaultWagesPaidBy = defaultWagesPaidBy;
             Touch();
         }

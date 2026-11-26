@@ -2,6 +2,7 @@
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Ship.Data;
+using Marilog.Ship.Services.Setup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +23,13 @@ namespace Marilog.Ship
             services.AddScoped<ICompanyService, CompanyService>();
             services.AddScoped<ICountryService, CountryService>();
             services.AddScoped<IVesselTypeService, VesselTypeService>();
+            services.AddScoped<IPersonService, PersonService>();
+            services.AddScoped<ICrewContractService, CrewContractService>();
+            services.AddScoped<IRankService, RankService>();
+            services.AddScoped<IPortService, PortService>();
+
+            // ── Ship services ────────────────────────────────────────────────────
+            services.AddScoped<IShipSetupService, ShipSetupService>();
 
             return services;
         }
