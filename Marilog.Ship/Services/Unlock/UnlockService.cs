@@ -40,6 +40,9 @@ namespace Marilog.Ship.Services.Unlock
                 var setup = await _setupRepo.Query().FirstOrDefaultAsync(ct);
                 if (setup is not { IsCompleted: true })
                     throw new InvalidOperationException("The setup is not locked.");
+                if (setup.ShipKeyEncrypted is null)
+                    throw new InvalidOperationException(
+                        "No ship key is saved on this ship, so it cannot be unlocked. Reinstall with a ship key from the office.");
             }
             else
             {
