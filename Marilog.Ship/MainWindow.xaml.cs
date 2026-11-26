@@ -1,8 +1,9 @@
-﻿using System.Windows;
-using Marilog.Shared.UI.Extensions;
+﻿using Marilog.Shared.UI.Extensions;
 using Marilog.Ship.Data;
 using Microsoft.AspNetCore.Components.WebView.Wpf;
 using Microsoft.Extensions.DependencyInjection;
+using System.Globalization;
+using System.Windows;
 
 namespace Marilog.Ship
 {
@@ -12,6 +13,12 @@ namespace Marilog.Ship
         {
             InitializeComponent();
 
+            // Same reason as InvariantGlobalization in Marilog.Web.Client: MudNumericField and the
+            // date pickers must not follow the Windows regional settings of the ship PC.
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
             var services = new ServiceCollection();
             services.AddWpfBlazorWebView();
 #if DEBUG

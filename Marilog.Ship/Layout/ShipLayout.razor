@@ -1,6 +1,10 @@
 @inherits LayoutComponentBase
 @using Marilog.Contracts.DTOs.Responses
 @using Marilog.Shared.UI.Layout
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Nav
 
 <SharedMainLayout Items="_navItems" AppTitle="Marilog Ship">
     <ChildContent>
@@ -11,6 +15,18 @@
 @code {
     private readonly List<NavItemResponse> _navItems =
     [
-        new() { Id = 1, Title = "Vessels", Route = "/vessels", Icon = "DirectionsBoat", Order = 1, IsActive = true },
+        new() { Id = 1, Title = "Setup",   Route = "/setup",   Icon = "Settings",       Order = 1, IsActive = true },
+        new() { Id = 2, Title = "Vessels", Route = "/vessels", Icon = "DirectionsBoat", Order = 2, IsActive = true },
     ];
+
+    // Until the initial setup is completed, the app opens on the setup page.
+    // The layout lives as long as the window, so it uses a short scope of its own.
+    protected override async Task OnInitializedAsync()
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var status = await scope.ServiceProvider.GetRequiredService<IShipSetupService>().GetStatusAsync();
+
+        if (!status.IsCompleted && !Nav.Uri.TrimEnd('/').EndsWith("/setup", StringComparison.OrdinalIgnoreCase))
+            Nav.NavigateTo("/setup");
+    }
 }

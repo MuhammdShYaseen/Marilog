@@ -1,7 +1,11 @@
-﻿using Marilog.Application.Services.ApplicationServices.SystemServices;
+﻿using Marilog.Application.Helpers;
+using Marilog.Application.Interfaces.OnlineCurrencyRate;
+using Marilog.Application.Services.ApplicationServices.SystemServices;
+using Marilog.Contracts.Options;
 using Marilog.Contracts.Interfaces.Services.SystemServices;
 using Marilog.Domain.Interfaces.Repositories;
 using Marilog.Ship.Data;
+using Marilog.Ship.Services;
 using Marilog.Ship.Services.Setup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +31,12 @@ namespace Marilog.Ship
             services.AddScoped<ICrewContractService, CrewContractService>();
             services.AddScoped<IRankService, RankService>();
             services.AddScoped<IPortService, PortService>();
+
+            // CurrencyService: rates are entered by hand on board (no online refresh).
+            services.AddOptions<ExchangeRatesOptions>();
+            services.AddSingleton<ExchangeRateRefreshGate>();
+            services.AddScoped<IExchangeRateProvider, OfflineExchangeRateProvider>();
+            services.AddScoped<ICurrencyService, CurrencyService>();
 
             // ── Ship services ────────────────────────────────────────────────────
             services.AddScoped<IShipSetupService, ShipSetupService>();

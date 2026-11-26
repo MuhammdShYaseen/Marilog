@@ -1,0 +1,604 @@
+@page "/setup"
+@inherits OwningComponentBase
+@using Marilog.Contracts.DTOs.Requests.CrewDTOs
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.CrewContracts
+@using Marilog.Shared.UI.Pages.Persons
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<MudText Typo="Typo.h5" Class="mb-1">Initial Setup</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_status?.IsCompleted == true)
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
+        The initial setup is completed and locked for @_status.VesselName.
+    </MudAlert>
+}
+else
+{
+    @* ── Step indicator ─────────────────────────────────────────────────── *@
+    <div class="d-flex gap-2 my-3">
+        @for (var i = 0; i < _stepTitles.Length; i++)
+        {
+            var index = i;
+            <MudChip T="string"
+                     Color="@(index == _step ? Color.Primary : Color.Default)"
+                     Variant="@(index == _step ? Variant.Filled : Variant.Outlined)"
+                     Disabled="@(!CanOpenStep(index))"
+                     OnClick="@(() => _step = index)">
+                @($"{index + 1}. {_stepTitles[index]}")
+            </MudChip>
+        }
+    </div>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        @switch (_step)
+        {
+            case 0:
+                @* ── Step 1: vessel & settings ─────────────────────────────── *@
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_ownerName" Label="Owner Company" Required="true"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_vesselName" Label="Vessel Name" Required="true"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_imo" Label="IMO Number"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="decimal?" @bind-Value="_grossTonnage" Label="Gross Tonnage"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="int?" @bind-Value="_flagCountryId" Label="Flag" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                            @foreach (var c in _countries)
+                            {
+                                <MudSelectItem T="int?" Value="(int?)c.Id">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="int?" @bind-Value="_vesselTypeId" Label="Vessel Type" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                            @foreach (var t in _vesselTypes)
+                            {
+                                <MudSelectItem T="int?" Value="(int?)t.Id">@t.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="int" @bind-Value="_baseCurrencyId" Label="Base Currency" Required="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var c in _currencies)
+                            {
+                                <MudSelectItem T="int" Value="c.Id">@c.Code — @c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="WagesPaidBy" @bind-Value="_defaultWagesPaidBy" Label="Wages normally paid by"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   HelperText="Master = wages on the master's account. Office = payroll ashore.">
+                            <MudSelectItem T="WagesPaidBy" Value="WagesPaidBy.Master">Master</MudSelectItem>
+                            <MudSelectItem T="WagesPaidBy" Value="WagesPaidBy.Office">Office</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <div class="d-flex justify-end mt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy"
+                               OnClick="SaveVesselAsync">Save &amp; Continue</MudButton>
+                </div>
+                break;
+
+            case 1:
+                @* ── Step 2: crew ──────────────────────────────────────────── *@
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    Add every crew member on board, and anyone who signed off but still has a balance on the master's account.
+                </MudText>
+
+                <div class="d-flex gap-2 mb-2">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonAdd"
+                               Disabled="@_busy" OnClick="AddPersonAsync">New Person</MudButton>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Assignment"
+                               Disabled="@_busy" OnClick="NewContractAsync">New Contract</MudButton>
+                </div>
+
+                <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Rank</th>
+                            <th style="text-align:right">Monthly Wage</th>
+                            <th>Sign On</th>
+                            <th>Sign Off</th>
+                            <th>Wages Paid By</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_contracts.Count == 0)
+                        {
+                            <tr><td colspan="7">No crew yet.</td></tr>
+                        }
+                        @foreach (var c in _contracts)
+                        {
+                            var contract = c;
+                            <tr>
+                                <td>@contract.PersonFullName</td>
+                                <td>@contract.RankName</td>
+                                <td style="text-align:right">@contract.MonthlyWage.ToString("N2")</td>
+                                <td>@contract.SignOnDate.ToString("dd.MM.yyyy")</td>
+                                <td>@(contract.SignOffDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                                <td style="min-width:140px">
+                                    <MudSelect T="WagesPaidBy" Dense="true" Margin="Margin.Dense"
+                                               Value="@PaidBy(contract.ContractId)"
+                                               ValueChanged="@((WagesPaidBy v) => ChangePaidByAsync(contract.ContractId, v))">
+                                        <MudSelectItem T="WagesPaidBy" Value="WagesPaidBy.Master">Master</MudSelectItem>
+                                        <MudSelectItem T="WagesPaidBy" Value="WagesPaidBy.Office">Office</MudSelectItem>
+                                    </MudSelect>
+                                </td>
+                                <td>
+                                    @if (contract.SignOffDate is null)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="@_busy"
+                                                   OnClick="@(() => SignOffAsync(contract))">Sign Off</MudButton>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <div class="d-flex justify-space-between mt-4">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _step = 0)">Back</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               Disabled="@(_contracts.Count == 0)" OnClick="@(() => _step = 2)">Continue</MudButton>
+                </div>
+                break;
+
+            case 2:
+                @* ── Step 3: opening balances ──────────────────────────────── *@
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Copy the figures from the last closed paper account, as at its last day.
+                    All balances are in @_status?.BaseCurrencyCode; cash is entered in its own currency.
+                </MudAlert>
+
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker @bind-Date="_asOf" Label="Balances as at" DateFormat="dd.MM.yyyy"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="decimal" @bind-Value="_masterBalance" Label="Master Account Balance"
+                                         HelperText="+ in the master's favour, − in the owner's favour"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="decimal" @bind-Value="_cigarettes" Label="Cigarettes on Board (value)"
+                                         Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Crew balances</MudText>
+                <MudSimpleTable Dense="true" Bordered="true">
+                    <thead>
+                        <tr><th>Name</th><th>Rank</th><th style="width:220px">Balance</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _contracts)
+                        {
+                            var id = c.ContractId;
+                            <tr>
+                                <td>@c.PersonFullName</td>
+                                <td>@c.RankName</td>
+                                <td>
+                                    <MudNumericField T="decimal" Margin="Margin.Dense"
+                                                     Value="@CrewBalance(id)"
+                                                     ValueChanged="@((decimal v) => _crewBalances[id] = v)" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+                <MudText Typo="Typo.caption">+ owed to the crew member, − advance (he took more than he earned).</MudText>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Cash on board</MudText>
+                <MudSimpleTable Dense="true" Bordered="true">
+                    <thead>
+                        <tr><th>Currency</th><th style="width:220px">Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cur in _currencies)
+                        {
+                            var id = cur.Id;
+                            <tr>
+                                <td>@cur.Code — @cur.Name</td>
+                                <td>
+                                    <MudNumericField T="decimal" Margin="Margin.Dense" Min="0"
+                                                     Value="@CashAmount(id)"
+                                                     ValueChanged="@((decimal v) => _cash[id] = v)" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <div class="d-flex justify-space-between mt-4">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _step = 1)">Back</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_busy || _asOf is null)"
+                               OnClick="SaveOpeningAsync">Save &amp; Review</MudButton>
+                </div>
+                break;
+
+            case 3:
+                @* ── Step 4: review & complete ─────────────────────────────── *@
+                @if (_check is not null)
+                {
+                    <MudSimpleTable Dense="true" Bordered="true" Style="max-width:520px">
+                        <tbody>
+                            <tr><td>Master account balance</td><td style="text-align:right">@_check.MasterAccountBalance.ToString("N2")</td></tr>
+                            <tr><td>− Crew balances</td><td style="text-align:right">@_check.CrewBalancesTotal.ToString("N2")</td></tr>
+                            <tr><td>+ Cash on board</td><td style="text-align:right">@_check.CashOnBoard.ToString("N2")</td></tr>
+                            <tr><td>+ Cigarettes on board</td><td style="text-align:right">@_check.CigarettesOnBoard.ToString("N2")</td></tr>
+                            <tr>
+                                <td><b>Difference (@_check.BaseCurrencyCode)</b></td>
+                                <td style="text-align:right"><b>@_check.Difference.ToString("N2")</b></td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+
+                    @if (_check.Difference == 0)
+                    {
+                        <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3">The opening balances agree.</MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                            The opening balances do not agree. Write the reason for the difference to continue.
+                        </MudAlert>
+                        <MudTextField @bind-Value="_differenceReason" Label="Reason for the difference"
+                                      Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" />
+                    }
+
+                    <MudAlert Severity="Severity.Normal" Dense="true" Class="mt-3">
+                        After completing, the setup and the opening balances are locked.
+                    </MudAlert>
+                }
+
+                <div class="d-flex justify-space-between mt-4">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _step = 2)">Back</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success"
+                               Disabled="@(_busy || _check is null || (_check.Difference != 0 && string.IsNullOrWhiteSpace(_differenceReason)))"
+                               OnClick="CompleteAsync">Complete Setup</MudButton>
+                </div>
+                break;
+        }
+    </MudPaper>
+}
+
+@code {
+    // OwningComponentBase: this page has its own DI scope → its own ShipContext.
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+    private ICountryService CountryService => ScopedServices.GetRequiredService<ICountryService>();
+    private IVesselTypeService VesselTypeService => ScopedServices.GetRequiredService<IVesselTypeService>();
+    private ICurrencyService CurrencyService => ScopedServices.GetRequiredService<ICurrencyService>();
+    private IVesselService VesselService => ScopedServices.GetRequiredService<IVesselService>();
+    private IPersonService PersonService => ScopedServices.GetRequiredService<IPersonService>();
+    private ICrewContractService ContractService => ScopedServices.GetRequiredService<ICrewContractService>();
+    private IRankService RankService => ScopedServices.GetRequiredService<IRankService>();
+    private IPortService PortService => ScopedServices.GetRequiredService<IPortService>();
+
+    private readonly string[] _stepTitles = ["Vessel", "Crew", "Opening Balances", "Review"];
+    private int _step;
+    private bool _loading = true;
+    private bool _busy;
+
+    private ShipSetupStatusResponse? _status;
+
+    // Lookups
+    private IReadOnlyList<CountryResponse> _countries = [];
+    private IReadOnlyList<VesselTypeResponse> _vesselTypes = [];
+    private IReadOnlyList<CurrencyResponse> _currencies = [];
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<PersonResponse> _persons = [];
+    private IReadOnlyList<RankResponse> _ranks = [];
+    private IReadOnlyList<PortResponse> _ports = [];
+
+    // Step 1
+    private string _ownerName = string.Empty;
+    private string _vesselName = string.Empty;
+    private string? _imo;
+    private decimal? _grossTonnage;
+    private int? _flagCountryId;
+    private int? _vesselTypeId;
+    private int _baseCurrencyId;
+    private WagesPaidBy _defaultWagesPaidBy = WagesPaidBy.Master;
+
+    // Step 2
+    private IReadOnlyList<CrewContractResponse> _contracts = [];
+    private Dictionary<int, WagesPaidBy> _paidBy = new();
+
+    // Step 3
+    private DateTime? _asOf;
+    private decimal _masterBalance;
+    private decimal _cigarettes;
+    private readonly Dictionary<int, decimal> _crewBalances = new();
+    private readonly Dictionary<int, decimal> _cash = new();
+
+    // Step 4
+    private OpeningCheckResponse? _check;
+    private string? _differenceReason;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _status = await SetupService.GetStatusAsync();
+            if (_status.IsCompleted) return;
+
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            _countries = await CountryService.GetActiveAsync();
+            _vesselTypes = await VesselTypeService.GetActiveAsync();
+            _currencies = await CurrencyService.GetActiveAsync();
+            _ranks = await RankService.GetActiveAsync();
+            _ports = await PortService.GetActiveAsync();
+
+            _ownerName = _status.OwnerCompanyName ?? string.Empty;
+            _vesselName = _status.VesselName ?? string.Empty;
+            _imo = _status.ImoNumber;
+            _grossTonnage = _status.GrossTonnage;
+            _flagCountryId = _status.FlagCountryId;
+            _vesselTypeId = _status.VesselTypeId;
+            _baseCurrencyId = _status.BaseCurrencyId ?? _currencies.FirstOrDefault()?.Id ?? 0;
+            _defaultWagesPaidBy = _status.DefaultWagesPaidBy;
+
+            if (_status.VesselId is not null)
+            {
+                await LoadCrewAsync();
+                await LoadOpeningAsync();
+                _step = 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool CanOpenStep(int index) => index switch
+    {
+        0 => true,
+        1 or 2 => _status?.VesselId is not null,
+        3 => _check is not null,
+        _ => false
+    };
+
+    // ── Step 1 ───────────────────────────────────────────────────────────────
+
+    private async Task SaveVesselAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_ownerName) || string.IsNullOrWhiteSpace(_vesselName) || _baseCurrencyId <= 0)
+        {
+            Snackbar.Add("Owner company, vessel name and base currency are required.", Severity.Warning);
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            await SetupService.SaveVesselAsync(new SaveShipVesselRequest(
+                _ownerName, _vesselName, _imo, _grossTonnage, _flagCountryId, _vesselTypeId,
+                _baseCurrencyId, _defaultWagesPaidBy));
+
+            _status = await SetupService.GetStatusAsync();
+            _currencies = await CurrencyService.GetActiveAsync();
+            await LoadCrewAsync();
+            _step = 1;
+        });
+    }
+
+    // ── Step 2 ───────────────────────────────────────────────────────────────
+
+    private async Task LoadCrewAsync()
+    {
+        var vesselId = _status!.VesselId!.Value;
+        _vessels = await VesselService.GetAllAsync();
+        _persons = await PersonService.GetActiveAsync();
+        _contracts = (await ContractService.GetByVesselAsync(vesselId))
+                        .OrderBy(x => x.SignOffDate.HasValue)
+                        .ThenBy(x => x.RankName)
+                        .ToList();
+        _paidBy = new Dictionary<int, WagesPaidBy>(await SetupService.GetWagesPaidByAsync(vesselId));
+    }
+
+    private WagesPaidBy PaidBy(int contractId) =>
+        _paidBy.TryGetValue(contractId, out var value) ? value : _defaultWagesPaidBy;
+
+    private async Task AddPersonAsync()
+    {
+        var parameters = new DialogParameters { [nameof(PersonDialog.Countries)] = _countries };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PersonDialog>("New Person", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (CreatePersonRequest)result.Data!;
+        PersonResponse? created = null;
+
+        await RunAsync(async () =>
+        {
+            created = await PersonService.CreateAsync(
+                req.BankName, req.IBAN, req.IsPassportExpired, req.BankSwiftCode, req.FullName, req.Nationality,
+                req.PassportNo, req.PassportExpiry, req.SeamanBookNo, req.DateOfBirth, req.Phone, req.Email);
+            _persons = await PersonService.GetActiveAsync();
+        });
+
+        // Straight on to the contract for the new person.
+        if (created is not null)
+            await AddContractForAsync(created);
+    }
+
+    private Task NewContractAsync() => AddContractForAsync(null);
+
+    private async Task AddContractForAsync(PersonResponse? person)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CrewContractFormDialog.Persons)] = person is null ? _persons : new List<PersonResponse> { person },
+            [nameof(CrewContractFormDialog.Vessels)] = _vessels,
+            [nameof(CrewContractFormDialog.Ranks)] = _ranks,
+            [nameof(CrewContractFormDialog.Ports)] = _ports,
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Contract", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (CreateCrewContractRequest)result.Data!;
+
+        await RunAsync(async () =>
+        {
+            var contract = await ContractService.CreateAsync(
+                req.DurationInMonth, req.PersonId, req.VesselId, req.RankId,
+                req.MonthlyWage, req.SignOnDate, req.SignOnPort, req.Notes);
+
+            await SetupService.SetContractWagesPaidByAsync(contract.ContractId, _defaultWagesPaidBy);
+            await LoadCrewAsync();
+        });
+    }
+
+    private async Task ChangePaidByAsync(int contractId, WagesPaidBy value)
+    {
+        await RunAsync(async () =>
+        {
+            await SetupService.SetContractWagesPaidByAsync(contractId, value);
+            _paidBy[contractId] = value;
+        });
+    }
+
+    private async Task SignOffAsync(CrewContractResponse contract)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(SignOffDialog.Contract)] = contract,
+            [nameof(SignOffDialog.Ports)] = _ports,
+        };
+        var dialog = await DialogService.ShowAsync<SignOffDialog>($"Sign Off — {contract.PersonFullName}", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (SignOffCrewContractRequest)result.Data!;
+
+        await RunAsync(async () =>
+        {
+            var outcome = await ContractService.SignOffAsync(contract.ContractId, req.SignOffDate, req.SignOffPort);
+            if (outcome.IsFailure)
+                throw new InvalidOperationException(outcome.Error);
+            await LoadCrewAsync();
+        });
+    }
+
+    // ── Step 3 ───────────────────────────────────────────────────────────────
+
+    private async Task LoadOpeningAsync()
+    {
+        var opening = await SetupService.GetOpeningAsync();
+        if (opening is null) return;
+
+        _asOf = opening.AsOf.ToDateTime(TimeOnly.MinValue);
+        _masterBalance = opening.MasterAccountBalance;
+        _cigarettes = opening.CigarettesOnBoard;
+
+        _crewBalances.Clear();
+        foreach (var line in opening.CrewBalances) _crewBalances[line.CrewContractId] = line.Balance;
+
+        _cash.Clear();
+        foreach (var line in opening.Cash) _cash[line.CurrencyId] = line.Amount;
+    }
+
+    private decimal CrewBalance(int contractId) =>
+        _crewBalances.TryGetValue(contractId, out var value) ? value : 0m;
+
+    private decimal CashAmount(int currencyId) =>
+        _cash.TryGetValue(currencyId, out var value) ? value : 0m;
+
+    private async Task SaveOpeningAsync()
+    {
+        var contractIds = _contracts.Select(x => x.ContractId).ToHashSet();
+
+        var request = new SaveOpeningBalancesRequest(
+            DateOnly.FromDateTime(_asOf!.Value),
+            _masterBalance,
+            _cigarettes,
+            _crewBalances.Where(x => x.Value != 0 && contractIds.Contains(x.Key))
+                         .Select(x => new OpeningCrewBalanceItem(x.Key, x.Value)).ToList(),
+            _cash.Where(x => x.Value != 0)
+                 .Select(x => new OpeningCashItem(x.Key, x.Value)).ToList());
+
+        await RunAsync(async () =>
+        {
+            await SetupService.SaveOpeningAsync(request);
+            _check = await SetupService.CheckOpeningAsync();
+            _step = 3;
+        });
+    }
+
+    // ── Step 4 ───────────────────────────────────────────────────────────────
+
+    private async Task CompleteAsync()
+    {
+        var completed = false;
+
+        await RunAsync(async () =>
+        {
+            await SetupService.CompleteAsync(_differenceReason);
+            completed = true;
+        });
+
+        if (!completed) return;
+
+        Snackbar.Add("Setup completed.", Severity.Success);
+        Nav.NavigateTo("/vessels");
+    }
+
+    // ── Helper ───────────────────────────────────────────────────────────────
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

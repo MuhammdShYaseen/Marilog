@@ -136,7 +136,10 @@ namespace Marilog.Ship.Services.Setup
             contract.SetWagesPaidBy(wagesPaidBy);
             await _contractRepo.SaveChangesAsync(ct);
         }
-
+        public async Task<IReadOnlyDictionary<int, WagesPaidBy>> GetWagesPaidByAsync(int vesselId, CancellationToken ct = default) =>
+                  await _contractRepo.Query().AsNoTracking()
+                    .Where(x => x.VesselID == vesselId)
+                    .ToDictionaryAsync(x => x.Id, x => x.WagesPaidBy, ct);
         // ── Opening balances ─────────────────────────────────────────────────────
 
         public async Task<OpeningBalancesResponse?> GetOpeningAsync(CancellationToken ct = default)

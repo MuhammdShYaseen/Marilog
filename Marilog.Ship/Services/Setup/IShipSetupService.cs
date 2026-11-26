@@ -12,6 +12,8 @@ namespace Marilog.Ship.Services.Setup
         /// <summary>Crew contracts are created with CrewContractService; this sets Master/Office on one.</summary>
         Task SetContractWagesPaidByAsync(int crewContractId, WagesPaidBy wagesPaidBy, CancellationToken ct = default);
 
+        /// <summary>WagesPaidBy of every contract on the vessel, by contract Id.</summary>
+        Task<IReadOnlyDictionary<int, WagesPaidBy>> GetWagesPaidByAsync(int vesselId, CancellationToken ct = default);
         Task<OpeningBalancesResponse?> GetOpeningAsync(CancellationToken ct = default);
         Task SaveOpeningAsync(SaveOpeningBalancesRequest request, CancellationToken ct = default);
         Task<OpeningCheckResponse> CheckOpeningAsync(CancellationToken ct = default);
