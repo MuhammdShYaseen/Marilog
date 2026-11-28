@@ -124,7 +124,12 @@
 
     /// <summary>Host performs the update; returns true on success. Dialog stays open on failure.</summary>
     [Parameter] public Func<UpdateVoyageRequest, Task<bool>>? OnUpdate { get; set; }
+    
+    /// <summary>Optional, new voyage only: number shown ready in the field (the user can change it).</summary>
+    [Parameter] public string? SuggestedNumber { get; set; }
 
+    /// <summary>Optional, new voyage only: vessel selected when the dialog opens.</summary>
+    [Parameter] public int? DefaultVesselId { get; set; }
     private const string SectionStyle =
         "font-weight:600;text-transform:uppercase;letter-spacing:.04em;" +
         "color:var(--mud-palette-text-secondary);";
@@ -148,7 +153,12 @@
 
     protected override void OnInitialized()
     {
-        if (Voyage is null) return;
+        if (Voyage is null)
+        {
+            _voyageNumber = SuggestedNumber ?? string.Empty;
+            _vesselId = DefaultVesselId ?? 0;
+            return;
+        }
         _startDate = Voyage.StartDate;
         _endDate = Voyage.EndDate;
         _notes = Voyage.Notes;

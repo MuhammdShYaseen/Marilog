@@ -19,16 +19,11 @@ namespace Marilog.Ship.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            // Not on the ship (yet). Ignored for the whole model, before any configuration: when EF
+            // Not on the ship. Ignored for the whole model, before any configuration: when EF
             // discovers Payment and Voyage by convention it would follow these and keep them
-            // (SwiftTransfer → Bank ..., Voyage → BillOfLading, VoyageStop → VoyageCargo → CargoType).
+            // (SwiftTransfer → Bank ..., Voyage → BillOfLading → ...).
             modelBuilder.Ignore<SwiftTransfer>();
             modelBuilder.Ignore<BillOfLading>();
-            modelBuilder.Ignore<VoyageStop>();
-            modelBuilder.Ignore<VoyageCargo>();
-            modelBuilder.Ignore<VoyageContract>();
-            modelBuilder.Ignore<CargoType>();
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ShipContext).Assembly);
             ApplyGlobalFilters(modelBuilder);
         }

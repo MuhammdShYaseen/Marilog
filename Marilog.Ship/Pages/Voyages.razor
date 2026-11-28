@@ -1,0 +1,390 @@
+@page "/voyages"
+@inherits OwningComponentBase
+@using Marilog.Contracts.DTOs.Requests.VoyageDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Voyages
+@using Marilog.Ship.Services.Files
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@* Marilog voyages with their port calls (stops) — MGA page 1, ship's movements.
+   Same VoyageService and dialogs as Marilog; no cargo, contracts or bills of lading on board. *@
+
+<div class="d-flex align-center mb-3">
+    <MudText Typo="Typo.h5">Voyages</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@(_loading || _busy)" OnClick="NewVoyageAsync">New Voyage</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<MudSimpleTable Dense="true" Hover="true" Bordered="true">
+    <thead>
+        <tr>
+            <th>Voyage</th>
+            <th>Month</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Master</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!_loading && _voyages.Count == 0)
+        {
+            <tr><td colspan="6">No voyages yet.</td></tr>
+        }
+        @foreach (var v in _voyages)
+        {
+            var voyage = v;
+            var selected = _selected?.VoyageId == voyage.VoyageId;
+            <tr style="cursor:pointer; @(selected ? "background:var(--mud-palette-action-default-hover)" : "")"
+                @onclick="@(() => SelectAsync(voyage.VoyageId))">
+                <td><b>@voyage.VoyageNumber</b></td>
+                <td>@voyage.VoyageMonth.ToString("MMM yyyy")</td>
+                <td>@(voyage.DeparturePortName ?? "—")</td>
+                <td>@(voyage.ArrivalPortName ?? "—")</td>
+                <td>@(voyage.MasterFullName ?? "—")</td>
+                <td style="white-space:nowrap" @onclick:stopPropagation="true">
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="@_busy"
+                                       OnClick="@(() => EditVoyageAsync(voyage))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Files">
+                        <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" Disabled="@_busy"
+                                       OnClick="@(() => OpenFilesAsync(voyage))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="@_busy"
+                                       OnClick="@(() => DeleteVoyageAsync(voyage))" />
+                    </MudTooltip>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@* ── Port calls of the selected voyage ───────────────────────────────────── *@
+@if (_selected is not null)
+{
+    <MudPaper Outlined="true" Class="pa-3 mt-4">
+        <div class="d-flex align-center mb-2">
+            <MudText Typo="Typo.subtitle1">Port calls — @_selected.VoyageNumber</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLocation"
+                       Disabled="@_busy" OnClick="AddStopAsync">Add Port Call</MudButton>
+        </div>
+
+        <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Port</th>
+                    <th>Arrival</th>
+                    <th>Departure</th>
+                    <th>Purpose</th>
+                    <th>Notes</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_selected.Stops.Count == 0)
+                {
+                    <tr><td colspan="7">No port calls yet.</td></tr>
+                }
+                @foreach (var s in _selected.Stops.OrderBy(x => x.StopOrder))
+                {
+                    var stop = s;
+                    <tr>
+                        <td>@stop.StopOrder</td>
+                        <td>@stop.PortName</td>
+                        <td>@(stop.ArrivalDate?.ToString("dd.MM.yyyy HH:mm") ?? "—")</td>
+                        <td>@(stop.DepartureDate?.ToString("dd.MM.yyyy HH:mm") ?? "—")</td>
+                        <td>@stop.PurposeOfCall</td>
+                        <td>@stop.Notes</td>
+                        <td style="white-space:nowrap">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="@_busy"
+                                           OnClick="@(() => EditStopAsync(stop))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="@_busy"
+                                           OnClick="@(() => RemoveStopAsync(stop))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    // OwningComponentBase: this page has its own DI scope → its own ShipContext.
+    private IVoyageService VoyageService => ScopedServices.GetRequiredService<IVoyageService>();
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+    private ICrewContractService ContractService => ScopedServices.GetRequiredService<ICrewContractService>();
+    private IVesselService VesselService => ScopedServices.GetRequiredService<IVesselService>();
+    private IPortService PortService => ScopedServices.GetRequiredService<IPortService>();
+    private IStoredFileService FileService => ScopedServices.GetRequiredService<IStoredFileService>();
+
+    private bool _loading = true;
+    private bool _busy;
+
+    private int _vesselId;
+    private string _vesselName = string.Empty;
+
+    private IReadOnlyList<VoyageResponse> _voyages = [];
+    private VoyageResponse? _selected;   // with its stops
+
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<PortResponse> _ports = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            var status = await SetupService.GetStatusAsync();
+            _vesselId = status.VesselId ?? 0;
+            _vesselName = status.VesselName ?? "VOYAGE";
+
+            _vessels = await VesselService.GetAllAsync();
+            _ports = await PortService.GetActiveAsync();
+            await LoadVoyagesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadVoyagesAsync()
+    {
+        _voyages = await VoyageService.GetByVesselAsync(_vesselId);
+
+        if (_selected is not null)
+            _selected = await VoyageService.GetWithStopsAsync(_selected.VoyageId);
+    }
+
+    private async Task SelectAsync(int voyageId)
+    {
+        await RunAsync(async () => _selected = await VoyageService.GetWithStopsAsync(voyageId));
+    }
+
+    // ── Voyage ───────────────────────────────────────────────────────────────
+
+    private async Task NewVoyageAsync()
+    {
+        // The voyage runs under the master on board now.
+        var master = await ContractService.GetActiveMasterAsync(_vesselId);
+
+        var parameters = new DialogParameters<VoyageDialog>
+        {
+            { x => x.Vessels, _vessels },
+            { x => x.DefaultVesselId, _vesselId },
+            { x => x.SuggestedNumber, SuggestVoyageNumber() },
+            { x => x.OnCreate, async request =>
+                {
+                    try
+                    {
+                        await VoyageService.CreateAsync(request with { MasterContractId = master?.ContractId });
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add(ex.Message, Severity.Error);
+                        return false;
+                    }
+                }
+            },
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("New Voyage", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        Snackbar.Add("Voyage created.", Severity.Success);
+        await RunAsync(LoadVoyagesAsync);
+    }
+
+    private async Task EditVoyageAsync(VoyageResponse voyage)
+    {
+        var parameters = new DialogParameters<VoyageDialog>
+        {
+            { x => x.Voyage, voyage },
+            { x => x.Vessels, _vessels },
+            { x => x.OnUpdate, async request =>
+                {
+                    try
+                    {
+                        await VoyageService.UpdateAsync(voyage.VoyageId, request);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add(ex.Message, Severity.Error);
+                        return false;
+                    }
+                }
+            },
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<VoyageDialog>("Edit Voyage", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        Snackbar.Add("Voyage updated.", Severity.Success);
+        await RunAsync(LoadVoyagesAsync);
+    }
+
+    private async Task DeleteVoyageAsync(VoyageResponse voyage)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Voyage",
+            $"Delete voyage '{voyage.VoyageNumber}' and its port calls?",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await VoyageService.DeleteAsync(voyage.VoyageId);
+            if (_selected?.VoyageId == voyage.VoyageId) _selected = null;
+            Snackbar.Add("Voyage deleted.", Severity.Success);
+            await LoadVoyagesAsync();
+        });
+    }
+
+    // e.g. MARIE-2026-03: the next free number for this vessel and year.
+    private string SuggestVoyageNumber()
+    {
+        var prefix = $"{_vesselName.Trim().ToUpperInvariant().Replace(' ', '-')}-{DateTime.Today.Year}-";
+        var last = _voyages
+            .Where(x => x.VoyageNumber.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(x => int.TryParse(x.VoyageNumber[prefix.Length..], out var n) ? n : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var number = $"{prefix}{last + 1:D2}";
+        return number.Length <= 30 ? number : number[^30..];   // VoyageNumber max length
+    }
+
+    // ── Port calls ───────────────────────────────────────────────────────────
+
+    private async Task AddStopAsync()
+    {
+        var voyage = _selected!;
+        var orders = voyage.Stops.Select(x => x.StopOrder).ToList();
+
+        var parameters = new DialogParameters<VoyageStopDialog>
+        {
+            { x => x.Ports, _ports },
+            { x => x.TakenOrders, orders },
+            { x => x.NextStopOrder, orders.DefaultIfEmpty(0).Max() + 1 },
+            { x => x.OnAdd, async request =>
+                {
+                    try
+                    {
+                        await VoyageService.AddStopAsync(voyage.VoyageId, request);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add(ex.Message, Severity.Error);
+                        return false;
+                    }
+                }
+            },
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<VoyageStopDialog>("Add Port Call", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        await RunAsync(LoadVoyagesAsync);
+    }
+
+    private async Task EditStopAsync(VoyageStopResponse stop)
+    {
+        var voyage = _selected!;
+
+        var parameters = new DialogParameters<VoyageStopDialog>
+        {
+            { x => x.Stop, stop },
+            { x => x.Ports, _ports },
+            { x => x.TakenOrders, voyage.Stops.Select(x => x.StopOrder).ToList() },
+            { x => x.OnUpdate, async request =>
+                {
+                    try
+                    {
+                        await VoyageService.UpdateStopAsync(voyage.VoyageId, stop.StopOrder, request);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add(ex.Message, Severity.Error);
+                        return false;
+                    }
+                }
+            },
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<VoyageStopDialog>("Edit Port Call", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        await RunAsync(LoadVoyagesAsync);
+    }
+
+    private async Task RemoveStopAsync(VoyageStopResponse stop)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Port Call", $"Remove the call at {stop.PortName}?",
+            yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        var voyageId = _selected!.VoyageId;
+        await RunAsync(async () =>
+        {
+            await VoyageService.RemoveStopAsync(voyageId, stop.StopOrder);
+            await LoadVoyagesAsync();
+        });
+    }
+
+    // ── Files ────────────────────────────────────────────────────────────────
+
+    private Task OpenFilesAsync(VoyageResponse voyage) =>
+        ShipStoredFiles.OpenAsync(DialogService, FileService, (voyage.VoyageId, EntityType.Voyage),
+            $"Voyage {voyage.VoyageNumber}");
+
+    // ── Helper ───────────────────────────────────────────────────────────────
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

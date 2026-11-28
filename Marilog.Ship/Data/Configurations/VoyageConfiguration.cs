@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Marilog.Ship.Data.Configurations
 {
-    // Only the voyage itself for now (Document.VoyageId points here).
-    // Stops, bills of lading and contracts come with the voyages step.
+    // Same as Marilog, without bills of lading (ignored in ShipContext).
+    // Contracts are kept as Marilog has them (VoyageService reads them), with no charter-contract table on board.
     public class VoyageConfiguration : IEntityTypeConfiguration<Voyage>
     {
         public void Configure(EntityTypeBuilder<Voyage> builder)
@@ -29,9 +29,20 @@ namespace Marilog.Ship.Data.Configurations
                    .HasForeignKey(x => x.MasterContractID)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasMany(x => x.Stops)
+                   .WithOne()
+                   .HasForeignKey(x => x.VoyageID)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.OwnsMany(x => x.Contracts, b =>
+            {
+                b.ToTable("VoyageContracts");
+                b.WithOwner().HasForeignKey("VoyageID");
+                b.HasKey("VoyageID", nameof(VoyageContract.ContractID));
+                b.Property(p => p.ContractID).IsRequired().ValueGeneratedNever();
+            });
+
             builder.Ignore(x => x.BillsOfLading);
-            builder.Ignore(x => x.Stops);
-            builder.Ignore(x => x.Contracts);
 
             builder.HasIndex(x => x.VesselID);
             builder.HasIndex(x => x.VoyageMonth);
