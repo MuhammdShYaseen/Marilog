@@ -46,5 +46,22 @@
 
     <script src="_framework/blazor.webview.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script>
+        // Attached files: "Download" and "Open in new tab" call window.open(fileUrl).
+        // A ship window has no tabs, so the file opens in its Windows program instead (ShipFileHost.OpenStoredFile).
+        (function () {
+            var fileUrl = 'https://files.ship.example/';
+            var browserOpen = window.open;
+
+            window.open = function (url, target, features) {
+                if (typeof url === 'string' && url.indexOf(fileUrl) === 0) {
+                    DotNet.invokeMethodAsync('Marilog.Ship', 'OpenStoredFile', url)
+                        .catch(function (error) { console.error(error); });
+                    return null;
+                }
+                return browserOpen.call(window, url, target, features);
+            };
+        })();
+    </script>
 </body>
 </html>

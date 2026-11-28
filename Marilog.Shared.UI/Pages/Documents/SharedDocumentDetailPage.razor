@@ -71,11 +71,14 @@ else
                            OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((Document.Id, EntityType.Document))">
                     Files
                 </MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                           StartIcon="@Icons.Material.Outlined.Comment"
-                           OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))">
-                    Comments
-                </MudButton>
+                @if (OnCommentsClicked.HasDelegate)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.Comment"
+                               OnClick="() => OnCommentsClicked.InvokeAsync((Document.Id, EntityType.Document))">
+                        Comments
+                    </MudButton>
+                }
                 @if (Templates is not null)
                 {
                     <MudMenu Label="Export PDF" StartIcon="@Icons.Material.Filled.PictureAsPdf"

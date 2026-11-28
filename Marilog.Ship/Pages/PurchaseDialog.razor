@@ -1,0 +1,162 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Kernel.Enums
+@using Marilog.Ship.Services.Purchases
+
+@* Quick entry for one purchase: the document and its payment in one step.
+   Items, adjustments and other payment methods are added from the details afterwards. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">New Purchase</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="8">
+                <MudSelect T="int?" @bind-Value="_supplierId" Label="Supplier" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in _suppliers)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)c.Id">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-center">
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@(AddSupplier is null)" OnClick="AddSupplierAsync">New Supplier</MudButton>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?" @bind-Value="_docTypeId" Label="Document Type" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var t in DocTypes)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)t.Id">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_docNumber" Label="Document Number" MaxLength="50"
+                              HelperText="Leave empty if the receipt has no number (NR-0001, NR-0002 ...)"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_date" Label="Date" DateFormat="dd.MM.yyyy" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?" @bind-Value="_portId" Label="Port" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var p in Ports)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" @bind-Value="_currencyId" Label="Currency" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in Currencies)
+                    {
+                        <MudSelectItem T="int" Value="c.Id">@c.Code — @c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" @bind-Value="_amount" Label="Amount" Min="0" Format="N2"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_reference" Label="Description / Reference" MaxLength="200"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="PaidNow" @bind-Value="_paidNow" Label="Paid now with"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           HelperText="Not paid yet: the office pays it, or record the payment later from the details.">
+                    <MudSelectItem T="PaidNow" Value="PaidNow.Cash">Cash on board</MudSelectItem>
+                    <MudSelectItem T="PaidNow" Value="PaidNow.Cigarettes">Cigarettes on board</MudSelectItem>
+                    <MudSelectItem T="PaidNow" Value="PaidNow.NotPaid">Not paid yet</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanSave)" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<CompanyResponse> Suppliers { get; set; } = [];
+    [Parameter] public IReadOnlyList<DocumentTypeResponse> DocTypes { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+
+    /// <summary>Opens the company dialog; returns the new supplier, or null when cancelled.</summary>
+    [Parameter] public Func<Task<CompanyResponse?>>? AddSupplier { get; set; }
+
+    private List<CompanyResponse> _suppliers = [];
+    private int? _supplierId;
+    private int? _docTypeId;
+    private string? _docNumber;
+    private DateTime? _date = DateTime.Today;
+    private int? _portId;
+    private int _currencyId;
+    private decimal _amount;
+    private string? _reference;
+    private PaidNow _paidNow = PaidNow.Cash;
+
+    private enum PaidNow { Cash, Cigarettes, NotPaid }
+
+    private bool CanSave =>
+        _supplierId is not null && _docTypeId is not null && _date is not null && _currencyId > 0 && _amount > 0;
+
+    protected override void OnInitialized()
+    {
+        _suppliers = Suppliers.OrderBy(x => x.Name).ToList();
+        _docTypeId = DocTypes.FirstOrDefault(x => x.Code == "RECEIPT")?.Id ?? DocTypes.FirstOrDefault()?.Id;
+        _currencyId = Currencies.FirstOrDefault(x => x.IsBaseCurrency)?.Id ?? Currencies.FirstOrDefault()?.Id ?? 0;
+    }
+
+    private async Task AddSupplierAsync()
+    {
+        var created = await AddSupplier!();
+        if (created is null) return;
+
+        _suppliers = _suppliers.Append(created).OrderBy(x => x.Name).ToList();
+        _supplierId = created.Id;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(new CreatePurchaseRequest(
+            _supplierId!.Value,
+            _docTypeId!.Value,
+            _docNumber,
+            DateOnly.FromDateTime(_date!.Value),
+            _portId,
+            _currencyId,
+            _amount,
+            _reference,
+            _paidNow switch
+            {
+                PaidNow.Cash => PaymentMethod.CashOnBoard,
+                PaidNow.Cigarettes => PaymentMethod.CigarettesOnBoard,
+                _ => null
+            })));
+    }
+}

@@ -1,6 +1,8 @@
 ﻿using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Kernel.Enums;
 using Marilog.Ship.Domain.Entities;
+using Marilog.Ship.Pages;
+using Marilog.Ship.Domain;
 
 namespace Marilog.Ship.Data
 {
@@ -25,6 +27,8 @@ namespace Marilog.Ship.Data
             if (!db.Set<DeductionType>().Any())
                 db.Set<DeductionType>().AddRange(DeductionTypes.Select(d => DeductionType.Create(d.Code, d.Name)));
 
+            if (!db.Set<DocumentType>().Any())
+                db.Set<DocumentType>().AddRange(DocumentTypes.Select(d => DocumentType.Create(d.Code, d.Name, d.SortOrder)));
             db.SaveChanges();
         }
 
@@ -73,7 +77,15 @@ namespace Marilog.Ship.Data
             ("PHONE", "Mobile / SIM card"),
             ("MISC", "Miscellaneous"),
         ];
-
+        // The master adds more on the Document Types page.
+        // CIGARETTES (ShipCodes.CigarettesDocType) is used by the MGA — keep it.
+        private static readonly (string Code, string Name, int SortOrder)[] DocumentTypes =
+        [
+            ("INVOICE", "Invoice", 1),
+            ("RECEIPT", "Receipt", 2),
+            ("CASH_VOUCHER", "Cash Voucher", 3),
+            (ShipCodes.CigarettesDocType, "Cigarettes Purchase", 4),
+        ];
         // ISO 3166-1 alpha-2.
         private static readonly (string Code, string Name)[] Countries =
         [

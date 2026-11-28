@@ -1,5 +1,6 @@
 ﻿using Marilog.Shared.UI.Extensions;
 using Marilog.Ship.Data;
+using Marilog.Ship.Services.Files;
 using Microsoft.AspNetCore.Components.WebView.Wpf;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
@@ -31,6 +32,10 @@ namespace Marilog.Ship
             ShipDatabase.Initialize(provider);
 
             blazorWebView.Services = provider;
+
+            // Attached files are served by the WebView itself (no web server on board).
+            blazorWebView.BlazorWebViewInitialized += (_, e) =>
+                ShipFileHost.Attach(e.WebView.CoreWebView2, provider.GetRequiredService<IServiceScopeFactory>());
 
             // Added in code, not XAML: the XAML compiler can't always see Razor-generated components.
             blazorWebView.RootComponents.Add(new RootComponent

@@ -13,7 +13,7 @@
     <ProjectReference Include="..\Marilog.Application\Marilog.Application.csproj" />
     <ProjectReference Include="..\Marilog.Shared.UI\Marilog.Shared.UI.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.130" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
@@ -21,6 +21,29 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- Text, previews and thumbnails for attached files (same versions as Marilog.Infrastructure) -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+    <PackageReference Include="PDFtoImage" Version="5.4.0" />
+    <PackageReference Include="SkiaSharp" Version="4.153.1" />
+    <PackageReference Include="QuestPDF" Version="2026.6.0" />
   </ItemGroup>
-  
+
+  <!-- WPF leaves System.IO out of the implicit usings; the linked Infrastructure files below need it. -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <!-- Marilog.Infrastructure's file processing without OCR, compiled into the ship program.
+       Linked, not copied: a fix in Marilog reaches the ship on the next build.
+       No reference to Marilog.Infrastructure (no SQL Server, nothing else from it). -->
+  <ItemGroup>
+    <Compile Include="..\Marilog.Infrastructure\Interfaces\OCR\IPdfConversionService.cs" Link="Services\Files\Linked\IPdfConversionService.cs" />
+    <Compile Include="..\Marilog.Infrastructure\Interfaces\OCR\IPdfDirectTextExtractor.cs" Link="Services\Files\Linked\IPdfDirectTextExtractor.cs" />
+    <Compile Include="..\Marilog.Infrastructure\Interfaces\OCR\IThumbnailGenerator.cs" Link="Services\Files\Linked\IThumbnailGenerator.cs" />
+    <Compile Include="..\Marilog.Infrastructure\Services\OCR\OfficeContentExtractor.cs" Link="Services\Files\Linked\OfficeContentExtractor.cs" />
+    <Compile Include="..\Marilog.Infrastructure\Services\OCR\PdfConversionService.cs" Link="Services\Files\Linked\PdfConversionService.cs" />
+    <Compile Include="..\Marilog.Infrastructure\Services\OCR\PdfDirectTextExtractor.cs" Link="Services\Files\Linked\PdfDirectTextExtractor.cs" />
+    <Compile Include="..\Marilog.Infrastructure\Services\OCR\PdfThumbnailGenerator.cs" Link="Services\Files\Linked\PdfThumbnailGenerator.cs" />
+  </ItemGroup>
+
 </Project>

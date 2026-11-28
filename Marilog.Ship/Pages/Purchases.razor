@@ -1,0 +1,526 @@
+@page "/purchases"
+@inherits OwningComponentBase
+@using Marilog.Contracts.DTOs.Requests.CompanyDTOs
+@using Marilog.Contracts.DTOs.Requests.DocumentAdjustmentDTOs
+@using Marilog.Contracts.DTOs.Requests.DocumentDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.Companies
+@using Marilog.Shared.UI.Pages.Documents
+@using Marilog.Ship.Services.Files
+@using Marilog.Ship.Services.Purchases
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDrawer @bind-Open="_isDetailOpen"
+           Anchor="Anchor.End"
+           Variant="DrawerVariant.Temporary"
+           Elevation="8"
+           Width="70%">
+    @if (_detail is not null)
+    {
+        <SharedDocumentDetailPage Document="_detail"
+                                  OnBackClicked="CloseDetail"
+                                  OnEditClicked="EditAsync"
+                                  OnDeleteClicked="DeleteAsync"
+                                  OnAddPaymentClicked="AddPaymentAsync"
+                                  OnEditPaymentClicked="@(args => EditPaymentAsync(args.doc, args.Payment))"
+                                  OnRemovePaymentClicked="RemovePaymentAsync"
+                                  OnAddItemClicked="AddItemAsync"
+                                  OnEditItemClicked="EditItemAsync"
+                                  OnRemoveItemClicked="RemoveItemAsync"
+                                  OnAddAdjustmentClicked="AddAdjustmentAsync"
+                                  OnEditAdjustmentClicked="EditAdjustmentAsync"
+                                  OnRemoveAdjustmentClicked="RemoveAdjustmentAsync"
+                                  OnManageAttachedFilesClicked="OpenFilesAsync" />
+    }
+</MudDrawer>
+
+<MudText Typo="Typo.h5" Class="mb-3">Purchases</MudText>
+
+<div class="d-flex flex-wrap gap-3 align-center mb-3">
+    <MudDatePicker @bind-Date="_from" @bind-Date:after="LoadListAsync" Label="From" DateFormat="dd.MM.yyyy"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:180px" />
+    <MudDatePicker @bind-Date="_to" @bind-Date:after="LoadListAsync" Label="To" DateFormat="dd.MM.yyyy"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:180px" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@(_loading || _busy)" OnClick="NewPurchaseAsync">New Purchase</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<MudSimpleTable Dense="true" Hover="true" Bordered="true">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>No.</th>
+            <th>Type</th>
+            <th>Supplier</th>
+            <th>Port</th>
+            <th style="text-align:right">Amount</th>
+            <th style="text-align:right">Paid</th>
+            <th style="text-align:right">Remaining</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!_loading && _documents.Count == 0)
+        {
+            <tr><td colspan="9">No purchases in this period.</td></tr>
+        }
+        @foreach (var d in _documents)
+        {
+            var doc = d;
+            <tr style="cursor:pointer" @onclick="@(() => OpenDetailAsync(doc.Id))">
+                <td>@doc.DocDate.ToString("dd.MM.yyyy")</td>
+                <td>@doc.DocNumber</td>
+                <td>@doc.DocTypeName</td>
+                <td>@doc.SupplierName</td>
+                <td>@(doc.PortName ?? "—")</td>
+                <td style="text-align:right">@doc.NetAmount.ToString("N2") @doc.CurrencyCode</td>
+                <td style="text-align:right">@doc.TotalPaid.ToString("N2")</td>
+                <td style="text-align:right">
+                    @if (doc.IsFullyPaid)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Success">Paid</MudText>
+                    }
+                    else
+                    {
+                        @doc.RemainingBalance.ToString("N2")
+                    }
+                </td>
+                <td @onclick:stopPropagation="true">
+                    <MudTooltip Text="Files">
+                        <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small"
+                                       OnClick="@(() => OpenFilesAsync((doc.Id, EntityType.Document)))" />
+                    </MudTooltip>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    // OwningComponentBase: this page has its own DI scope → its own ShipContext.
+    // Dialogs use the injected IDialogService (the one the dialog provider listens to).
+    private IPurchaseService PurchaseService => ScopedServices.GetRequiredService<IPurchaseService>();
+    private IDocumentService DocumentService => ScopedServices.GetRequiredService<IDocumentService>();
+    private IPaymentService PaymentService => ScopedServices.GetRequiredService<IPaymentService>();
+    private IDocumentTypeService DocTypeService => ScopedServices.GetRequiredService<IDocumentTypeService>();
+    private ICompanyService CompanyService => ScopedServices.GetRequiredService<ICompanyService>();
+    private ICurrencyService CurrencyService => ScopedServices.GetRequiredService<ICurrencyService>();
+    private IPortService PortService => ScopedServices.GetRequiredService<IPortService>();
+    private IVesselService VesselService => ScopedServices.GetRequiredService<IVesselService>();
+    private ICountryService CountryService => ScopedServices.GetRequiredService<ICountryService>();
+    private IStoredFileService FileService => ScopedServices.GetRequiredService<IStoredFileService>();
+
+    private bool _loading = true;
+    private bool _busy;
+
+    private DateTime? _from;
+    private DateTime? _to;
+    private IReadOnlyList<DocumentResponse> _documents = [];
+
+    private DocumentResponse? _detail;
+    private bool _isDetailOpen;
+
+    // Lookups for the dialogs
+    private IReadOnlyList<DocumentTypeResponse> _docTypes = [];
+    private IReadOnlyList<CompanyResponse> _companies = [];
+    private IReadOnlyList<CurrencyResponse> _currencies = [];
+    private IReadOnlyList<PortResponse> _ports = [];
+    private IReadOnlyList<VesselLookupResponse> _vessels = [];
+    private IReadOnlyList<CountryResponse> _countries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // This month by default.
+        var firstDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _from = firstDay;
+        _to = firstDay.AddMonths(1).AddDays(-1);
+
+        try
+        {
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            _docTypes = await DocTypeService.GetActiveAsync();
+            _companies = await CompanyService.GetActiveAsync();
+            _currencies = await CurrencyService.GetActiveAsync();
+            _ports = await PortService.GetActiveAsync();
+            _vessels = await VesselService.GetAllAsLookUpAsync();
+            _countries = await CountryService.GetActiveAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        await LoadListAsync();
+    }
+
+    private async Task LoadListAsync()
+    {
+        if (_from is null || _to is null) return;
+
+        _loading = true;
+        try
+        {
+            _documents = await PurchaseService.GetAsync(DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── New purchase ─────────────────────────────────────────────────────────
+
+    private async Task NewPurchaseAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(PurchaseDialog.Suppliers)] = _companies,
+            [nameof(PurchaseDialog.DocTypes)] = _docTypes,
+            [nameof(PurchaseDialog.Currencies)] = _currencies,
+            [nameof(PurchaseDialog.Ports)] = _ports,
+            [nameof(PurchaseDialog.AddSupplier)] = (Func<Task<CompanyResponse?>>)AddSupplierAsync,
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PurchaseDialog>("New Purchase", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not CreatePurchaseRequest request) return;
+
+        int? documentId = null;
+        await RunAsync(async () =>
+        {
+            documentId = await PurchaseService.CreateAsync(request);
+            await LoadListAsync();
+        });
+        if (documentId is null) return;
+
+        Snackbar.Add("Purchase saved.", Severity.Success);
+
+        var attach = await DialogService.ShowMessageBoxAsync(
+            "Attach the receipt",
+            "Attach the receipt or invoice to this purchase now?",
+            yesText: "Attach", cancelText: "Later");
+        if (attach == true)
+            await OpenFilesAsync((documentId.Value, EntityType.Document));
+    }
+
+    private async Task<CompanyResponse?> AddSupplierAsync()
+    {
+        var parameters = new DialogParameters { [nameof(CompanyFormDialog.Countries)] = _countries };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CompanyFormDialog>("New Supplier", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not CreateCompanyRequest request) return null;
+
+        try
+        {
+            var created = await CompanyService.CreateAsync(request);
+            _companies = await CompanyService.GetActiveAsync();
+            return created;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return null;
+        }
+    }
+
+    // ── Details ──────────────────────────────────────────────────────────────
+
+    private async Task OpenDetailAsync(int id)
+    {
+        await RunAsync(async () =>
+        {
+            _detail = await DocumentService.GetFullAsync(id);
+            _isDetailOpen = _detail is not null;
+        });
+    }
+
+    private void CloseDetail()
+    {
+        _detail = null;
+        _isDetailOpen = false;
+    }
+
+    // After any change: the open document and the list.
+    private async Task ReloadAsync(int documentId)
+    {
+        _detail = await DocumentService.GetFullAsync(documentId);
+        await LoadListAsync();
+    }
+
+    private async Task EditAsync(DocumentResponse doc)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Document"] = doc,
+            ["DocTypes"] = _docTypes,
+            ["Companies"] = _companies,
+            ["Currencies"] = _currencies,
+            ["Vessels"] = _vessels,
+            ["Ports"] = _ports,
+            ["GetDocsByVessel"] = async (int vesselId) => await DocumentService.GetByVesselAsync(vesselId),
+            // Voyages come with the voyages step.
+            ["GetVoyagesByVessel"] = (int vesselId) => Task.FromResult<IReadOnlyList<VoyageResponse>>([]),
+            ["GetDocByNumber"] = async (string docNumber) => await DocumentService.GetByNumberAsync(docNumber)
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentFormDialog>("Edit Document", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not UpdateDocumentRequest model) return;
+
+        await RunAsync(async () =>
+        {
+            await DocumentService.UpdateAsync(doc.Id, model);
+            Snackbar.Add("Document updated.", Severity.Success);
+            await ReloadAsync(doc.Id);
+        });
+    }
+
+    private async Task DeleteAsync(DocumentResponse doc)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Document", $"Delete document '{doc.DocNumber}'?",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await DocumentService.DeleteAsync(doc.Id);
+            Snackbar.Add("Document deleted.", Severity.Success);
+            CloseDetail();
+            await LoadListAsync();
+        });
+    }
+
+    // ── Payments ─────────────────────────────────────────────────────────────
+
+    private async Task AddPaymentAsync(DocumentResponse doc)
+    {
+        var parameters = new DialogParameters { ["Document"] = doc };
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Add Payment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (swiftId, amount, date, method, discreption) = ((int?, decimal, DateOnly, PaymentMethod, string?))result.Data;
+        await RunAsync(async () =>
+        {
+            await PaymentService.AddPaymentAsync(doc.Id, new AddPaymentRequest
+            {
+                SwiftTransferId = swiftId,
+                PaidAmount = amount,
+                PaymentDate = date,
+                Method = method,
+                Discreption = discreption
+            });
+            Snackbar.Add("Payment recorded.", Severity.Success);
+            await ReloadAsync(doc.Id);
+        });
+    }
+
+    private async Task EditPaymentAsync(DocumentResponse doc, PaymentResponse payment)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Document"] = doc,
+            ["ExistingPayment"] = payment
+        };
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Edit Payment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (swiftId, amount, date, method, discreption) = ((int?, decimal, DateOnly, PaymentMethod, string?))result.Data;
+        await RunAsync(async () =>
+        {
+            await PaymentService.UpdatePaymentAsync(doc.Id, payment.Id, new UpdatePaymentRequest
+            {
+                SwiftTransferId = swiftId,
+                PaidAmount = amount,
+                PaymentDate = date,
+                Method = method,
+                Discreption = discreption
+            });
+            Snackbar.Add("Payment updated.", Severity.Success);
+            await ReloadAsync(doc.Id);
+        });
+    }
+
+    private async Task RemovePaymentAsync((int DocumentId, int PaymentId) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Payment", "Remove this payment?",
+            yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await PaymentService.RemovePaymentAsync(args.DocumentId, args.PaymentId);
+            Snackbar.Add("Payment removed.", Severity.Success);
+            await ReloadAsync(args.DocumentId);
+        });
+    }
+
+    // ── Items ────────────────────────────────────────────────────────────────
+
+    private async Task AddItemAsync(DocumentResponse doc)
+    {
+        var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Add Item");
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not AddDocumentItemRequest data) return;
+
+        await RunAsync(async () =>
+        {
+            await DocumentService.AddItemAsync(doc.Id, data.ProductName, data.Quantity, data.UnitPrice, data.Unit);
+            Snackbar.Add("Item added.", Severity.Success);
+            await ReloadAsync(doc.Id);
+        });
+    }
+
+    private async Task EditItemAsync((int DocumentId, DocumentItemResponse Item) args)
+    {
+        var parameters = new DialogParameters { ["Item"] = args.Item };
+        var dialog = await DialogService.ShowAsync<DocumentItemFormDialog>("Edit Item", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not UpdateDocumentItemRequest data) return;
+
+        await RunAsync(async () =>
+        {
+            await DocumentService.UpdateItemAsync(args.DocumentId, args.Item.Id, data.ProductName, data.Quantity, data.UnitPrice, data.Unit);
+            Snackbar.Add("Item updated.", Severity.Success);
+            await ReloadAsync(args.DocumentId);
+        });
+    }
+
+    private async Task RemoveItemAsync((int DocumentId, int ItemId) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Item", "Remove this item?",
+            yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await DocumentService.RemoveItemAsync(args.DocumentId, args.ItemId);
+            Snackbar.Add("Item removed.", Severity.Success);
+            await ReloadAsync(args.DocumentId);
+        });
+    }
+
+    // ── Adjustments ──────────────────────────────────────────────────────────
+
+    private async Task AddAdjustmentAsync(DocumentResponse doc)
+    {
+        var parameters = new DialogParameters { ["Document"] = doc };
+        var dialog = await DialogService.ShowAsync<AdjustmentDialog>("Add Price Adjustment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (amount, date, reason) = ((decimal, DateOnly, string?))result.Data;
+        await RunAsync(async () =>
+        {
+            await DocumentService.AddAdjustmentAsync(new CreateAdjustmentRequest
+            {
+                DocumentId = doc.Id,
+                Amount = amount,
+                AdjustmentDate = date,
+                Reason = reason
+            });
+            Snackbar.Add("Adjustment added.", Severity.Success);
+            await ReloadAsync(doc.Id);
+        });
+    }
+
+    private async Task EditAdjustmentAsync((DocumentResponse Doc, AdjustmentResponse Adjustment) args)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Document"] = args.Doc,
+            ["ExistingAdjustment"] = args.Adjustment
+        };
+        var dialog = await DialogService.ShowAsync<AdjustmentDialog>("Edit Price Adjustment", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is null) return;
+
+        var (amount, date, reason) = ((decimal, DateOnly, string?))result.Data;
+        await RunAsync(async () =>
+        {
+            await DocumentService.UpdateAdjustmentAsync(args.Adjustment.Id, new UpdateAdjustmentRequest
+            {
+                Amount = amount,
+                AdjustmentDate = date,
+                Reason = reason
+            });
+            Snackbar.Add("Adjustment updated.", Severity.Success);
+            await ReloadAsync(args.Doc.Id);
+        });
+    }
+
+    private async Task RemoveAdjustmentAsync((int DocumentId, int AdjustmentId) args)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Adjustment",
+            "Remove this price adjustment? The document will revert to its previous amount.",
+            yesText: "Remove", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await DocumentService.RemoveAdjustmentAsync(args.AdjustmentId);
+            Snackbar.Add("Adjustment removed.", Severity.Success);
+            await ReloadAsync(args.DocumentId);
+        });
+    }
+
+    // ── Files ────────────────────────────────────────────────────────────────
+
+    private Task OpenFilesAsync((int entityId, EntityType entityType) arg) =>
+        ShipStoredFiles.OpenAsync(DialogService, FileService, arg, DocumentLabel(arg.entityId));
+
+    private string? DocumentLabel(int documentId)
+    {
+        var d = _detail?.Id == documentId ? _detail : _documents.FirstOrDefault(x => x.Id == documentId);
+        if (d is null) return null;
+
+        var title = $"{d.DocTypeName} {d.DocNumber}".Trim();
+        var details = string.Join(" · ", new[]
+        {
+            d.SupplierName,
+            $"{d.TotalAmount:N2} {d.CurrencyCode}".Trim(),
+            string.IsNullOrWhiteSpace(d.Reference) ? null : $"Ref {d.Reference}"
+        }.Where(p => !string.IsNullOrWhiteSpace(p)));
+
+        return string.IsNullOrWhiteSpace(details) ? title : $"{title}\n{details}";
+    }
+
+    // ── Helper ───────────────────────────────────────────────────────────────
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

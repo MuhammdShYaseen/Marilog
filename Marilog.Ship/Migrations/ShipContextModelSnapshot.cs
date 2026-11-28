@@ -95,6 +95,202 @@ namespace Marilog.Ship.Migrations
                     b.ToTable("VesselCertificates", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.BillOfLading", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BlNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BlType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CargoDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CarrierCompanyID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Clauses")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ConsigneeCompanyID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConsigneeToOrder")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FreightAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FreightTerms")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("GrossWeightMT")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HsCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Incoterms")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("IssuanceType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("IssueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MarksAndNumbers")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MasterBlID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("NotifyPartyCompanyID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("OnBoardDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OriginalCopiesCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PackageCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PackageType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PlaceOfDeliveryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PlaceOfDeliveryPortID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PlaceOfIssue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PlaceOfReceiptId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PlaceOfReceiptPortID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PortOfDischargeID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PortOfLoadingID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ShipperCompanyID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("VolumeM3")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("VoyageCargoID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("VoyageID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarrierCompanyID");
+
+                    b.HasIndex("ConsigneeCompanyID");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("MasterBlID");
+
+                    b.HasIndex("NotifyPartyCompanyID");
+
+                    b.HasIndex("PlaceOfDeliveryId");
+
+                    b.HasIndex("PlaceOfReceiptId");
+
+                    b.HasIndex("PortOfDischargeID");
+
+                    b.HasIndex("PortOfLoadingID");
+
+                    b.HasIndex("ShipperCompanyID");
+
+                    b.HasIndex("VoyageID");
+
+                    b.ToTable("BillOfLading");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.CargoType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DefaultUnit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("CargoType");
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Company", b =>
                 {
                     b.Property<int>("Id")
@@ -470,6 +666,280 @@ namespace Marilog.Ship.Migrations
                     b.ToTable("Currencies", (string)null);
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Document", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BuyerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("DocDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("DocDue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DocTypeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ParentDocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PortId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SearchVector")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Side")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("VesselId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("VoyageId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerId");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.HasIndex("DocNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DocTypeId");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("ParentDocumentId");
+
+                    b.HasIndex("PortId");
+
+                    b.HasIndex("SearchVector");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("VesselId");
+
+                    b.HasIndex("VoyageId");
+
+                    b.HasIndex("IsActive", "DocDate");
+
+                    b.ToTable("Documents", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("AdjustmentDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("DocumentAdjustments", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.ToTable("document_items", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("DocumentTypes", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Discreption")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("PaymentDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SwiftTransferId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.ToTable("Payment");
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Person", b =>
                 {
                     b.Property<int>("Id")
@@ -643,6 +1113,178 @@ namespace Marilog.Ship.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.StoredFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Checksum")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("FolderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ThumbnailRelativePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Checksum");
+
+                    b.HasIndex("FolderId");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("StoredFiles", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.StoredFolder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ParentFolderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("ParentFolderId");
+
+                    b.HasIndex("EntityType", "EntityId", "ParentFolderId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("StoredFolders", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Tag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("StoredFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("StoredFileId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Tags", (string)null);
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Vessel", b =>
                 {
                     b.Property<int>("Id")
@@ -749,6 +1391,72 @@ namespace Marilog.Ship.Migrations
                         .IsUnique();
 
                     b.ToTable("VesselTypes", (string)null);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Voyage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MasterContractID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VesselID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("VoyageMonth")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VoyageNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Guid")
+                        .IsUnique();
+
+                    b.HasIndex("MasterContractID");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VesselID");
+
+                    b.HasIndex("VoyageMonth");
+
+                    b.ToTable("Voyages", (string)null);
                 });
 
             modelBuilder.Entity("Marilog.Ship.Domain.Entities.CrewExtra", b =>
@@ -1350,6 +2058,79 @@ namespace Marilog.Ship.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.BillOfLading", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "CarrierCompany")
+                        .WithMany()
+                        .HasForeignKey("CarrierCompanyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "ConsigneeCompany")
+                        .WithMany()
+                        .HasForeignKey("ConsigneeCompanyID");
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.BillOfLading", "MasterBl")
+                        .WithMany()
+                        .HasForeignKey("MasterBlID");
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "NotifyPartyCompany")
+                        .WithMany()
+                        .HasForeignKey("NotifyPartyCompanyID");
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "PlaceOfDelivery")
+                        .WithMany()
+                        .HasForeignKey("PlaceOfDeliveryId");
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "PlaceOfReceipt")
+                        .WithMany()
+                        .HasForeignKey("PlaceOfReceiptId");
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "PortOfDischarge")
+                        .WithMany()
+                        .HasForeignKey("PortOfDischargeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "PortOfLoading")
+                        .WithMany()
+                        .HasForeignKey("PortOfLoadingID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "ShipperCompany")
+                        .WithMany()
+                        .HasForeignKey("ShipperCompanyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Voyage", "Voyage")
+                        .WithMany()
+                        .HasForeignKey("VoyageID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CarrierCompany");
+
+                    b.Navigation("ConsigneeCompany");
+
+                    b.Navigation("MasterBl");
+
+                    b.Navigation("NotifyPartyCompany");
+
+                    b.Navigation("PlaceOfDelivery");
+
+                    b.Navigation("PlaceOfReceipt");
+
+                    b.Navigation("PortOfDischarge");
+
+                    b.Navigation("PortOfLoading");
+
+                    b.Navigation("ShipperCompany");
+
+                    b.Navigation("Voyage");
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Company", b =>
                 {
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Country", "Country")
@@ -1561,6 +2342,94 @@ namespace Marilog.Ship.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Document", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "Buyer")
+                        .WithMany()
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.DocumentType", "DocType")
+                        .WithMany()
+                        .HasForeignKey("DocTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("ParentDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Port", "Port")
+                        .WithMany()
+                        .HasForeignKey("PortId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Vessel", "Vessel")
+                        .WithMany()
+                        .HasForeignKey("VesselId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Voyage", "Voyage")
+                        .WithMany()
+                        .HasForeignKey("VoyageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Buyer");
+
+                    b.Navigation("Currency");
+
+                    b.Navigation("DocType");
+
+                    b.Navigation("Port");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("Vessel");
+
+                    b.Navigation("Voyage");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentAdjustment", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Document", null)
+                        .WithMany("Adjustments")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.DocumentItem", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Document", null)
+                        .WithMany("Items")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Payment", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Document", "Document")
+                        .WithMany("Payments")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Person", b =>
                 {
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Country", "NationalityCountry")
@@ -1609,6 +2478,31 @@ namespace Marilog.Ship.Migrations
                     b.Navigation("Country");
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.StoredFile", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.StoredFolder", null)
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.StoredFolder", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.StoredFolder", null)
+                        .WithMany()
+                        .HasForeignKey("ParentFolderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Tag", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.StoredFile", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("StoredFileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Vessel", b =>
                 {
                     b.HasOne("Marilog.Domain.Entities.SystemEntities.Company", "Company")
@@ -1632,6 +2526,24 @@ namespace Marilog.Ship.Migrations
                     b.Navigation("FlagCountry");
 
                     b.Navigation("VesselType");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Voyage", b =>
+                {
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.CrewContract", "MasterContract")
+                        .WithMany()
+                        .HasForeignKey("MasterContractID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marilog.Domain.Entities.SystemEntities.Vessel", "Vessel")
+                        .WithMany()
+                        .HasForeignKey("VesselID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MasterContract");
+
+                    b.Navigation("Vessel");
                 });
 
             modelBuilder.Entity("Marilog.Ship.Domain.Entities.CrewExtra", b =>
@@ -1759,11 +2671,25 @@ namespace Marilog.Ship.Migrations
                     b.Navigation("Disbursements");
                 });
 
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Document", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("Items");
+
+                    b.Navigation("Payments");
+                });
+
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Person", b =>
                 {
                     b.Navigation("Certificates");
 
                     b.Navigation("Contracts");
+                });
+
+            modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.StoredFile", b =>
+                {
+                    b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("Marilog.Domain.Entities.SystemEntities.Vessel", b =>

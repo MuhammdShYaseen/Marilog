@@ -1,18 +1,55 @@
 ﻿using System.Reflection;
+using Marilog.Application.Interfaces.Events;
 using Marilog.Domain.Common;
+using Marilog.Domain.Entities.SystemEntities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Ship.Data
 {
     public class ShipContext : DbContext
     {
-        public ShipContext(DbContextOptions<ShipContext> options) : base(options) { }
+        private readonly IEventDispatcher? _dispatcher;
+
+        // The dispatcher is missing only in ShipContextFactory (design time, migrations).
+        public ShipContext(DbContextOptions<ShipContext> options, IEventDispatcher? dispatcher = null) : base(options)
+        {
+            _dispatcher = dispatcher;
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Not on the ship. Ignored for the whole model (not only on Payment), so EF never follows
+            // SwiftTransfer → Bank → ... while it discovers Payment.
+            modelBuilder.Ignore<SwiftTransfer>();
+            modelBuilder.Ignore<CreditBalance>();
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ShipContext).Assembly);
             ApplyGlobalFilters(modelBuilder);
+        }
+
+        // Same as MarilogContext: domain events are sent only after the save succeeded.
+        public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
+        {
+            var entitiesWithEvents = ChangeTracker
+                .Entries<Entity>()
+                .Where(e => e.Entity.DomainEvents.Any())
+                .Select(e => e.Entity)
+                .ToList();
+
+            var events = entitiesWithEvents
+                .SelectMany(e => e.DomainEvents)
+                .ToList();
+
+            var result = await base.SaveChangesAsync(ct);
+
+            entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
+
+            if (_dispatcher is not null)
+                foreach (var domainEvent in events)
+                    await _dispatcher.EnqueueAsync(domainEvent, ct);
+
+            return result;
         }
 
         // Same as MarilogContext: unique Guid index + soft-delete filter on every Entity.
