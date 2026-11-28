@@ -1,7 +1,6 @@
 ﻿using Marilog.Contracts.Common;
 using Marilog.Contracts.DTOs.Requests.PersonDTOs;
 using Marilog.Contracts.DTOs.Responses;
-using Marilog.Contracts.DTOs.Responses.Marilog.Contracts.DTOs.Responses;
 
 namespace Marilog.Contracts.Interfaces.Services.SystemServices
 {
