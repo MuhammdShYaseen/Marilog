@@ -16,7 +16,6 @@ namespace Marilog.Ship.Domain.Entities
         public decimal Amount { get; private set; }
         public int CurrencyId { get; private set; }
         public Currency Currency { get; private set; } = null!;
-        public decimal ExchangeRate { get; private set; }
         public int? CrewContractId { get; private set; }
         public CrewContract? CrewContract { get; private set; }
         public int? PortId { get; private set; }
@@ -27,30 +26,29 @@ namespace Marilog.Ship.Domain.Entities
         private OwnerRemittance() { }
 
         public static OwnerRemittance Create(DateOnly date, OwnerRemittanceType type, decimal amount,
-            int currencyId, decimal exchangeRate, int? crewContractId = null, int? portId = null,
+            int currencyId, int? crewContractId = null, int? portId = null,
             string? reference = null, string? notes = null)
         {
             var remittance = new OwnerRemittance();
-            remittance.Set(date, type, amount, currencyId, exchangeRate, crewContractId, portId, reference, notes);
+            remittance.Set(date, type, amount, currencyId, crewContractId, portId, reference, notes);
             return remittance;
         }
 
         public void Update(DateOnly date, OwnerRemittanceType type, decimal amount,
-            int currencyId, decimal exchangeRate, int? crewContractId = null, int? portId = null,
+            int currencyId, int? crewContractId = null, int? portId = null,
             string? reference = null, string? notes = null)
         {
-            Set(date, type, amount, currencyId, exchangeRate, crewContractId, portId, reference, notes);
+            Set(date, type, amount, currencyId, crewContractId, portId, reference, notes);
             Touch();
         }
 
         private void Set(DateOnly date, OwnerRemittanceType type, decimal amount,
-            int currencyId, decimal exchangeRate, int? crewContractId, int? portId,
+            int currencyId, int? crewContractId, int? portId,
             string? reference, string? notes)
         {
             if (!Enum.IsDefined(type)) throw new ArgumentException("Invalid remittance type.");
             ShipGuard.PositiveMoney(amount, nameof(Amount));
             ShipGuard.Id(currencyId, nameof(CurrencyId));
-            ShipGuard.ExchangeRate(exchangeRate);
 
             if (type == OwnerRemittanceType.CrewPaidAshore && crewContractId is null)
                 throw new ArgumentException("Wages paid ashore need the crew member.");
@@ -61,7 +59,6 @@ namespace Marilog.Ship.Domain.Entities
             Type = type;
             Amount = amount;
             CurrencyId = currencyId;
-            ExchangeRate = exchangeRate;
             CrewContractId = crewContractId;
             PortId = portId;
             Reference = ShipGuard.Text(reference);

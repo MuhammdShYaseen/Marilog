@@ -13,7 +13,10 @@ using Marilog.Infrastructure.Interfaces.OCR;
 using Marilog.Infrastructure.Services.OCR;
 using Marilog.Ship.Data;
 using Marilog.Ship.Services;
+using Marilog.Ship.Services.CrewAccount;
+using Marilog.Ship.Services.DeductionTypes;
 using Marilog.Ship.Services.Files;
+using Marilog.Ship.Services.OwnerRemittances;
 using Marilog.Ship.Services.Purchases;
 using Marilog.Ship.Services.Setup;
 using Marilog.Ship.Services.Unlock;
@@ -72,7 +75,9 @@ namespace Marilog.Ship
             services.AddScoped<IShipSetupService, ShipSetupService>();
             services.AddScoped<IUnlockService, UnlockService>();
             services.AddScoped<IPurchaseService, PurchaseService>();
-
+            services.AddScoped<IOwnerRemittanceService, OwnerRemittanceService>();
+            services.AddScoped<ICrewAccountService, CrewAccountService>();
+            services.AddScoped<IDeductionTypeService, DeductionTypeService>();
             return services;
         }
     }

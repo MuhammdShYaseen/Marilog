@@ -1,0 +1,200 @@
+@page "/owner-remittances"
+@inherits OwningComponentBase
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Ship.Domain.Enums
+@using Marilog.Ship.Services.OwnerRemittances
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h5" Class="mb-3">Owner Remittances</MudText>
+
+<div class="d-flex flex-wrap gap-3 align-center mb-3">
+    <MudDatePicker @bind-Date="_from" @bind-Date:after="LoadListAsync" Label="From" DateFormat="dd.MM.yyyy"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:180px" />
+    <MudDatePicker @bind-Date="_to" @bind-Date:after="LoadListAsync" Label="To" DateFormat="dd.MM.yyyy"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:180px" />
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@(_loading || _busy)" OnClick="@(() => OpenDialogAsync(null))">New Remittance</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<MudSimpleTable Dense="true" Hover="true" Bordered="true">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th style="text-align:right">Amount</th>
+            <th>Crew member</th>
+            <th>Port</th>
+            <th>Reference</th>
+            <th>Notes</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!_loading && _items.Count == 0)
+        {
+            <tr><td colspan="8">No remittances in this period.</td></tr>
+        }
+        @foreach (var r in _items)
+        {
+            var item = r;
+            <tr>
+                <td>@item.Date.ToString("dd.MM.yyyy")</td>
+                <td>@TypeLabel(item.Type)</td>
+                <td style="text-align:right">@item.Amount.ToString("N2") @item.CurrencyCode</td>
+                <td>@(item.CrewName ?? "—")</td>
+                <td>@(item.PortName ?? "—")</td>
+                <td>@item.Reference</td>
+                <td>@item.Notes</td>
+                <td style="white-space:nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="@_busy"
+                                   OnClick="@(() => OpenDialogAsync(item))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="@_busy"
+                                   OnClick="@(() => DeleteAsync(item))" />
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    // OwningComponentBase: this page has its own DI scope → its own ShipContext.
+    private IOwnerRemittanceService RemittanceService => ScopedServices.GetRequiredService<IOwnerRemittanceService>();
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+    private ICrewContractService ContractService => ScopedServices.GetRequiredService<ICrewContractService>();
+    private ICurrencyService CurrencyService => ScopedServices.GetRequiredService<ICurrencyService>();
+    private IPortService PortService => ScopedServices.GetRequiredService<IPortService>();
+
+    private bool _loading = true;
+    private bool _busy;
+
+    private DateTime? _from;
+    private DateTime? _to;
+    private IReadOnlyList<OwnerRemittanceResponse> _items = [];
+
+    private IReadOnlyList<CrewContractResponse> _crew = [];
+    private IReadOnlyList<CurrencyResponse> _currencies = [];
+    private IReadOnlyList<PortResponse> _ports = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // This month by default.
+        var firstDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _from = firstDay;
+        _to = firstDay.AddMonths(1).AddDays(-1);
+
+        try
+        {
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            var status = await SetupService.GetStatusAsync();
+            if (status.VesselId is int vesselId)
+                _crew = (await ContractService.GetByVesselAsync(vesselId))
+                        .OrderBy(x => x.SignOffDate.HasValue).ThenBy(x => x.PersonFullName).ToList();
+            _currencies = await CurrencyService.GetActiveAsync();
+            _ports = await PortService.GetActiveAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        await LoadListAsync();
+    }
+
+    private async Task LoadListAsync()
+    {
+        if (_from is null || _to is null) return;
+
+        _loading = true;
+        try
+        {
+            _items = await RemittanceService.GetAsync(DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenDialogAsync(OwnerRemittanceResponse? existing)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(OwnerRemittanceDialog.Existing)] = existing,
+            [nameof(OwnerRemittanceDialog.Crew)] = _crew,
+            [nameof(OwnerRemittanceDialog.Currencies)] = _currencies,
+            [nameof(OwnerRemittanceDialog.Ports)] = _ports,
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<OwnerRemittanceDialog>(
+            existing is null ? "New Owner Remittance" : "Edit Owner Remittance", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not SaveOwnerRemittanceRequest request) return;
+
+        await RunAsync(async () =>
+        {
+            if (existing is null)
+                await RemittanceService.CreateAsync(request);
+            else
+                await RemittanceService.UpdateAsync(existing.Id, request);
+
+            Snackbar.Add("Remittance saved.", Severity.Success);
+            await LoadListAsync();
+        });
+    }
+
+    private async Task DeleteAsync(OwnerRemittanceResponse item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Remittance",
+            $"Delete the {TypeLabel(item.Type).ToLowerInvariant()} of {item.Amount:N2} {item.CurrencyCode} on {item.Date:dd.MM.yyyy}?",
+            yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await RemittanceService.DeleteAsync(item.Id);
+            Snackbar.Add("Remittance deleted.", Severity.Success);
+            await LoadListAsync();
+        });
+    }
+
+    private static string TypeLabel(OwnerRemittanceType type) => type switch
+    {
+        OwnerRemittanceType.CashToMaster => "Cash to master",
+        OwnerRemittanceType.Cigarettes => "Cigarettes",
+        OwnerRemittanceType.CrewPaidAshore => "Wages paid ashore",
+        OwnerRemittanceType.OtherPaidAshore => "Other paid ashore",
+        _ => type.ToString()
+    };
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

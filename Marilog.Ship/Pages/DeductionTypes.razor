@@ -1,0 +1,110 @@
+@page "/deduction-types"
+@inherits OwningComponentBase
+@using Marilog.Ship.Services.DeductionTypes
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@* Types for "Other" crew deductions. No delete: old withdrawals keep their type — deactivate instead. *@
+
+<div class="d-flex align-center mb-3">
+    <MudText Typo="Typo.h5">Deduction Types</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@_loading" OnClick="@(() => OpenDialogAsync(null))">New Type</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<MudSimpleTable Dense="true" Hover="true" Bordered="true" Style="max-width:720px">
+    <thead>
+        <tr><th>Code</th><th>Name</th><th>Active</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var t in _types)
+        {
+            var type = t;
+            <tr>
+                <td>@type.Code</td>
+                <td>@type.Name</td>
+                <td>
+                    <MudSwitch T="bool" Value="@type.IsActive" Color="Color.Primary"
+                               ValueChanged="@((bool v) => SetActiveAsync(type, v))" />
+                </td>
+                <td>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="@(() => OpenDialogAsync(type))" />
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private IDeductionTypeService DeductionTypeService => ScopedServices.GetRequiredService<IDeductionTypeService>();
+
+    private IReadOnlyList<DeductionTypeResponse> _types = [];
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _types = await DeductionTypeService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenDialogAsync(DeductionTypeResponse? existing)
+    {
+        var parameters = new DialogParameters { [nameof(DeductionTypeDialog.Existing)] = existing };
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<DeductionTypeDialog>(
+            existing is null ? "New Deduction Type" : "Edit Deduction Type", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not (string code, string name)) return;
+
+        try
+        {
+            if (existing is null)
+                await DeductionTypeService.CreateAsync(code, name);
+            else
+                await DeductionTypeService.UpdateAsync(existing.Id, name);
+
+            Snackbar.Add("Deduction type saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task SetActiveAsync(DeductionTypeResponse type, bool isActive)
+    {
+        try
+        {
+            await DeductionTypeService.SetActiveAsync(type.Id, isActive);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        await LoadAsync();
+    }
+}

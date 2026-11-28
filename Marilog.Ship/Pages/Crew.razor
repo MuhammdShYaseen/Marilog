@@ -1,0 +1,301 @@
+@page "/crew"
+@inherits OwningComponentBase
+@using Marilog.Contracts.DTOs.Requests.CrewDTOs
+@using Marilog.Contracts.DTOs.Requests.PersonDTOs
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Kernel.Enums
+@using Marilog.Shared.UI.Pages.CrewContracts
+@using Marilog.Shared.UI.Pages.Persons
+@using Marilog.Ship.Services.Files
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@* Crew on board after the setup is locked: sign on, edit, sign off, wages paid by, files.
+   Same Marilog dialogs as step 2 of the setup. *@
+
+<MudText Typo="Typo.h5" Class="mb-3">Crew</MudText>
+
+<div class="d-flex flex-wrap gap-2 align-center mb-3">
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonAdd"
+               Disabled="@(_loading || _busy)" OnClick="AddPersonAsync">New Person</MudButton>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Assignment"
+               Disabled="@(_loading || _busy)" OnClick="NewContractAsync">New Contract</MudButton>
+    <MudSpacer />
+    <MudSwitch T="bool" @bind-Value="_showSignedOff" Label="Show signed off" Color="Color.Primary" />
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+
+<MudSimpleTable Dense="true" Hover="true" Bordered="true">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Rank</th>
+            <th style="text-align:right">Monthly Wage</th>
+            <th>Sign On</th>
+            <th>Sign Off</th>
+            <th>Wages Paid By</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!_loading && VisibleContracts.Count == 0)
+        {
+            <tr><td colspan="7">No crew.</td></tr>
+        }
+        @foreach (var c in VisibleContracts)
+        {
+            var contract = c;
+            <tr>
+                <td>@contract.PersonFullName</td>
+                <td>@contract.RankName</td>
+                <td style="text-align:right">@contract.MonthlyWage.ToString("N2")</td>
+                <td>@contract.SignOnDate.ToString("dd.MM.yyyy")</td>
+                <td>@(contract.SignOffDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                <td style="min-width:140px">
+                    <MudSelect T="WagesPaidBy" Dense="true" Margin="Margin.Dense"
+                               Value="@PaidBy(contract.ContractId)"
+                               ValueChanged="@((WagesPaidBy v) => ChangePaidByAsync(contract.ContractId, v))">
+                        <MudSelectItem T="WagesPaidBy" Value="WagesPaidBy.Master">Master</MudSelectItem>
+                        <MudSelectItem T="WagesPaidBy" Value="WagesPaidBy.Office">Office</MudSelectItem>
+                    </MudSelect>
+                </td>
+                <td style="white-space:nowrap">
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="@_busy"
+                                       OnClick="@(() => EditContractAsync(contract))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Files">
+                        <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" Disabled="@_busy"
+                                       OnClick="@(() => OpenFilesAsync(contract))" />
+                    </MudTooltip>
+                    @if (contract.SignOffDate is null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="@_busy"
+                                   OnClick="@(() => SignOffAsync(contract))">Sign Off</MudButton>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    // OwningComponentBase: this page has its own DI scope → its own ShipContext.
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+    private ICrewContractService ContractService => ScopedServices.GetRequiredService<ICrewContractService>();
+    private IPersonService PersonService => ScopedServices.GetRequiredService<IPersonService>();
+    private IVesselService VesselService => ScopedServices.GetRequiredService<IVesselService>();
+    private ICountryService CountryService => ScopedServices.GetRequiredService<ICountryService>();
+    private IRankService RankService => ScopedServices.GetRequiredService<IRankService>();
+    private IPortService PortService => ScopedServices.GetRequiredService<IPortService>();
+    private IStoredFileService FileService => ScopedServices.GetRequiredService<IStoredFileService>();
+
+    private bool _loading = true;
+    private bool _busy;
+    private bool _showSignedOff;
+
+    private int _vesselId;
+    private WagesPaidBy _defaultWagesPaidBy = WagesPaidBy.Master;
+
+    private IReadOnlyList<CrewContractResponse> _contracts = [];
+    private Dictionary<int, WagesPaidBy> _paidBy = new();
+
+    // Lookups for the dialogs
+    private IReadOnlyList<CountryResponse> _countries = [];
+    private IReadOnlyList<VesselResponse> _vessels = [];
+    private IReadOnlyList<PersonResponse> _persons = [];
+    private IReadOnlyList<RankResponse> _ranks = [];
+    private IReadOnlyList<PortResponse> _ports = [];
+
+    private IReadOnlyList<CrewContractResponse> VisibleContracts =>
+        _showSignedOff ? _contracts : _contracts.Where(x => x.SignOffDate is null).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            var status = await SetupService.GetStatusAsync();
+            _vesselId = status.VesselId ?? 0;
+            _defaultWagesPaidBy = status.DefaultWagesPaidBy;
+
+            _countries = await CountryService.GetActiveAsync();
+            _ranks = await RankService.GetActiveAsync();
+            _ports = await PortService.GetActiveAsync();
+            await LoadCrewAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadCrewAsync()
+    {
+        _vessels = await VesselService.GetAllAsync();
+        _persons = await PersonService.GetActiveAsync();
+        _contracts = (await ContractService.GetByVesselAsync(_vesselId))
+                        .OrderBy(x => x.SignOffDate.HasValue)
+                        .ThenBy(x => x.RankName)
+                        .ToList();
+        _paidBy = new Dictionary<int, WagesPaidBy>(await SetupService.GetWagesPaidByAsync(_vesselId));
+    }
+
+    private WagesPaidBy PaidBy(int contractId) =>
+        _paidBy.TryGetValue(contractId, out var value) ? value : _defaultWagesPaidBy;
+
+    // ── Person / contract ────────────────────────────────────────────────────
+
+    private async Task AddPersonAsync()
+    {
+        var parameters = new DialogParameters { [nameof(PersonDialog.Countries)] = _countries };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PersonDialog>("New Person", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (CreatePersonRequest)result.Data!;
+        PersonResponse? created = null;
+
+        await RunAsync(async () =>
+        {
+            created = await PersonService.CreateAsync(
+                req.BankName, req.IBAN, req.IsPassportExpired, req.BankSwiftCode, req.FullName, req.Nationality,
+                req.PassportNo, req.PassportExpiry, req.SeamanBookNo, req.DateOfBirth, req.Phone, req.Email);
+            _persons = await PersonService.GetActiveAsync();
+        });
+
+        // Straight on to the contract for the new person.
+        if (created is not null)
+            await AddContractForAsync(created);
+    }
+
+    private Task NewContractAsync() => AddContractForAsync(null);
+
+    private async Task AddContractForAsync(PersonResponse? person)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CrewContractFormDialog.Persons)] = person is null ? _persons : new List<PersonResponse> { person },
+            [nameof(CrewContractFormDialog.Vessels)] = _vessels,
+            [nameof(CrewContractFormDialog.Ranks)] = _ranks,
+            [nameof(CrewContractFormDialog.Ports)] = _ports,
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("New Contract", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (CreateCrewContractRequest)result.Data!;
+
+        await RunAsync(async () =>
+        {
+            var contract = await ContractService.CreateAsync(
+                req.DurationInMonth, req.PersonId, req.VesselId, req.RankId,
+                req.MonthlyWage, req.SignOnDate, req.SignOnPort, req.Notes);
+
+            await SetupService.SetContractWagesPaidByAsync(contract.ContractId, _defaultWagesPaidBy);
+            Snackbar.Add("Contract created.", Severity.Success);
+            await LoadCrewAsync();
+        });
+    }
+
+    private async Task EditContractAsync(CrewContractResponse contract)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(CrewContractFormDialog.Contract)] = contract,
+            [nameof(CrewContractFormDialog.Persons)] = _persons,
+            [nameof(CrewContractFormDialog.Vessels)] = _vessels,
+            [nameof(CrewContractFormDialog.Ranks)] = _ranks,
+            [nameof(CrewContractFormDialog.Ports)] = _ports,
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CrewContractFormDialog>("Edit Contract", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (UpdateCrewContractRequest)result.Data!;
+
+        await RunAsync(async () =>
+        {
+            var outcome = await ContractService.UpdateAsync(
+                req.Id, req.DurationInMonth, req.PersonId, req.VesselId, req.RankId,
+                req.MonthlyWage, req.SignOnDate, req.SignOnPort, req.Notes);
+            if (outcome.IsFailure)
+                throw new InvalidOperationException(outcome.Error);
+
+            Snackbar.Add("Contract updated.", Severity.Success);
+            await LoadCrewAsync();
+        });
+    }
+
+    private async Task ChangePaidByAsync(int contractId, WagesPaidBy value)
+    {
+        await RunAsync(async () =>
+        {
+            await SetupService.SetContractWagesPaidByAsync(contractId, value);
+            _paidBy[contractId] = value;
+        });
+    }
+
+    private async Task SignOffAsync(CrewContractResponse contract)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(SignOffDialog.Contract)] = contract,
+            [nameof(SignOffDialog.Ports)] = _ports,
+        };
+        var dialog = await DialogService.ShowAsync<SignOffDialog>($"Sign Off — {contract.PersonFullName}", parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var req = (SignOffCrewContractRequest)result.Data!;
+
+        await RunAsync(async () =>
+        {
+            var outcome = await ContractService.SignOffAsync(contract.ContractId, req.SignOffDate, req.SignOffPort);
+            if (outcome.IsFailure)
+                throw new InvalidOperationException(outcome.Error);
+
+            Snackbar.Add("Signed off.", Severity.Success);
+            await LoadCrewAsync();
+        });
+    }
+
+    // ── Files ────────────────────────────────────────────────────────────────
+
+    private Task OpenFilesAsync(CrewContractResponse contract) =>
+        ShipStoredFiles.OpenAsync(DialogService, FileService, (contract.ContractId, EntityType.CrewContract),
+            $"Crew Contract — {contract.PersonFullName} · {contract.RankName}");
+
+    // ── Helper ───────────────────────────────────────────────────────────────
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

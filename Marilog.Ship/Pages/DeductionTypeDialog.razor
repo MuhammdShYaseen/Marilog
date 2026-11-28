@@ -1,0 +1,42 @@
+@using Marilog.Ship.Services.DeductionTypes
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Existing is null ? "New Deduction Type" : "Edit Deduction Type")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudTextField @bind-Value="_code" Label="Code" MaxLength="30" Required="true" Disabled="@(Existing is not null)"
+                      HelperText="@(Existing is null ? "Short and unique, e.g. LAUNDRY" : "The code can't be changed")"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="_name" Label="Name" MaxLength="100" Required="true" Class="mt-2"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name))"
+                   OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public DeductionTypeResponse? Existing { get; set; }
+
+    private string? _code;
+    private string? _name;
+
+    protected override void OnInitialized()
+    {
+        _code = Existing?.Code;
+        _name = Existing?.Name;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // (Code, Name)
+    private void Save() => MudDialog.Close(DialogResult.Ok((_code!.Trim(), _name!.Trim())));
+}

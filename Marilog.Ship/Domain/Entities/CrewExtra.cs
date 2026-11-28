@@ -14,34 +14,32 @@ namespace Marilog.Ship.Domain.Entities
         public decimal Amount { get; private set; }
         public int CurrencyId { get; private set; }
         public Currency Currency { get; private set; } = null!;
-        public decimal ExchangeRate { get; private set; }
         public string Reason { get; private set; } = null!;
 
         private CrewExtra() { }
 
         public static CrewExtra Create(DateOnly date, int crewContractId, CrewExtraType type,
-            decimal amount, int currencyId, decimal exchangeRate, string reason)
+            decimal amount, int currencyId, string reason)
         {
             var extra = new CrewExtra();
-            extra.Set(date, crewContractId, type, amount, currencyId, exchangeRate, reason);
+            extra.Set(date, crewContractId, type, amount, currencyId, reason);
             return extra;
         }
 
         public void Update(DateOnly date, int crewContractId, CrewExtraType type,
-            decimal amount, int currencyId, decimal exchangeRate, string reason)
+            decimal amount, int currencyId, string reason)
         {
-            Set(date, crewContractId, type, amount, currencyId, exchangeRate, reason);
+            Set(date, crewContractId, type, amount, currencyId, reason);
             Touch();
         }
 
         private void Set(DateOnly date, int crewContractId, CrewExtraType type,
-            decimal amount, int currencyId, decimal exchangeRate, string reason)
+            decimal amount, int currencyId, string reason)
         {
             if (!Enum.IsDefined(type)) throw new ArgumentException("Invalid extra type.");
             ShipGuard.Id(crewContractId, nameof(CrewContractId));
             ShipGuard.PositiveMoney(amount, nameof(Amount));
             ShipGuard.Id(currencyId, nameof(CurrencyId));
-            ShipGuard.ExchangeRate(exchangeRate);
             ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
             Date = date;
@@ -49,7 +47,6 @@ namespace Marilog.Ship.Domain.Entities
             Type = type;
             Amount = amount;
             CurrencyId = currencyId;
-            ExchangeRate = exchangeRate;
             Reason = reason.Trim();
         }
     }

@@ -1,0 +1,141 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Ship.Domain.Enums
+@using Marilog.Ship.Services.OwnerRemittances
+
+@* MGA page 4. Wages paid ashore need the crew member: they are taken off his account too. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Existing is null ? "New Owner Remittance" : "Edit Owner Remittance")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_date" Label="Date" DateFormat="dd.MM.yyyy" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="OwnerRemittanceType" @bind-Value="_type" Label="Type"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="OwnerRemittanceType" Value="OwnerRemittanceType.CashToMaster">Cash to master</MudSelectItem>
+                    <MudSelectItem T="OwnerRemittanceType" Value="OwnerRemittanceType.Cigarettes">Cigarettes (value)</MudSelectItem>
+                    <MudSelectItem T="OwnerRemittanceType" Value="OwnerRemittanceType.CrewPaidAshore">Wages paid ashore (crew)</MudSelectItem>
+                    <MudSelectItem T="OwnerRemittanceType" Value="OwnerRemittanceType.OtherPaidAshore">Other paid ashore</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            @if (_type == OwnerRemittanceType.CrewPaidAshore)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="int?" @bind-Value="_crewContractId" Label="Crew member" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var c in Crew)
+                        {
+                            <MudSelectItem T="int?" Value="(int?)c.ContractId">@CrewLabel(c)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" @bind-Value="_currencyId" Label="Currency" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in Currencies)
+                    {
+                        <MudSelectItem T="int" Value="c.Id">@c.Code — @c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" @bind-Value="_amount" Label="Amount" Min="0" Format="N2"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?" @bind-Value="_portId" Label="Port" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="null">— None —</MudSelectItem>
+                    @foreach (var p in Ports)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)p.Id">@p.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_reference" Label="Reference (office document no.)" MaxLength="100"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes" Label="Notes" Lines="2" MaxLength="500"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanSave)" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public OwnerRemittanceResponse? Existing { get; set; }
+    [Parameter] public IReadOnlyList<CrewContractResponse> Crew { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public IReadOnlyList<PortResponse> Ports { get; set; } = [];
+
+    private DateTime? _date = DateTime.Today;
+    private OwnerRemittanceType _type = OwnerRemittanceType.CashToMaster;
+    private int? _crewContractId;
+    private int _currencyId;
+    private decimal _amount;
+    private int? _portId;
+    private string? _reference;
+    private string? _notes;
+
+    private bool CanSave =>
+        _date is not null && _currencyId > 0 && _amount > 0 &&
+        (_type != OwnerRemittanceType.CrewPaidAshore || _crewContractId is not null);
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+        {
+            _currencyId = Currencies.FirstOrDefault(x => x.IsBaseCurrency)?.Id ?? Currencies.FirstOrDefault()?.Id ?? 0;
+            return;
+        }
+
+        _date = Existing.Date.ToDateTime(TimeOnly.MinValue);
+        _type = Existing.Type;
+        _crewContractId = Existing.CrewContractId;
+        _currencyId = Existing.CurrencyId;
+        _amount = Existing.Amount;
+        _portId = Existing.PortId;
+        _reference = Existing.Reference;
+        _notes = Existing.Notes;
+    }
+
+    private static string CrewLabel(CrewContractResponse c) =>
+        c.SignOffDate is null
+            ? $"{c.PersonFullName} — {c.RankName}"
+            : $"{c.PersonFullName} — {c.RankName} (signed off {c.SignOffDate:dd.MM.yyyy})";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(new SaveOwnerRemittanceRequest(
+            DateOnly.FromDateTime(_date!.Value),
+            _type,
+            _amount,
+            _currencyId,
+            _type == OwnerRemittanceType.CrewPaidAshore ? _crewContractId : null,
+            _portId,
+            _reference,
+            _notes)));
+    }
+}

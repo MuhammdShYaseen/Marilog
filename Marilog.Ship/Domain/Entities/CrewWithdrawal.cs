@@ -20,37 +20,35 @@ namespace Marilog.Ship.Domain.Entities
         public decimal Amount { get; private set; }
         public int CurrencyId { get; private set; }
         public Currency Currency { get; private set; } = null!;
-        public decimal ExchangeRate { get; private set; }
         public string? Reason { get; private set; }
 
         private CrewWithdrawal() { }
 
         public static CrewWithdrawal Create(DateOnly date, int crewContractId, CrewWithdrawalType type,
-            decimal amount, int currencyId, decimal exchangeRate,
+            decimal amount, int currencyId,
             int? deductionTypeId = null, string? reason = null)
         {
             var withdrawal = new CrewWithdrawal();
-            withdrawal.Set(date, crewContractId, type, amount, currencyId, exchangeRate, deductionTypeId, reason);
+            withdrawal.Set(date, crewContractId, type, amount, currencyId, deductionTypeId, reason);
             return withdrawal;
         }
 
         public void Update(DateOnly date, int crewContractId, CrewWithdrawalType type,
-            decimal amount, int currencyId, decimal exchangeRate,
+            decimal amount, int currencyId,
             int? deductionTypeId = null, string? reason = null)
         {
-            Set(date, crewContractId, type, amount, currencyId, exchangeRate, deductionTypeId, reason);
+            Set(date, crewContractId, type, amount, currencyId, deductionTypeId, reason);
             Touch();
         }
 
         private void Set(DateOnly date, int crewContractId, CrewWithdrawalType type,
-            decimal amount, int currencyId, decimal exchangeRate,
+            decimal amount, int currencyId,
             int? deductionTypeId, string? reason)
         {
             if (!Enum.IsDefined(type)) throw new ArgumentException("Invalid withdrawal type.");
             ShipGuard.Id(crewContractId, nameof(CrewContractId));
             ShipGuard.PositiveMoney(amount, nameof(Amount));
             ShipGuard.Id(currencyId, nameof(CurrencyId));
-            ShipGuard.ExchangeRate(exchangeRate);
 
             if (type == CrewWithdrawalType.Other)
             {
@@ -70,7 +68,6 @@ namespace Marilog.Ship.Domain.Entities
             DeductionTypeId = deductionTypeId;
             Amount = amount;
             CurrencyId = currencyId;
-            ExchangeRate = exchangeRate;
             Reason = ShipGuard.Text(reason);
         }
     }

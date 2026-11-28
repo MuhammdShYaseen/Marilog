@@ -1,0 +1,135 @@
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Ship.Domain.Enums
+@using Marilog.Ship.Services.CrewAccount
+@using Marilog.Ship.Services.DeductionTypes
+
+@* MGA page 5. Cash leaves the ship's cash, cigarettes the cigarettes on board.
+   Other is a deduction without cash: it needs a deduction type and a reason. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Existing is null ? "New Crew Withdrawal" : "Edit Crew Withdrawal")</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_date" Label="Date" DateFormat="dd.MM.yyyy" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="CrewWithdrawalType" @bind-Value="_type" Label="Type"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="CrewWithdrawalType" Value="CrewWithdrawalType.Cash">Cash</MudSelectItem>
+                    <MudSelectItem T="CrewWithdrawalType" Value="CrewWithdrawalType.Cigarettes">Cigarettes (value)</MudSelectItem>
+                    <MudSelectItem T="CrewWithdrawalType" Value="CrewWithdrawalType.Other">Other deduction</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="int?" @bind-Value="_crewContractId" Label="Crew member" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in Crew)
+                    {
+                        <MudSelectItem T="int?" Value="(int?)c.ContractId">@CrewLabel(c)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @if (_type == CrewWithdrawalType.Other)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="int?" @bind-Value="_deductionTypeId" Label="Deduction type" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var d in DeductionTypes)
+                        {
+                            <MudSelectItem T="int?" Value="(int?)d.Id">@d.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int" @bind-Value="_currencyId" Label="Currency" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in Currencies)
+                    {
+                        <MudSelectItem T="int" Value="c.Id">@c.Code — @c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" @bind-Value="_amount" Label="Amount" Min="0" Format="N2"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_reason" Label="@(_type == CrewWithdrawalType.Other ? "Reason" : "Reason (optional)")"
+                              Required="@(_type == CrewWithdrawalType.Other)" MaxLength="500"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanSave)" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public CrewWithdrawalResponse? Existing { get; set; }
+    [Parameter] public IReadOnlyList<CrewContractResponse> Crew { get; set; } = [];
+    [Parameter] public IReadOnlyList<CurrencyResponse> Currencies { get; set; } = [];
+    [Parameter] public IReadOnlyList<DeductionTypeResponse> DeductionTypes { get; set; } = [];
+
+    private DateTime? _date = DateTime.Today;
+    private CrewWithdrawalType _type = CrewWithdrawalType.Cash;
+    private int? _crewContractId;
+    private int? _deductionTypeId;
+    private int _currencyId;
+    private decimal _amount;
+    private string? _reason;
+
+    private bool CanSave =>
+        _date is not null && _crewContractId is not null && _currencyId > 0 && _amount > 0 &&
+        (_type != CrewWithdrawalType.Other || (_deductionTypeId is not null && !string.IsNullOrWhiteSpace(_reason)));
+
+    protected override void OnInitialized()
+    {
+        if (Existing is null)
+        {
+            _currencyId = Currencies.FirstOrDefault(x => x.IsBaseCurrency)?.Id ?? Currencies.FirstOrDefault()?.Id ?? 0;
+            return;
+        }
+
+        _date = Existing.Date.ToDateTime(TimeOnly.MinValue);
+        _type = Existing.Type;
+        _crewContractId = Existing.CrewContractId;
+        _deductionTypeId = Existing.DeductionTypeId;
+        _currencyId = Existing.CurrencyId;
+        _amount = Existing.Amount;
+        _reason = Existing.Reason;
+    }
+
+    private static string CrewLabel(CrewContractResponse c) =>
+        c.SignOffDate is null
+            ? $"{c.PersonFullName} — {c.RankName}"
+            : $"{c.PersonFullName} — {c.RankName} (signed off {c.SignOffDate:dd.MM.yyyy})";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(new SaveCrewWithdrawalRequest(
+            DateOnly.FromDateTime(_date!.Value),
+            _crewContractId!.Value,
+            _type,
+            _type == CrewWithdrawalType.Other ? _deductionTypeId : null,
+            _amount,
+            _currencyId,
+            _reason)));
+    }
+}

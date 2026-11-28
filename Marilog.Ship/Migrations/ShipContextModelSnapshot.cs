@@ -1285,9 +1285,6 @@ namespace Marilog.Ship.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("ExchangeRate")
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid>("Guid")
                         .HasColumnType("TEXT");
 
@@ -1347,9 +1344,6 @@ namespace Marilog.Ship.Migrations
 
                     b.Property<int?>("DeductionTypeId")
                         .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("ExchangeRate")
-                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("Guid")
                         .HasColumnType("TEXT");
@@ -1613,9 +1607,6 @@ namespace Marilog.Ship.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly>("Date")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("ExchangeRate")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("Guid")
