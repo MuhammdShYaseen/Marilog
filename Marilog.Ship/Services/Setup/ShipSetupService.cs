@@ -276,7 +276,15 @@ namespace Marilog.Ship.Services.Setup
                 .Include(x => x.CashLines)
                 .FirstAsync(x => x.IsOpening, ct);
 
-            opening.CloseOpening(check.Difference != 0 ? differenceReason : null);
+            // Today's rates are kept with the opening cash: the first MGA revalues from them.
+            var currencies = await _currencyRepo.Query().AsNoTracking()
+                .Select(x => new { x.Id, x.ExchangeRate, x.IsBaseCurrency })
+                .ToListAsync(ct);
+            var baseRate = currencies.First(x => x.IsBaseCurrency).ExchangeRate;
+            var ratesToBase = currencies.ToDictionary(x => x.Id,
+                x => x.IsBaseCurrency ? 1m : x.ExchangeRate / baseRate);
+
+            opening.CloseOpening(check.Difference != 0 ? differenceReason : null, ratesToBase);
             setup.Complete();
 
             // After an unlocked edit: keep the data as it is now locked again.

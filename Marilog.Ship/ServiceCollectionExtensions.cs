@@ -16,6 +16,7 @@ using Marilog.Ship.Services;
 using Marilog.Ship.Services.CrewAccount;
 using Marilog.Ship.Services.DeductionTypes;
 using Marilog.Ship.Services.Files;
+using Marilog.Ship.Services.GeneralAccount;
 using Marilog.Ship.Services.OwnerRemittances;
 using Marilog.Ship.Services.Purchases;
 using Marilog.Ship.Services.Setup;
@@ -79,6 +80,7 @@ namespace Marilog.Ship
             services.AddScoped<IOwnerRemittanceService, OwnerRemittanceService>();
             services.AddScoped<ICrewAccountService, CrewAccountService>();
             services.AddScoped<IDeductionTypeService, DeductionTypeService>();
+            services.AddScoped<IMgaService, MgaService>();
             return services;
         }
     }

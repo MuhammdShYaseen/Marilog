@@ -17,7 +17,7 @@ namespace Marilog.Ship.Data.Configurations
             builder.Property(x => x.EndReason).HasMaxLength(300);
             builder.Property(x => x.Notes).HasMaxLength(500);
             builder.Property(x => x.MasterName).HasMaxLength(150);
-
+            builder.Property(x => x.Code).HasMaxLength(20);
             // ── Owned children ────────────────────────────────────────────────────
             builder.HasMany(x => x.CrewLines)
                    .WithOne()

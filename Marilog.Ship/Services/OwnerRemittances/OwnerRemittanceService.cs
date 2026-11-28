@@ -1,6 +1,8 @@
 ﻿using Marilog.Domain.Entities.SystemEntities;
 using Marilog.Domain.Interfaces.Repositories;
+using Marilog.Kernel.Enums;
 using Marilog.Ship.Domain.Entities;
+using Marilog.Ship.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marilog.Ship.Services.OwnerRemittances
@@ -69,14 +71,44 @@ namespace Marilog.Ship.Services.OwnerRemittances
             await _repo.SaveChangesAsync(ct);
         }
 
-        // Wages paid ashore must be for a crew member of this ship.
+        public async Task CreateWagesPaidAshoreAsync(SaveWagesPaidAshoreRequest request, CancellationToken ct = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(request.Label);
+
+            var items = request.Items.Where(x => x.Amount != 0).ToList();
+            if (items.Count == 0)
+                throw new InvalidOperationException("Enter the amount paid for at least one crew member.");
+            if (items.GroupBy(x => x.CrewContractId).Any(g => g.Count() > 1))
+                throw new InvalidOperationException("A crew member appears more than once.");
+
+            foreach (var item in items)
+                await EnsureShipCrewAsync(item.CrewContractId, ct);
+
+            var remittances = items
+                .Select(x => OwnerRemittance.Create(request.Date, OwnerRemittanceType.CrewPaidAshore, x.Amount,
+                    request.CurrencyId, x.CrewContractId, null, request.Reference, request.Label))
+                .ToList();
+
+            await _repo.AddRangeAsync(remittances, ct);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        // Wages paid ashore: a crew member of this ship whose wages are on the master's account.
         private async Task EnsureShipCrewAsync(int? crewContractId, CancellationToken ct)
         {
             if (crewContractId is null) return;
 
             var vesselId = await _setupRepo.Query().Select(x => x.VesselId).FirstOrDefaultAsync(ct);
-            if (!await _contractRepo.Query().AnyAsync(x => x.Id == crewContractId && x.VesselID == vesselId, ct))
+            var paidBy = await _contractRepo.Query()
+                .Where(x => x.Id == crewContractId && x.VesselID == vesselId)
+                .Select(x => (WagesPaidBy?)x.WagesPaidBy)
+                .FirstOrDefaultAsync(ct);
+
+            if (paidBy is null)
                 throw new InvalidOperationException("The crew contract does not belong to this vessel.");
+            if (paidBy != WagesPaidBy.Master)
+                throw new InvalidOperationException(
+                    "Wages paid ashore are recorded only for crew whose wages are on the master's account.");
         }
     }
 }

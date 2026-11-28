@@ -26,4 +26,18 @@ namespace Marilog.Ship.Services.OwnerRemittances
         int? PortId,
         string? Reference,
         string? Notes);
+
+
+    public record WagesPaidAshoreItem(int CrewContractId, decimal Amount);
+
+    /// <summary>
+    /// One payment by the office for several crew (e.g. "CREW WAGES PAID ASHORE AUG 2026").
+    /// Saved as one CrewPaidAshore remittance per crew member; page 4 shows them as one line.
+    /// </summary>
+    public record SaveWagesPaidAshoreRequest(
+        DateOnly Date,
+        int CurrencyId,
+        string Label,
+        string? Reference,
+        IReadOnlyList<WagesPaidAshoreItem> Items);
 }

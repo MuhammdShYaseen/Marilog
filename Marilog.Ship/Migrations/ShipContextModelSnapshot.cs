@@ -1477,7 +1477,7 @@ namespace Marilog.Ship.Migrations
                     b.Property<int>("CurrencyId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateOnly>("Date")
+                    b.Property<DateTime>("Date")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("DeductionTypeId")
@@ -1574,6 +1574,13 @@ namespace Marilog.Ship.Migrations
                     b.Property<decimal>("ClosingBalance")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CountDifference")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal?>("CountedCigarettes")
                         .HasColumnType("TEXT");
 
@@ -1582,6 +1589,9 @@ namespace Marilog.Ship.Migrations
 
                     b.Property<string>("EndReason")
                         .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ExchangeDifference")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("ExpectedCigarettes")
@@ -1612,6 +1622,9 @@ namespace Marilog.Ship.Migrations
 
                     b.Property<int>("Number")
                         .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("OfficeDeductions")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("PreviousBalance")
                         .HasColumnType("TEXT");
@@ -1667,6 +1680,9 @@ namespace Marilog.Ship.Migrations
                     b.Property<int>("MgaId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal?>("RateToBase")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CurrencyId");
@@ -1704,6 +1720,9 @@ namespace Marilog.Ship.Migrations
                     b.Property<int>("MgaId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal>("MonthlyWage")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Other")
                         .HasColumnType("TEXT");
 
@@ -1714,6 +1733,10 @@ namespace Marilog.Ship.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Wages")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WagesPaidBy")
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

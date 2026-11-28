@@ -10,7 +10,9 @@ namespace Marilog.Ship.Data.Configurations
         {
             builder.ToTable("MgaCrewLines");
             builder.HasKey(x => x.Id);
-
+            builder.Property(x => x.WagesPaidBy)
+                    .HasConversion<string>()
+                    .HasMaxLength(20);
             builder.HasOne(x => x.CrewContract)
                    .WithMany()
                    .HasForeignKey(x => x.CrewContractId)

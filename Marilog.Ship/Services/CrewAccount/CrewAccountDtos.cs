@@ -2,9 +2,10 @@
 
 namespace Marilog.Ship.Services.CrewAccount
 {
+    /// <summary>Date = ship's local date and time of the withdrawal.</summary>
     public record CrewWithdrawalResponse(
         int Id,
-        DateOnly Date,
+        DateTime Date,
         int CrewContractId,
         string CrewName,
         string RankName,
@@ -18,7 +19,7 @@ namespace Marilog.Ship.Services.CrewAccount
 
     /// <summary>DeductionTypeId and Reason are required for Other only.</summary>
     public record SaveCrewWithdrawalRequest(
-        DateOnly Date,
+        DateTime Date,
         int CrewContractId,
         CrewWithdrawalType Type,
         int? DeductionTypeId,

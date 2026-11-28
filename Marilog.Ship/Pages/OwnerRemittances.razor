@@ -17,6 +17,8 @@
     <MudDatePicker @bind-Date="_to" @bind-Date:after="LoadListAsync" Label="To" DateFormat="dd.MM.yyyy"
                    Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:180px" />
     <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Groups"
+               Disabled="@(_loading || _busy)" OnClick="OpenWagesPaidAshoreAsync">Wages Paid Ashore</MudButton>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                Disabled="@(_loading || _busy)" OnClick="@(() => OpenDialogAsync(null))">New Remittance</MudButton>
 </div>
@@ -155,7 +157,33 @@
             await LoadListAsync();
         });
     }
+    // Several crew paid ashore together: one line on page 4, each share on page 5.
+    private async Task OpenWagesPaidAshoreAsync()
+    {
+        var baseCurrency = _currencies.FirstOrDefault(x => x.IsBaseCurrency);
+        if (baseCurrency is null)
+        {
+            Snackbar.Add("No base currency is set.", Severity.Error);
+            return;
+        }
 
+        var parameters = new DialogParameters
+        {
+            [nameof(WagesPaidAshoreDialog.BaseCurrencyId)] = baseCurrency.Id,
+            [nameof(WagesPaidAshoreDialog.BaseCurrencyCode)] = baseCurrency.Code,
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<WagesPaidAshoreDialog>("Wages Paid Ashore", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not SaveWagesPaidAshoreRequest request) return;
+
+        await RunAsync(async () =>
+        {
+            await RemittanceService.CreateWagesPaidAshoreAsync(request);
+            Snackbar.Add("Wages paid ashore saved.", Severity.Success);
+            await LoadListAsync();
+        });
+    }
     private async Task DeleteAsync(OwnerRemittanceResponse item)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(

@@ -27,9 +27,14 @@ namespace Marilog.Ship.Services.CrewAccount
         // ── Withdrawals ──────────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<CrewWithdrawalResponse>> GetWithdrawalsAsync(DateOnly from, DateOnly to,
-            CancellationToken ct = default) =>
-            await _withdrawalRepo.Query().AsNoTracking()
-                .Where(x => x.Date >= from && x.Date <= to)
+            CancellationToken ct = default)
+        {
+            // Withdrawals keep the time: the whole of the last day is included.
+            var start = from.ToDateTime(TimeOnly.MinValue);
+            var end = to.AddDays(1).ToDateTime(TimeOnly.MinValue);
+
+            return await _withdrawalRepo.Query().AsNoTracking()
+                .Where(x => x.Date >= start && x.Date < end)
                 .OrderByDescending(x => x.Date)
                 .ThenByDescending(x => x.Id)
                 .Select(x => new CrewWithdrawalResponse(
@@ -38,6 +43,7 @@ namespace Marilog.Ship.Services.CrewAccount
                     x.DeductionType != null ? x.DeductionType.Name : null,
                     x.Amount, x.CurrencyId, x.Currency.CurrencyCode, x.Reason))
                 .ToListAsync(ct);
+        }
 
         public async Task CreateWithdrawalAsync(SaveCrewWithdrawalRequest request, CancellationToken ct = default)
         {

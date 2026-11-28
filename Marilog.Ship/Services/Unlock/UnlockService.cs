@@ -35,18 +35,28 @@ namespace Marilog.Ship.Services.Unlock
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
-            if (target == UnlockTarget.InitialSetup)
+            var setup = await _setupRepo.Query().FirstOrDefaultAsync(ct);
+            if (setup is not { IsCompleted: true })
+                throw new InvalidOperationException("The setup is not locked.");
+            if (setup.ShipKeyEncrypted is null)
+                throw new InvalidOperationException(
+                    "No ship key is saved on this ship, so it cannot be unlocked. Reinstall with a ship key from the office.");
+
+            switch (target)
             {
-                var setup = await _setupRepo.Query().FirstOrDefaultAsync(ct);
-                if (setup is not { IsCompleted: true })
-                    throw new InvalidOperationException("The setup is not locked.");
-                if (setup.ShipKeyEncrypted is null)
-                    throw new InvalidOperationException(
-                        "No ship key is saved on this ship, so it cannot be unlocked. Reinstall with a ship key from the office.");
-            }
-            else
-            {
-                throw new NotSupportedException("Reopening an MGA comes with the MGA step.");
+                case UnlockTarget.InitialSetup:
+                    // The opening balances are the start of every MGA after them.
+                    if (await _mgaRepo.Query().AnyAsync(x => !x.IsOpening, ct))
+                        throw new InvalidOperationException(
+                            "MGAs were closed after the setup. Reopen them first, starting from the last one.");
+                    break;
+
+                case UnlockTarget.Mga:
+                    await EnsureLastClosedAsync(targetId, ct);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Unlock target {target} is not supported.");
             }
 
             // Only one request waits at a time: an older code can never be used.
@@ -91,11 +101,36 @@ namespace Marilog.Ship.Services.Unlock
                     opening.ReopenOpening();
                     break;
 
+                case UnlockTarget.Mga:
+                    // The MGA is removed: its period is computed live again and closed again
+                    // after the corrections. Its figures stay in this log.
+                    var mga = await EnsureLastClosedAsync(log.TargetId, ct);
+
+                    log.Grant(MgaSnapshot.ToJson(mga));
+                    _mgaRepo.HardDelete(mga);
+                    break;
+
                 default:
-                    throw new NotSupportedException("Reopening an MGA comes with the MGA step.");
+                    throw new NotSupportedException($"Unlock target {log.Target} is not supported.");
             }
 
             await _logRepo.SaveChangesAsync(ct);
+        }
+
+        // Only the last closed MGA can be reopened, so the chain of balances stays whole.
+        private async Task<Mga> EnsureLastClosedAsync(int? mgaId, CancellationToken ct)
+        {
+            var last = await _mgaRepo.Query()
+                .Include(x => x.CrewLines)
+                .Include(x => x.CashLines)
+                .Where(x => x.Status == MgaStatus.Closed)
+                .OrderByDescending(x => x.Number)
+                .FirstOrDefaultAsync(ct);
+
+            if (last is null || last.IsOpening || last.Id != mgaId)
+                throw new InvalidOperationException("Only the last closed MGA can be reopened.");
+
+            return last;
         }
     }
 }

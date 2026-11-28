@@ -53,7 +53,7 @@
                 {
                     var item = w;
                     <tr>
-                        <td>@item.Date.ToString("dd.MM.yyyy")</td>
+                        <td>@item.Date.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@item.CrewName</td>
                         <td>@item.RankName</td>
                         <td>@WithdrawalLabel(item)</td>
@@ -218,7 +218,7 @@
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             "Delete Withdrawal",
-            $"Delete the withdrawal of {item.Amount:N2} {item.CurrencyCode} by {item.CrewName} on {item.Date:dd.MM.yyyy}?",
+            $"Delete the withdrawal of {item.Amount:N2} {item.CurrencyCode} by {item.CrewName} on {item.Date:dd.MM.yyyy HH:mm}?",
             yesText: "Delete", cancelText: "Cancel");
         if (confirmed != true) return;
 

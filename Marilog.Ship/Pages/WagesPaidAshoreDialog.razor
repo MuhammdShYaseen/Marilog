@@ -1,0 +1,183 @@
+@inherits OwningComponentBase
+@using System.Globalization
+@using Marilog.Ship.Services.GeneralAccount
+@using Marilog.Ship.Services.OwnerRemittances
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+
+@* MGA page 4 + page 5. The office paid wages ashore for crew whose wages are on the master's account:
+   one line on page 4, each share off the crew member's balance on page 5.
+   Pay less than the balance and the rest simply stays on his balance for next month. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Wages Paid Ashore</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="_date" @bind-Date:after="LoadAsync" Label="Paid on" DateFormat="dd.MM.yyyy"
+                               Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="DateOnly" @bind-Value="_wageMonth" @bind-Value:after="MonthChangedAsync" Label="Wages of"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var month in _months)
+                    {
+                        <MudSelectItem T="DateOnly" Value="month">@MonthName(month)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_reference" Label="Reference (office document no.)" MaxLength="100"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_label" Label="Line on page 4" Required="true" MaxLength="500"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Bordered="true" Class="mt-3">
+                <thead>
+                    <tr>
+                        <th>Crew member</th>
+                        <th>Rank</th>
+                        <th style="text-align:right">Balance on @(_date?.ToString("dd.MM.yyyy"))</th>
+                        <th style="text-align:right">Wage of @MonthName(_wageMonth)</th>
+                        <th style="width:170px">Paid ashore (@BaseCurrencyCode)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_rows.Count == 0)
+                    {
+                        <tr><td colspan="5">No crew with wages on the master's account.</td></tr>
+                    }
+                    @foreach (var r in _rows)
+                    {
+                        var row = r;
+                        <tr>
+                            <td>@row.Item.CrewName</td>
+                            <td>@row.Item.RankName</td>
+                            <td style="text-align:right">@row.Item.Balance.ToString("N2")</td>
+                            <td style="text-align:right">@row.Item.MonthWage.ToString("N2")</td>
+                            <td>
+                                <MudNumericField T="decimal" @bind-Value="row.Amount" Min="0" Format="N2"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </td>
+                        </tr>
+                    }
+                    <tr style="font-weight:600">
+                        <td colspan="4">Total paid ashore</td>
+                        <td style="text-align:right">@_rows.Sum(x => x.Amount).ToString("N2")</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+            <MudText Typo="Typo.caption">
+                Suggested: the month's wage rounded down, never more than the balance. Change any amount; 0 = not paid.
+            </MudText>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanSave)" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int BaseCurrencyId { get; set; }
+    [Parameter] public string BaseCurrencyCode { get; set; } = "";
+
+    private IMgaService MgaService => ScopedServices.GetRequiredService<IMgaService>();
+
+    private sealed class Row
+    {
+        public required CrewPayAshoreItem Item { get; init; }
+        public decimal Amount { get; set; }
+    }
+
+    private bool _loading = true;
+    private DateTime? _date = DateTime.Today;
+    private DateOnly _wageMonth;
+    private readonly List<DateOnly> _months = [];
+    private string? _label;
+    private string? _reference;
+    private List<Row> _rows = [];
+
+    private bool CanSave =>
+        !_loading && _date is not null && !string.IsNullOrWhiteSpace(_label)
+        && _rows.Any(x => x.Amount > 0) && _rows.All(x => x.Amount >= 0 && decimal.Round(x.Amount, 2) == x.Amount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Wages are paid the month after: last month by default.
+        var thisMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        for (var i = 0; i < 12; i++) _months.Add(thisMonth.AddMonths(-i));
+        _wageMonth = thisMonth.AddMonths(-1);
+        _label = DefaultLabel(_wageMonth);
+
+        await LoadAsync();
+    }
+
+    private async Task MonthChangedAsync()
+    {
+        _label = DefaultLabel(_wageMonth);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_date is null) return;
+
+        _loading = true;
+        try
+        {
+            var items = await MgaService.GetPayAshoreCrewAsync(DateOnly.FromDateTime(_date.Value), _wageMonth);
+            _rows = items.Select(x => new Row { Item = x, Amount = Suggest(x) }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _rows = [];
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static decimal Suggest(CrewPayAshoreItem x)
+    {
+        var amount = Math.Floor(Math.Min(x.MonthWage, x.Balance));
+        return amount > 0 ? amount : 0m;
+    }
+
+    private static string MonthName(DateOnly month) =>
+        month.ToString("MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+
+    private static string DefaultLabel(DateOnly month) => $"CREW WAGES PAID ASHORE {MonthName(month)}";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        MudDialog.Close(DialogResult.Ok(new SaveWagesPaidAshoreRequest(
+            DateOnly.FromDateTime(_date!.Value),
+            BaseCurrencyId,
+            _label!.Trim(),
+            _reference,
+            _rows.Where(x => x.Amount > 0)
+                 .Select(x => new WagesPaidAshoreItem(x.Item.CrewContractId, x.Amount))
+                 .ToList())));
+    }
+}

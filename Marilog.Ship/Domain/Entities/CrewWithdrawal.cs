@@ -5,13 +5,13 @@ using Marilog.Ship.Domain.Enums;
 namespace Marilog.Ship.Domain.Entities
 {
     /// <summary>
-    /// MGA page 5 — what a crew member took on board.
+    /// MGA page 5 — what a crew member took on board, with the date and time.
     /// Cash leaves the ship's cash, Cigarettes leave the cigarettes on board;
     /// Other is a deduction without cash and needs a type and a reason.
     /// </summary>
     public class CrewWithdrawal : Entity
     {
-        public DateOnly Date { get; private set; }
+        public DateTime Date { get; private set; }   // ship's local date and time
         public int CrewContractId { get; private set; }
         public CrewContract CrewContract { get; private set; } = null!;
         public CrewWithdrawalType Type { get; private set; }
@@ -24,7 +24,7 @@ namespace Marilog.Ship.Domain.Entities
 
         private CrewWithdrawal() { }
 
-        public static CrewWithdrawal Create(DateOnly date, int crewContractId, CrewWithdrawalType type,
+        public static CrewWithdrawal Create(DateTime date, int crewContractId, CrewWithdrawalType type,
             decimal amount, int currencyId,
             int? deductionTypeId = null, string? reason = null)
         {
@@ -33,7 +33,7 @@ namespace Marilog.Ship.Domain.Entities
             return withdrawal;
         }
 
-        public void Update(DateOnly date, int crewContractId, CrewWithdrawalType type,
+        public void Update(DateTime date, int crewContractId, CrewWithdrawalType type,
             decimal amount, int currencyId,
             int? deductionTypeId = null, string? reason = null)
         {
@@ -41,7 +41,7 @@ namespace Marilog.Ship.Domain.Entities
             Touch();
         }
 
-        private void Set(DateOnly date, int crewContractId, CrewWithdrawalType type,
+        private void Set(DateTime date, int crewContractId, CrewWithdrawalType type,
             decimal amount, int currencyId,
             int? deductionTypeId, string? reason)
         {
@@ -62,7 +62,8 @@ namespace Marilog.Ship.Domain.Entities
                 throw new ArgumentException("Deduction type is only used for 'Other' deductions.");
             }
 
-            Date = date;
+            // Minutes are enough; seconds would only make two entries look different.
+            Date = new DateTime(date.Year, date.Month, date.Day, date.Hour, date.Minute, 0);
             CrewContractId = crewContractId;
             Type = type;
             DeductionTypeId = deductionTypeId;

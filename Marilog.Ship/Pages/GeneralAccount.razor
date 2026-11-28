@@ -1,0 +1,413 @@
+@page "/mga"
+@inherits OwningComponentBase
+@using Marilog.Ship.Domain.Enums
+@using Marilog.Ship.Services.GeneralAccount
+@using Marilog.Ship.Services.Unlock
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h5" Class="mb-3">Master's General Account</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_viewing is not null)
+{
+    @* ── A closed MGA ───────────────────────────────────────────────────── *@
+    <div class="d-flex flex-wrap align-center gap-2 mb-2">
+        <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Disabled="@_busy" OnClick="BackAsync">Back</MudButton>
+        <MudText Typo="Typo.h6">MGA @_viewing.Code</MudText>
+        <MudText Typo="Typo.body2">@_viewing.From.ToString("dd.MM.yyyy") – @_viewing.To.ToString("dd.MM.yyyy")</MudText>
+        <MudChip T="string" Size="Size.Small" Color="Color.Success">Closed @_viewing.ClosedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudChip>
+    </div>
+    <MudText Typo="Typo.body2">@_viewing.VesselName · Master: @(_viewing.MasterName ?? "—")</MudText>
+    @if (_viewing.EndReason is not null)
+    {
+        <MudText Typo="Typo.body2">Period ends early: @_viewing.EndReason</MudText>
+    }
+    @if (_viewing.Notes is not null)
+    {
+        <MudText Typo="Typo.body2">Difference reason: @_viewing.Notes</MudText>
+    }
+
+    <MgaReportView Report="_viewing" />
+
+    @if (_viewingIsLast)
+    {
+        @* ── Reopen with a one-time code ─────────────────────────────────── *@
+        <MudPaper Outlined="true" Class="pa-4 mt-3" Style="max-width:560px">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Reopen this MGA</MudText>
+            @if (_pending is null)
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    To correct records in this period, ask the office for an unlock code.
+                    The MGA is opened again and must be closed again after the corrections.
+                </MudText>
+                <MudTextField @bind-Value="_unlockReason" Label="Reason for reopening" Lines="2"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                           Disabled="@(_busy || string.IsNullOrWhiteSpace(_unlockReason))"
+                           OnClick="RequestUnlockAsync">Request Unlock</MudButton>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2">Send this request code to the office:</MudText>
+                <MudText Typo="Typo.h4" Class="my-2" Style="font-family:monospace">@_pending.RequestCode</MudText>
+                <MudText Typo="Typo.caption">Reason: @_pending.Reason</MudText>
+
+                <MudTextField @bind-Value="_unlockCode" Label="Unlock code from the office" MaxLength="6"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-3" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                           Disabled="@(_busy || string.IsNullOrWhiteSpace(_unlockCode))"
+                           OnClick="ConfirmUnlockAsync">Reopen</MudButton>
+            }
+        </MudPaper>
+    }
+}
+else
+{
+    @if (_period is null)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            Complete the initial setup first. The first MGA starts the day after the opening balances.
+        </MudAlert>
+    }
+    else
+    {
+        @* ── The open period ─────────────────────────────────────────────── *@
+        <MudPaper Outlined="true" Class="pa-3">
+            <div class="d-flex flex-wrap gap-3 align-center">
+                <MudText Typo="Typo.h6">MGA @(_draft?.Code ?? "")</MudText>
+                <MudText Typo="Typo.body2">From @_period.From.ToString("dd.MM.yyyy")</MudText>
+                <MudDatePicker @bind-Date="_to" @bind-Date:after="LoadDraftAsync" Label="To" DateFormat="dd.MM.yyyy"
+                               MinDate="@_period.From.ToDateTime(TimeOnly.MinValue)"
+                               MaxDate="@_period.MaxTo.ToDateTime(TimeOnly.MinValue)"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:180px" />
+                @if (IsShort)
+                {
+                    <MudTextField @bind-Value="_endReason" Label="Why the period ends before the month end"
+                                  Placeholder="e.g. master handover, vessel sold" MaxLength="300"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:320px" />
+                }
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+                           Disabled="@_busy" OnClick="LoadDraftAsync">Refresh</MudButton>
+            </div>
+            <MudText Typo="Typo.caption">
+                Draft — computed from the records as they are now, with today's exchange rates.
+            </MudText>
+        </MudPaper>
+
+        @if (_draft is not null)
+        {
+            <MgaReportView Report="_draft" LiveSummary="_summary" />
+
+            @* ── Close: physical count ───────────────────────────────────────── *@
+            <MudPaper Outlined="true" Class="pa-4 mt-3" Style="max-width:760px">
+                <MudText Typo="Typo.subtitle1">Close the MGA</MudText>
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    Count the cash and the cigarettes on board and enter what you find.
+                </MudText>
+
+                <MudSimpleTable Dense="true" Bordered="true">
+                    <thead>
+                        <tr><th>On board</th><th style="text-align:right">Expected</th><th style="width:200px">Counted</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _draft.Cash)
+                        {
+                            var item = c;
+                            <tr>
+                                <td>Cash @item.CurrencyCode</td>
+                                <td style="text-align:right">@item.Expected.ToString("N2")</td>
+                                <td>
+                                    <MudNumericField T="decimal?" Value="CountOf(item.CurrencyId)"
+                                                     ValueChanged="@((decimal? v) => SetCount(item.CurrencyId, v))"
+                                                     Min="0" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </td>
+                            </tr>
+                        }
+                        <tr>
+                            <td>Cigarettes (value, @_draft.BaseCurrencyCode)</td>
+                            <td style="text-align:right">@_draft.ExpectedCigarettes.ToString("N2")</td>
+                            <td>
+                                <MudNumericField T="decimal?" @bind-Value="_countedCigarettes" @bind-Value:after="Recount"
+                                                 Min="0" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Class="mt-1"
+                           Disabled="@_busy" OnClick="SameAsExpected">Same as expected</MudButton>
+
+                @if (_summary is not null)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Count difference: <b>@_summary.CountDifference.ToString("N2")</b> ·
+                        Final check: <b>@_summary.Difference.ToString("N2")</b> @_draft.BaseCurrencyCode
+                    </MudText>
+                }
+
+                @if (NeedsReason)
+                {
+                    <MudTextField @bind-Value="_reason" Label="Reason for the difference" Lines="2" MaxLength="500"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" />
+                }
+
+                @if (!CanCloseToday)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                        The MGA can be closed from @_draft.To.AddDays(1).ToString("dd.MM.yyyy").
+                    </MudAlert>
+                }
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                           StartIcon="@Icons.Material.Filled.Lock"
+                           Disabled="@(!CanClose)" OnClick="CloseAsync">Close MGA @_draft.Code</MudButton>
+            </MudPaper>
+        }
+    }
+
+    @* ── Closed MGAs ───────────────────────────────────────────────────────── *@
+    <MudText Typo="Typo.h6" Class="mt-5 mb-2">Closed</MudText>
+    <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+        <thead>
+            <tr>
+                <th>MGA</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Master</th>
+                <th style="text-align:right">Closing balance</th>
+                <th>Closed</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (_closed.Count == 0)
+            {
+                <tr><td colspan="7">No MGA closed yet.</td></tr>
+            }
+            @foreach (var m in _closed)
+            {
+                var item = m;
+                <tr>
+                    <td>@item.Code</td>
+                    <td>@item.FromDate.ToString("dd.MM.yyyy")</td>
+                    <td>@item.ToDate.ToString("dd.MM.yyyy")</td>
+                    <td>@item.MasterName</td>
+                    <td style="text-align:right">@item.ClosingBalance.ToString("N2")</td>
+                    <td>@item.ClosedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Disabled="@_busy"
+                                       OnClick="@(() => ViewAsync(item))" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    // OwningComponentBase: this page has its own DI scope → its own ShipContext.
+    private IMgaService MgaService => ScopedServices.GetRequiredService<IMgaService>();
+    private IUnlockService UnlockService => ScopedServices.GetRequiredService<IUnlockService>();
+
+    private bool _loading = true;
+    private bool _busy;
+
+    private MgaOpenPeriod? _period;
+    private DateTime? _to;
+    private string? _endReason;
+    private MgaReport? _draft;
+    private IReadOnlyList<MgaListItem> _closed = [];
+
+    // Physical count
+    private readonly Dictionary<int, decimal?> _counts = new();
+    private decimal? _countedCigarettes;
+    private MgaSummary? _summary;
+    private string? _reason;
+
+    // Viewing a closed MGA
+    private MgaReport? _viewing;
+    private bool _viewingIsLast;
+    private UnlockRequestResponse? _pending;
+    private string? _unlockReason;
+    private string? _unlockCode;
+
+    private bool IsShort => _period is not null && _to is not null
+                            && DateOnly.FromDateTime(_to.Value) < _period.MaxTo;
+
+    private bool CanCloseToday => _draft is not null && _draft.To < DateOnly.FromDateTime(DateTime.Today);
+
+    private bool AllCounted => _draft is not null && _countedCigarettes is not null
+                               && _draft.Cash.All(c => _counts.GetValueOrDefault(c.CurrencyId) is not null);
+
+    private bool NeedsReason => _summary is not null && (_summary.CountDifference != 0 || _summary.Difference != 0);
+
+    private bool CanClose => !_busy && CanCloseToday && AllCounted
+                             && (!IsShort || !string.IsNullOrWhiteSpace(_endReason))
+                             && (!NeedsReason || !string.IsNullOrWhiteSpace(_reason));
+
+    protected override async Task OnInitializedAsync() => await LoadAllAsync();
+
+    private async Task LoadAllAsync()
+    {
+        _loading = true;
+        try
+        {
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            _period = await MgaService.GetOpenPeriodAsync();
+            _closed = await MgaService.GetClosedAsync();
+            _to = _period?.MaxTo.ToDateTime(TimeOnly.MinValue);
+            _draft = null;
+            _counts.Clear();
+            _countedCigarettes = null;
+            _reason = null;
+            _endReason = null;
+            if (_period is not null) await LoadDraftAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadDraftAsync()
+    {
+        if (_period is null || _to is null) return;
+
+        await RunAsync(async () =>
+        {
+            _draft = await MgaService.GetDraftAsync(DateOnly.FromDateTime(_to.Value), IsShort ? _endReason : null);
+            foreach (var c in _draft.Cash)
+                _counts.TryAdd(c.CurrencyId, null);
+            Recount();
+        });
+    }
+
+    // ── Count ────────────────────────────────────────────────────────────────
+
+    private decimal? CountOf(int currencyId) => _counts.GetValueOrDefault(currencyId);
+
+    private void SetCount(int currencyId, decimal? value)
+    {
+        _counts[currencyId] = value;
+        Recount();
+    }
+
+    private void SameAsExpected()
+    {
+        if (_draft is null) return;
+        foreach (var c in _draft.Cash)
+            _counts[c.CurrencyId] = c.Expected;
+        _countedCigarettes = _draft.ExpectedCigarettes;
+        Recount();
+    }
+
+    // Live summary while counting; a currency not counted yet counts as expected.
+    private void Recount()
+    {
+        if (_draft is null) return;
+
+        var counted = _counts.Where(x => x.Value is not null).ToDictionary(x => x.Key, x => x.Value!.Value);
+        _summary = MgaMath.Recount(_draft, counted, _countedCigarettes ?? _draft.ExpectedCigarettes);
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_draft is null) return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Close MGA",
+            $"Close MGA {_draft.Code} ({_draft.From:dd.MM.yyyy} – {_draft.To:dd.MM.yyyy})? " +
+            $"Everything dated up to {_draft.To:dd.MM.yyyy} will be locked. Only an unlock code from the office can reopen it.",
+            yesText: "Close", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        var closed = false;
+        await RunAsync(async () =>
+        {
+            await MgaService.CloseAsync(new CloseMgaRequest(
+                _draft.To,
+                IsShort ? _endReason : null,
+                _draft.Cash.Select(c => new MgaCountItem(c.CurrencyId, _counts[c.CurrencyId]!.Value)).ToList(),
+                _countedCigarettes!.Value,
+                NeedsReason ? _reason : null));
+            closed = true;
+        });
+        if (!closed) return;
+
+        Snackbar.Add($"MGA {_draft.Code} closed.", Severity.Success);
+        await LoadAllAsync();
+    }
+
+    // ── Closed MGAs ──────────────────────────────────────────────────────────
+
+    private async Task ViewAsync(MgaListItem item)
+    {
+        await RunAsync(async () =>
+        {
+            _viewing = await MgaService.GetReportAsync(item.Id);
+            _viewingIsLast = item.IsLast;
+            _pending = item.IsLast ? await UnlockService.GetPendingAsync(UnlockTarget.Mga, item.Id) : null;
+            _unlockReason = null;
+            _unlockCode = null;
+        });
+    }
+
+    private async Task BackAsync()
+    {
+        _viewing = null;
+        await LoadAllAsync();
+    }
+
+    private async Task RequestUnlockAsync()
+    {
+        await RunAsync(async () =>
+        {
+            _pending = await UnlockService.RequestAsync(UnlockTarget.Mga, _viewing!.MgaId, _unlockReason!);
+            _unlockReason = null;
+        });
+    }
+
+    private async Task ConfirmUnlockAsync()
+    {
+        var unlocked = false;
+        await RunAsync(async () =>
+        {
+            await UnlockService.ConfirmAsync(_pending!.Id, _unlockCode!.Trim());
+            unlocked = true;
+        });
+        if (!unlocked) return;
+
+        Snackbar.Add($"MGA {_viewing!.Code} reopened. Make the corrections and close it again.", Severity.Success);
+        _viewing = null;
+        await LoadAllAsync();
+    }
+
+    // ── Helper ───────────────────────────────────────────────────────────────
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

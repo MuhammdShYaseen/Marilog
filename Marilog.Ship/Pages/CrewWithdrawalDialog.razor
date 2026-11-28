@@ -13,8 +13,12 @@
 
     <DialogContent>
         <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6">
+            <MudItem xs="6" sm="3">
                 <MudDatePicker @bind-Date="_date" Label="Date" DateFormat="dd.MM.yyyy" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTimePicker @bind-Time="_time" Label="Time" Required="true" AmPm="false"
                                Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="6">
@@ -86,6 +90,7 @@
     [Parameter] public IReadOnlyList<DeductionTypeResponse> DeductionTypes { get; set; } = [];
 
     private DateTime? _date = DateTime.Today;
+    private TimeSpan? _time = new(DateTime.Now.Hour, DateTime.Now.Minute, 0);
     private CrewWithdrawalType _type = CrewWithdrawalType.Cash;
     private int? _crewContractId;
     private int? _deductionTypeId;
@@ -94,7 +99,7 @@
     private string? _reason;
 
     private bool CanSave =>
-        _date is not null && _crewContractId is not null && _currencyId > 0 && _amount > 0 &&
+        _date is not null && _time is not null && _crewContractId is not null && _currencyId > 0 && _amount > 0 &&
         (_type != CrewWithdrawalType.Other || (_deductionTypeId is not null && !string.IsNullOrWhiteSpace(_reason)));
 
     protected override void OnInitialized()
@@ -105,7 +110,8 @@
             return;
         }
 
-        _date = Existing.Date.ToDateTime(TimeOnly.MinValue);
+        _date = Existing.Date.Date;
+        _time = Existing.Date.TimeOfDay;
         _type = Existing.Type;
         _crewContractId = Existing.CrewContractId;
         _deductionTypeId = Existing.DeductionTypeId;
@@ -124,7 +130,7 @@
     private void Save()
     {
         MudDialog.Close(DialogResult.Ok(new SaveCrewWithdrawalRequest(
-            DateOnly.FromDateTime(_date!.Value),
+            _date!.Value.Date + _time!.Value,
             _crewContractId!.Value,
             _type,
             _type == CrewWithdrawalType.Other ? _deductionTypeId : null,

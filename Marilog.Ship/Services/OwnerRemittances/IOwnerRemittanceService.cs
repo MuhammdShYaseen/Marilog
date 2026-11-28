@@ -9,5 +9,9 @@
         Task CreateAsync(SaveOwnerRemittanceRequest request, CancellationToken ct = default);
         Task UpdateAsync(int id, SaveOwnerRemittanceRequest request, CancellationToken ct = default);
         Task DeleteAsync(int id, CancellationToken ct = default);
+
+
+        /// <summary>Wages the office paid ashore for master-paid crew; the unpaid rest stays on each balance.</summary>
+        Task CreateWagesPaidAshoreAsync(SaveWagesPaidAshoreRequest request, CancellationToken ct = default);
     }
 }
