@@ -1,0 +1,106 @@
+@page "/backup"
+@inherits OwningComponentBase
+@using System.Diagnostics
+@using Marilog.Ship.Data
+@using Marilog.Ship.Services.DataBackup
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Class="mb-3">Backup</MudText>
+
+<MudPaper Outlined="true" Class="pa-4" Style="max-width:760px">
+    <MudText Typo="Typo.body2" Class="mb-3">
+        A backup is one zip file with the whole database, the attached files and the MGA PDFs.
+        Keep it on a USB stick or another drive — not only on this PC.
+    </MudText>
+
+    <MudText Typo="Typo.caption">Data on this PC</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3" Style="font-family:monospace">@ShipDatabase.DataFolder</MudText>
+
+    <MudText Typo="Typo.caption">Backup folder</MudText>
+    <div class="d-flex align-center gap-2 mb-3">
+        <MudText Typo="Typo.body2" Style="font-family:monospace">@_folder</MudText>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@_busy" OnClick="ChooseFolder">Change</MudButton>
+    </div>
+
+    <MudText Typo="Typo.body2" Class="mb-3">
+        Last backup in this folder:
+        <b>@(_latest is null ? "none" : $"{_latest.LastWriteTime:dd.MM.yyyy HH:mm} ({_latest.Name})")</b>
+    </MudText>
+
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Backup"
+                   Disabled="@_busy" OnClick="CreateAsync">Create Backup</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FolderOpen"
+                   Disabled="@_busy" OnClick="OpenFolder">Open Folder</MudButton>
+    </div>
+    @if (_busy)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+    }
+</MudPaper>
+
+<MudPaper Outlined="true" Class="pa-4 mt-3" Style="max-width:760px">
+    <MudText Typo="Typo.subtitle1" Class="mb-2">Restore a backup</MudText>
+    <MudText Typo="Typo.body2">
+        1. Close Marilog Ship.<br />
+        2. Rename the folder <span style="font-family:monospace">@ShipDatabase.DataFolder</span> (keep it until the restore is checked).<br />
+        3. Create the folder again and unzip the backup into it.<br />
+        4. Open Marilog Ship.
+    </MudText>
+</MudPaper>
+
+@code {
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+
+    private string _folder = ShipBackup.GetFolder();
+    private FileInfo? _latest;
+    private bool _busy;
+
+    protected override void OnInitialized() => _latest = ShipBackup.Latest(_folder);
+
+    private void ChooseFolder()
+    {
+        // WPF folder picker, on the window's thread.
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Backup folder",
+            InitialDirectory = Directory.Exists(_folder) ? _folder : string.Empty
+        };
+
+        var app = System.Windows.Application.Current;
+        var chosen = app.Dispatcher.Invoke(() => dialog.ShowDialog(app.MainWindow)) == true;
+        if (!chosen) return;
+
+        _folder = dialog.FolderName;
+        ShipBackup.SetFolder(_folder);
+        _latest = ShipBackup.Latest(_folder);
+    }
+
+    private async Task CreateAsync()
+    {
+        _busy = true;
+        try
+        {
+            var status = await SetupService.GetStatusAsync();
+            var path = await ShipBackup.CreateAsync(_folder, status.VesselName);
+            _latest = ShipBackup.Latest(_folder);
+            Snackbar.Add($"Backup saved: {Path.GetFileName(path)}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Backup failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void OpenFolder()
+    {
+        Directory.CreateDirectory(_folder);
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_folder}\"") { UseShellExecute = true });
+    }
+}

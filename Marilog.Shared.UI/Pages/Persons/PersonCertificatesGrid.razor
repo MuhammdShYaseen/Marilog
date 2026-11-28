@@ -83,9 +83,12 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Receipt"
                                    Size="Size.Small"
                                    OnClick="() => OnManageAttachedFilesClicked.InvokeAsync((context.Item.Index, EntityType.PersonCertificate))" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.Comment"
-                                   Size="Size.Small"
-                                   OnClick="() => OnCommentsClicked.InvokeAsync((context.Item.Index, EntityType.PersonCertificate))" />
+                    @if (OnCommentsClicked.HasDelegate)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Outlined.Comment"
+                                       Size="Size.Small"
+                                       OnClick="() => OnCommentsClicked.InvokeAsync((context.Item.Index, EntityType.PersonCertificate))" />
+                    }
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                    Size="Size.Small"
                                    Color="Color.Error"

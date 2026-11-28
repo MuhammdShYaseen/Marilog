@@ -1,0 +1,44 @@
+@page "/certificates"
+@inherits OwningComponentBase
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Class="mb-3">Certificates</MudText>
+
+@if (_vesselId is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudTabs Elevation="0" Outlined="true" Rounded="true" PanelClass="pa-3">
+        <MudTabPanel Text="@($"Vessel — {_vesselName}")">
+            <ShipVesselCertificates VesselId="_vesselId.Value" />
+        </MudTabPanel>
+        <MudTabPanel Text="Crew">
+            <ShipCrewCertificates />
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+
+    private int? _vesselId;
+    private string? _vesselName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var status = await SetupService.GetStatusAsync();
+            _vesselId = status.VesselId;
+            _vesselName = status.VesselName;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -362,3 +362,7 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /Marilog.Presentation/appsettings.json
+
+
+Marilog.Ship/Installer/Output/
+Marilog.Ship/Installer/MicrosoftEdgeWebView2RuntimeInstallerX64.exe

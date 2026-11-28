@@ -6,37 +6,64 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject NavigationManager Nav
 
-<SharedMainLayout Items="_navItems" AppTitle="Marilog Ship">
+<SharedMainLayout Items="@(_setupCompleted == true ? _navItems : _setupOnly)" AppTitle="Marilog Ship">
     <ChildContent>
-        @Body
+        @if (_setupCompleted is null)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_setupCompleted == true || IsSetupPage)
+        {
+            @Body
+        }
     </ChildContent>
 </SharedMainLayout>
 
 @code {
+    // One ship per installation: no vessel list. The vessel is set in the initial setup.
     private readonly List<NavItemResponse> _navItems =
     [
-        new() { Id = 1,  Title = "Setup",             Route = "/setup",             Icon = "Settings",             Order = 1,  IsActive = true },
-        new() { Id = 2,  Title = "Vessels",           Route = "/vessels",           Icon = "DirectionsBoat",       Order = 2,  IsActive = true },
-        new() { Id = 5,  Title = "Crew",              Route = "/crew",              Icon = "Groups",               Order = 3,  IsActive = true },
-        new() { Id = 11, Title = "Voyages",           Route = "/voyages",           Icon = "Sailing",              Order = 4,  IsActive = true },
-        new() { Id = 3,  Title = "Purchases",         Route = "/purchases",         Icon = "Receipt",              Order = 5,  IsActive = true },
-        new() { Id = 6,  Title = "Owner Remittances", Route = "/owner-remittances", Icon = "Payments",             Order = 6,  IsActive = true },
-                new() { Id = 7,  Title = "Crew Account",      Route = "/crew-account",      Icon = "AccountBalanceWallet", Order = 7,  IsActive = true },
-        new() { Id = 12, Title = "General Account",   Route = "/mga",               Icon = "AccountBalance",       Order = 8,  IsActive = true },
+        new() { Id = 13, Title = "Home",              Route = "/",                  Icon = "Home",                 Order = 1,  IsActive = true },
+        new() { Id = 5,  Title = "Crew",              Route = "/crew",              Icon = "Groups",               Order = 2,  IsActive = true },
+        new() { Id = 11, Title = "Voyages",           Route = "/voyages",           Icon = "Sailing",              Order = 3,  IsActive = true },
+        new() { Id = 3,  Title = "Purchases",         Route = "/purchases",         Icon = "Receipt",              Order = 4,  IsActive = true },
+        new() { Id = 6,  Title = "Owner Remittances", Route = "/owner-remittances", Icon = "Payments",             Order = 5,  IsActive = true },
+        new() { Id = 7,  Title = "Crew Account",      Route = "/crew-account",      Icon = "AccountBalanceWallet", Order = 6,  IsActive = true },
+        new() { Id = 12, Title = "General Account",   Route = "/mga",               Icon = "AccountBalance",       Order = 7,  IsActive = true },
+        new() { Id = 14, Title = "Certificates",      Route = "/certificates",      Icon = "Certificate",          Order = 8,  IsActive = true },
         new() { Id = 8,  Title = "Currencies",        Route = "/currencies",        Icon = "CurrencyExchange",     Order = 9,  IsActive = true },
         new() { Id = 9,  Title = "Ports",             Route = "/ports",             Icon = "Anchor",               Order = 10, IsActive = true },
         new() { Id = 4,  Title = "Document Types",    Route = "/document-types",    Icon = "Category",             Order = 11, IsActive = true },
         new() { Id = 10, Title = "Deduction Types",   Route = "/deduction-types",   Icon = "ListAlt",              Order = 12, IsActive = true },
+        new() { Id = 15, Title = "Backup",            Route = "/backup",            Icon = "backup",               Order = 13, IsActive = true },
+        new() { Id = 1,  Title = "Setup",             Route = "/setup",             Icon = "Settings",             Order = 14, IsActive = true },
     ];
 
-    // Until the initial setup is completed, the app opens on the setup page.
+    // Until the initial setup is completed (or while it is reopened), Setup is the only page.
+    private readonly List<NavItemResponse> _setupOnly =
+    [
+        new() { Id = 1, Title = "Setup", Route = "/setup", Icon = "Settings", Order = 1, IsActive = true },
+    ];
+
+    private bool? _setupCompleted;
+
+    private bool IsSetupPage =>
+        Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/')
+           .Equals("setup", StringComparison.OrdinalIgnoreCase);
+
     // The layout lives as long as the window, so it uses a short scope of its own.
+    // Setup changes its state only with a full reload (complete / unlock), so reading it once is enough.
     protected override async Task OnInitializedAsync()
     {
         await using var scope = ScopeFactory.CreateAsyncScope();
         var status = await scope.ServiceProvider.GetRequiredService<IShipSetupService>().GetStatusAsync();
+        _setupCompleted = status.IsCompleted;
+    }
 
-        if (!status.IsCompleted && !Nav.Uri.TrimEnd('/').EndsWith("/setup", StringComparison.OrdinalIgnoreCase))
+    // Runs on every navigation (the router gives the layout a new Body), so no page opens before setup.
+    protected override void OnParametersSet()
+    {
+        if (_setupCompleted == false && !IsSetupPage)
             Nav.NavigateTo("/setup");
     }
 }

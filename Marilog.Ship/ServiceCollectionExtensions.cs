@@ -55,7 +55,8 @@ namespace Marilog.Ship
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<IDocumentTypeService, DocumentTypeService>();
             services.AddScoped<IVoyageService, VoyageService>();
-
+            services.AddScoped<IVesselCertificateService, VesselCertificateService>();
+            services.AddScoped<IPersonCertificateService, PersonCertificateService>();
             // CurrencyService: rates are entered by hand on board (no online refresh).
             services.AddOptions<ExchangeRatesOptions>();
             services.AddSingleton<ExchangeRateRefreshGate>();

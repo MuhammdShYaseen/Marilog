@@ -1,0 +1,103 @@
+@page "/"
+@inherits OwningComponentBase
+@using Marilog.Contracts.DTOs.Responses
+@using Marilog.Contracts.Interfaces.Services.SystemServices
+@using Marilog.Ship.Services.GeneralAccount
+@using Marilog.Ship.Services.Setup
+@using Microsoft.Extensions.DependencyInjection
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+@* Start page: this ship, the open MGA and what needs attention. One ship per installation,
+   so there is no vessel list — the vessel is set in the initial setup. *@
+
+@if (_status is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudText Typo="Typo.h5">@_status.VesselName</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4">
+        @_status.OwnerCompanyName
+        @if (!string.IsNullOrWhiteSpace(_status.ImoNumber)) { <span> · IMO @_status.ImoNumber</span> }
+        @if (_status.GrossTonnage is not null) { <span> · GT @_status.GrossTonnage?.ToString("N0")</span> }
+        · Base currency @_status.BaseCurrencyCode
+    </MudText>
+
+    <MudGrid Spacing="3">
+        @* ── General Account ───────────────────────────────────────────────── *@
+        <MudItem xs="12" md="4">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">General Account</MudText>
+                @if (_period is not null)
+                {
+                    <MudText Typo="Typo.body2">Open period from <b>@_period.From.ToString("dd.MM.yyyy")</b></MudText>
+                    @if (_period.MaxTo < Today)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                            The month ended on @_period.MaxTo.ToString("dd.MM.yyyy"). Count the cash and close the MGA.
+                        </MudAlert>
+                    }
+                }
+                <MudText Typo="Typo.body2" Class="mt-1">
+                    Last closed: @(_lastClosed is null ? "—" : $"{_lastClosed.Code} (closing {_lastClosed.ClosingBalance:N2})")
+                </MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Class="mt-2 px-0"
+                           OnClick="@(() => Nav.NavigateTo("/mga"))">Open General Account</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        @* ── Certificates ──────────────────────────────────────────────────── *@
+        <MudItem xs="12" md="4">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Vessel certificates</MudText>
+                <CertificateCounts Summary="_vesselCertificates" />
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Class="mt-2 px-0"
+                           OnClick="@(() => Nav.NavigateTo("/certificates"))">Open certificates</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Crew certificates</MudText>
+                <CertificateCounts Summary="_crewCertificates" />
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Class="mt-2 px-0"
+                           OnClick="@(() => Nav.NavigateTo("/certificates"))">Open certificates</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private IShipSetupService SetupService => ScopedServices.GetRequiredService<IShipSetupService>();
+    private IMgaService MgaService => ScopedServices.GetRequiredService<IMgaService>();
+    private IVesselCertificateService VesselCertificates => ScopedServices.GetRequiredService<IVesselCertificateService>();
+    private IPersonCertificateService CrewCertificates => ScopedServices.GetRequiredService<IPersonCertificateService>();
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+
+    private ShipSetupStatusResponse? _status;
+    private MgaOpenPeriod? _period;
+    private MgaListItem? _lastClosed;
+    private CertificateSummaryResponse? _vesselCertificates;
+    private CertificateSummaryResponse? _crewCertificates;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Sequential on purpose: one DbContext does not allow parallel queries.
+            _status = await SetupService.GetStatusAsync();
+            _period = await MgaService.GetOpenPeriodAsync();
+            _lastClosed = (await MgaService.GetClosedAsync()).FirstOrDefault();
+            if (_status.VesselId is int vesselId)
+                _vesselCertificates = await VesselCertificates.GetSummaryAsync(vesselId);
+            _crewCertificates = await CrewCertificates.GetSummaryAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -21,6 +21,9 @@ else if (_viewing is not null)
         <MudText Typo="Typo.h6">MGA @_viewing.Code</MudText>
         <MudText Typo="Typo.body2">@_viewing.From.ToString("dd.MM.yyyy") – @_viewing.To.ToString("dd.MM.yyyy")</MudText>
         <MudChip T="string" Size="Size.Small" Color="Color.Success">Closed @_viewing.ClosedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudChip>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   Disabled="@_busy" OnClick="@(() => PrintPdf(_viewing))">PDF</MudButton>
     </div>
     <MudText Typo="Typo.body2">@_viewing.VesselName · Master: @(_viewing.MasterName ?? "—")</MudText>
     @if (_viewing.EndReason is not null)
@@ -98,6 +101,8 @@ else
             <MudText Typo="Typo.caption">
                 Draft — computed from the records as they are now, with today's exchange rates.
             </MudText>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Disabled="@(_busy || _draft is null)" OnClick="@(() => PrintPdf(_draft!))">Draft PDF</MudButton>
         </MudPaper>
 
         @if (_draft is not null)
@@ -344,7 +349,7 @@ else
         });
         if (!closed) return;
 
-        Snackbar.Add($"MGA {_draft.Code} closed.", Severity.Success);
+        Snackbar.Add($"MGA {_draft.Code} closed. Open it below for the PDF, and make a backup now.", Severity.Success);
         await LoadAllAsync();
     }
 
@@ -391,7 +396,19 @@ else
         _viewing = null;
         await LoadAllAsync();
     }
+    // ── PDF ──────────────────────────────────────────────────────────────────
 
+    private void PrintPdf(MgaReport report)
+    {
+        try
+        {
+            MgaPdf.SaveAndOpen(report);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"PDF failed: {ex.Message}", Severity.Error);
+        }
+    }
     // ── Helper ───────────────────────────────────────────────────────────────
 
     private async Task RunAsync(Func<Task> action)
