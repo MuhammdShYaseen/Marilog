@@ -12,28 +12,6 @@ namespace Marilog.Ship.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "CargoType",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Code = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Category = table.Column<int>(type: "INTEGER", nullable: false),
-                    DefaultUnit = table.Column<int>(type: "INTEGER", nullable: false),
-                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    Guid = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CargoType", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "DocumentTypes",
                 columns: table => new
                 {
@@ -149,111 +127,6 @@ namespace Marilog.Ship.Migrations
                         principalTable: "StoredFolders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "BillOfLading",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    VoyageID = table.Column<int>(type: "INTEGER", nullable: false),
-                    BlNumber = table.Column<string>(type: "TEXT", nullable: false),
-                    BlType = table.Column<int>(type: "INTEGER", nullable: false),
-                    IssuanceType = table.Column<int>(type: "INTEGER", nullable: false),
-                    ShipperCompanyID = table.Column<int>(type: "INTEGER", nullable: false),
-                    ConsigneeCompanyID = table.Column<int>(type: "INTEGER", nullable: true),
-                    ConsigneeToOrder = table.Column<string>(type: "TEXT", nullable: true),
-                    NotifyPartyCompanyID = table.Column<int>(type: "INTEGER", nullable: true),
-                    CarrierCompanyID = table.Column<int>(type: "INTEGER", nullable: false),
-                    PortOfLoadingID = table.Column<int>(type: "INTEGER", nullable: false),
-                    PortOfDischargeID = table.Column<int>(type: "INTEGER", nullable: false),
-                    PlaceOfReceiptPortID = table.Column<int>(type: "INTEGER", nullable: true),
-                    PlaceOfReceiptId = table.Column<int>(type: "INTEGER", nullable: true),
-                    PlaceOfDeliveryPortID = table.Column<int>(type: "INTEGER", nullable: true),
-                    PlaceOfDeliveryId = table.Column<int>(type: "INTEGER", nullable: true),
-                    CargoDescription = table.Column<string>(type: "TEXT", nullable: false),
-                    HsCode = table.Column<string>(type: "TEXT", nullable: true),
-                    GrossWeightMT = table.Column<decimal>(type: "TEXT", nullable: false),
-                    VolumeM3 = table.Column<decimal>(type: "TEXT", nullable: true),
-                    PackageCount = table.Column<int>(type: "INTEGER", nullable: true),
-                    PackageType = table.Column<string>(type: "TEXT", nullable: true),
-                    MarksAndNumbers = table.Column<string>(type: "TEXT", nullable: true),
-                    FreightTerms = table.Column<int>(type: "INTEGER", nullable: false),
-                    FreightAmount = table.Column<string>(type: "TEXT", nullable: true),
-                    Incoterms = table.Column<string>(type: "TEXT", nullable: true),
-                    IssueDate = table.Column<DateOnly>(type: "TEXT", nullable: false),
-                    PlaceOfIssue = table.Column<string>(type: "TEXT", nullable: true),
-                    OnBoardDate = table.Column<DateOnly>(type: "TEXT", nullable: true),
-                    OriginalCopiesCount = table.Column<int>(type: "INTEGER", nullable: false),
-                    MasterBlID = table.Column<int>(type: "INTEGER", nullable: true),
-                    Notes = table.Column<string>(type: "TEXT", nullable: true),
-                    VoyageCargoID = table.Column<int>(type: "INTEGER", nullable: true),
-                    Clauses = table.Column<string>(type: "TEXT", nullable: true),
-                    Guid = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BillOfLading", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_BillOfLading_MasterBlID",
-                        column: x => x.MasterBlID,
-                        principalTable: "BillOfLading",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Companies_CarrierCompanyID",
-                        column: x => x.CarrierCompanyID,
-                        principalTable: "Companies",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Companies_ConsigneeCompanyID",
-                        column: x => x.ConsigneeCompanyID,
-                        principalTable: "Companies",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Companies_NotifyPartyCompanyID",
-                        column: x => x.NotifyPartyCompanyID,
-                        principalTable: "Companies",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Companies_ShipperCompanyID",
-                        column: x => x.ShipperCompanyID,
-                        principalTable: "Companies",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Ports_PlaceOfDeliveryId",
-                        column: x => x.PlaceOfDeliveryId,
-                        principalTable: "Ports",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Ports_PlaceOfReceiptId",
-                        column: x => x.PlaceOfReceiptId,
-                        principalTable: "Ports",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Ports_PortOfDischargeID",
-                        column: x => x.PortOfDischargeID,
-                        principalTable: "Ports",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Ports_PortOfLoadingID",
-                        column: x => x.PortOfLoadingID,
-                        principalTable: "Ports",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BillOfLading_Voyages_VoyageID",
-                        column: x => x.VoyageID,
-                        principalTable: "Voyages",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -414,14 +287,14 @@ namespace Marilog.Ship.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Payment",
+                name: "payments",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     DocumentId = table.Column<int>(type: "INTEGER", nullable: false),
                     SwiftTransferId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Discreption = table.Column<string>(type: "TEXT", nullable: true),
+                    Discreption = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
                     PaidAmount = table.Column<decimal>(type: "TEXT", nullable: false),
                     PaymentDate = table.Column<DateOnly>(type: "TEXT", nullable: false),
                     PaymentMethod = table.Column<int>(type: "INTEGER", nullable: false),
@@ -433,76 +306,14 @@ namespace Marilog.Ship.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Payment", x => x.Id);
+                    table.PrimaryKey("PK_payments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Payment_Documents_DocumentId",
+                        name: "FK_payments_Documents_DocumentId",
                         column: x => x.DocumentId,
                         principalTable: "Documents",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_CarrierCompanyID",
-                table: "BillOfLading",
-                column: "CarrierCompanyID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_ConsigneeCompanyID",
-                table: "BillOfLading",
-                column: "ConsigneeCompanyID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_Guid",
-                table: "BillOfLading",
-                column: "Guid",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_MasterBlID",
-                table: "BillOfLading",
-                column: "MasterBlID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_NotifyPartyCompanyID",
-                table: "BillOfLading",
-                column: "NotifyPartyCompanyID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_PlaceOfDeliveryId",
-                table: "BillOfLading",
-                column: "PlaceOfDeliveryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_PlaceOfReceiptId",
-                table: "BillOfLading",
-                column: "PlaceOfReceiptId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_PortOfDischargeID",
-                table: "BillOfLading",
-                column: "PortOfDischargeID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_PortOfLoadingID",
-                table: "BillOfLading",
-                column: "PortOfLoadingID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_ShipperCompanyID",
-                table: "BillOfLading",
-                column: "ShipperCompanyID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BillOfLading_VoyageID",
-                table: "BillOfLading",
-                column: "VoyageID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CargoType_Guid",
-                table: "CargoType",
-                column: "Guid",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_document_items_DocumentId",
@@ -595,13 +406,13 @@ namespace Marilog.Ship.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Payment_DocumentId",
-                table: "Payment",
+                name: "IX_payments_DocumentId",
+                table: "payments",
                 column: "DocumentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Payment_Guid",
-                table: "Payment",
+                name: "IX_payments_Guid",
+                table: "payments",
                 column: "Guid",
                 unique: true);
 
@@ -686,19 +497,13 @@ namespace Marilog.Ship.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "BillOfLading");
-
-            migrationBuilder.DropTable(
-                name: "CargoType");
-
-            migrationBuilder.DropTable(
                 name: "document_items");
 
             migrationBuilder.DropTable(
                 name: "DocumentAdjustments");
 
             migrationBuilder.DropTable(
-                name: "Payment");
+                name: "payments");
 
             migrationBuilder.DropTable(
                 name: "Tags");
